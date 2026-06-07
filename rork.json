@@ -1,0 +1,9 @@
+{
+  "apps": [
+    {
+      "name": "GET.ride",
+      "path": "expo",
+      "framework": "react-native"
+    }
+  ]
+}
