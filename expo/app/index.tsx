@@ -18,7 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { MapPin, Menu, ChevronRight, Navigation, Search, Users, X, Car, Clock, Bell, ShoppingBag, Package, Building2, Truck, Bike, Bus, Plane, type LucideIcon } from "lucide-react-native";
 import { MapView, Marker, reverseGeocode } from "@/utils/maps";
-import { runWithMappingRotation } from "@/utils/mappingClient";
+import { supabase } from "@/utils/supabase";
 import NearbyVehicleMarker from "@/components/NearbyVehicleMarker";
 import { setVehicles as setVehicleStore } from "@/utils/vehicleStore";
 import { useLocation } from "@/contexts/LocationContext";
@@ -534,162 +534,96 @@ export default function HomeScreen() {
     setVehicleIds(next.map((v) => ({ id: v.id, type: v.type, latitude: v.latitude, longitude: v.longitude, heading: v.heading })));
   }, []);
 
-  const MAX_RADIUS_DEG = 0.0045;
-  const ROADS_API_KEY = 'AIzaSyBj89Dt9v6SiDMvA3XUsoRm6ey6L-nKMfI';
-
-  const snapPointsToRoads = React.useCallback(async (points: { latitude: number; longitude: number }[]): Promise<{ latitude: number; longitude: number }[]> => {
-    try {
-      if (points.length === 0) return points;
-      const chunks: { latitude: number; longitude: number }[][] = [];
-      for (let i = 0; i < points.length; i += 100) {
-        chunks.push(points.slice(i, i + 100));
+  // Maps partner_types array to the closest rideType id available in admin settings
+  const mapToRideType = React.useCallback((partnerTypes: string[]): string => {
+    const lower = partnerTypes.map(t => t.toLowerCase());
+    for (const rt of rideTypes) {
+      const rtId = rt.id.toLowerCase();
+      const rtName = rt.name.toLowerCase();
+      if (lower.some(t => rtId.includes(t) || t.includes(rtId) || rtName.includes(t) || t.includes(rtName))) {
+        return rt.id;
       }
-      const results: { latitude: number; longitude: number }[] = points.map((p) => ({ ...p }));
-      let offset = 0;
-      for (const chunk of chunks) {
-        const param = chunk.map((p) => `${p.latitude},${p.longitude}`).join('|');
-        const buildUrl = (key: string) => `https://roads.googleapis.com/v1/nearestRoads?points=${param}&key=${key}`;
-        const data = await runWithMappingRotation<any>(
-          "rider-home",
-          "maps",
-          async (ctx) => {
-            const k = ctx.key || ROADS_API_KEY;
-            const r = await fetch(buildUrl(k));
-            const j = await r.json();
-            return { ok: r.ok && Array.isArray(j?.snappedPoints), value: j };
-          },
-          async () => {
-            const r = await fetch(buildUrl(ROADS_API_KEY));
-            return r.json();
-          }
-        );
-        if (Array.isArray(data?.snappedPoints)) {
-          for (const sp of data.snappedPoints) {
-            const idx = (typeof sp.originalIndex === 'number' ? sp.originalIndex : 0) + offset;
-            if (results[idx] && sp.location) {
-              results[idx] = { latitude: sp.location.latitude, longitude: sp.location.longitude };
-            }
-          }
-        }
-        offset += chunk.length;
-      }
-      return results;
-    } catch (e) {
-      console.log('[HomeScreen] snapPointsToRoads failed, using raw points', e);
-      return points;
     }
-  }, []);
+    return rideTypes[0]?.id ?? 'ride';
+  }, [rideTypes]);
 
-  const generateNearbyVehicles = React.useCallback(async (centerLat: number, centerLng: number) => {
-    const types = ['ride', 'comfort', '6seater', 'premium'];
-    const raw: { id: string; type: string; latitude: number; longitude: number; heading: number }[] = [];
-    const lngScale = 1 / Math.max(0.2, Math.cos((centerLat * Math.PI) / 180));
-    types.forEach((t) => {
-      const count = t === 'ride' ? 12 : t === 'comfort' ? 8 : t === '6seater' ? 6 : 5;
-      for (let i = 0; i < count; i++) {
-        const radius = MAX_RADIUS_DEG * Math.sqrt(Math.random());
-        const angle = Math.random() * Math.PI * 2;
-        raw.push({
-          id: `${t}-${i}`,
-          type: t,
-          latitude: centerLat + Math.cos(angle) * radius,
-          longitude: centerLng + Math.sin(angle) * radius * lngScale,
-          heading: Math.random() * 360,
-        });
-      }
-    });
-    const snapped = await snapPointsToRoads(raw.map((v) => ({ latitude: v.latitude, longitude: v.longitude })));
-    return raw.map((v, idx) => ({ ...v, latitude: snapped[idx].latitude, longitude: snapped[idx].longitude }));
-  }, [snapPointsToRoads]);
+  // userId → sessionId mapping for Realtime location update routing
+  const driverUserIdMapRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
+    if (!supabase) return;
     let cancelled = false;
-    if (pinLocation && nearbyVehiclesRef.current.length === 0) {
-      (async () => {
-        const initial = await generateNearbyVehicles(pinLocation.latitude, pinLocation.longitude);
-        if (cancelled) return;
-        console.log('[HomeScreen] Spawned road-snapped vehicles around pin:', initial.length);
-        replaceNearbyVehicles(initial);
-      })();
-    }
-    return () => { cancelled = true; };
-  }, [pinLocation, generateNearbyVehicles, replaceNearbyVehicles]);
 
-  useEffect(() => {
-    if (!pinLocation) return;
-    const { latitude: pLat, longitude: pLng } = pinLocation;
-    let cancelled = false;
-    const current = nearbyVehiclesRef.current;
-    const needsRespawn = current.length > 0 && current.some((v) => {
-      const dLat = v.latitude - pLat;
-      const dLng = v.longitude - pLng;
-      return Math.sqrt(dLat * dLat + dLng * dLng) > MAX_RADIUS_DEG;
-    });
-    if (needsRespawn) {
-      (async () => {
-        const fresh = await generateNearbyVehicles(pLat, pLng);
-        if (cancelled) return;
-        replaceNearbyVehicles(fresh);
-      })();
-    }
-    return () => { cancelled = true; };
-  }, [pinLocation, generateNearbyVehicles, replaceNearbyVehicles]);
+    const fetchAndSubscribe = async () => {
+      const { data, error } = await supabase
+        .from('online_driver_locations')
+        .select('session_id, user_id, partner_types, vehicle_type, latitude, longitude, heading');
 
-  const tickCountRef = useRef<number>(0);
-  useEffect(() => {
-    if (!pinLocation) return;
-    const TICK_MS = 1000;
-    const SNAP_EVERY = 5;
-    const interval = setInterval(async () => {
-      const current = nearbyVehiclesRef.current;
-      if (current.length === 0) return;
-      const { latitude: pLat, longitude: pLng } = pinLocation;
-      const proposed = current.map((v) => {
-        const step = 0.00002 + Math.random() * 0.00003;
-        const turn = (Math.random() - 0.5) * 12;
-        let newHeading = (v.heading + turn + 360) % 360;
-        let rad = (newHeading * Math.PI) / 180;
-        let newLat = v.latitude + Math.cos(rad) * step;
-        let newLng = v.longitude + Math.sin(rad) * step;
-        const dLat = newLat - pLat;
-        const dLng = newLng - pLng;
-        const dist = Math.sqrt(dLat * dLat + dLng * dLng);
-        if (dist > MAX_RADIUS_DEG) {
-          const towards = Math.atan2(pLat - v.latitude, pLng - v.longitude);
-          newHeading = ((towards * 180) / Math.PI + 360) % 360;
-          rad = (newHeading * Math.PI) / 180;
-          newLat = v.latitude + Math.cos(rad) * step;
-          newLng = v.longitude + Math.sin(rad) * step;
-        }
-        return { ...v, latitude: newLat, longitude: newLng, heading: newHeading };
-      });
+      if (cancelled) return;
 
-      tickCountRef.current = (tickCountRef.current + 1) % SNAP_EVERY;
-      if (tickCountRef.current !== 0) {
-        setNearbyVehicles(proposed);
+      if (error) {
+        console.log('[HomeScreen] Failed to fetch online drivers:', error.message);
         return;
       }
 
-      const snapped = await snapPointsToRoads(proposed.map((p) => ({ latitude: p.latitude, longitude: p.longitude })));
-      const next = proposed.map((p, idx) => {
-        const newLat = snapped[idx].latitude;
-        const newLng = snapped[idx].longitude;
-        const heading = ((Math.atan2(newLng - p.longitude, newLat - p.latitude) * 180) / Math.PI + 360) % 360;
-        const moved = Math.abs(newLat - p.latitude) + Math.abs(newLng - p.longitude) > 1e-6;
-        return { ...p, latitude: newLat, longitude: newLng, heading: moved ? heading : p.heading };
-      });
-      setNearbyVehicles(next);
-    }, TICK_MS);
-    return () => clearInterval(interval);
-  }, [pinLocation, snapPointsToRoads]);
+      if (data && data.length > 0) {
+        driverUserIdMapRef.current.clear();
+        const drivers = data.map((d: any) => {
+          driverUserIdMapRef.current.set(d.user_id, d.session_id);
+          return {
+            id: d.session_id as string,
+            type: mapToRideType(d.partner_types ?? []),
+            latitude: d.latitude as number,
+            longitude: d.longitude as number,
+            heading: (d.heading as number) ?? 0,
+          };
+        });
+        console.log('[HomeScreen] Loaded real online drivers:', drivers.length);
+        replaceNearbyVehicles(drivers);
+      }
+    };
+
+    fetchAndSubscribe();
+
+    // Realtime: update driver position on each new location insert
+    const channel = supabase
+      .channel('driver-locations')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'user_location_history' },
+        (payload: any) => {
+          if (cancelled) return;
+          const loc = payload.new;
+          const sessionId = driverUserIdMapRef.current.get(loc.user_id);
+          if (!sessionId) return;
+          const current = nearbyVehiclesRef.current;
+          const updated = current.map(v =>
+            v.id === sessionId
+              ? { ...v, latitude: loc.latitude, longitude: loc.longitude, heading: loc.heading ?? v.heading }
+              : v
+          );
+          setNearbyVehicles(updated);
+        }
+      )
+      .subscribe();
+
+    // Re-fetch every 30s to pick up newly online/offline drivers
+    const refreshInterval = setInterval(fetchAndSubscribe, 30_000);
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+      clearInterval(refreshInterval);
+    };
+  }, [mapToRideType, replaceNearbyVehicles]);
 
   const visibleVehicles = useMemo(() => {
     if (!displaySettings.showVehicleMarkers) return [];
     if (!displaySettings.rideTypes) return [];
     if (rideTypes.length === 0) return [];
-    if (!rideTypes.some((t) => t.id === selectedRideType)) return [];
-    return vehicleIds.filter((v) => v.type === selectedRideType);
-  }, [vehicleIds, selectedRideType, rideTypes, displaySettings.showVehicleMarkers, displaySettings.rideTypes]);
+    // Show all real drivers regardless of selected type — they serve all services
+    return vehicleIds;
+  }, [vehicleIds, rideTypes, displaySettings.showVehicleMarkers, displaySettings.rideTypes]);
 
   const allRecentLocations = useMemo(() => [
     { id: '1', name: 'Shaftsbury Putrajaya', lat: 2.9264, lng: 101.6964 },
