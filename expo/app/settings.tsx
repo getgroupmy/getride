@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { ArrowLeft, ChevronRight } from "lucide-react-native";
+import { Menu, ChevronRight } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -84,7 +84,7 @@ export default function SettingsScreen() {
             style={styles.menuButton}
             onPress={handleBack}
           >
-            <ArrowLeft color={Colors.text} size={24} />
+            <Menu color={Colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>Settings</Text>
           <View style={styles.placeholder} />
