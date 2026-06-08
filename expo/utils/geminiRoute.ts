@@ -62,8 +62,6 @@ export interface RouteEstimate {
   tolls?: TollBooth[];
   /** Total toll charges along the route in local currency. */
   tollTotal?: number;
-  /** Ordered route geometry (decimal-degree coordinates) the AI based the estimate on. */
-  polyline?: LatLng[];
 }
 
 /** @deprecated Use {@link RouteEstimate}. Kept as an alias for callers. */
@@ -87,21 +85,17 @@ function buildPrompt(origin: LatLng, destination: LatLng): string {
   return (
     `You are a driving route estimator with access to real-time traffic and toll road data. ` +
     `For the trip "${userQuery}", estimate the total driving distance, the ` +
-    `current driving time including live traffic, the driving route geometry, and the toll booths/plazas along the route ` +
+    `current driving time including live traffic, and the toll booths/plazas along the route ` +
     `with their individual charges in local currency. ` +
     `Respond with ONLY a compact JSON object, no markdown, no extra text, of the form: ` +
     `{"distance_km": <number>, "duration_min": <number>, "summary": "<short text>", ` +
-    `"route": [[<lat>, <lng>], ...], ` +
     `"toll_count": <integer>, "toll_total": <number>, "tolls": [{"name": "<booth name>", "charge": <number>, "lat": <number>, "lng": <number>}]}. ` +
     `distance_km is total kilometres (number). duration_min is total minutes with traffic (integer). ` +
-    `route is the actual driving path as an ordered array of [latitude, longitude] decimal-degree points from origin to destination, ` +
-    `following real roads (15-60 points is enough to trace the major road geometry). ` +
     `toll_count is the number of toll booths/plazas on the route (integer, 0 if none). ` +
     `toll_total is the sum of all toll charges (number, 0 if none). ` +
     `tolls is an array of each real toll booth/plaza that physically exists on this route, in travel order, ` +
     `each with its name, charge, and exact geographic coordinates (lat and lng as decimal degrees) of the booth location. ` +
-    `Every toll booth coordinate MUST lie on the route path you return. ` +
-    `Use real, known road geometry and toll plaza coordinates; do not invent coordinates. Empty arrays if none.`
+    `Use real, known toll plaza coordinates; do not invent coordinates. Empty array if none.`
   );
 }
 
@@ -379,7 +373,6 @@ function parseEstimate(content: string): RouteEstimate | null {
       distance_km?: number | string;
       duration_min?: number | string;
       summary?: string;
-      route?: ([number | string, number | string] | { lat?: number | string; lng?: number | string })[];
       toll_count?: number | string;
       toll_total?: number | string;
       tolls?: { name?: string; charge?: number | string; lat?: number | string; lng?: number | string }[];
@@ -419,22 +412,6 @@ function parseEstimate(content: string): RouteEstimate | null {
       ? parseFloat(Math.max(0, parsedTollTotal).toFixed(2))
       : parseFloat(tolls.reduce((sum, t) => sum + t.charge, 0).toFixed(2));
 
-    const polyline: LatLng[] = Array.isArray(obj.route)
-      ? obj.route
-          .map((p) => {
-            const lat = Array.isArray(p) ? Number(p[0]) : Number(p?.lat);
-            const lng = Array.isArray(p) ? Number(p[1]) : Number(p?.lng);
-            return { latitude: lat, longitude: lng };
-          })
-          .filter(
-            (p) =>
-              Number.isFinite(p.latitude) &&
-              Number.isFinite(p.longitude) &&
-              p.latitude !== 0 &&
-              p.longitude !== 0
-          )
-      : [];
-
     return {
       distanceKm: parseFloat(distanceKm.toFixed(1)),
       durationMin: Math.ceil(durationMin),
@@ -442,7 +419,6 @@ function parseEstimate(content: string): RouteEstimate | null {
       tollCount,
       tollTotal,
       tolls,
-      polyline: polyline.length >= 2 ? polyline : undefined,
     };
   } catch {
     return null;

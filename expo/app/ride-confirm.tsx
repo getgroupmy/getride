@@ -692,17 +692,6 @@ export default function RideConfirmScreen() {
           setDistance(gemini.distanceKm);
           setDuration(gemini.durationMin);
           setTotalRouteDuration(gemini.durationMin);
-          // The drawn route line is generated from the AI call: when the AI
-          // returns a usable polyline, it becomes the blue route line so the
-          // line and the toll booths the AI placed share the exact same path.
-          // Google Directions geometry (set above) only stands in as a fallback
-          // when the AI returns no usable polyline.
-          if (gemini.polyline && gemini.polyline.length >= 2) {
-            console.log("Using AI route polyline:", gemini.polyline.length, "points");
-            setRouteCoords(gemini.polyline);
-          } else if (!result || !result.coordinates) {
-            console.log("AI returned no polyline and Directions had no geometry");
-          }
           if (typeof gemini.tollCount === "number") setAiTollCount(gemini.tollCount);
           if (typeof gemini.tollTotal === "number") setAiTollTotal(gemini.tollTotal);
           const aiTolls = gemini.tolls ?? [];
