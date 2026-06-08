@@ -83,26 +83,24 @@ interface CallResult {
 function buildPrompt(origin: LatLng, destination: LatLng): string {
   const originStr = `${origin.latitude},${origin.longitude}`;
   const destStr = `${destination.latitude},${destination.longitude}`;
+  const userQuery = `${originStr} to ${destStr} realtime minute and distance with traffic`;
   return (
     `You are a driving route estimator with access to real-time traffic and toll road data. ` +
-    `Plan the trip from origin ${originStr} to destination ${destStr} by reasoning in this strict order:\n` +
-    `STEP 1 — DIRECTION: Determine the single best driving direction/route between origin and destination, ` +
-    `choosing the fastest realistic path given current live traffic conditions.\n` +
-    `STEP 2 — ROUTE METRICS & GEOMETRY: For that chosen best route, compute the total driving distance and the ` +
-    `current driving time including live traffic, and produce the route polyline. The polyline must come 100% from you: ` +
-    `an ordered array of [latitude, longitude] decimal-degree points that traces the exact roads of the chosen route ` +
-    `from origin to destination, following real road geometry (use 30-120 points so the line accurately hugs the roads, ` +
-    `including curves, ramps and interchanges). distance_km and duration_min MUST correspond to this exact polyline.\n` +
-    `STEP 3 — TOLLS: Only after the route is fixed, list every real toll booth/plaza that physically lies ON that exact ` +
-    `polyline, in travel order, with each booth's name, charge in local currency, and exact decimal-degree coordinates. ` +
-    `Every toll coordinate MUST sit on the polyline from STEP 2.\n` +
+    `For the trip "${userQuery}", estimate the total driving distance, the ` +
+    `current driving time including live traffic, the driving route geometry, and the toll booths/plazas along the route ` +
+    `with their individual charges in local currency. ` +
     `Respond with ONLY a compact JSON object, no markdown, no extra text, of the form: ` +
     `{"distance_km": <number>, "duration_min": <number>, "summary": "<short text>", ` +
     `"route": [[<lat>, <lng>], ...], ` +
     `"toll_count": <integer>, "toll_total": <number>, "tolls": [{"name": "<booth name>", "charge": <number>, "lat": <number>, "lng": <number>}]}. ` +
     `distance_km is total kilometres (number). duration_min is total minutes with traffic (integer). ` +
+    `route is the actual driving path as an ordered array of [latitude, longitude] decimal-degree points from origin to destination, ` +
+    `following real roads (15-60 points is enough to trace the major road geometry). ` +
     `toll_count is the number of toll booths/plazas on the route (integer, 0 if none). ` +
     `toll_total is the sum of all toll charges (number, 0 if none). ` +
+    `tolls is an array of each real toll booth/plaza that physically exists on this route, in travel order, ` +
+    `each with its name, charge, and exact geographic coordinates (lat and lng as decimal degrees) of the booth location. ` +
+    `Every toll booth coordinate MUST lie on the route path you return. ` +
     `Use real, known road geometry and toll plaza coordinates; do not invent coordinates. Empty arrays if none.`
   );
 }
