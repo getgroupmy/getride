@@ -50,6 +50,10 @@ function RootLayoutNav() {
     );
     setIsConnected(connected);
     setShowConnectionModal(true);
+    if (connected) {
+      const timer = setTimeout(() => setShowConnectionModal(false), 2000);
+      return () => clearTimeout(timer);
+    }
   }, [isLoading, serverReachable, isSupabaseAuth]);
 
   useEffect(() => {
