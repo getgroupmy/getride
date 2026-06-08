@@ -168,16 +168,6 @@ const MOCK_DRIVER_OFFERS: DriverOffer[] = [
   },
 ];
 
-function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const MENU_WIDTH = SCREEN_WIDTH * 0.68;
 
@@ -269,7 +259,6 @@ export default function RideConfirmScreen() {
   const [distance, setDistance] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [isCalculatingFare, setIsCalculatingFare] = useState(false);
-  const [routeError, setRouteError] = useState<string | null>(null);
   const [routeCoords, setRouteCoords] = useState<{latitude: number, longitude: number}[]>([]);
   const [tollBooths, setTollBooths] = useState<TollBooth[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -679,24 +668,16 @@ export default function RideConfirmScreen() {
         if (isCancelled) return;
 
         if (result) {
-          setRouteError(null);
           setSegmentDurations(result.legDurations || []);
           setTotalRouteDuration(result.duration);
           setDistance(result.distance);
           setDuration(result.duration);
           if (result.coordinates) setRouteCoords(result.coordinates);
         } else {
-          console.log("Route calculation failed, using straight-line estimate");
-          const straightLineKm = haversineDistanceKm(
-            pickupLat, pickupLng,
-            finalDest.lat, finalDest.lng
-          );
-          const estimatedKm = parseFloat((straightLineKm * 1.3).toFixed(1));
-          const estimatedMin = Math.ceil((estimatedKm / 40) * 60);
-          setDistance(estimatedKm);
-          setDuration(estimatedMin);
-          setTotalRouteDuration(estimatedMin);
-          setRouteError("Could not load live route. Fare is an estimate based on straight-line distance.");
+          console.log("Failed to calculate route, using defaults");
+          setDistance(35);
+          setDuration(43);
+          setTotalRouteDuration(43);
         }
 
         // Override distance/time with Gemini's traffic-aware estimate for fare
@@ -742,17 +723,9 @@ export default function RideConfirmScreen() {
       } catch (error) {
         if (isCancelled) return;
         console.error("Error calculating route:", error);
-        const finalDest = destinations[destinations.length - 1];
-        const straightLineKm = haversineDistanceKm(
-          pickupLat, pickupLng,
-          finalDest.lat, finalDest.lng
-        );
-        const estimatedKm = parseFloat((straightLineKm * 1.3).toFixed(1));
-        const estimatedMin = Math.ceil((estimatedKm / 40) * 60);
-        setDistance(estimatedKm);
-        setDuration(estimatedMin);
-        setTotalRouteDuration(estimatedMin);
-        setRouteError("Could not load live route. Fare is an estimate based on straight-line distance.");
+        setDistance(35);
+        setDuration(43);
+        setTotalRouteDuration(43);
       } finally {
         if (!isCancelled) setIsCalculatingFare(false);
       }
@@ -2013,20 +1986,6 @@ export default function RideConfirmScreen() {
       paddingHorizontal: 16,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
-    },
-    routeErrorBanner: {
-      marginHorizontal: 16,
-      marginBottom: 8,
-      backgroundColor: "#7C3A00",
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-    },
-    routeErrorText: {
-      color: "#FFD580",
-      fontSize: 12,
-      fontWeight: "500" as const,
-      lineHeight: 18,
     },
     promoBannerContent: {
       flexDirection: "row" as const,
@@ -4405,13 +4364,6 @@ export default function RideConfirmScreen() {
             <ChevronRight color="#6B7280" size={20} />
           </TouchableOpacity>
         </Animated.View>
-      )}
-
-      {/* Route error warning banner */}
-      {routeError && !isCalculatingFare && (
-        <View style={styles.routeErrorBanner}>
-          <Text style={styles.routeErrorText}>⚠ {routeError}</Text>
-        </View>
       )}
 
       {/* Bottom Sheet - hide when searching */}
