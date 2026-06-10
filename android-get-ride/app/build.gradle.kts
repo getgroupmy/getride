@@ -13,8 +13,8 @@ android {
         applicationId = "com.taxxee.teksi"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 43
+        versionName = "1.4.3"
     }
 
     buildTypes {
