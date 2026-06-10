@@ -6,7 +6,7 @@
       "framework": "react-native"
     },
     {
-      "name": "get.ride",
+      "name": "Android",
       "path": "android-get-ride",
       "framework": "kotlin",
       "settings": {
