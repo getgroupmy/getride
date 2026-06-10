@@ -4,15 +4,6 @@
       "name": "GET.ride",
       "path": "expo",
       "framework": "react-native"
-    },
-    {
-      "name": "Android",
-      "path": "android-get-ride",
-      "framework": "kotlin",
-      "settings": {
-        "androidPackage": "com.taxxee.teksi"
-      }
     }
-  ],
-  "$schema": "https://rork.com/schema/rork.json"
+  ]
 }
