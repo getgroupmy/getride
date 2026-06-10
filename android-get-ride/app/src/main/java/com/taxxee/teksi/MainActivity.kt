@@ -1,11 +1,11 @@
-package com.rork.getride
+package com.taxxee.teksi
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.rork.getride.ui.navigation.AppNavigation
-import com.rork.getride.ui.theme.AppTheme
+import com.taxxee.teksi.ui.navigation.AppNavigation
+import com.taxxee.teksi.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

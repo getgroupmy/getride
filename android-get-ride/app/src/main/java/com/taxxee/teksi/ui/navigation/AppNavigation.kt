@@ -1,10 +1,10 @@
-package com.rork.getride.ui.navigation
+package com.taxxee.teksi.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.rork.getride.ui.screens.HomeScreen
+import com.taxxee.teksi.ui.screens.HomeScreen
 
 @Composable
 fun AppNavigation() {

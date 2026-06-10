@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.rork.getride"
+    namespace = "com.taxxee.teksi"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.rork.getride"
+        applicationId = "com.taxxee.teksi"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

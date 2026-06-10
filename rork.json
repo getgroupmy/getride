@@ -8,7 +8,10 @@
     {
       "name": "get.ride",
       "path": "android-get-ride",
-      "framework": "kotlin"
+      "framework": "kotlin",
+      "settings": {
+        "androidPackage": "com.taxxee.teksi"
+      }
     }
   ],
   "$schema": "https://rork.com/schema/rork.json"

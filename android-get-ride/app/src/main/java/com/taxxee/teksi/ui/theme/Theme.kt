@@ -1,4 +1,4 @@
-package com.rork.getride.ui.theme
+package com.taxxee.teksi.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
