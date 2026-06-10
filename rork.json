@@ -4,6 +4,12 @@
       "name": "GET.ride",
       "path": "expo",
       "framework": "react-native"
+    },
+    {
+      "name": "Android",
+      "path": "android",
+      "framework": "kotlin"
     }
-  ]
+  ],
+  "$schema": "https://rork.com/schema/rork.json"
 }
