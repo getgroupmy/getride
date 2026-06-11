@@ -47,6 +47,7 @@ import { estimateRouteWithGemini, type TollBooth } from "@/utils/geminiRoute";
 import { useLocation } from "@/contexts/LocationContext";
 import { Star } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 
 const CHIME_SOURCE = { uri: "https://cdn.pixabay.com/audio/2022/11/17/audio_febc508520.mp3" };
 
@@ -201,6 +202,7 @@ export default function RideConfirmScreen() {
   
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const { settings: displaySettings } = useDisplaySettings();
   const { setSkipNextLocationDetection, currency } = useLocation();
   const { getEntries } = useAdminData();
   const vehicleServiceEntries = getEntries("vehicle-services");
@@ -3757,7 +3759,7 @@ export default function RideConfirmScreen() {
             )}
 
             {/* Real per-booth markers when the AI returned coordinates */}
-            {!isSearchingDriver && tollBooths.map((toll) => {
+            {!isSearchingDriver && displaySettings.showAiTollBooths && tollBooths.map((toll) => {
               if (typeof toll.latitude !== "number" || typeof toll.longitude !== "number") return null;
               return (
                 <Marker
@@ -3795,7 +3797,7 @@ export default function RideConfirmScreen() {
             })}
 
             {/* Fallback single toll icon at route midpoint when no booth coordinates exist */}
-            {!isSearchingDriver && tollBooths.length > 0 && tollBooths.every((t) => typeof t.latitude !== "number") && routeCoords.length > 0 && (() => {
+            {!isSearchingDriver && displaySettings.showAiTollBooths && tollBooths.length > 0 && tollBooths.every((t) => typeof t.latitude !== "number") && routeCoords.length > 0 && (() => {
               let midPoint;
               
               if (destinations.length > 1) {
@@ -4477,14 +4479,14 @@ export default function RideConfirmScreen() {
                               ? "Recommended fare" 
                               : `Recommended fare: ${currency.symbol} ${recommendedPrice}`}
                           </Text>
-                          {tollBooths.length > 0 && (
+                          {displaySettings.showAiTollBooths && tollBooths.length > 0 && (
                             <TouchableOpacity style={styles.tollChargesRow} onPress={(e) => { e.stopPropagation(); openTollSheet(); }}>
                               <Text style={styles.tollChargesText}>
                                 Est. Toll Booths: {tollBooths.length}
                               </Text>
                             </TouchableOpacity>
                           )}
-                          {(() => {
+                          {displaySettings.showAiTollCharges && (() => {
                             const inlineTollTotal = aiTollTotal != null && aiTollTotal > 0
                               ? aiTollTotal
                               : (tollBooths.length > 0 ? tollBooths.length * 3.5 : 0);
@@ -4497,8 +4499,8 @@ export default function RideConfirmScreen() {
                             );
                           })()}
                         </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={styles.fareButton} 
+                        <TouchableOpacity
+                          style={styles.fareButton}
                           onPress={(e) => { e.stopPropagation(); adjustFare(5); }}
                         >
                           <Plus color={colors.text} size={24} />
@@ -4578,14 +4580,14 @@ export default function RideConfirmScreen() {
                               ? "Recommended fare" 
                               : `Recommended fare: ${currency.symbol} ${recommendedPrice}`}
                           </Text>
-                          {tollBooths.length > 0 && (
+                          {displaySettings.showAiTollBooths && tollBooths.length > 0 && (
                             <TouchableOpacity style={styles.tollChargesRow} onPress={(e) => { e.stopPropagation(); openTollSheet(); }}>
                               <Text style={styles.tollChargesText}>
                                 Est. Toll Booths: {tollBooths.length}
                               </Text>
                             </TouchableOpacity>
                           )}
-                          {(() => {
+                          {displaySettings.showAiTollCharges && (() => {
                             const inlineTollTotal = aiTollTotal != null && aiTollTotal > 0
                               ? aiTollTotal
                               : (tollBooths.length > 0 ? tollBooths.length * 3.5 : 0);
@@ -4598,8 +4600,8 @@ export default function RideConfirmScreen() {
                             );
                           })()}
                         </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={styles.fareButton} 
+                        <TouchableOpacity
+                          style={styles.fareButton}
                           onPress={(e) => { e.stopPropagation(); adjustFare(5); }}
                         >
                           <Plus color={colors.text} size={24} />
