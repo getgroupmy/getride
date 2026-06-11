@@ -2007,7 +2007,7 @@ export default function RideConfirmScreen() {
       paddingHorizontal: 16,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
-      zIndex: 1200,
+      zIndex: 1300,
     },
     promoBannerContent: {
       flexDirection: "row" as const,
@@ -2028,6 +2028,7 @@ export default function RideConfirmScreen() {
       right: 0,
       backgroundColor: colors.gray[50],
       paddingBottom: insets.bottom,
+      zIndex: 1400,
     },
     dragHandleArea: {
       width: "100%" as const,
@@ -2053,7 +2054,7 @@ export default function RideConfirmScreen() {
     },
     collapsedCarouselContent: {
       paddingTop: 20,
-      paddingBottom: 260,
+      paddingBottom: 210,
     },
     rideListSpacer: {
       height: 0,
@@ -4366,28 +4367,6 @@ export default function RideConfirmScreen() {
         </View>
       )}
 
-      {/* Promo Code Banner - hide when searching */}
-      {!isSearchingDriver && (
-        <Animated.View 
-          style={[
-            styles.promoBanner,
-            {
-              bottom: bottomSheetHeight.interpolate({
-                inputRange: [BOTTOM_SHEET_MAP_DRAG_HEIGHT, BOTTOM_SHEET_MIN_HEIGHT, BOTTOM_SHEET_MAX_HEIGHT],
-                outputRange: [BOTTOM_SHEET_MAP_DRAG_HEIGHT + FIXED_BOTTOM_HEIGHT - 155 - 40, BOTTOM_SHEET_MIN_HEIGHT + FIXED_BOTTOM_HEIGHT - 155, BOTTOM_SHEET_MAX_HEIGHT + FIXED_BOTTOM_HEIGHT - 155],
-              })
-            }
-          ]}
-          {...menuPanResponder.panHandlers}
-        >
-          <TouchableOpacity style={styles.promoBannerContent} onPress={openPromoCodeSheet}>
-            <Tag color="#6B7280" size={18} />
-            <Text style={styles.promoBannerText}>Got promo code? Use it here</Text>
-            <ChevronRight color="#6B7280" size={20} />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
-
       {/* Bottom Sheet - hide when searching */}
       {!isSearchingDriver && <Animated.View style={[styles.bottomSheet, { height: bottomSheetHeight }]} {...menuPanResponder.panHandlers}>
         <View {...panResponder.panHandlers} style={styles.dragHandleArea}>
@@ -4455,8 +4434,8 @@ export default function RideConfirmScreen() {
                     style={[
                       styles.collapsedRideCard,
                       isSelected && styles.collapsedRideCardSelected,
-                      isLastItem && isSelected && { marginBottom: 200 },
-                      isLastItem && !isSelected && { marginBottom: 120 },
+                      isLastItem && isSelected && { marginBottom: 80 },
+                      isLastItem && !isSelected && { marginBottom: 0 },
                       isSelected && { transform: [{ translateX: shakeAnim }] },
                     ]}
                   >
@@ -4681,6 +4660,23 @@ export default function RideConfirmScreen() {
         )}
 
       </Animated.View>}
+
+      {/* Promo Code Banner - rendered above bottom sheet, hide when searching */}
+      {!isSearchingDriver && (
+        <Animated.View
+          style={[
+            styles.promoBanner,
+            { bottom: FIXED_BOTTOM_HEIGHT }
+          ]}
+          {...menuPanResponder.panHandlers}
+        >
+          <TouchableOpacity style={styles.promoBannerContent} onPress={openPromoCodeSheet}>
+            <Tag color="#6B7280" size={18} />
+            <Text style={styles.promoBannerText}>Got promo code? Use it here</Text>
+            <ChevronRight color="#6B7280" size={20} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       {/* Fixed Bottom Container - hide when searching */}
       {!isSearchingDriver && (
