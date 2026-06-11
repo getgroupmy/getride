@@ -329,8 +329,8 @@ export const [LocationProvider, useLocation] = createContextHook(() => {
         currentAddress: addressData,
         countryCode: state.countryCode,
       });
-      
-      return currentLocation;
+
+      return { location: currentLocation, address: addressData };
     } catch (error: any) {
       const code = error?.code;
       const message = error?.message ?? String(error);

@@ -808,14 +808,18 @@ export default function HomeScreen() {
     resetAnimations();
     
     // Trigger location detection and animate map
-    refreshLocation().then((newLocation) => {
-      if (newLocation) {
+    refreshLocation().then((result) => {
+      if (result) {
+        const { location: newLocation, address: newAddress } = result;
         console.log("Location detected:", newLocation.coords);
         setPinLocation({
           latitude: newLocation.coords.latitude,
           longitude: newLocation.coords.longitude,
         });
-        
+        if (newAddress) {
+          setCurrentAddress(newAddress);
+        }
+
         if (mapRef.current && Platform.OS !== "web") {
           mapRef.current.animateToRegion(
             {
@@ -905,14 +909,18 @@ export default function HomeScreen() {
         console.log("Skipping location detection (coming from ride-confirm back button)");
       } else {
         console.log("Triggering location detection on focus");
-        refreshLocation().then((newLocation) => {
-          if (newLocation) {
+        refreshLocation().then((result) => {
+          if (result) {
+            const { location: newLocation, address: newAddress } = result;
             console.log("Location detected on focus:", newLocation.coords);
             setPinLocation({
               latitude: newLocation.coords.latitude,
               longitude: newLocation.coords.longitude,
             });
-            
+            if (newAddress) {
+              setCurrentAddress(newAddress);
+            }
+
             if (mapRef.current && Platform.OS !== "web") {
               mapRef.current.animateToRegion(
                 {
@@ -1408,8 +1416,9 @@ export default function HomeScreen() {
           onPress={() => {
             if (location && mapRef.current && Platform.OS !== "web") {
               console.log("Recentering map to user location");
-              refreshLocation().then((newLocation) => {
-                if (newLocation && mapRef.current) {
+              refreshLocation().then((result) => {
+                if (result && mapRef.current) {
+                  const { location: newLocation, address: newAddress } = result;
                   mapRef.current.animateToRegion(
                     {
                       latitude: newLocation.coords.latitude,
@@ -1423,6 +1432,9 @@ export default function HomeScreen() {
                     latitude: newLocation.coords.latitude,
                     longitude: newLocation.coords.longitude,
                   });
+                  if (newAddress) {
+                    setCurrentAddress(newAddress);
+                  }
                 }
               });
             }
