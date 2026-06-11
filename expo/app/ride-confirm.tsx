@@ -2403,6 +2403,7 @@ export default function RideConfirmScreen() {
       bottom: 0,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
       justifyContent: "flex-end" as const,
+      zIndex: 1500,
     },
     paymentSheetContainer: {
       backgroundColor: colors.gray[50],
