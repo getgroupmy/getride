@@ -18,7 +18,7 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams, Stack } from "expo-router";
+import { useRouter, useLocalSearchParams, Stack, useFocusEffect } from "expo-router";
 import { 
   ArrowLeft, 
   Users, 
@@ -49,6 +49,7 @@ import { useLocation } from "@/contexts/LocationContext";
 import { Star } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { consumePendingLocationReturn } from "@/utils/locationReturn";
 
 const CHIME_SOURCE = { uri: "https://cdn.pixabay.com/audio/2022/11/17/audio_febc508520.mp3" };
 
@@ -579,6 +580,22 @@ export default function RideConfirmScreen() {
       setShowOfferFareSheet(true);
     }
   }, [params.fromOfferFare]);
+
+  // Apply location changes returned from the search screen without creating a new screen instance
+  useFocusEffect(
+    React.useCallback(() => {
+      const pending = consumePendingLocationReturn();
+      if (pending) {
+        router.setParams({
+          pickup: pending.pickup,
+          pickupLat: pending.pickupLat,
+          pickupLng: pending.pickupLng,
+          additionalDestinations: JSON.stringify(pending.destinations),
+          ...(pending.fromOfferFare ? { fromOfferFare: 'true' } : {}),
+        });
+      }
+    }, [router])
+  );
 
   // Get the last destination for display
   const lastDestination = destinations[destinations.length - 1];

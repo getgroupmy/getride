@@ -18,6 +18,7 @@ import { POPULAR_LOCATIONS } from "@/constants/mockLocations";
 import { runWithMappingRotation } from "@/utils/mappingClient";
 import { PlaceGatesList, useGatesForCoordinates } from "@/components/PlaceGates";
 import { useAirportAreas, applyAirportAreaFilter } from "@/utils/airportAreas";
+import { setPendingLocationReturn } from "@/utils/locationReturn";
 
 type LocationResult = {
   id: string;
@@ -551,19 +552,14 @@ export default function SearchScreen() {
           // Limit to 5 destinations
           const limitedDestinations = newDestinations.slice(0, 5);
           
-          router.replace({
-            pathname: "/ride-confirm" as any,
-            params: {
-              pickup: pickup,
-              destination: limitedDestinations[limitedDestinations.length - 1].address,
-              pickupLat: (pickupCoords?.latitude || currentLocation?.latitude || "").toString(),
-              pickupLng: (pickupCoords?.longitude || currentLocation?.longitude || "").toString(),
-              destLat: limitedDestinations[limitedDestinations.length - 1].lat.toString(),
-              destLng: limitedDestinations[limitedDestinations.length - 1].lng.toString(),
-              additionalDestinations: JSON.stringify(limitedDestinations),
-              fromOfferFare: isFromOfferFare ? 'true' : 'false',
-            },
+          setPendingLocationReturn({
+            pickup,
+            pickupLat: (pickupCoords?.latitude || currentLocation?.latitude || "").toString(),
+            pickupLng: (pickupCoords?.longitude || currentLocation?.longitude || "").toString(),
+            destinations: limitedDestinations,
+            fromOfferFare: isFromOfferFare,
           });
+          router.back();
         } else {
           // Check if we're editing a destination at specific index from offer fare
           if (isFromOfferFare && params.editingDestinationIndex && existingDestinations.length > 0) {
@@ -574,33 +570,24 @@ export default function SearchScreen() {
               lat: destinationCoords.latitude,
               lng: destinationCoords.longitude,
             };
-            
-            router.replace({
-              pathname: "/ride-confirm" as any,
-              params: {
-                pickup: pickup,
-                destination: updatedDestinations[updatedDestinations.length - 1].address,
-                pickupLat: (pickupCoords?.latitude || currentLocation?.latitude || "").toString(),
-                pickupLng: (pickupCoords?.longitude || currentLocation?.longitude || "").toString(),
-                destLat: updatedDestinations[updatedDestinations.length - 1].lat.toString(),
-                destLng: updatedDestinations[updatedDestinations.length - 1].lng.toString(),
-                additionalDestinations: JSON.stringify(updatedDestinations),
-                fromOfferFare: 'true',
-              },
+
+            setPendingLocationReturn({
+              pickup,
+              pickupLat: (pickupCoords?.latitude || currentLocation?.latitude || "").toString(),
+              pickupLng: (pickupCoords?.longitude || currentLocation?.longitude || "").toString(),
+              destinations: updatedDestinations,
+              fromOfferFare: true,
             });
+            router.back();
           } else {
-            router.replace({
-              pathname: "/ride-confirm" as any,
-              params: {
-                pickup: pickup,
-                destination: destination,
-                pickupLat: (pickupCoords?.latitude || currentLocation?.latitude || "").toString(),
-                pickupLng: (pickupCoords?.longitude || currentLocation?.longitude || "").toString(),
-                destLat: destinationCoords.latitude.toString(),
-                destLng: destinationCoords.longitude.toString(),
-                fromOfferFare: isFromOfferFare ? 'true' : 'false',
-              },
+            setPendingLocationReturn({
+              pickup,
+              pickupLat: (pickupCoords?.latitude || currentLocation?.latitude || "").toString(),
+              pickupLng: (pickupCoords?.longitude || currentLocation?.longitude || "").toString(),
+              destinations: [{ address: destination, lat: destinationCoords.latitude, lng: destinationCoords.longitude }],
+              fromOfferFare: isFromOfferFare,
             });
+            router.back();
           }
         }
       }, 300);
@@ -616,24 +603,20 @@ export default function SearchScreen() {
           style={styles.closeButton}
           onPress={() => {
             if (isFromOfferFare) {
-              // Go back to ride-confirm with OfferFareSideSheet visible
+              // Go back to ride-confirm restoring original locations and reopening OfferFareSideSheet
               const destData = existingDestinations.length > 0 ? existingDestinations : [];
-              router.replace({
-                pathname: "/ride-confirm" as any,
-                params: {
-                  pickup: originalParams.pickup || pickup,
-                  destination: destData[0]?.address || originalParams.destination || destination,
-                  pickupLat: originalParams.pickupLat || (pickupCoords?.latitude || "").toString(),
-                  pickupLng: originalParams.pickupLng || (pickupCoords?.longitude || "").toString(),
-                  destLat: destData[0]?.lat?.toString() || originalParams.destLat || (destinationCoords?.latitude || "").toString(),
-                  destLng: destData[0]?.lng?.toString() || originalParams.destLng || (destinationCoords?.longitude || "").toString(),
-                  additionalDestinations: originalParams.allDestinations || JSON.stringify(destData),
-                  fromOfferFare: 'true',
-                },
+              const restoredPickup = (originalParams.pickup as string) || pickup;
+              const restoredPickupLat = (originalParams.pickupLat as string) || (pickupCoords?.latitude || "").toString();
+              const restoredPickupLng = (originalParams.pickupLng as string) || (pickupCoords?.longitude || "").toString();
+              setPendingLocationReturn({
+                pickup: restoredPickup,
+                pickupLat: restoredPickupLat,
+                pickupLng: restoredPickupLng,
+                destinations: destData,
+                fromOfferFare: true,
               });
-            } else {
-              router.back();
             }
+            router.back();
           }}
         >
           <X color="#999" size={24} />
