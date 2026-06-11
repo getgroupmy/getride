@@ -15,6 +15,7 @@ import {
   Keyboard,
   Modal,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
@@ -710,6 +711,11 @@ export default function RideConfirmScreen() {
           setAiTollBooths([]);
           setAiTollCount(null);
           setAiTollTotal(null);
+          Alert.alert(
+            "Unable to fetch current traffic conditions",
+            "Actual travel time and distance may vary",
+            [{ text: "OK" }]
+          );
         }
       } catch (error) {
         if (isCancelled) return;
