@@ -704,6 +704,52 @@ export default function AdminSettingsDisplayScreen() {
           <ChevronRight color={Colors.textSecondary} size={18} />
         </TouchableOpacity>
 
+        <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>Ride Confirm Screen</Text>
+        <View style={[styles.list, { marginBottom: 4 }]}>
+          <View
+            style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+            testID="display-row-showAiTollBooths"
+          >
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowLabel, { color: Colors.text }]}>Est. Toll Booth Count</Text>
+              <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+                Show AI-estimated number of toll booths on the route
+              </Text>
+            </View>
+            <Switch
+              value={settings.showAiTollBooths}
+              onValueChange={(v) => {
+                console.log(`[DisplaySettings] showAiTollBooths -> ${v}`);
+                update("showAiTollBooths", v);
+              }}
+              trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+              thumbColor="#fff"
+              testID="display-switch-showAiTollBooths"
+            />
+          </View>
+          <View
+            style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+            testID="display-row-showAiTollCharges"
+          >
+            <View style={styles.rowInfo}>
+              <Text style={[styles.rowLabel, { color: Colors.text }]}>Est. Toll Charges</Text>
+              <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+                Show AI-estimated total toll cost on the route
+              </Text>
+            </View>
+            <Switch
+              value={settings.showAiTollCharges}
+              onValueChange={(v) => {
+                console.log(`[DisplaySettings] showAiTollCharges -> ${v}`);
+                update("showAiTollCharges", v);
+              }}
+              trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+              thumbColor="#fff"
+              testID="display-switch-showAiTollCharges"
+            />
+          </View>
+        </View>
+
         <View style={{ height: 32 }} />
       </ScrollView>
 

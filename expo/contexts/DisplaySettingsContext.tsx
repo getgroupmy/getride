@@ -372,6 +372,10 @@ export interface DisplaySettings {
   addressBar: boolean;
   /** Show "NEW" badge on the large/featured service box */
   serviceBoxBadge: boolean;
+  /** Show AI-estimated toll booth count row in ride-confirm */
+  showAiTollBooths: boolean;
+  /** Show AI-estimated toll charges row in ride-confirm */
+  showAiTollCharges: boolean;
   /** Number of recent locations shown on the home bottom sheet */
   recentLocationsCount: number;
   /** Per-box config for the 5 service boxes */
@@ -412,6 +416,8 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   recenterButton: true,
   addressBar: true,
   serviceBoxBadge: true,
+  showAiTollBooths: true,
+  showAiTollCharges: true,
   recentLocationsCount: 4,
   serviceBoxes: DEFAULT_SERVICE_BOXES,
   recenterButtonBottom: 459,
