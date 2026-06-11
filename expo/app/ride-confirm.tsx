@@ -4374,7 +4374,7 @@ export default function RideConfirmScreen() {
           style={[
             styles.promoBanner,
             {
-              bottom: BOTTOM_SHEET_MIN_HEIGHT - 12,
+              bottom: BOTTOM_SHEET_MIN_HEIGHT - 22,
               opacity: topButtonsHideAnim,
             },
           ]}
