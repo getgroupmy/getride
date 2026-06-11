@@ -3906,8 +3906,8 @@ export default function RideConfirmScreen() {
         )}
       </View>
 
-      {/* Top Location Overlay - hide when searching */}
-      {!isSearchingDriver && <Animated.View style={styles.topOverlay} {...menuPanResponder.panHandlers}>
+      {/* Top Location Overlay - hide when searching or sheet is expanded */}
+      {!isSearchingDriver && !isExpanded && <Animated.View style={styles.topOverlay} {...menuPanResponder.panHandlers}>
         <View style={{ flexDirection: "row" }}>
           <View style={styles.locationIconContainer}>
             <View style={[styles.locationDot, styles.pickupDot]} />
