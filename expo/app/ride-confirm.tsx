@@ -1998,11 +1998,16 @@ export default function RideConfirmScreen() {
       zIndex: 1200,
     },
     promoBanner: {
+      position: "absolute" as const,
+      left: 0,
+      right: 0,
       backgroundColor: colors.gray[50],
-      paddingVertical: 12,
+      paddingTop: 12,
+      paddingBottom: 24,
       paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.gray[200],
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      zIndex: 1100,
     },
     promoBannerContent: {
       flexDirection: "row" as const,
@@ -4362,20 +4367,31 @@ export default function RideConfirmScreen() {
         </View>
       )}
 
+      {/* Promo Code Banner - floats above bottom sheet, overlapped by sheet's top */}
+      {!isSearchingDriver && !isExpanded && (
+        <Animated.View
+          style={[
+            styles.promoBanner,
+            {
+              bottom: BOTTOM_SHEET_MIN_HEIGHT - 12,
+              opacity: topButtonsHideAnim,
+            },
+          ]}
+          {...menuPanResponder.panHandlers}
+        >
+          <TouchableOpacity style={styles.promoBannerContent} onPress={openPromoCodeSheet} activeOpacity={0.7}>
+            <Tag color="#6B7280" size={18} />
+            <Text style={styles.promoBannerText}>Got promo code? Use it here</Text>
+            <ChevronRight color="#6B7280" size={20} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       {/* Bottom Sheet - hide when searching */}
       {!isSearchingDriver && <Animated.View style={[styles.bottomSheet, { height: bottomSheetHeight }]} {...menuPanResponder.panHandlers}>
         <View {...panResponder.panHandlers} style={styles.dragHandleArea}>
           <View style={styles.dragHandle} />
         </View>
-
-        {/* Promo Code Banner - always at top of bottom sheet */}
-        <TouchableOpacity style={styles.promoBanner} onPress={openPromoCodeSheet} activeOpacity={0.7}>
-          <View style={styles.promoBannerContent}>
-            <Tag color="#6B7280" size={18} />
-            <Text style={styles.promoBannerText}>Got promo code? Use it here</Text>
-            <ChevronRight color="#6B7280" size={20} />
-          </View>
-        </TouchableOpacity>
 
         {/* Content based on expanded state */}
         {!isExpanded ? (
