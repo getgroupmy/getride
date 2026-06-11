@@ -1931,6 +1931,12 @@ export default function RideConfirmScreen() {
     },
     addButton: {
       marginLeft: 10,
+      backgroundColor: colors.accent,
+      borderRadius: 16,
+      width: 32,
+      height: 32,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
     },
     backButton: {
       position: "absolute" as const,
