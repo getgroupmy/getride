@@ -240,10 +240,24 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           } catch {}
         }
 
+        // Apply cached auth state immediately so the app renders without
+        // waiting for any network operations.
+        if (storedAuth) {
+          try {
+            const parsed = JSON.parse(storedAuth) as AuthState;
+            setAuthState({ ...parsed, isSupabaseSession: false });
+          } catch {}
+        }
+        if (!supaEnabled) {
+          setServerReachable(false);
+        }
+
+        // Release the loading gate now — the app renders with cached state.
+        setIsLoading(false);
+
         if (supaEnabled && supabase) {
-          // Connectivity probe: short health ping so the splash can show a
-          // "Not Connected to server" popup and proceed in local mode if the
-          // device is offline or the project is unreachable.
+          // Connectivity probe: health ping runs in the background after the
+          // app is already visible. Shows the connection modal when done.
           let online = false;
           const baseUrl = SUPABASE_URL_RESOLVED;
           const hasUrl = !!baseUrl;
@@ -302,12 +316,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           }
           if (!online) {
             console.log("[auth] server unreachable, falling back to local mode");
-            if (storedAuth) {
-              try {
-                const parsed = JSON.parse(storedAuth) as AuthState;
-                setAuthState({ ...parsed, isSupabaseSession: false });
-              } catch {}
-            }
             return;
           }
           // Real-time validation: confirm the cached session is still valid
@@ -360,19 +368,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             applySession(nextSession ?? null);
           });
           unsub = () => sub.data.subscription.unsubscribe();
-        } else if (storedAuth) {
-          try {
-            const parsed = JSON.parse(storedAuth) as AuthState;
-            // Restored from local storage cannot be a real Supabase session.
-            setAuthState({ ...parsed, isSupabaseSession: false });
-          } catch {}
-          setServerReachable(false);
-        } else {
-          setServerReachable(false);
         }
       } catch (e) {
         console.error("[auth] init error", e);
-      } finally {
         setIsLoading(false);
       }
     };
