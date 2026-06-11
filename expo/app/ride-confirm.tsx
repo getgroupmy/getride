@@ -1995,6 +1995,7 @@ export default function RideConfirmScreen() {
       backgroundColor: colors.gray[50],
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
+      zIndex: 1200,
     },
     promoBanner: {
       position: "absolute" as const,
@@ -2006,6 +2007,7 @@ export default function RideConfirmScreen() {
       paddingHorizontal: 16,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
+      zIndex: 1200,
     },
     promoBannerContent: {
       flexDirection: "row" as const,
