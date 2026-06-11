@@ -2001,13 +2001,13 @@ export default function RideConfirmScreen() {
       position: "absolute" as const,
       left: 0,
       right: 0,
-      backgroundColor: colors.background,
+      backgroundColor: colors.gray[50],
       paddingTop: 12,
-      paddingBottom: 29,
+      paddingBottom: 24,
       paddingHorizontal: 16,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      zIndex: 1300,
+      borderTopLeftRadius: 12,
+      borderTopRightRadius: 12,
+      zIndex: 1100,
     },
     promoBannerContent: {
       flexDirection: "row" as const,
@@ -4367,6 +4367,26 @@ export default function RideConfirmScreen() {
         </View>
       )}
 
+      {/* Promo Code Banner - floats above bottom sheet, overlapped by sheet's top */}
+      {!isSearchingDriver && !isExpanded && (
+        <Animated.View
+          style={[
+            styles.promoBanner,
+            {
+              bottom: BOTTOM_SHEET_MIN_HEIGHT - 12,
+              opacity: topButtonsHideAnim,
+            },
+          ]}
+          {...menuPanResponder.panHandlers}
+        >
+          <TouchableOpacity style={styles.promoBannerContent} onPress={openPromoCodeSheet} activeOpacity={0.7}>
+            <Tag color="#6B7280" size={18} />
+            <Text style={styles.promoBannerText}>Got promo code? Use it here</Text>
+            <ChevronRight color="#6B7280" size={20} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       {/* Bottom Sheet - hide when searching */}
       {!isSearchingDriver && <Animated.View style={[styles.bottomSheet, { height: bottomSheetHeight }]} {...menuPanResponder.panHandlers}>
         <View {...panResponder.panHandlers} style={styles.dragHandleArea}>
@@ -4660,23 +4680,6 @@ export default function RideConfirmScreen() {
         )}
 
       </Animated.View>}
-
-      {/* Promo Code Banner - rendered above bottom sheet, hide when searching */}
-      {!isSearchingDriver && (
-        <Animated.View
-          style={[
-            styles.promoBanner,
-            { bottom: FIXED_BOTTOM_HEIGHT }
-          ]}
-          {...menuPanResponder.panHandlers}
-        >
-          <TouchableOpacity style={styles.promoBannerContent} onPress={openPromoCodeSheet}>
-            <Tag color="#6B7280" size={18} />
-            <Text style={styles.promoBannerText}>Got promo code? Use it here</Text>
-            <ChevronRight color="#6B7280" size={20} />
-          </TouchableOpacity>
-        </Animated.View>
-      )}
 
       {/* Fixed Bottom Container - hide when searching */}
       {!isSearchingDriver && (
