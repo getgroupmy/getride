@@ -175,11 +175,11 @@ export async function calculateRoute(
         legDurations,
       };
     } else {
-      console.error("Google Directions routing failed:", data.status, data.error_message);
+      console.warn("Google Directions routing failed:", data.status, data.error_message);
       return null;
     }
   } catch (error) {
-    console.error("Error calculating route:", error);
+    console.warn("Error calculating route:", error);
     return null;
   }
 }
@@ -266,7 +266,7 @@ export async function reverseGeocode(
     try {
       geocodeData = JSON.parse(geocodeText);
     } catch {
-      console.error("Failed to parse geocode response:", geocodeText.substring(0, 100));
+      console.warn("Failed to parse geocode response:", geocodeText.substring(0, 100));
       geocodeData = { status: "PARSE_ERROR" };
     }
     console.log("Google Geocoding precise response status:", geocodeData.status);
@@ -403,7 +403,7 @@ export async function reverseGeocode(
     try {
       nearbyData = JSON.parse(nearbyText);
     } catch {
-      console.error("Failed to parse nearby response:", nearbyText.substring(0, 100));
+      console.warn("Failed to parse nearby response:", nearbyText.substring(0, 100));
       nearbyData = { status: "PARSE_ERROR" };
     }
     console.log("Google Places Nearby response status:", nearbyData.status);
@@ -453,7 +453,7 @@ export async function reverseGeocode(
     try {
       fallbackData = JSON.parse(fallbackText);
     } catch {
-      console.error("Failed to parse fallback response:", fallbackText.substring(0, 100));
+      console.warn("Failed to parse fallback response:", fallbackText.substring(0, 100));
       fallbackData = { status: "PARSE_ERROR" };
     }
     
@@ -483,10 +483,10 @@ export async function reverseGeocode(
       return { name, address };
     }
     
-    console.error("All geocoding attempts failed");
+    console.warn("All geocoding attempts failed");
     return null;
   } catch (error) {
-    console.error("Error reverse geocoding:", error);
+    console.warn("Error reverse geocoding:", error);
     return null;
   }
 }
@@ -570,7 +570,7 @@ export async function fetchTollBooths(
     console.log("Toll booths found on route:", tollBooths.length);
     return tollBooths;
   } catch (error) {
-    console.error("Error fetching toll booths:", error);
+    console.warn("Error fetching toll booths:", error);
     return [];
   }
 }

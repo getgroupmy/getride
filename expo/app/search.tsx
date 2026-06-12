@@ -231,12 +231,12 @@ export default function SearchScreen() {
           console.log("No results from Google Places");
           setFilteredLocations([]);
         } else {
-          console.error("Google Places API error:", data.status, data.error_message);
+          console.warn("Google Places API error:", data.status, data.error_message);
           throw new Error(data.error_message || data.status);
         }
       } catch (error: any) {
-        console.error("Error searching locations:", error);
-        console.error("Error details:", error.message);
+        console.warn("Error searching locations:", error);
+        console.warn("Error details:", error.message);
         
         console.log("Falling back to mock data search");
         const filtered = POPULAR_LOCATIONS.filter(

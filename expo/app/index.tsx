@@ -833,7 +833,7 @@ export default function HomeScreen() {
         }
       }
     }).catch((error) => {
-      console.error("Error detecting location:", error);
+      console.warn("Error detecting location:", error);
     });
   }, [resetAnimations, refreshLocation]);
 
@@ -934,7 +934,7 @@ export default function HomeScreen() {
             }
           }
         }).catch((error) => {
-          console.error("Error detecting location on focus:", error);
+          console.warn("Error detecting location on focus:", error);
         });
       }
     }, [resetAnimations, shouldSkipLocationDetection, refreshLocation, params.fromRideConfirm, params.pickupLat, params.pickupLng, params.pickupName])
@@ -1122,7 +1122,7 @@ export default function HomeScreen() {
         setCurrentAddress(addressData);
       }
     } catch (error) {
-      console.error("Error getting address for new pin location:", error);
+      console.warn("Error getting address for new pin location:", error);
     } finally {
       setIsLoadingAddress(false);
     }

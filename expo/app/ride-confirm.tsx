@@ -736,7 +736,7 @@ export default function RideConfirmScreen() {
         }
       } catch (error) {
         if (isCancelled) return;
-        console.error("Error calculating route:", error);
+        console.warn("Error calculating route:", error);
         setDistance(35);
         setDuration(43);
         setTotalRouteDuration(43);
