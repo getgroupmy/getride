@@ -9,7 +9,7 @@ import { TabletFrame } from "@/components/TabletFrame";
 import { useResponsive } from "@/hooks/useResponsive";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { LocationProvider } from "@/contexts/LocationContext";
+import { LocationProvider, useLocation } from "@/contexts/LocationContext";
 import { AdminDataProvider } from "@/contexts/AdminDataContext";
 import { AdminAccessProvider } from "@/contexts/AdminAccessContext";
 import { DisplaySettingsProvider } from "@/contexts/DisplaySettingsContext";
@@ -26,6 +26,7 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { authState, isLoading, serverReachable, isSupabaseAuth, serverError, serverDetails } = useAuth();
+  const { isLoading: isLocationLoading } = useLocation();
   const segments = useSegments();
   const router = useRouter();
   const connectionAlertShown = useRef<boolean>(false);
@@ -85,7 +86,7 @@ function RootLayoutNav() {
     }
   }, [authState, segments, isLoading, router, isTablet]);
 
-  if (isLoading) {
+  if (isLoading || isLocationLoading) {
     return <SplashScreenComponent />;
   }
 
