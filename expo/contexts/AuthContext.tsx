@@ -204,11 +204,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     let unsub: (() => void) | undefined;
 
     const init = async () => {
+      // Wrap AsyncStorage reads in a timeout so a locked/corrupt store can't
+      // hang the app on the splash screen indefinitely.
+      const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
+        Promise.race([p, new Promise<null>((res) => setTimeout(() => res(null), ms))]);
+
       try {
         const [storedAuth, storedUsers, storedProfile] = await Promise.all([
-          AsyncStorage.getItem(AUTH_KEY),
-          AsyncStorage.getItem(REGISTERED_USERS_KEY),
-          AsyncStorage.getItem(PROFILE_CACHE_KEY),
+          withTimeout(AsyncStorage.getItem(AUTH_KEY), 3000),
+          withTimeout(AsyncStorage.getItem(REGISTERED_USERS_KEY), 3000),
+          withTimeout(AsyncStorage.getItem(PROFILE_CACHE_KEY), 3000),
         ]);
 
         let cachedProfile: ProfileRecord | null = null;
@@ -251,11 +256,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         if (!supaEnabled) {
           setServerReachable(false);
         }
-
-        // Release the loading gate now — the app renders with cached state.
+      } catch (e) {
+        console.error("[auth] init storage error", e);
+      } finally {
+        // Always release the loading gate so the splash screen never hangs.
         setIsLoading(false);
+      }
 
-        if (supaEnabled && supabase) {
+      if (supaEnabled && supabase) {
           // Connectivity probe: health ping runs in the background after the
           // app is already visible. Shows the connection modal when done.
           let online = false;
@@ -368,10 +376,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             applySession(nextSession ?? null);
           });
           unsub = () => sub.data.subscription.unsubscribe();
+        } catch (e) {
+          console.error("[auth] init supabase error", e);
         }
-      } catch (e) {
-        console.error("[auth] init error", e);
-        setIsLoading(false);
       }
     };
 
