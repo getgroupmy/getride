@@ -21,13 +21,7 @@ function compute(window: ScaledSize): ResponsiveInfo {
       : shortest >= 768;
   const isLargeTablet = shortest >= 900;
   const scale = isLargeTablet ? 1.25 : isTablet ? 1.15 : 1;
-  const contentMaxWidth = isPortrait
-    ? width
-    : isLargeTablet
-    ? 720
-    : isTablet
-    ? 600
-    : width;
+  const contentMaxWidth = width;
   return {
     width,
     height,
