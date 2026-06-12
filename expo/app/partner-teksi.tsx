@@ -444,7 +444,7 @@ export default function DriverTeksiScreen() {
         setPickupAddress(pickupGeo.address || "");
       }
     } catch (e) {
-      console.error("Failed to calculate TEKSI route:", e);
+      console.warn("Failed to calculate TEKSI route:", e);
     } finally {
       setIsCalculatingRoute(false);
     }
