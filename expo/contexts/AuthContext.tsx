@@ -264,6 +264,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       }
 
       if (supaEnabled && supabase) {
+        try {
           // Connectivity probe: health ping runs in the background after the
           // app is already visible. Shows the connection modal when done.
           let online = false;
