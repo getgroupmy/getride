@@ -99,13 +99,13 @@ export const [LocationProvider, useLocation] = createContextHook(() => {
     hasInitialized.current = true;
 
     console.log("[LocationContext] Starting location fetch at app launch...");
-    
+
     try {
       console.log("[LocationContext] Requesting location permissions...");
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       setState(prev => ({ ...prev, permissionStatus: status }));
-      
+
       if (status !== "granted") {
         console.log("[LocationContext] Location permission denied");
         setState(prev => ({
@@ -117,47 +117,74 @@ export const [LocationProvider, useLocation] = createContextHook(() => {
         return;
       }
 
-      console.log("[LocationContext] Permission granted, getting current location...");
+      console.log("[LocationContext] Permission granted, fetching last-known position and country in parallel...");
 
-      try {
-        const [geoResult] = await Location.reverseGeocodeAsync({
+      // Kick off country detection and last-known position concurrently so neither
+      // blocks the other. Last-known is near-instant and gives the index screen a
+      // real position immediately while the accurate GPS fix is still resolving.
+      const [lastKnownResult, countryResult] = await Promise.allSettled([
+        Location.getLastKnownPositionAsync({ maxAge: 300_000, requiredAccuracy: 5000 }),
+        Location.reverseGeocodeAsync({
           latitude: DEFAULT_LOCATION.coords.latitude,
           longitude: DEFAULT_LOCATION.coords.longitude,
-        });
-        if (geoResult?.isoCountryCode) {
-          const detectedCountry = geoResult.isoCountryCode;
-          console.log("[LocationContext] Detected country:", detectedCountry);
+        }),
+      ]);
+
+      // Apply country from the default-location reverse-geocode if available.
+      if (countryResult.status === "fulfilled") {
+        const isoCode = countryResult.value?.[0]?.isoCountryCode;
+        if (isoCode) {
+          console.log("[LocationContext] Detected country:", isoCode);
           setState(prev => ({
             ...prev,
-            countryCode: detectedCountry,
-            currency: getCurrencyForCountry(detectedCountry),
+            countryCode: isoCode,
+            currency: getCurrencyForCountry(isoCode),
           }));
         }
-      } catch {
+      } else {
         console.log("[LocationContext] Country detection fallback, using default MY");
       }
-      
+
+      // If we have a recent cached position, publish it immediately so the map
+      // renders at the correct location before the high-accuracy fix arrives.
+      if (lastKnownResult.status === "fulfilled" && lastKnownResult.value) {
+        const quick = lastKnownResult.value;
+        console.log("[LocationContext] Last-known position available, publishing early:", quick.coords);
+        hasRealtimeLocation.current = true;
+        const quickAddress = await reverseGeocode(quick.coords.latitude, quick.coords.longitude).catch(() => null);
+        setState(prev => ({
+          ...prev,
+          location: quick,
+          currentAddress: quickAddress,
+          errorMsg: null,
+          isLoading: false,
+          permissionStatus: status,
+        }));
+      }
+
+      // Now request the high-accuracy fix. This may take several seconds but the
+      // map is already showing a position from the step above (or cached storage).
       try {
         const currentLocation = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Highest,
           timeInterval: 3000,
           mayShowUserSettingsDialog: true,
         });
-        
-        console.log("[LocationContext] Current location obtained:", currentLocation.coords);
 
+        console.log("[LocationContext] High-accuracy location obtained:", currentLocation.coords);
+
+        // Refine country from actual position.
         try {
           const [geoResult] = await Location.reverseGeocodeAsync({
             latitude: currentLocation.coords.latitude,
             longitude: currentLocation.coords.longitude,
           });
           if (geoResult?.isoCountryCode) {
-            const detectedCountry = geoResult.isoCountryCode;
-            console.log("[LocationContext] Detected country from actual location:", detectedCountry);
+            console.log("[LocationContext] Detected country from actual location:", geoResult.isoCountryCode);
             setState(prev => ({
               ...prev,
-              countryCode: detectedCountry,
-              currency: getCurrencyForCountry(detectedCountry),
+              countryCode: geoResult.isoCountryCode!,
+              currency: getCurrencyForCountry(geoResult.isoCountryCode!),
             }));
           }
         } catch {
@@ -168,11 +195,11 @@ export const [LocationProvider, useLocation] = createContextHook(() => {
           currentLocation.coords.latitude,
           currentLocation.coords.longitude
         );
-        
+
         if (addressData) {
           console.log("[LocationContext] Reverse geocoded address:", addressData);
         }
-        
+
         hasRealtimeLocation.current = true;
         setState(prev => ({
           ...prev,
@@ -189,57 +216,21 @@ export const [LocationProvider, useLocation] = createContextHook(() => {
         });
       } catch (locationError: any) {
         console.error("[LocationContext] Error getting current position:", locationError);
-        console.log("[LocationContext] Trying with last known position...");
-        
-        try {
-          const lastKnown = await Location.getLastKnownPositionAsync({
-            maxAge: 60000,
-            requiredAccuracy: 1000,
-          });
-          
-          if (lastKnown) {
-            console.log("[LocationContext] Using last known location:", lastKnown.coords);
-            
-            const addressData = await reverseGeocode(
-              lastKnown.coords.latitude,
-              lastKnown.coords.longitude
-            );
-            
-            hasRealtimeLocation.current = true;
-            setState(prev => ({
-              ...prev,
-              location: lastKnown,
-              currentAddress: addressData,
-              errorMsg: null,
-              isLoading: false,
-              permissionStatus: status,
-            }));
-            void saveLastLocation({
-              location: lastKnown,
-              currentAddress: addressData,
-              countryCode: state.countryCode,
-            });
-          } else {
-            console.log("[LocationContext] No last known position available, using default");
-            setState(prev => ({
-              ...prev,
-              location: DEFAULT_LOCATION,
-              currentAddress: null,
-              errorMsg: "Unable to get location. Using default location.",
-              isLoading: false,
-              permissionStatus: status,
-            }));
-          }
-        } catch (lastKnownError: any) {
-          console.error("[LocationContext] Error getting last known position:", lastKnownError);
+
+        // High-accuracy fix failed. If we already published a last-known position
+        // above, leave it in place; otherwise fall back to default.
+        if (!hasRealtimeLocation.current) {
+          console.log("[LocationContext] No position available, using default");
           setState(prev => ({
             ...prev,
             location: DEFAULT_LOCATION,
             currentAddress: null,
-            errorMsg: "Location unavailable. Using default location.",
+            errorMsg: "Unable to get location. Using default location.",
             isLoading: false,
             permissionStatus: status,
           }));
+        } else {
+          setState(prev => ({ ...prev, isLoading: false }));
         }
       }
     } catch (error: any) {
