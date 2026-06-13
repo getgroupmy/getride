@@ -98,18 +98,18 @@ export default function PinVerifyScreen() {
             if (res.profilePinMatched) {
               // The entered PIN matches the PIN saved in the user's profile,
               // so it IS correct — the Supabase Auth password just drifted and
-              // couldn't be re-synced without a session. Let the user in via a
-              // local session so they're not locked out, then do a one-time
-              // OTP login to re-mint a Supabase session and re-sync the
-              // password (handled by registerUser after OTP verify).
-              console.log("[pin-verify] profile PIN matched — local login + OTP re-sync");
-              await login(phoneNumber || "");
+              // couldn't be re-synced without a session. Route through OTP so
+              // a real session is minted, then through pin-setup (resetPin) so
+              // registerUser re-syncs the Auth password. Without resetPin the
+              // user would skip pin-setup on the same device (hasPinSet returns
+              // true from local storage) and the password stays out of sync.
+              console.log("[pin-verify] profile PIN matched — OTP re-sync via resetPin");
               setError("Verify via SMS once to finish syncing your PIN login.");
               setCode(["", "", "", "", "", ""]);
               setTimeout(() => {
                 router.replace({
                   pathname: "/otp-verify" as any,
-                  params: { phoneNumber: phoneNumber || "" },
+                  params: { phoneNumber: phoneNumber || "", resetPin: "true" },
                 });
               }, 1000);
               return;
