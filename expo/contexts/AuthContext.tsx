@@ -59,6 +59,7 @@ export interface ProfileRecord {
   birth_date?: string | null;
   referral_code?: string | null;
   pin?: string | null;
+  login_pin?: string | null;
   status?: string | null;
   documents_ok?: boolean | null;
   total_rides?: number | null;
@@ -71,7 +72,7 @@ export interface ProfileRecord {
 
 /** Columns mirrored from public.profiles into the AsyncStorage cache. */
 const PROFILE_COLUMNS =
-  "id, display_id, name, phone, email, ic, address, profile_image, avatar_url, id_image, nationality, gender, birth_date, referral_code, pin, status, documents_ok, total_rides, joined_at, created_at, updated_at";
+  "id, display_id, name, phone, email, ic, address, profile_image, avatar_url, id_image, nationality, gender, birth_date, referral_code, pin, login_pin, status, documents_ok, total_rides, joined_at, created_at, updated_at";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -1028,9 +1029,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         _cachedAt: new Date().toISOString(),
       };
       setProfile(record);
-      // Persist the full row to AsyncStorage minus the PIN (kept in memory only).
-      const { pin: _pin, ...persisted } = record;
-      void _pin;
+      // Persist the full row to AsyncStorage minus the PIN columns (kept in memory only).
+      const { pin: _pin, login_pin: _login_pin, ...persisted } = record;
+      void _pin; void _login_pin;
       AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(persisted)).catch(
         () => {}
       );
@@ -1040,7 +1041,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           profileName: record.name ?? prev.profileName ?? null,
           profileAvatar:
             record.avatar_url ?? record.profile_image ?? prev.profileAvatar ?? null,
-          profilePin: record.pin ?? prev.profilePin ?? null,
+          // Prefer login_pin (canonical) over legacy pin column.
+          profilePin: record.login_pin ?? record.pin ?? prev.profilePin ?? null,
         };
         AsyncStorage.setItem(
           AUTH_KEY,
@@ -1094,15 +1096,36 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           // in their profile (e.g. the PIN was changed without re-syncing the
           // password). In the latter case the user IS typing the correct PIN.
           if (/invalid login credentials/i.test(msg)) {
-            // Fallback: check the entered PIN against the PIN saved in the
-            // user's profile (kept in memory after a prior authenticated
-            // read). A match proves the PIN is correct and the Auth password
-            // is simply out of sync.
-            const savedPin = authState.profilePin;
-            if (savedPin && pin === savedPin) {
-              console.log(
-                "[auth] signInWithPin: entered PIN matches saved profile PIN — attempting password re-sync"
+            // Verify the entered PIN directly against the profile table via a
+            // SECURITY DEFINER RPC. This works even before the user has a
+            // session (unauthenticated call), so it correctly distinguishes
+            // "wrong PIN" from "correct PIN but Auth password out of sync".
+            let profilePinMatched = false;
+            try {
+              const { data: verifiedId, error: rpcErr } = await supabase.rpc(
+                "verify_pin_for_login",
+                { p_phone: phone, p_pin: pin }
               );
+              if (!rpcErr && verifiedId) {
+                profilePinMatched = true;
+                console.log("[auth] signInWithPin: verify_pin_for_login confirmed PIN matches profile");
+              } else if (rpcErr) {
+                console.log("[auth] signInWithPin: verify_pin_for_login error", rpcErr.message);
+              }
+            } catch (e) {
+              console.log("[auth] signInWithPin: verify_pin_for_login threw", e);
+            }
+            // Also accept the in-memory profilePin as a local fallback (e.g.
+            // when the RPC is temporarily unavailable).
+            if (!profilePinMatched) {
+              const savedPin = authState.profilePin;
+              if (savedPin && pin === savedPin) {
+                profilePinMatched = true;
+                console.log("[auth] signInWithPin: entered PIN matches in-memory profilePin");
+              }
+            }
+            if (profilePinMatched) {
+              console.log("[auth] signInWithPin: PIN correct but Auth password out of sync — attempting re-sync");
               // Re-sync the Auth password to the PIN so future logins work.
               // updateUser only succeeds when a session already exists (e.g.
               // a re-auth / verifyOnly prompt while the user is signed in).
@@ -1113,26 +1136,28 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     password: derivePinPassword(pin),
                   });
                   if (!pwErr) {
-                    console.log(
-                      "[auth] signInWithPin: Auth password re-synced from profile PIN"
-                    );
-                    return { ok: true };
+                    console.log("[auth] signInWithPin: Auth password re-synced — retrying sign-in");
+                    // Re-try sign-in now that the password is synced.
+                    const retry = await supabase.auth.signInWithPassword({
+                      phone,
+                      password: derivePinPassword(pin),
+                    });
+                    if (!retry.error && retry.data.session) return { ok: true };
+                    console.log("[auth] signInWithPin: retry after re-sync failed", retry.error?.message);
+                  } else {
+                    console.log("[auth] signInWithPin: password re-sync failed", pwErr.message);
                   }
-                  console.log(
-                    "[auth] signInWithPin: password re-sync failed",
-                    pwErr.message
-                  );
                 }
               } catch (e) {
                 console.log("[auth] signInWithPin: re-sync threw", e);
               }
-              // No active session to re-sync against — the PIN is verified
-              // but we still need a one-time OTP to mint a session and sync
-              // the password. Tell the caller the profile PIN matched so it
-              // can accept the user locally instead of treating it as wrong.
+              // No active session to re-sync against — need a one-time OTP to
+              // mint a session and re-sync the password. Tell the caller the
+              // profile PIN matched so it knows to route to OTP + pin-setup.
               return { ok: false, needsOtp: true, profilePinMatched: true, error: msg };
             }
-            return { ok: false, needsOtp: true, error: msg };
+            // RPC confirmed the PIN is wrong.
+            return { ok: false, error: msg };
           }
           return { ok: false, error: msg };
         }
