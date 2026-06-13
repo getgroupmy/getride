@@ -19,7 +19,8 @@ type Step = "create" | "confirm";
 export default function PinSetupScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { phoneNumber, firstName } = useLocalSearchParams<{ phoneNumber: string; firstName?: string }>();
+  const { phoneNumber, firstName, isReset } = useLocalSearchParams<{ phoneNumber: string; firstName?: string; isReset?: string }>();
+  const isResetFlow = isReset === "true";
   const { login, registerUser, isSupabaseAuth, updateProfile } = useAuth();
   const [step, setStep] = useState<Step>("create");
   const [pin, setPin] = useState<string[]>(["", "", "", "", "", ""]);
@@ -83,7 +84,7 @@ export default function PinSetupScreen() {
           if (enteredPin === originalPin) {
             console.log("PIN setup successful");
             await registerUser(phoneNumber || "", enteredPin, firstName || "");
-            if (isSupabaseAuth && firstName) {
+            if (!isResetFlow && isSupabaseAuth && firstName) {
               const saved = await updateProfile({ name: firstName });
               // updateProfile depends on authState.userId, which the supabase
               // auth listener may not have populated yet. Fall back to writing
@@ -105,11 +106,17 @@ export default function PinSetupScreen() {
                 }
               }
             }
-            await login(phoneNumber || "", firstName || undefined);
-            router.replace({
-              pathname: "/profile-photo" as any,
-              params: { firstName: firstName || "" },
-            });
+            if (isResetFlow) {
+              // Forgot-PIN reset: user is already authenticated via OTP.
+              // Go straight home — no profile-photo step for existing users.
+              router.replace("/" as any);
+            } else {
+              await login(phoneNumber || "", firstName || undefined);
+              router.replace({
+                pathname: "/profile-photo" as any,
+                params: { firstName: firstName || "" },
+              });
+            }
           } else {
             setError("PINs do not match. Please try again.");
             shake();

@@ -581,7 +581,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                   password: derivePinPassword(pin),
                 });
                 if (pwErr) {
-                  console.log("[auth] registerUser sync auth password error", pwErr.message);
+                  // 422 "same_password" means the Auth password is already
+                  // set to derivePinPassword(pin) — treat as a successful
+                  // sync rather than a real error.
+                  if (/same.?password|different.*password/i.test(pwErr.message)) {
+                    console.log("[auth] registerUser auth password already in sync (same_password)");
+                  } else {
+                    console.log("[auth] registerUser sync auth password error", pwErr.message);
+                  }
                 } else {
                   console.log("[auth] registerUser auth password synced for pin login");
                 }
@@ -1144,6 +1151,16 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                     });
                     if (!retry.error && retry.data.session) return { ok: true };
                     console.log("[auth] signInWithPin: retry after re-sync failed", retry.error?.message);
+                  } else if (/same.?password|different.*password/i.test(pwErr.message)) {
+                    // 422 same_password: Auth password is already derivePinPassword(pin).
+                    // The original signInWithPassword failure was transient — retry now.
+                    console.log("[auth] signInWithPin: password already in sync (same_password) — retrying sign-in");
+                    const retry = await supabase.auth.signInWithPassword({
+                      phone,
+                      password: derivePinPassword(pin),
+                    });
+                    if (!retry.error && retry.data.session) return { ok: true };
+                    console.log("[auth] signInWithPin: retry with correct password still failed", retry.error?.message);
                   } else {
                     console.log("[auth] signInWithPin: password re-sync failed", pwErr.message);
                   }

@@ -94,7 +94,7 @@ export default function OTPVerifyScreen() {
               params: { numberChanged: "true", verified: isPinVerifiedShortcut ? "true" : "false", phoneNumber },
             });
           } else if (resetPin === "true") {
-            router.replace({ pathname: "/pin-setup" as any, params: { phoneNumber, firstName: res.name ?? "" } });
+            router.replace({ pathname: "/pin-setup" as any, params: { phoneNumber, firstName: res.name ?? "", isReset: "true" } });
           } else if (!res.hasName) {
             router.replace({ pathname: "/name-entry" as any, params: { phoneNumber } });
           } else if (!hasPinSet(phoneNumber || "")) {
