@@ -587,7 +587,20 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                   if (/same.?password|different.*password/i.test(pwErr.message)) {
                     console.log("[auth] registerUser auth password already in sync (same_password)");
                   } else {
-                    console.log("[auth] registerUser sync auth password error", pwErr.message);
+                    console.log("[auth] registerUser sync auth password error", pwErr.message, "— retrying in 800 ms");
+                    await new Promise((r) => setTimeout(r, 800));
+                    try {
+                      const { error: pwErr2 } = await supabase.auth.updateUser({
+                        password: derivePinPassword(pin),
+                      });
+                      if (!pwErr2 || /same.?password|different.*password/i.test(pwErr2.message)) {
+                        console.log("[auth] registerUser auth password synced on retry");
+                      } else {
+                        console.log("[auth] registerUser sync auth password retry failed", pwErr2.message);
+                      }
+                    } catch (e2) {
+                      console.log("[auth] registerUser updateUser retry threw", e2);
+                    }
                   }
                 } else {
                   console.log("[auth] registerUser auth password synced for pin login");
@@ -1069,6 +1082,52 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, [authState.userId, authState.isSupabaseSession, refreshProfile]);
 
   /**
+   * Re-syncs the Supabase Auth password with whatever PIN is currently saved
+   * in the user's profile row. Called after OTP verification to repair the
+   * auth password without requiring the user to go through pin-setup again.
+   * Returns true on success, false if no profile PIN exists or updateUser fails.
+   */
+  const resyncAuthPassword = useCallback(
+    async (userId: string): Promise<boolean> => {
+      if (!supaEnabled || !supabase) return false;
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("login_pin, pin")
+          .eq("id", userId)
+          .maybeSingle();
+        if (error || !data) {
+          console.log("[auth] resyncAuthPassword: profile fetch failed", error?.message);
+          return false;
+        }
+        const existingPin = data.login_pin || data.pin;
+        if (!existingPin) {
+          console.log("[auth] resyncAuthPassword: no PIN in profile");
+          return false;
+        }
+        const tryUpdate = async (): Promise<boolean> => {
+          const { error: pwErr } = await supabase!.auth.updateUser({
+            password: derivePinPassword(existingPin),
+          });
+          if (!pwErr || /same.?password|different.*password/i.test(pwErr.message)) {
+            console.log("[auth] resyncAuthPassword: auth password synced from profile PIN");
+            return true;
+          }
+          console.log("[auth] resyncAuthPassword: updateUser failed", pwErr.message);
+          return false;
+        };
+        if (await tryUpdate()) return true;
+        await new Promise((r) => setTimeout(r, 1000));
+        return tryUpdate();
+      } catch (e) {
+        console.log("[auth] resyncAuthPassword threw", e);
+        return false;
+      }
+    },
+    [supaEnabled]
+  );
+
+  /**
    * Mint a real Supabase auth session from phone + PIN by signing in with
    * the deterministic password mirrored from the PIN. Used by /pin-verify so
    * the user is fully authenticated (RLS-protected reads/writes work) even
@@ -1225,6 +1284,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     signInTestAccountToSupabase,
     /** Phone + PIN → real Supabase session (skips OTP). */
     signInWithPin,
+    /** Re-sync Supabase Auth password from the profile PIN after OTP verify. */
+    resyncAuthPassword,
     isTestAccountPhone: (phone: string) =>
       phone.replace(/\s/g, "") === TEST_ACCOUNT.phoneNumber.replace(/\s/g, ""),
   };

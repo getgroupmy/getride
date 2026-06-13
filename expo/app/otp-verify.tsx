@@ -15,11 +15,11 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function OTPVerifyScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { phoneNumber, resetPin, isChangeNumber, pinVerified, isNewUser } = useLocalSearchParams<{ phoneNumber: string; resetPin?: string; isChangeNumber?: string; pinVerified?: string; isNewUser?: string }>();
+  const { phoneNumber, resetPin, resyncAuth, isChangeNumber, pinVerified, isNewUser } = useLocalSearchParams<{ phoneNumber: string; resetPin?: string; resyncAuth?: string; isChangeNumber?: string; pinVerified?: string; isNewUser?: string }>();
   const isNewUserFlow = isNewUser === "true";
   const isChangeNumberFlow = isChangeNumber === "true";
   const isPinVerifiedShortcut = pinVerified === "true";
-  const { isSupabaseAuth, verifyOtp, sendOtp, hasPinSet, refreshProfile } = useAuth();
+  const { isSupabaseAuth, verifyOtp, sendOtp, hasPinSet, refreshProfile, resyncAuthPassword } = useAuth();
 
   // SMS OTPs are always 6 digits (Supabase). The local 4-digit fallback is
   // only kept for completely offline test runs where Supabase is disabled.
@@ -93,6 +93,21 @@ export default function OTPVerifyScreen() {
               pathname: "/edit-profile" as any,
               params: { numberChanged: "true", verified: isPinVerifiedShortcut ? "true" : "false", phoneNumber },
             });
+          } else if (resyncAuth === "true") {
+            // User's PIN was correct but auth password was out of sync.
+            // Resync the auth password from the existing profile PIN using
+            // the fresh OTP session, then go straight home — no pin-setup needed.
+            const userId = res.userId ?? "";
+            const synced = userId ? await resyncAuthPassword(userId) : false;
+            if (synced) {
+              console.log("[otp-verify] resyncAuth: auth password re-synced, going home");
+              router.replace("/" as any);
+            } else {
+              // Resync failed (e.g. no profile PIN) — fall back to pin-setup
+              // so the user can establish a PIN and re-sync the auth password.
+              console.log("[otp-verify] resyncAuth: resync failed, falling back to pin-setup");
+              router.replace({ pathname: "/pin-setup" as any, params: { phoneNumber, firstName: res.name ?? "", isReset: "true" } });
+            }
           } else if (resetPin === "true") {
             router.replace({ pathname: "/pin-setup" as any, params: { phoneNumber, firstName: res.name ?? "", isReset: "true" } });
           } else if (!res.hasName) {
