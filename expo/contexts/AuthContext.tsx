@@ -21,7 +21,15 @@ const PROFILE_CACHE_KEY = "@app_profile_cache";
 const AUTH_PASSWORD_RESYNC_KEY = "@auth_password_pending_resync";
 
 const TEST_ACCOUNT = {
-  phoneNumber: "+60182000004",
+  /**
+   * Built-in test phone, intentionally EMPTY to disable all test-account
+   * special-casing. The previous value ("+60182000004") became a real
+   * registered user whose PIN/Auth password live in Supabase like any other
+   * account; hard-coding it here hijacked the normal phone+PIN login path and
+   * rejected the user's real PIN. Leave empty so every number — including that
+   * one — flows through the standard Supabase sign-in.
+   */
+  phoneNumber: "",
   pin: "111111",
   /**
    * Deterministic Supabase auth credentials used to give the test account a
@@ -32,6 +40,18 @@ const TEST_ACCOUNT = {
    */
   email: "test+60182000004@teksi.local",
   password: "teksi-test-60182000004",
+};
+
+/**
+ * True only when `phone` matches the built-in test account. Returns false
+ * whenever the test phone is disabled (empty), so no real number is ever
+ * special-cased. Strips spaces, dashes and parens before comparing.
+ */
+const isTestAccountNumber = (phone: string): boolean => {
+  const testPhone = TEST_ACCOUNT.phoneNumber.replace(/[\s\-\(\)]/g, "").trim();
+  if (!testPhone) return false;
+  const normalized = (phone ?? "").replace(/[\s\-\(\)]/g, "").trim();
+  return normalized === testPhone;
 };
 
 interface RegisteredUser {
@@ -395,9 +415,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const isUserRegistered = (phoneNumber: string): boolean => {
     const normalized = phoneNumber.replace(/[\s\-\(\)]/g, "").trim();
-    const testPhone = TEST_ACCOUNT.phoneNumber.replace(/[\s\-\(\)]/g, "").trim();
-    if (normalized === testPhone) return true;
-    if (normalized.endsWith("182000004") && normalized.includes("+60")) return true;
+    if (isTestAccountNumber(phoneNumber)) return true;
     return registeredUsers.some(
       (u) => u.phoneNumber.replace(/[\s\-\(\)]/g, "").trim() === normalized
     );
@@ -421,8 +439,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     ) {
       return true;
     }
-    const testPhone = TEST_ACCOUNT.phoneNumber.replace(/[\s\-\(\)]/g, "").trim();
-    if (normalized === testPhone) return true;
+    if (isTestAccountNumber(phoneNumber)) return true;
     return registeredUsers.some(
       (u) =>
         u.phoneNumber.replace(/[\s\-\(\)]/g, "").trim() === normalized &&
@@ -440,7 +457,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     ) {
       return pin === authState.profilePin;
     }
-    if (normalized === TEST_ACCOUNT.phoneNumber.replace(/\s/g, "")) {
+    if (isTestAccountNumber(phoneNumber)) {
       return pin === TEST_ACCOUNT.pin;
     }
     const user = registeredUsers.find(
@@ -1333,7 +1350,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     signInWithPin,
     /** Re-sync Supabase Auth password from the profile PIN after OTP verify. */
     resyncAuthPassword,
-    isTestAccountPhone: (phone: string) =>
-      phone.replace(/\s/g, "") === TEST_ACCOUNT.phoneNumber.replace(/\s/g, ""),
+    isTestAccountPhone: (phone: string) => isTestAccountNumber(phone),
   };
 });
