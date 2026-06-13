@@ -18,6 +18,7 @@ const REGISTERED_USERS_KEY = "@registered_users";
  * available (startup + on demand via refreshProfile).
  */
 const PROFILE_CACHE_KEY = "@app_profile_cache";
+const AUTH_PASSWORD_RESYNC_KEY = "@auth_password_pending_resync";
 
 const TEST_ACCOUNT = {
   phoneNumber: "+60182000004",
@@ -586,6 +587,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                   // sync rather than a real error.
                   if (/same.?password|different.*password/i.test(pwErr.message)) {
                     console.log("[auth] registerUser auth password already in sync (same_password)");
+                    AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
                   } else {
                     console.log("[auth] registerUser sync auth password error", pwErr.message, "— retrying in 800 ms");
                     await new Promise((r) => setTimeout(r, 800));
@@ -593,20 +595,25 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                       const { error: pwErr2 } = await supabase.auth.updateUser({
                         password: derivePinPassword(pin),
                       });
-                      if (!pwErr2 || /same.?password|different.*password/i.test(pwErr2.message)) {
+                      if (!pwErr2 || /same.?password|different.*password/i.test(pwErr2.message ?? "")) {
                         console.log("[auth] registerUser auth password synced on retry");
+                        AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
                       } else {
                         console.log("[auth] registerUser sync auth password retry failed", pwErr2.message);
+                        AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
                       }
                     } catch (e2) {
                       console.log("[auth] registerUser updateUser retry threw", e2);
+                      AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
                     }
                   }
                 } else {
                   console.log("[auth] registerUser auth password synced for pin login");
+                  AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
                 }
               } catch (e) {
                 console.log("[auth] registerUser updateUser password threw", e);
+                AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
               }
               // Self-healing: if the combined update succeeded but the
               // returned row shows `login_pin` is still null (e.g. PostgREST
@@ -883,6 +890,33 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         }
         const resolvedName =
           (data as unknown as { _name?: string })._name ?? null;
+        // If a previous registerUser failed to sync the Auth password (e.g. the
+        // session expired between OTP and pin-setup), fix it now while we have
+        // a fresh session so PIN login works without forcing another OTP round.
+        try {
+          const pendingResync = await AsyncStorage.getItem(AUTH_PASSWORD_RESYNC_KEY);
+          if (pendingResync === "true") {
+            const { data: pinRow } = await supabase
+              .from("profiles")
+              .select("login_pin, pin")
+              .eq("id", userId)
+              .maybeSingle();
+            const savedPin = pinRow?.login_pin || pinRow?.pin;
+            if (savedPin) {
+              const { error: pwErr } = await supabase.auth.updateUser({
+                password: derivePinPassword(savedPin),
+              });
+              if (!pwErr || /same.?password|different.*password/i.test(pwErr.message ?? "")) {
+                console.log(`[auth][${reqId}] verifyOtp: pending auth password resync completed`);
+              } else {
+                console.log(`[auth][${reqId}] verifyOtp: pending auth password resync failed`, pwErr.message);
+              }
+            }
+            await AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY);
+          }
+        } catch (e) {
+          console.log(`[auth][${reqId}] verifyOtp: pending resync check threw`, e);
+        }
         console.log(`[auth][${reqId}] verifyOtp ok userId=${userId} isNewUser=${isNewUser}`);
         return { ok: true, isNewUser, hasName, userId, name: resolvedName };
       } catch (e) {
@@ -1190,6 +1224,19 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 console.log("[auth] signInWithPin: entered PIN matches in-memory profilePin");
               }
             }
+            // Final fallback: check local registered-users cache. If the PIN
+            // matches locally but verify_pin_for_login returned null it means
+            // the profile write failed during registerUser — route through OTP
+            // so pin-setup re-runs and writes the PIN to Supabase correctly.
+            if (!profilePinMatched) {
+              const localUser = registeredUsers.find(
+                (u) => normalizeE164(u.phoneNumber) === phone
+              );
+              if (localUser?.pin && localUser.pin === pin) {
+                profilePinMatched = true;
+                console.log("[auth] signInWithPin: PIN matches local cache — profile write likely failed, routing to OTP+pin-setup");
+              }
+            }
             if (profilePinMatched) {
               console.log("[auth] signInWithPin: PIN correct but Auth password out of sync — attempting re-sync");
               // Re-sync the Auth password to the PIN so future logins work.
@@ -1244,7 +1291,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return { ok: false, error: msg };
       }
     },
-    [supaEnabled, authState.profilePin]
+    [supaEnabled, authState.profilePin, registeredUsers]
   );
 
   return {
