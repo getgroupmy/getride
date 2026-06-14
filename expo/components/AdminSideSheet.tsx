@@ -10,6 +10,7 @@ import {
   PanResponder,
   ScrollView,
   Alert,
+  Linking,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -30,6 +31,7 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/useColors";
+import { useAdminData } from "@/contexts/AdminDataContext";
 
 interface AdminSideSheetProps {
   visible: boolean;
@@ -41,6 +43,7 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
   const { width } = useWindowDimensions();
   const Colors = useColors();
   const insets = useSafeAreaInsets();
+  const { getEntries } = useAdminData();
   const MENU_WIDTH = width * 0.68;
 
   const [modalVisible, setModalVisible] = React.useState<boolean>(false);
@@ -113,6 +116,21 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
   const handleNavigate = (label: string) => {
     onClose();
     setTimeout(() => Alert.alert(label, "Coming soon"), 200);
+  };
+
+  const openSocial = (platform: string) => {
+    const match = getEntries("social-links").find(
+      (e) => String(e.values.platform ?? "").toLowerCase() === platform.toLowerCase()
+    );
+    const url = String(match?.values.url ?? "").trim();
+    if (!url) {
+      Alert.alert(platform, "No link configured. Add one under Settings → Social Links.");
+      return;
+    }
+    const normalized = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    Linking.openURL(normalized).catch(() =>
+      Alert.alert(platform, "Couldn't open this link.")
+    );
   };
 
   const handleSignOut = () => {
@@ -194,12 +212,12 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
         </TouchableOpacity>
 
         <View style={styles.socialContainer}>
-          <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Facebook")}>
+          <TouchableOpacity style={styles.socialButton} onPress={() => openSocial("Facebook")} testID="admin-social-facebook">
             <View style={styles.facebookIcon}>
               <Text style={styles.socialIconText}>f</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Instagram")}>
+          <TouchableOpacity style={styles.socialButton} onPress={() => openSocial("Instagram")} testID="admin-social-instagram">
             <View style={styles.instagramIcon}>
               <Text style={styles.socialIconText}>📷</Text>
             </View>
