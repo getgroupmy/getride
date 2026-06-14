@@ -63,7 +63,10 @@ Devices register their Expo push token automatically on sign-in
 *Settings → Push Notification* composes a message, picks an audience
 (Everyone / Drivers / Users) and dispatches it.
 
-Deploy the sender function (requires the Supabase CLI, project linked):
+`setup.sh` deploys the sender function automatically when the Supabase CLI is
+on `PATH` (skip with `--no-functions`). To deploy it on its own — required, or
+the in-app *Push Notification* screen reports "Send failed" because
+`supabase.functions.invoke("send-push")` has nothing to call:
 
 ```bash
 supabase functions deploy send-push --no-verify-jwt
