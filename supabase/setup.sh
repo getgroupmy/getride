@@ -4,9 +4,10 @@
 #
 # Usage:
 #   export SUPABASE_DB_URL="postgres://postgres:[PASSWORD]@db.[ref].supabase.co:5432/postgres"
-#   ./supabase/setup.sh                # schema + seed
+#   ./supabase/setup.sh                # schema + seed (+ edge functions if CLI present)
 #   ./supabase/setup.sh --reset        # drop everything first, then schema+seed
 #   ./supabase/setup.sh --schema-only  # skip seed
+#   ./supabase/setup.sh --no-functions # skip deploying edge functions
 #
 # Requires: psql in PATH. Install via Postgres client tools, e.g.:
 #   macOS  : brew install libpq && brew link --force libpq
@@ -29,10 +30,12 @@ fi
 
 RESET=0
 SEED=1
+FUNCTIONS=1
 for arg in "$@"; do
   case "$arg" in
-    --reset)       RESET=1 ;;
-    --schema-only) SEED=0  ;;
+    --reset)        RESET=1     ;;
+    --schema-only)  SEED=0      ;;
+    --no-functions) FUNCTIONS=0 ;;
     *) echo "Unknown flag: $arg"; exit 1 ;;
   esac
 done
@@ -48,6 +51,30 @@ psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$DIR/schema.sql"
 if [[ $SEED -eq 1 ]]; then
   echo "→ Seeding default data…"
   psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f "$DIR/seed.sql"
+fi
+
+# ---------------------------------------------------------------------------
+# Edge functions (push notification sender). Best-effort: requires the Supabase
+# CLI and a linked project. Without this step the in-app "Push Notification"
+# screen reports "Send failed" because supabase.functions.invoke("send-push")
+# has nothing to call. Skip with --no-functions or set SUPABASE_PROJECT_REF.
+# ---------------------------------------------------------------------------
+if [[ $FUNCTIONS -eq 1 ]]; then
+  if command -v supabase >/dev/null 2>&1; then
+    echo "→ Deploying edge functions…"
+    REF_ARG=()
+    [[ -n "${SUPABASE_PROJECT_REF:-}" ]] && REF_ARG=(--project-ref "$SUPABASE_PROJECT_REF")
+    if supabase functions deploy send-push --no-verify-jwt "${REF_ARG[@]}"; then
+      echo "  ✓ send-push deployed."
+    else
+      echo "  ! Could not deploy send-push automatically."
+      echo "    Run manually:  supabase functions deploy send-push --no-verify-jwt"
+    fi
+  else
+    echo "→ Skipping edge functions (Supabase CLI not found)."
+    echo "  Deploy the push sender manually so notifications can be sent:"
+    echo "    supabase functions deploy send-push --no-verify-jwt"
+  fi
 fi
 
 echo "✓ Supabase setup complete."
