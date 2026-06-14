@@ -4,12 +4,14 @@
 // Broadcasts a push notification to registered devices through Expo's push
 // service (https://exp.host/--/api/v2/push/send).
 //
-// Request body: { title: string, body: string, audience?: "all" | "drivers" | "users", data?: object }
+// Request body: { title: string, body: string, audience?: "all" | "partners" | "users", data?: object }
 //
 // Audience resolution:
-//   * all     — every registered token
-//   * drivers — tokens whose profile is in `partners` (auth_user_id)
-//   * users   — tokens whose profile is NOT a partner
+//   * all      — every registered token
+//   * partners — tokens whose profile is in `partners` (auth_user_id)
+//   * users    — tokens whose profile is NOT a partner (user-mode accounts)
+//
+// "drivers" is accepted as a legacy alias for "partners".
 //
 // Reads tokens with the service-role key (bypasses RLS) and logs the dispatch
 // to `public.push_notifications`.
@@ -29,7 +31,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type Audience = "all" | "drivers" | "users";
+type Audience = "all" | "partners" | "users";
 
 interface SendBody {
   title?: string;
@@ -62,10 +64,14 @@ Deno.serve(async (req: Request) => {
 
   const title = (payload.title ?? "").trim();
   const body = (payload.body ?? "").trim();
+  const rawAudience = (payload.audience ?? "all").toLowerCase();
+  // "drivers" is the legacy key for the partner audience.
   const audience = (
-    ["all", "drivers", "users"].includes((payload.audience ?? "").toLowerCase())
-      ? payload.audience!.toLowerCase()
-      : "all"
+    rawAudience === "drivers" || rawAudience === "partners"
+      ? "partners"
+      : rawAudience === "users"
+        ? "users"
+        : "all"
   ) as Audience;
 
   if (!title || !body) {
@@ -96,13 +102,13 @@ Deno.serve(async (req: Request) => {
       .map((p: { auth_user_id: string | null }) => p.auth_user_id)
       .filter((v: string | null): v is string => !!v);
 
-    if (audience === "drivers") {
+    if (audience === "partners") {
       profileFilter = partnerIds;
       if (profileFilter.length === 0) {
         return json({ recipients: 0, sent: 0, failed: 0, tickets: [] });
       }
     } else {
-      // users — everyone who is not a partner
+      // users — everyone who is not a partner (user-mode accounts)
       const { data: rows, error } = await supabase
         .from("push_tokens")
         .select("profile_id")

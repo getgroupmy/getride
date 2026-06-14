@@ -61,7 +61,7 @@ to Expo.
 Devices register their Expo push token automatically on sign-in
 (`expo/contexts/PushNotificationContext.tsx`). The in-app admin screen
 *Settings → Push Notification* composes a message, picks an audience
-(Everyone / Drivers / Users) and dispatches it.
+(Everyone / Partners / Users) and dispatches it.
 
 `setup.sh` deploys the sender function automatically when the Supabase CLI is
 on `PATH` (skip with `--no-functions`). To deploy it on its own — required, or
@@ -74,7 +74,8 @@ supabase functions deploy send-push --no-verify-jwt
 
 The function reads tokens with the `service_role` key, which Supabase injects
 as `SUPABASE_SERVICE_ROLE_KEY` for deployed functions — no extra secret needed.
-"Drivers" vs "Users" is resolved by membership in the `partners` table.
+"Partners" vs "Users" is resolved by membership in the `partners` table
+(the legacy "drivers" audience key is still accepted as an alias for partners).
 
 ## Re-seeding
 

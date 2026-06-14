@@ -34,16 +34,18 @@ import { countPushTokens, sendPushNotification } from "@/utils/adminSync";
 
 const STORAGE_KEY = "push-notification";
 
-type Audience = "all" | "drivers" | "users";
+type Audience = "all" | "partners" | "users";
 const AUDIENCES: { key: Audience; label: string }[] = [
   { key: "all", label: "Everyone" },
-  { key: "drivers", label: "Drivers" },
+  { key: "partners", label: "Partners" },
   { key: "users", label: "Users" },
 ];
 
 function normalizeAudience(value: unknown): Audience {
   const v = String(value ?? "all").toLowerCase();
-  if (v === "drivers" || v === "users") return v;
+  // "drivers" is the legacy key for the partner audience.
+  if (v === "partners" || v === "drivers") return "partners";
+  if (v === "users") return "users";
   return "all";
 }
 
