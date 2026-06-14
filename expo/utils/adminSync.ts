@@ -1147,3 +1147,111 @@ export async function deleteUser(displayId: string): Promise<void> {
     log("deleteUser threw", e);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Push notifications
+// ---------------------------------------------------------------------------
+
+/** Register (or refresh) an Expo push token for a device. Upserts on token. */
+export async function savePushToken(
+  token: string,
+  profileId: string | null,
+  platform: string,
+  deviceName?: string | null
+): Promise<void> {
+  if (!isSupabaseConfigured || !supabase || !token) return;
+  try {
+    const { error } = await supabase.from("push_tokens").upsert(
+      {
+        token,
+        profile_id: profileId,
+        platform,
+        device_name: deviceName ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "token" }
+    );
+    if (error) log("savePushToken error", error.message);
+  } catch (e) {
+    log("savePushToken threw", e);
+  }
+}
+
+/** Remove a device's push token (e.g. on logout). */
+export async function removePushToken(token: string): Promise<void> {
+  if (!isSupabaseConfigured || !supabase || !token) return;
+  try {
+    const { error } = await supabase.from("push_tokens").delete().eq("token", token);
+    if (error) log("removePushToken error", error.message);
+  } catch (e) {
+    log("removePushToken threw", e);
+  }
+}
+
+/** Count registered devices (for the admin dashboard). */
+export async function countPushTokens(): Promise<number> {
+  if (!isSupabaseConfigured || !supabase) return 0;
+  try {
+    const { count, error } = await supabase
+      .from("push_tokens")
+      .select("id", { count: "exact", head: true });
+    if (error) {
+      log("countPushTokens error", error.message);
+      return 0;
+    }
+    return count ?? 0;
+  } catch (e) {
+    log("countPushTokens threw", e);
+    return 0;
+  }
+}
+
+export interface SendPushResult {
+  ok: boolean;
+  recipients: number;
+  sent: number;
+  failed: number;
+  error?: string;
+}
+
+/**
+ * Dispatch a push broadcast via the `send-push` edge function. The function
+ * resolves the audience to a token set, calls Expo's push service, and logs the
+ * dispatch to `public.push_notifications`.
+ */
+export async function sendPushNotification(
+  title: string,
+  body: string,
+  audience: string
+): Promise<SendPushResult> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, recipients: 0, sent: 0, failed: 0, error: "Supabase is not configured" };
+  }
+  try {
+    const { data, error } = await supabase.functions.invoke("send-push", {
+      body: { title, body, audience },
+    });
+    if (error) {
+      log("sendPushNotification error", error.message);
+      return { ok: false, recipients: 0, sent: 0, failed: 0, error: error.message };
+    }
+    const r = (data ?? {}) as {
+      recipients?: number;
+      sent?: number;
+      failed?: number;
+      error?: string;
+    };
+    if (r.error) {
+      return { ok: false, recipients: 0, sent: 0, failed: 0, error: r.error };
+    }
+    return {
+      ok: true,
+      recipients: r.recipients ?? 0,
+      sent: r.sent ?? 0,
+      failed: r.failed ?? 0,
+    };
+  } catch (e) {
+    log("sendPushNotification threw", e);
+    return { ok: false, recipients: 0, sent: 0, failed: 0, error: String(e) };
+  }
+}
