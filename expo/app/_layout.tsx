@@ -17,6 +17,7 @@ import { SessionTrackingProvider } from "@/contexts/SessionTrackingContext";
 import { BrandingProvider } from "@/contexts/BrandingContext";
 import { EmergencyContactsProvider } from "@/contexts/EmergencyContactsContext";
 import { VoiceProtectionProvider } from "@/contexts/VoiceProtectionContext";
+import { PushNotificationProvider } from "@/contexts/PushNotificationContext";
 import { AppIconChangeModal } from "@/components/AppIconChangeModal";
 import SupportCallListener from "@/components/SupportCallListener";
 
@@ -254,11 +255,13 @@ export default function RootLayout() {
                 <SessionTrackingProvider>
                   <EmergencyContactsProvider>
                     <VoiceProtectionProvider>
-                      <GestureHandlerRootView style={{ flex: 1 }}>
-                        <TabletFrame>
-                          <RootLayoutNav />
-                        </TabletFrame>
-                      </GestureHandlerRootView>
+                      <PushNotificationProvider>
+                        <GestureHandlerRootView style={{ flex: 1 }}>
+                          <TabletFrame>
+                            <RootLayoutNav />
+                          </TabletFrame>
+                        </GestureHandlerRootView>
+                      </PushNotificationProvider>
                     </VoiceProtectionProvider>
                   </EmergencyContactsProvider>
                 </SessionTrackingProvider>

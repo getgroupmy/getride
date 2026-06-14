@@ -55,7 +55,7 @@ Providers are layered in `_layout.tsx` in this order (outermost first):
 QueryClientProvider → LocationProvider → AuthProvider → ThemeProvider →
 AdminDataProvider → AdminAccessProvider → DisplaySettingsProvider →
 BrandingProvider → SessionTrackingProvider → EmergencyContactsProvider →
-VoiceProtectionProvider
+VoiceProtectionProvider → PushNotificationProvider
 ```
 
 Each context is created with `@nkzw/create-context-hook`, which produces a `[Provider, useX]` pair. Import from the context file directly (e.g. `import { useAuth } from "@/contexts/AuthContext"`).

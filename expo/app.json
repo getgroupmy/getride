@@ -42,7 +42,8 @@
         "FOREGROUND_SERVICE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "CAMERA",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -72,7 +73,14 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to use the microphone for voice messages in support chat and to record trip audio when VoiceProtection is on."
         }
       ],
-      "expo-mail-composer"
+      "expo-mail-composer",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FFD400"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

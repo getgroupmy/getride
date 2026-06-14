@@ -51,6 +51,28 @@ Storage buckets are created automatically by `schema.sql`.
 - Partners + settings are readable by authenticated clients.
 - Admin/back-office writes should use the `service_role` key.
 
+## Push notifications
+
+Push delivery uses Expo's push service. The schema adds two tables
+(`push_tokens`, `push_notifications` — see `migrations/0042_push_notifications.sql`,
+already folded into `schema.sql`) and an edge function that fans messages out
+to Expo.
+
+Devices register their Expo push token automatically on sign-in
+(`expo/contexts/PushNotificationContext.tsx`). The in-app admin screen
+*Settings → Push Notification* composes a message, picks an audience
+(Everyone / Drivers / Users) and dispatches it.
+
+Deploy the sender function (requires the Supabase CLI, project linked):
+
+```bash
+supabase functions deploy send-push --no-verify-jwt
+```
+
+The function reads tokens with the `service_role` key, which Supabase injects
+as `SUPABASE_SERVICE_ROLE_KEY` for deployed functions — no extra secret needed.
+"Drivers" vs "Users" is resolved by membership in the `partners` table.
+
 ## Re-seeding
 
 ```bash
