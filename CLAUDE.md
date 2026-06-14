@@ -12,7 +12,7 @@ The repository has two main subdirectories:
 
 ## Commands
 
-All commands run from the `expo/` directory. The project uses **Bun** as the package manager.
+All commands run from the `expo/` directory. The project uses **Bun** as the package manager. The `start*` scripts wrap the **Rork** CLI (`bunx rork start …`), not the bare Expo CLI — see `rork.json` at the repo root for the app registration.
 
 ```bash
 cd expo
@@ -25,6 +25,9 @@ bun run start-web
 
 # Start dev server (native, then press "i" for iOS or "a" for Android)
 bun run start
+
+# Start web with verbose Expo debug logging
+bun run start-web-dev
 
 # Lint
 bun run lint
@@ -72,6 +75,12 @@ Each context is created with `@nkzw/create-context-hook`, which produces a `[Pro
 
 - **ThemeContext** — dark/light/system theme. Consume via `useColors()` hook (`hooks/useColors.ts`) which returns the right color palette for the active scheme from `constants/colors.ts`.
 
+- **PushNotificationContext** (`contexts/PushNotificationContext.tsx`) — registers the device's Expo push token (via `utils/pushNotifications.ts`) and persists it to the `push_tokens` table. Broadcasts are sent from the admin "Push Notification" screen, which invokes the `send-push` Supabase edge function (see Database below). Audiences: `all`, `partners`, or `users` (`drivers` is a legacy alias for `partners`).
+
+- Other feature contexts: **BrandingContext** (app name/logo/colors from `app_branding`), **DisplaySettingsContext** (admin UI prefs), **SessionTrackingContext** (records user sessions to `user_sessions`), **EmergencyContactsContext** (rider SOS contacts), **VoiceProtectionContext** (in-ride audio recording/protection), **LocationContext** (foreground location + permissions).
+
+Most non-admin domain state is kept in lightweight `utils/*Store.ts` modules (e.g. `supportStore.ts`, `vehicleStore.ts`, `partnerOnboardingStore.ts`) rather than React contexts — these are plain async functions wrapping Supabase/AsyncStorage.
+
 ### Supabase Data Layer
 
 - Singleton client in `utils/supabase.ts`. Hardcoded fallback URL/key in that file; override with `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` env vars (place in `expo/env`).
@@ -93,18 +102,24 @@ Files with a `.web.ts` / `.web.tsx` suffix are automatically used by Metro/Expo 
 
 ## Database
 
-Schema lives in `supabase/schema.sql` (idempotent). Key tables: `profiles`, `partners`, `partner_documents`, `settings_entries`, `app_settings`, `rides`.
+The full, consolidated schema lives in `supabase/schema.sql` (idempotent — safe to re-run). Key tables: `profiles`, `partners`, `vehicles`, `partner_documents`, `settings_entries`, `app_settings`, `rides`, `support_tickets`/`support_messages`/`support_calls`, `push_tokens`, `push_notifications`, plus geo tables (`countries`/`states`/`cities`/`suburbs`/`airport_areas`).
+
+`supabase/migrations/` holds the numbered incremental migration history (`0001_…` onward). `schema.sql` is the canonical full snapshot; the migrations are the historical deltas that produced it. When adding tables/columns, update `schema.sql` and add a new numbered migration.
+
+`supabase/functions/` holds Deno edge functions. The only one today is `send-push`, which fans a notification out to registered Expo push tokens using the service-role key and logs to `push_notifications`. Deploy with `supabase functions deploy send-push --no-verify-jwt`.
 
 RLS is enabled by default. User-facing writes require `auth.uid()` to match the row owner. Admin/back-office writes require the `service_role` key.
 
-To bootstrap a new Supabase project:
+To bootstrap a new Supabase project (`setup.sh` applies `schema.sql` + `seed.sql`, and deploys edge functions if the Supabase CLI is on PATH):
 ```bash
 export SUPABASE_DB_URL="postgres://postgres:PASSWORD@db.REF.supabase.co:5432/postgres"
-./supabase/setup.sh          # creates schema + seeds
-./supabase/setup.sh --reset  # wipe, rebuild, reseed
+./supabase/setup.sh                # creates schema + seeds + edge functions
+./supabase/setup.sh --reset        # wipe, rebuild, reseed
+./supabase/setup.sh --schema-only  # skip seed data
+./supabase/setup.sh --no-functions # skip edge-function deploy
 ```
 
-The `pin` and `login_pin` columns on `profiles` both store the user's 6-digit sign-in PIN. `login_pin` is the canonical column; `pin` is the legacy alias. Both must be kept in sync — see `registerUser` in `AuthContext.tsx` for the resilience logic that handles schema-cache lag.
+The `pin` and `login_pin` columns on `profiles` both store the user's 6-digit sign-in PIN. `login_pin` is the canonical column; `pin` is the legacy alias. Both must be kept in sync — see `registerUser` in `AuthContext.tsx` for the resilience logic that handles schema-cache lag. PIN verification for login goes through the `verify_pin_for_login` RPC (migration `0045`).
 
 ## Conventions
 
