@@ -271,7 +271,10 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
       onClose();
       setTimeout(() => router.push("/support" as any), 200);
     },
-    "settings": () => handleNavigate("Settings"),
+    "settings": () => {
+      onClose();
+      setTimeout(() => router.push("/settings" as any), 200);
+    },
     "sign-out": handleSignOut,
   };
   const partnerHiddenSet = new Set(partnerCfg.hidden ?? []);
