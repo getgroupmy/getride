@@ -57,6 +57,7 @@ interface ProfileForm {
   idImage: string;
   gender: GenderValue;
   idType: IdTypeValue;
+  birthDate: string;
 }
 
 /**

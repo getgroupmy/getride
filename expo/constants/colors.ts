@@ -21,8 +21,11 @@ export const lightColors = {
   background: "#FFFFFF",
   text: "#111827",
   textSecondary: "#6B7280",
+  subtext: "#6B7280",
+  card: "#FFFFFF",
   border: "#E5E7EB",
   error: "#EF4444",
+  danger: "#EF4444",
   success: "#10B981",
   warning: "#F59E0B",
 };
@@ -50,8 +53,11 @@ export const darkColors = {
   background: "#000000",
   text: "#FFFFFF",
   textSecondary: "#9CA3AF",
+  subtext: "#9CA3AF",
+  card: "#1F2937",
   border: "#374151",
   error: "#EF4444",
+  danger: "#EF4444",
   success: "#10B981",
   warning: "#F59E0B",
 };

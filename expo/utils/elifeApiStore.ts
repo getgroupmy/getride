@@ -206,7 +206,7 @@ export function subscribeElifeConfig(
 
   return () => {
     try {
-      supabase.removeChannel(channel);
+      supabase?.removeChannel(channel);
     } catch (e) {
       console.log("[elifeApiStore] unsubscribe error", e);
     }

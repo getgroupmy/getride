@@ -29,7 +29,7 @@ async function fetchContacts(profileId: string): Promise<EmergencyContact[]> {
     console.log("[emergencyContacts] fetch error", error.message);
     throw error;
   }
-  return (data ?? []).map((r: ContactRow) => ({ id: r.id, name: r.name, phone: r.phone }));
+  return (data ?? []).map((r) => ({ id: r.id, name: r.name, phone: r.phone }));
 }
 
 export const [EmergencyContactsProvider, useEmergencyContacts] = createContextHook(() => {

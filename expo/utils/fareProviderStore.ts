@@ -344,7 +344,7 @@ export function subscribeFareAIConfig(onChange: (config: FareAIConfig) => void):
 
   return () => {
     try {
-      supabase.removeChannel(channel);
+      supabase?.removeChannel(channel);
     } catch (e) {
       console.log("[fareProviderStore] unsubscribe error", e);
     }

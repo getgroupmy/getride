@@ -627,7 +627,7 @@ export default function RequiredDocsUploader({
         authUserId={authUserId}
         target={active}
         existing={active ? uploadsByDoc.get(active.docId) ?? null : null}
-        onSaved={onSaved}
+        onSaved={onSaved as React.ComponentProps<typeof DocumentUploadModal>["onSaved"]}
       />
     </View>
   );

@@ -207,11 +207,11 @@ export default function AdminVehicleEditScreen() {
   const _legacyPersist = () => {
     updateVehicle(record.id, {
       plate: form.plate.trim().toUpperCase(),
-      make: vehicle.make,
-      model: vehicle.model,
+      make: vehicle!.make,
+      model: vehicle!.model,
       year: form.year.trim() || undefined,
       color: form.color.trim() || undefined,
-      vehicleType: vehicle.vehicleType || undefined,
+      vehicleType: vehicle!.vehicleType || undefined,
       ownerName: form.ownerName.trim(),
       ownerPhone: form.ownerPhone.trim(),
       partnerId: form.partnerId.trim() || undefined,

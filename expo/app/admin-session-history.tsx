@@ -366,6 +366,11 @@ export default function AdminSessionHistoryScreen() {
     [dateRange]
   );
 
+  const selected = useMemo(
+    () => userSummaries.find((u) => u.key === selectedKey) ?? null,
+    [userSummaries, selectedKey]
+  );
+
   const filteredDetailSessions = useMemo(
     () => detail.sessions.filter((s) => inRange(s.captured_at)),
     [detail.sessions, inRange]
@@ -575,11 +580,6 @@ export default function AdminSessionHistoryScreen() {
       </TouchableOpacity>
     );
   };
-
-  const selected = useMemo(
-    () => userSummaries.find((u) => u.key === selectedKey) ?? null,
-    [userSummaries, selectedKey]
-  );
 
   return (
     <SafeAreaView

@@ -730,7 +730,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
       const ciMeta = countryByName.get(cn);
       const def = isCountryRow && ciMeta ? getCountryDefaults(ciMeta.isoCode) : null;
       const defCurName = ciMeta?.currency ?? "";
-      const defCurSym = ciMeta?.currencySymbol ?? "";
+      const defCurSym = (ciMeta as { currencySymbol?: string } | undefined)?.currencySymbol ?? "";
       const defCalling = ciMeta?.phonecode
         ? (ciMeta.phonecode.startsWith("+") ? ciMeta.phonecode : `+${ciMeta.phonecode}`)
         : "";
@@ -757,7 +757,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
       // Prefill country defaults from country-state-city when adding a country row.
       const ci = countryByName.get(r.country);
       if (r.level === "country" && ci) {
-        setFormCurrencySymbol(ci.currencySymbol ?? "");
+        setFormCurrencySymbol((ci as { currencySymbol?: string }).currencySymbol ?? "");
         setFormCurrencyName(ci.currency ?? "");
         setFormCallingCode(ci.phonecode ? (ci.phonecode.startsWith("+") ? ci.phonecode : `+${ci.phonecode}`) : "");
         const tz0 = (ci.timezones && ci.timezones[0]?.zoneName) ?? "";

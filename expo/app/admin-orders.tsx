@@ -84,6 +84,11 @@ export default function AdminOrdersScreen() {
     }
   };
 
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [query, setQuery] = useState<string>("");
+  const [selected, setSelected] = useState<SettingEntry | null>(null);
+  const [assignVisible, setAssignVisible] = useState<boolean>(false);
+
   const orderGallery = useMemo<{ uri: string; label: string }[]>(() => {
     if (!selected) return [];
     const vid = selected.values.vehicleId ? String(selected.values.vehicleId) : "";
@@ -95,11 +100,6 @@ export default function AdminOrdersScreen() {
     return [...ext, ...intr, ...stor];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, vehicleById]);
-
-  const [filter, setFilter] = useState<FilterKey>("all");
-  const [query, setQuery] = useState<string>("");
-  const [selected, setSelected] = useState<SettingEntry | null>(null);
-  const [assignVisible, setAssignVisible] = useState<boolean>(false);
 
   const filtered = useMemo<SettingEntry[]>(() => {
     let list = orders;

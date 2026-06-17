@@ -61,6 +61,7 @@ export interface ProviderDocumentRow {
   expiry_date: string | null;
   file_url: string | null;
   file_url_back: string | null;
+  file_name?: string | null;
   status: ProviderDocStatus;
   reviewer_notes: string | null;
   reviewed_at: string | null;

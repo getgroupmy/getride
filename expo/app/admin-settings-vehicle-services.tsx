@@ -257,9 +257,9 @@ export default function AdminSettingsVehicleServicesScreen() {
       cleaned[nf.key] = Number.isFinite(n) ? n : 0;
     });
     if (editing) {
-      updateEntry(STORAGE_KEY, editing.id, cleaned);
+      updateEntry(STORAGE_KEY, editing.id, cleaned as unknown as Record<string, string | number | boolean>);
     } else {
-      addEntry(STORAGE_KEY, cleaned);
+      addEntry(STORAGE_KEY, cleaned as unknown as Record<string, string | number | boolean>);
     }
     closeModal();
   };

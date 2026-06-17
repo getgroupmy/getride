@@ -375,7 +375,7 @@ export async function checkVehicleDocsAllApproved(
     if (s === "Approved") approved += 1;
     else if (s === "Rejected") rejected += 1;
     else if (s === "Expired") expired += 1;
-    else if (s === "Failed") failed += 1;
+    else if ((s as string) === "Failed") failed += 1;
     else pending += 1;
   }
   return {

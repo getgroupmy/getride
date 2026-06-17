@@ -620,7 +620,7 @@ export default function DocumentUploadModal({
   };
 
   const replaceBack = async () => {
-    await pick(pickerSource ?? "library", "back");
+    await pick(pickerSource === "pdf" ? "library" : pickerSource ?? "library", "back");
   };
 
   const canProceedFromCurrent = useMemo(() => {

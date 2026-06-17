@@ -204,7 +204,7 @@ export default function VehicleSelectModal({
                     </View>
                     <View style={styles.optionInfo}>
                     {/* StatusIcon kept for parity but unused in row layout */}
-                    {StatusIcon ? null : null}
+                    {null}
                       <View style={styles.plateRow}>
                         <Text
                           style={[styles.plate, { color: Colors.text }]}

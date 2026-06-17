@@ -64,6 +64,7 @@ import { PlaceGatesList } from "@/components/PlaceGates";
 import PartnerModeSelectModal, { type PartnerModeOption } from "@/components/PartnerModeSelectModal";
 import { loadAssignedPartnerModeOptions } from "@/utils/partnerModeOptions";
 import { loadDriverPermitData, type DriverPermitData } from "@/utils/driverPermitSource";
+import { checkPartnerModeDocuments, summarizeDocIssues } from "@/utils/partnerModeDocCheck";
 import {
   fetchAssignableVehicles,
   claimVehicle,
@@ -187,7 +188,12 @@ export default function DriverTeksiScreen() {
   const [permitLoaded, setPermitLoaded] = useState<boolean>(false);
   const [permit, setPermit] = useState<DriverPermitData>({
     name: "—",
+    driverType: "—",
     icNumber: "—",
+    profileIcNumber: null,
+    profileIcCandidates: [],
+    permitIcNumber: null,
+    expiryDateRaw: null,
     permitNumber: "—",
     vehiclePlate: "—",
     licenseClass: "—",
@@ -3194,6 +3200,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "center",
+  },
+  fareTariffList: {
+    marginTop: 10,
+    alignItems: "center" as const,
+    gap: 2,
+  },
+  fareTariffLine: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 12,
+    fontWeight: "500" as const,
   },
   fareCurrency: {
     color: "#fff",

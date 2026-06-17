@@ -116,7 +116,7 @@ export const [BrandingProvider, useBranding] = createContextHook(() => {
       .subscribe();
     return () => {
       try {
-        supabase.removeChannel(channel);
+        supabase?.removeChannel(channel);
       } catch {}
     };
   }, [applyRemote]);

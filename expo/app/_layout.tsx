@@ -20,7 +20,9 @@ import { VoiceProtectionProvider } from "@/contexts/VoiceProtectionContext";
 import { PushNotificationProvider } from "@/contexts/PushNotificationContext";
 import { AppIconChangeModal } from "@/components/AppIconChangeModal";
 import SupportCallListener from "@/components/SupportCallListener";
+import { installGlobalErrorGuard } from "@/utils/globalErrorGuard";
 
+installGlobalErrorGuard();
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
@@ -78,7 +80,7 @@ function RootLayoutNav() {
       authState.isAuthenticated &&
       isTablet &&
       !tabletRedirectDone.current &&
-      (segments.length === 0 || segments[0] === "index" || segments[0] === undefined)
+      ((segments.length as number) === 0 || (segments[0] as string) === "index" || segments[0] === undefined)
     ) {
       console.log("[RootLayoutNav] Tablet detected on root -> /partner-teksi");
       tabletRedirectDone.current = true;

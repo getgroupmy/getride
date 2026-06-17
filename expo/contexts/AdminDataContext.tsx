@@ -91,6 +91,9 @@ export interface PartnerRecord {
   rating: number;
   totalRides: number;
   joinedAt: string;
+  serviceCountries?: string[];
+  serviceStates?: string[];
+  serviceCities?: string[];
 }
 
 /** @deprecated Use PartnerRecord */
@@ -987,11 +990,11 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
   const addPartner = useCallback(
     (input: Omit<PartnerRecord, "id" | "joinedAt"> & Partial<Pick<PartnerRecord, "id" | "joinedAt">>) => {
       const partner: PartnerRecord = {
+        ...input,
         id: input.id ?? `PR-${Date.now().toString().slice(-6)}`,
         joinedAt: input.joinedAt ?? now(),
         rating: input.rating ?? 0,
         totalRides: input.totalRides ?? 0,
-        ...input,
       } as PartnerRecord;
       update((p) => ({ ...p, partners: [partner, ...p.partners] }));
       void sbUpsertPartner(partner);
@@ -1034,10 +1037,10 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
   const addUser = useCallback(
     (input: Omit<UserRecord, "id" | "joinedAt"> & Partial<Pick<UserRecord, "id" | "joinedAt">>) => {
       const user: UserRecord = {
+        ...input,
         id: input.id ?? `US-${Date.now().toString().slice(-6)}`,
         joinedAt: input.joinedAt ?? now(),
         totalRides: input.totalRides ?? 0,
-        ...input,
       } as UserRecord;
       update((p) => ({ ...p, users: [user, ...p.users] }));
       void sbUpsertUser(user);
@@ -1371,7 +1374,7 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
       .subscribe();
     return () => {
       try {
-        void supabase.removeChannel(channel);
+        void supabase?.removeChannel(channel);
       } catch (e) {
         console.log("[AdminData] removeChannel error", e);
       }
@@ -1394,7 +1397,7 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
       .subscribe();
     return () => {
       try {
-        void supabase.removeChannel(channel);
+        void supabase?.removeChannel(channel);
       } catch (e) {
         console.log("[AdminData] removeChannel(vehicles) error", e);
       }
@@ -1417,7 +1420,7 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
       .subscribe();
     return () => {
       try {
-        void supabase.removeChannel(channel);
+        void supabase?.removeChannel(channel);
       } catch (e) {
         console.log("[AdminData] removeChannel(settings) error", e);
       }
@@ -1440,7 +1443,7 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
       .subscribe();
     return () => {
       try {
-        void supabase.removeChannel(channel);
+        void supabase?.removeChannel(channel);
       } catch (e) {
         console.log("[AdminData] removeChannel(vmm) error", e);
       }

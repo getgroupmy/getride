@@ -253,6 +253,7 @@ export default function SupportChatView({
         ticket_id: ticketId,
         sender_role: myRole,
         sender_id: myId,
+        sender_name: null,
         type: partial.type ?? "text",
         body: partial.body ?? null,
         media_url: partial.mediaUrl ?? null,

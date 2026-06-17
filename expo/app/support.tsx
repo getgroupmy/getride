@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
   rowTitleLine: { flexDirection: "row" as const, alignItems: "center" as const, justifyContent: "space-between" as const },
   rowTitle: { fontSize: 15, fontWeight: "700" as const, flex: 1 },
   rowTime: { fontSize: 11, marginLeft: 8 },
+  rowTicketNo: { fontSize: 12, marginTop: 2 },
   statusLine: { flexDirection: "row" as const, marginTop: 5 },
   statusPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 9 },
   statusPillText: { fontSize: 10.5, fontWeight: "700" as const },

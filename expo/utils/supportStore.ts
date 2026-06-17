@@ -582,7 +582,7 @@ export async function fetchSupportAgents(): Promise<SupportAgent[]> {
       return [];
     }
     const byProfile = new Map<string, SupportAgent>();
-    for (const row of (data ?? []) as Array<{
+    for (const row of (data ?? []) as unknown as Array<{
       profile_id: string;
       support: number | null;
       profile?: {

@@ -454,7 +454,7 @@ export function subscribeProviders(
 
   return () => {
     try {
-      supabase.removeChannel(channel);
+      supabase?.removeChannel(channel);
     } catch (e) {
       console.log("[apiKeysStore] unsubscribe error", e);
     }

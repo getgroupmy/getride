@@ -73,6 +73,7 @@ interface RequiredDocForm {
   isPwd: boolean;
   requireFrontBack: boolean;
   allowPdfUpload: boolean;
+  isTaxiPermit: boolean;
 }
 
 const haptic = () => {
