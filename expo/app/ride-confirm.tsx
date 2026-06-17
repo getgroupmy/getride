@@ -547,6 +547,57 @@ export default function RideConfirmScreen() {
     })
   ).current;
 
+  // Lets the expanded vehicle list drag the whole bottom sheet down when the
+  // user pulls down while already at the top of the list. Uses capture so it
+  // steals the gesture from the inner ScrollView before it starts scrolling.
+  const expandedSheetDragResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        // Only hijack a clearly-downward drag that begins at the top of the list
+        return (
+          isAtScrollTop.current &&
+          gestureState.dy > 6 &&
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
+        );
+      },
+      onPanResponderGrant: () => {
+        lastGestureY.current = currentHeight.current;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const newHeight = lastGestureY.current - gestureState.dy;
+        const clampedHeight = Math.max(
+          BOTTOM_SHEET_MIN_HEIGHT,
+          Math.min(BOTTOM_SHEET_MAX_HEIGHT, newHeight)
+        );
+        bottomSheetHeight.setValue(clampedHeight);
+        currentHeight.current = clampedHeight;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const velocity = gestureState.vy;
+        const currentPos = currentHeight.current;
+        const midPoint = (BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_MAX_HEIGHT) / 2;
+        let targetHeight: number;
+        if (velocity > 0.5) {
+          targetHeight = BOTTOM_SHEET_MIN_HEIGHT;
+        } else if (velocity < -0.5) {
+          targetHeight = BOTTOM_SHEET_MAX_HEIGHT;
+        } else {
+          targetHeight = currentPos > midPoint ? BOTTOM_SHEET_MAX_HEIGHT : BOTTOM_SHEET_MIN_HEIGHT;
+        }
+        Animated.spring(bottomSheetHeight, {
+          toValue: targetHeight,
+          useNativeDriver: false,
+          tension: 100,
+          friction: 12,
+        }).start();
+        currentHeight.current = targetHeight;
+        setIsExpanded(targetHeight !== BOTTOM_SHEET_MIN_HEIGHT);
+      },
+      onPanResponderTerminationRequest: () => false,
+    })
+  ).current;
+
   const pickup = (params.pickup as string) || "Current Location";
   const pickupLat = params.pickupLat ? parseFloat(params.pickupLat as string) : 3.139;
   const pickupLng = params.pickupLng ? parseFloat(params.pickupLng as string) : 101.6869;
@@ -4573,6 +4624,7 @@ export default function RideConfirmScreen() {
           </View>
         ) : (
           // Expanded state - show all ride options
+          <View style={{ flex: 1 }} {...expandedSheetDragResponder.panHandlers}>
           <ScrollView 
             ref={scrollViewRef}
             style={styles.rideOptionsContainer} 
@@ -4723,6 +4775,7 @@ export default function RideConfirmScreen() {
               );
             })}
           </ScrollView>
+          </View>
         )}
 
         {/* Disclaimer - Only visible when expanded */}
