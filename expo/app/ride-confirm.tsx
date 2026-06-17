@@ -2053,7 +2053,7 @@ export default function RideConfirmScreen() {
     rideOptionsContainer: {
       paddingHorizontal: 12,
       flex: 1,
-      backgroundColor: colors.gray[50],
+      backgroundColor: "transparent",
       zIndex: 1,
     },
     collapsedCarouselContainer: {
