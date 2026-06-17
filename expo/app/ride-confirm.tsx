@@ -4689,15 +4689,17 @@ export default function RideConfirmScreen() {
                 </View>
               );
             })}
-
-            {/* Disclaimer - Always below the vehicle list inside the bottom sheet */}
-            <View style={[styles.disclaimerBox, { transform: [{ translateX: displaySettings.rcDisclaimerHorizontal }, { translateY: displaySettings.rcDisclaimerVertical }] }]}>
-              <Info color="#9CA3AF" size={18} style={styles.disclaimerIcon} />
-              <Text style={styles.disclaimerText}>
-                Fare does not include state entry tax, tolls, or parking fees
-              </Text>
-            </View>
           </ScrollView>
+        )}
+
+        {/* Disclaimer - Only visible when expanded */}
+        {isExpanded && (
+          <View style={[styles.disclaimerBox, { transform: [{ translateX: displaySettings.rcDisclaimerHorizontal }, { translateY: displaySettings.rcDisclaimerVertical }] }]}>
+            <Info color="#9CA3AF" size={18} style={styles.disclaimerIcon} />
+            <Text style={styles.disclaimerText}>
+              Fare does not include state entry tax, tolls, or parking fees
+            </Text>
+          </View>
         )}
 
       </Animated.View>}
