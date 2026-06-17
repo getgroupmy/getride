@@ -2053,6 +2053,8 @@ export default function RideConfirmScreen() {
     rideOptionsContainer: {
       paddingHorizontal: 12,
       flex: 1,
+      backgroundColor: colors.gray[50],
+      zIndex: 1,
     },
     collapsedCarouselContainer: {
       flex: 1,
@@ -2329,14 +2331,17 @@ export default function RideConfirmScreen() {
       color: "#FF9500",
     },
     disclaimerBox: {
+      position: "absolute" as const,
+      left: 0,
+      right: 0,
+      bottom: 150,
       flexDirection: "row" as const,
       alignItems: "center" as const,
       backgroundColor: colors.gray[100],
       marginHorizontal: 16,
-      marginTop: 16,
-      marginBottom: 150,
       padding: 14,
       borderRadius: 12,
+      zIndex: 0,
     },
     disclaimerIcon: {
       marginRight: 10,
@@ -4571,6 +4576,7 @@ export default function RideConfirmScreen() {
           <ScrollView 
             ref={scrollViewRef}
             style={styles.rideOptionsContainer} 
+            contentContainerStyle={{ paddingBottom: 260 }}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onScroll={(e) => {
