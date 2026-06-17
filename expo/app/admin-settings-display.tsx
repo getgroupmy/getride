@@ -250,6 +250,9 @@ export default function AdminSettingsDisplayScreen() {
       step: ADDRESS_BAR_TOP_OFFSET_STEP,
       unit: "px",
     },
+  ];
+
+  const rideConfirmItems: { key: LayoutKey; label: string; description: string; min: number; max: number; step: number; unit: string }[] = [
     {
       key: "discountBarHeightOffset",
       label: "Discount bar height",
@@ -259,9 +262,6 @@ export default function AdminSettingsDisplayScreen() {
       step: DISCOUNT_BAR_HEIGHT_OFFSET_STEP,
       unit: "px",
     },
-  ];
-
-  const rideConfirmItems: { key: LayoutKey; label: string; description: string; min: number; max: number; step: number; unit: string }[] = [
     {
       key: "rcBackVertical",
       label: "Back button height",
@@ -594,30 +594,11 @@ export default function AdminSettingsDisplayScreen() {
           })}
         </View>
 
+        <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>
+          Ride Confirm Layout
+        </Text>
         <View
           style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
-          testID="display-row-discount-front"
-        >
-          <View style={styles.rowInfo}>
-            <Text style={[styles.rowLabel, { color: Colors.text }]}>Discount bar in front</Text>
-            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
-              On = promo bar sits in front of the bottom sheet. Off = sent behind it.
-            </Text>
-          </View>
-          <Switch
-            value={settings.discountBarInFront}
-            onValueChange={(v) => {
-              console.log(`[DisplaySettings] discountBarInFront -> ${v}`);
-              update("discountBarInFront", v);
-            }}
-            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
-            thumbColor="#fff"
-            testID="display-switch-discountBarInFront"
-          />
-        </View>
-
-        <View
-          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginTop: 12 }]}
           testID="display-row-discount-bar"
         >
           <View style={styles.rowInfo}>
@@ -638,10 +619,29 @@ export default function AdminSettingsDisplayScreen() {
           />
         </View>
 
-        <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>
-          Ride Confirm Layout
-        </Text>
-        <View style={[styles.list, { marginBottom: 4 }]}>
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginTop: 12 }]}
+          testID="display-row-discount-front"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Discount bar in front</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              On = promo bar sits in front of the bottom sheet. Off = sent behind it.
+            </Text>
+          </View>
+          <Switch
+            value={settings.discountBarInFront}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] discountBarInFront -> ${v}`);
+              update("discountBarInFront", v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-discountBarInFront"
+          />
+        </View>
+
+        <View style={[styles.list, { marginBottom: 4, marginTop: 12 }]}>
           {rideConfirmItems.map((item) => {
             const value = settings[item.key] as number;
             const atMin = value <= item.min;
