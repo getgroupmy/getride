@@ -40,6 +40,11 @@ export const DISCOUNT_BAR_HEIGHT_OFFSET_MIN = -300 as const;
 export const DISCOUNT_BAR_HEIGHT_OFFSET_MAX = 300 as const;
 export const DISCOUNT_BAR_HEIGHT_OFFSET_STEP = 5 as const;
 
+/** Shared range for ride-confirm element position offsets (vertical & horizontal). */
+export const RIDE_CONFIRM_OFFSET_MIN = -300 as const;
+export const RIDE_CONFIRM_OFFSET_MAX = 300 as const;
+export const RIDE_CONFIRM_OFFSET_STEP = 5 as const;
+
 /** Side menu identifiers — used by admin display settings to customize MenuSideSheet & PartnerSideSheet. */
 export type SideMenuKey = "user" | "partner";
 
@@ -402,6 +407,24 @@ export interface DisplaySettings {
   discountBarHeightOffset: number;
   /** When true, the discount/promo bar sits in front of the bottom sheet; when false it sits behind it. */
   discountBarInFront: boolean;
+  /** Show the discount/promo bar in ride-confirm. */
+  discountBar: boolean;
+  /** Ride-confirm back button vertical offset (px). Negative moves up, positive moves down. */
+  rcBackVertical: number;
+  /** Ride-confirm back button horizontal offset (px). Negative moves left, positive moves right. */
+  rcBackHorizontal: number;
+  /** Ride-confirm recenter button vertical offset (px). Negative moves up, positive moves down. */
+  rcRecenterVertical: number;
+  /** Ride-confirm recenter button horizontal offset (px). Negative moves left, positive moves right. */
+  rcRecenterHorizontal: number;
+  /** Ride-confirm disclaimer box vertical offset (px). Negative moves up, positive moves down. */
+  rcDisclaimerVertical: number;
+  /** Ride-confirm disclaimer box horizontal offset (px). Negative moves left, positive moves right. */
+  rcDisclaimerHorizontal: number;
+  /** Ride-confirm address box vertical offset (px). Negative moves up, positive moves down. */
+  rcAddressVertical: number;
+  /** Ride-confirm address box horizontal offset (px). Negative moves left, positive moves right. */
+  rcAddressHorizontal: number;
   /** Vehicle service entry IDs hidden from the home vehicle type bar. */
   hiddenVehicleServiceIds: string[];
   /** Show available vehicle icons/markers on the map. */
@@ -441,6 +464,15 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   addressBarTopOffset: 0,
   discountBarHeightOffset: 0,
   discountBarInFront: false,
+  discountBar: true,
+  rcBackVertical: 0,
+  rcBackHorizontal: 0,
+  rcRecenterVertical: 0,
+  rcRecenterHorizontal: 0,
+  rcDisclaimerVertical: 0,
+  rcDisclaimerHorizontal: 0,
+  rcAddressVertical: 0,
+  rcAddressHorizontal: 0,
   hiddenVehicleServiceIds: [],
   showVehicleMarkers: false,
   vehicleBarOrder: [],
@@ -639,7 +671,7 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
   );
 
   const setNumeric = useCallback(
-    (key: "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset", value: number, min: number, max: number) => {
+    (key: "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset" | "rcBackVertical" | "rcBackHorizontal" | "rcRecenterVertical" | "rcRecenterHorizontal" | "rcDisclaimerVertical" | "rcDisclaimerHorizontal" | "rcAddressVertical" | "rcAddressHorizontal", value: number, min: number, max: number) => {
       const clamped = Math.max(min, Math.min(max, Math.round(value)));
       setSettings((prev) => {
         const next = { ...prev, [key]: clamped } as DisplaySettings;

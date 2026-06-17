@@ -90,6 +90,9 @@ import {
   DISCOUNT_BAR_HEIGHT_OFFSET_MIN,
   DISCOUNT_BAR_HEIGHT_OFFSET_MAX,
   DISCOUNT_BAR_HEIGHT_OFFSET_STEP,
+  RIDE_CONFIRM_OFFSET_MIN,
+  RIDE_CONFIRM_OFFSET_MAX,
+  RIDE_CONFIRM_OFFSET_STEP,
   DEFAULT_USER_MENU_ITEMS,
   DEFAULT_PARTNER_MENU_ITEMS,
   SIDE_MENU_ICONS,
@@ -200,7 +203,7 @@ export default function AdminSettingsDisplayScreen() {
     return found ? found.label : path;
   };
 
-  type LayoutKey = "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset";
+  type LayoutKey = "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset" | "rcBackVertical" | "rcBackHorizontal" | "rcRecenterVertical" | "rcRecenterHorizontal" | "rcDisclaimerVertical" | "rcDisclaimerHorizontal" | "rcAddressVertical" | "rcAddressHorizontal";
   const layoutItems: { key: LayoutKey; label: string; description: string; min: number; max: number; step: number; unit: string }[] = [
     {
       key: "recenterButtonBottom",
@@ -254,6 +257,81 @@ export default function AdminSettingsDisplayScreen() {
       min: DISCOUNT_BAR_HEIGHT_OFFSET_MIN,
       max: DISCOUNT_BAR_HEIGHT_OFFSET_MAX,
       step: DISCOUNT_BAR_HEIGHT_OFFSET_STEP,
+      unit: "px",
+    },
+  ];
+
+  const rideConfirmItems: { key: LayoutKey; label: string; description: string; min: number; max: number; step: number; unit: string }[] = [
+    {
+      key: "rcBackVertical",
+      label: "Back button height",
+      description: "Vertical offset of the back button (negative = up, positive = down)",
+      min: RIDE_CONFIRM_OFFSET_MIN,
+      max: RIDE_CONFIRM_OFFSET_MAX,
+      step: RIDE_CONFIRM_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "rcBackHorizontal",
+      label: "Back button left/right",
+      description: "Horizontal offset of the back button (negative = left, positive = right)",
+      min: RIDE_CONFIRM_OFFSET_MIN,
+      max: RIDE_CONFIRM_OFFSET_MAX,
+      step: RIDE_CONFIRM_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "rcRecenterVertical",
+      label: "Recenter button height",
+      description: "Vertical offset of the recenter button (negative = up, positive = down)",
+      min: RIDE_CONFIRM_OFFSET_MIN,
+      max: RIDE_CONFIRM_OFFSET_MAX,
+      step: RIDE_CONFIRM_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "rcRecenterHorizontal",
+      label: "Recenter button left/right",
+      description: "Horizontal offset of the recenter button (negative = left, positive = right)",
+      min: RIDE_CONFIRM_OFFSET_MIN,
+      max: RIDE_CONFIRM_OFFSET_MAX,
+      step: RIDE_CONFIRM_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "rcDisclaimerVertical",
+      label: "Disclaimer box height",
+      description: "Vertical offset of the disclaimer box (negative = up, positive = down)",
+      min: RIDE_CONFIRM_OFFSET_MIN,
+      max: RIDE_CONFIRM_OFFSET_MAX,
+      step: RIDE_CONFIRM_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "rcDisclaimerHorizontal",
+      label: "Disclaimer box left/right",
+      description: "Horizontal offset of the disclaimer box (negative = left, positive = right)",
+      min: RIDE_CONFIRM_OFFSET_MIN,
+      max: RIDE_CONFIRM_OFFSET_MAX,
+      step: RIDE_CONFIRM_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "rcAddressVertical",
+      label: "Address box height",
+      description: "Vertical offset of the address box (negative = up, positive = down)",
+      min: RIDE_CONFIRM_OFFSET_MIN,
+      max: RIDE_CONFIRM_OFFSET_MAX,
+      step: RIDE_CONFIRM_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "rcAddressHorizontal",
+      label: "Address box left/right",
+      description: "Horizontal offset of the address box (negative = left, positive = right)",
+      min: RIDE_CONFIRM_OFFSET_MIN,
+      max: RIDE_CONFIRM_OFFSET_MAX,
+      step: RIDE_CONFIRM_OFFSET_STEP,
       unit: "px",
     },
   ];
@@ -536,6 +614,87 @@ export default function AdminSettingsDisplayScreen() {
             thumbColor="#fff"
             testID="display-switch-discountBarInFront"
           />
+        </View>
+
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginTop: 12 }]}
+          testID="display-row-discount-bar"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Show discount bar</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              Toggle the promo/discount bar on the ride-confirm screen
+            </Text>
+          </View>
+          <Switch
+            value={settings.discountBar}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] discountBar -> ${v}`);
+              update("discountBar", v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-discountBar"
+          />
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>
+          Ride Confirm Layout
+        </Text>
+        <View style={[styles.list, { marginBottom: 4 }]}>
+          {rideConfirmItems.map((item) => {
+            const value = settings[item.key] as number;
+            const atMin = value <= item.min;
+            const atMax = value >= item.max;
+            return (
+              <View
+                key={item.key}
+                style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+                testID={`display-row-${item.key}`}
+              >
+                <View style={styles.rowInfo}>
+                  <Text style={[styles.rowLabel, { color: Colors.text }]}>{item.label}</Text>
+                  <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>{item.description}</Text>
+                </View>
+                <View style={styles.stepper}>
+                  <TouchableOpacity
+                    onPress={() => setNumeric(item.key, value - item.step, item.min, item.max)}
+                    disabled={atMin}
+                    style={[
+                      styles.stepBtn,
+                      {
+                        backgroundColor: Colors.background,
+                        borderColor: Colors.border,
+                        opacity: atMin ? 0.4 : 1,
+                      },
+                    ]}
+                    testID={`display-${item.key}-minus`}
+                  >
+                    <Minus color={Colors.text} size={16} />
+                  </TouchableOpacity>
+                  <Text style={[styles.stepValueWide, { color: Colors.text }]} testID={`display-${item.key}-value`}>
+                    {value}
+                    <Text style={[styles.stepUnit, { color: Colors.textSecondary }]}>{item.unit}</Text>
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setNumeric(item.key, value + item.step, item.min, item.max)}
+                    disabled={atMax}
+                    style={[
+                      styles.stepBtn,
+                      {
+                        backgroundColor: Colors.background,
+                        borderColor: Colors.border,
+                        opacity: atMax ? 0.4 : 1,
+                      },
+                    ]}
+                    testID={`display-${item.key}-plus`}
+                  >
+                    <Plus color={Colors.text} size={16} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
         </View>
 
         <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>

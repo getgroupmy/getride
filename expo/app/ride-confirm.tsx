@@ -3922,7 +3922,7 @@ export default function RideConfirmScreen() {
       </View>
 
       {/* Top Location Overlay - hide when searching or sheet is expanded */}
-      {!isSearchingDriver && !isExpanded && <Animated.View style={styles.topOverlay} {...menuPanResponder.panHandlers}>
+      {!isSearchingDriver && !isExpanded && <Animated.View style={[styles.topOverlay, { transform: [{ translateX: displaySettings.rcAddressHorizontal }, { translateY: displaySettings.rcAddressVertical }] }]} {...menuPanResponder.panHandlers}>
         <View style={{ flexDirection: "row" }}>
           <View style={styles.locationIconContainer}>
             <View style={[styles.locationDot, styles.pickupDot]} />
@@ -4087,7 +4087,11 @@ export default function RideConfirmScreen() {
             styles.backButton,
             {
               opacity: topButtonsHideAnim,
-              transform: [{ scale: topButtonsHideAnim }],
+              transform: [
+                { translateX: displaySettings.rcBackHorizontal },
+                { translateY: displaySettings.rcBackVertical },
+                { scale: topButtonsHideAnim },
+              ],
             }
           ]}
           pointerEvents="auto"
@@ -4112,15 +4116,19 @@ export default function RideConfirmScreen() {
             styles.recenterButton,
             {
               opacity: Animated.multiply(recenterButtonAnim, topButtonsHideAnim),
-              transform: [{
-                scale: Animated.multiply(
-                  recenterButtonAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1],
-                  }),
-                  topButtonsHideAnim
-                )
-              }]
+              transform: [
+                { translateX: displaySettings.rcRecenterHorizontal },
+                { translateY: displaySettings.rcRecenterVertical },
+                {
+                  scale: Animated.multiply(
+                    recenterButtonAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                    topButtonsHideAnim
+                  )
+                }
+              ]
             }
           ]}
         >
@@ -4380,7 +4388,7 @@ export default function RideConfirmScreen() {
       )}
 
       {/* Promo Code Banner - floats above bottom sheet, overlapped by sheet's top */}
-      {!isSearchingDriver && (
+      {!isSearchingDriver && displaySettings.discountBar && (
         <Animated.View
           pointerEvents={isExpanded ? "none" : "box-none"}
           style={[
@@ -4686,7 +4694,7 @@ export default function RideConfirmScreen() {
 
         {/* Disclaimer - Only visible when expanded */}
         {isExpanded && (
-          <View style={styles.disclaimerBox}>
+          <View style={[styles.disclaimerBox, { transform: [{ translateX: displaySettings.rcDisclaimerHorizontal }, { translateY: displaySettings.rcDisclaimerVertical }] }]}>
             <Info color="#9CA3AF" size={18} style={styles.disclaimerIcon} />
             <Text style={styles.disclaimerText}>
               Fare does not include state entry tax, tolls, or parking fees
