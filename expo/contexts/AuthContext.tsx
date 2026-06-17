@@ -396,7 +396,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           await applySession(validated);
           const sub = supabase.auth.onAuthStateChange((_event, nextSession) => {
             console.log("[auth] supabase state change:", _event);
-            applySession(nextSession ?? null);
+            applySession(nextSession ?? null).catch((e) =>
+              console.log("[auth] applySession (state change) failed", e)
+            );
           });
           unsub = () => sub.data.subscription.unsubscribe();
         } catch (e) {
