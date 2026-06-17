@@ -88,5 +88,49 @@ export function installGlobalErrorGuard(): void {
     });
   }
 
+  // 3) React Native unhandled promise rejections.
+  //
+  // On Hermes/RN the `unhandledrejection` event above is NOT dispatched —
+  // RN tracks rejections through the bundled `promise` library's
+  // rejection-tracking module, and that is what the preview overlay hooks
+  // into. We re-enable tracking with our own handler so a content-less `{}`
+  // rejection (typically a failed realtime/websocket call in the preview
+  // sandbox) is logged but never surfaced as a fake "Runtime error". Real
+  // rejections carrying a message/stack are still reported via console.error.
+  installRejectionTracking();
+
   console.log(`[globalErrorGuard] installed (platform=${Platform.OS})`);
+}
+
+function installRejectionTracking(): void {
+  try {
+    // The Promise polyfill RN bundles exposes rejection tracking here.
+    // Guarded require: if the path/shape ever changes we just skip silently.
+    const tracking =
+      require("promise/setimmediate/rejection-tracking") as {
+        enable?: (opts: {
+          allRejections?: boolean;
+          onUnhandled?: (id: unknown, error: unknown) => void;
+          onHandled?: (id: unknown) => void;
+        }) => void;
+      };
+    if (typeof tracking?.enable !== "function") return;
+    tracking.enable({
+      allRejections: true,
+      onUnhandled: (_id: unknown, error: unknown) => {
+        if (isContentlessError(error)) {
+          console.log(
+            "[globalErrorGuard] Swallowed content-less unhandled rejection (RN):",
+            error
+          );
+          return;
+        }
+        console.error("[globalErrorGuard] Unhandled promise rejection:", error);
+      },
+      onHandled: () => {},
+    });
+    console.log("[globalErrorGuard] RN rejection tracking installed");
+  } catch (e) {
+    console.log("[globalErrorGuard] RN rejection tracking unavailable", e);
+  }
 }
