@@ -18,7 +18,6 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useRouter, useLocalSearchParams, Stack, useFocusEffect } from "expo-router";
 import { 
   ArrowLeft, 
@@ -548,77 +547,54 @@ export default function RideConfirmScreen() {
     })
   ).current;
 
-  // Lets the expanded vehicle list drag the whole bottom sheet down. A JS
-  // PanResponder can't reliably win the gesture from a native ScrollView, so we
-  // use react-native-gesture-handler: a Pan gesture composed Simultaneously with
-  // the ScrollView's Native gesture. The Pan only drives the sheet while the
-  // list is at the top and the finger moves down; otherwise the list scrolls.
-  const sheetDragActive = useRef(false);
+  // Lets the expanded vehicle list drag the whole bottom sheet down. Uses a JS
+  // PanResponder that CAPTURES the touch from the ScrollView only when the list
+  // is already at the top and the finger moves downward; in every other case it
+  // declines so the ScrollView scrolls normally. This is fully JS-driven, so
+  // swapping the expanded list out (collapsing) never crashes the native side.
   const sheetDragBaseline = useRef(0);
   const sheetDragStartHeight = useRef(0);
-  const expandedScrollNativeGesture = useRef(Gesture.Native()).current;
-  const expandedSheetPan = useRef(
-    Gesture.Pan()
-      .activeOffsetY([-12, 12])
-      .onBegin(() => {
-        sheetDragActive.current = false;
-      })
-      .onUpdate((e) => {
-        // Drive the sheet only when at the top of the list and pulling down
-        if (isAtScrollTop.current && e.translationY > 0) {
-          if (!sheetDragActive.current) {
-            sheetDragActive.current = true;
-            sheetDragBaseline.current = e.translationY;
-            sheetDragStartHeight.current = currentHeight.current;
-          }
-          const delta = e.translationY - sheetDragBaseline.current;
-          const newHeight = Math.max(
-            BOTTOM_SHEET_MIN_HEIGHT,
-            Math.min(BOTTOM_SHEET_MAX_HEIGHT, sheetDragStartHeight.current - delta)
-          );
-          bottomSheetHeight.setValue(newHeight);
-          currentHeight.current = newHeight;
-        } else if (sheetDragActive.current && e.translationY <= 0) {
-          sheetDragActive.current = false;
+  const expandedListPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        return isAtScrollTop.current && gestureState.dy > 4 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderGrant: () => {
+        sheetDragBaseline.current = currentHeight.current;
+        sheetDragStartHeight.current = currentHeight.current;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const newHeight = Math.max(
+          BOTTOM_SHEET_MIN_HEIGHT,
+          Math.min(BOTTOM_SHEET_MAX_HEIGHT, sheetDragStartHeight.current - gestureState.dy)
+        );
+        bottomSheetHeight.setValue(newHeight);
+        currentHeight.current = newHeight;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const midPoint = (BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_MAX_HEIGHT) / 2;
+        let targetHeight: number;
+        if (gestureState.vy > 0.5) {
+          targetHeight = BOTTOM_SHEET_MIN_HEIGHT;
+        } else if (gestureState.vy < -0.5) {
+          targetHeight = BOTTOM_SHEET_MAX_HEIGHT;
+        } else {
+          targetHeight = currentHeight.current > midPoint ? BOTTOM_SHEET_MAX_HEIGHT : BOTTOM_SHEET_MIN_HEIGHT;
         }
-      })
-      .onEnd((e) => {
-        if (sheetDragActive.current) {
-          const midPoint = (BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_MAX_HEIGHT) / 2;
-          let targetHeight: number;
-          if (e.velocityY > 400) {
-            targetHeight = BOTTOM_SHEET_MIN_HEIGHT;
-          } else if (e.velocityY < -400) {
-            targetHeight = BOTTOM_SHEET_MAX_HEIGHT;
-          } else {
-            targetHeight = currentHeight.current > midPoint ? BOTTOM_SHEET_MAX_HEIGHT : BOTTOM_SHEET_MIN_HEIGHT;
-          }
-          currentHeight.current = targetHeight;
-          // IMPORTANT: never flip `isExpanded` from inside the gesture. Doing so
-          // unmounts this GestureDetector while react-native-gesture-handler is
-          // still finalizing the gesture natively, which hard-crashes Expo Go.
-          // Instead, animate the height and flip the state only from the spring's
-          // completion callback, which fires well after the gesture is finalized.
-          const nextExpanded = targetHeight !== BOTTOM_SHEET_MIN_HEIGHT;
-          Animated.spring(bottomSheetHeight, {
-            toValue: targetHeight,
-            useNativeDriver: false,
-            tension: 100,
-            friction: 12,
-          }).start(({ finished }) => {
-            if (finished && !nextExpanded) {
-              setIsExpanded(false);
-            }
-          });
+        currentHeight.current = targetHeight;
+        const nextExpanded = targetHeight !== BOTTOM_SHEET_MIN_HEIGHT;
+        Animated.spring(bottomSheetHeight, {
+          toValue: targetHeight,
+          useNativeDriver: false,
+          tension: 100,
+          friction: 12,
+        }).start();
+        if (!nextExpanded) {
+          setIsExpanded(false);
         }
-        sheetDragActive.current = false;
-      })
-      .onFinalize(() => {
-        sheetDragActive.current = false;
-      })
-  ).current;
-  const expandedComposedGesture = useRef(
-    Gesture.Simultaneous(expandedSheetPan, expandedScrollNativeGesture)
+      },
+    })
   ).current;
 
   const pickup = (params.pickup as string) || "Current Location";
@@ -4647,7 +4623,7 @@ export default function RideConfirmScreen() {
           </View>
         ) : (
           // Expanded state - show all ride options
-          <GestureDetector gesture={expandedComposedGesture}>
+          <View style={{ flex: 1 }} {...expandedListPanResponder.panHandlers}>
           <ScrollView 
             ref={scrollViewRef}
             style={styles.rideOptionsContainer} 
@@ -4771,7 +4747,7 @@ export default function RideConfirmScreen() {
               );
             })}
           </ScrollView>
-          </GestureDetector>
+          </View>
         )}
 
         {/* Disclaimer - Only visible when expanded */}
