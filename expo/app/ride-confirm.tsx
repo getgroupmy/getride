@@ -4583,16 +4583,31 @@ export default function RideConfirmScreen() {
             onScroll={(e) => {
               const offsetY = e.nativeEvent.contentOffset.y;
               isAtScrollTop.current = offsetY <= 0;
-              // Pull the list down past the top to collapse the sheet
-              if (offsetY < -70 && currentHeight.current !== BOTTOM_SHEET_MIN_HEIGHT) {
+              // Overscrolling at the top drags the whole bottom sheet down with the finger
+              if (offsetY < 0) {
+                const newHeight = Math.max(
+                  BOTTOM_SHEET_MIN_HEIGHT,
+                  Math.min(BOTTOM_SHEET_MAX_HEIGHT, BOTTOM_SHEET_MAX_HEIGHT + offsetY)
+                );
+                bottomSheetHeight.setValue(newHeight);
+                currentHeight.current = newHeight;
+              }
+            }}
+            onScrollEndDrag={(e) => {
+              const offsetY = e.nativeEvent.contentOffset.y;
+              // When the drag was a downward pull on the sheet, snap to the nearest detent
+              if (offsetY < 0) {
+                const midPoint = (BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_MAX_HEIGHT) / 2;
+                const willCollapse = currentHeight.current < midPoint;
+                const target = willCollapse ? BOTTOM_SHEET_MIN_HEIGHT : BOTTOM_SHEET_MAX_HEIGHT;
                 Animated.spring(bottomSheetHeight, {
-                  toValue: BOTTOM_SHEET_MIN_HEIGHT,
+                  toValue: target,
                   useNativeDriver: false,
                   tension: 100,
                   friction: 12,
                 }).start();
-                currentHeight.current = BOTTOM_SHEET_MIN_HEIGHT;
-                setIsExpanded(false);
+                currentHeight.current = target;
+                setIsExpanded(!willCollapse);
               }
             }}
           >
