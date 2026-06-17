@@ -600,7 +600,14 @@ export default function RideConfirmScreen() {
             friction: 12,
           }).start();
           currentHeight.current = targetHeight;
-          setIsExpanded(targetHeight !== BOTTOM_SHEET_MIN_HEIGHT);
+          // Defer the state change to the next tick so the gesture can finish
+          // finalizing before React unmounts this GestureDetector (collapsing
+          // swaps the expanded ScrollView out). Unmounting mid-finalize crashes
+          // react-native-gesture-handler.
+          const nextExpanded = targetHeight !== BOTTOM_SHEET_MIN_HEIGHT;
+          requestAnimationFrame(() => {
+            setIsExpanded(nextExpanded);
+          });
         }
         sheetDragActive.current = false;
       })
