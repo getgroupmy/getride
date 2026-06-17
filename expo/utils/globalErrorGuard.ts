@@ -92,7 +92,18 @@ export function installGlobalErrorGuard(): void {
     });
   }
 
-  // 3) React Native unhandled promise rejections.
+  // 3) console.error / console.warn channel.
+  //
+  // RN's LogBox and the Rork preview overlay both read from console.error
+  // (and, for the red box, sometimes console.warn). When the Supabase
+  // realtime websocket fails to connect in the preview sandbox, supabase-js
+  // logs a content-less `{}` through console.error — which is exactly the
+  // opaque "Runtime error" the overlay surfaces. Neither the rejection
+  // tracker nor the ErrorUtils handler ever sees it, so we filter it here.
+  // Real, message-bearing logs pass through untouched.
+  installConsoleFilter();
+
+  // 4) React Native unhandled promise rejections.
   //
   // On Hermes/RN the `unhandledrejection` event above is NOT dispatched —
   // RN tracks rejections through the bundled `promise` library's
@@ -104,6 +115,36 @@ export function installGlobalErrorGuard(): void {
   installRejectionTracking();
 
   console.log(`[globalErrorGuard] installed (platform=${Platform.OS})`);
+}
+
+function installConsoleFilter(): void {
+  const consoleAny = console as unknown as {
+    error: (...args: unknown[]) => void;
+    warn: (...args: unknown[]) => void;
+  };
+
+  const wrap = (
+    original: (...args: unknown[]) => void,
+    label: string
+  ): ((...args: unknown[]) => void) => {
+    return (...args: unknown[]): void => {
+      // Drop the log only when EVERY argument is content-less (a bare {},
+      // null, undefined, or an empty string). A single informative argument
+      // means the log is actionable and must be preserved.
+      const allContentless =
+        args.length > 0 && args.every((a) => isContentlessError(a));
+      if (allContentless) {
+        // Keep a breadcrumb but route it through console.log so it never
+        // reaches LogBox / the preview overlay.
+        console.log(`[globalErrorGuard] Swallowed content-less ${label}`);
+        return;
+      }
+      original(...args);
+    };
+  };
+
+  consoleAny.error = wrap(consoleAny.error.bind(console), "console.error");
+  consoleAny.warn = wrap(consoleAny.warn.bind(console), "console.warn");
 }
 
 function installRejectionTracking(): void {
