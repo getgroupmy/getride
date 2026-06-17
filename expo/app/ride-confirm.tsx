@@ -4579,9 +4579,21 @@ export default function RideConfirmScreen() {
             contentContainerStyle={{ paddingBottom: 260 }}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
+            bounces={true}
             onScroll={(e) => {
               const offsetY = e.nativeEvent.contentOffset.y;
               isAtScrollTop.current = offsetY <= 0;
+              // Pull the list down past the top to collapse the sheet
+              if (offsetY < -70 && currentHeight.current !== BOTTOM_SHEET_MIN_HEIGHT) {
+                Animated.spring(bottomSheetHeight, {
+                  toValue: BOTTOM_SHEET_MIN_HEIGHT,
+                  useNativeDriver: false,
+                  tension: 100,
+                  friction: 12,
+                }).start();
+                currentHeight.current = BOTTOM_SHEET_MIN_HEIGHT;
+                setIsExpanded(false);
+              }
             }}
           >
             {EXTENDED_RIDE_TYPES.map((ride) => {
