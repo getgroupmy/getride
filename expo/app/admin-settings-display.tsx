@@ -87,6 +87,9 @@ import {
   ADDRESS_BAR_TOP_OFFSET_MIN,
   ADDRESS_BAR_TOP_OFFSET_MAX,
   ADDRESS_BAR_TOP_OFFSET_STEP,
+  DISCOUNT_BAR_HEIGHT_OFFSET_MIN,
+  DISCOUNT_BAR_HEIGHT_OFFSET_MAX,
+  DISCOUNT_BAR_HEIGHT_OFFSET_STEP,
   DEFAULT_USER_MENU_ITEMS,
   DEFAULT_PARTNER_MENU_ITEMS,
   SIDE_MENU_ICONS,
@@ -197,7 +200,7 @@ export default function AdminSettingsDisplayScreen() {
     return found ? found.label : path;
   };
 
-  type LayoutKey = "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset";
+  type LayoutKey = "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset";
   const layoutItems: { key: LayoutKey; label: string; description: string; min: number; max: number; step: number; unit: string }[] = [
     {
       key: "recenterButtonBottom",
@@ -242,6 +245,15 @@ export default function AdminSettingsDisplayScreen() {
       min: ADDRESS_BAR_TOP_OFFSET_MIN,
       max: ADDRESS_BAR_TOP_OFFSET_MAX,
       step: ADDRESS_BAR_TOP_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "discountBarHeightOffset",
+      label: "Discount bar height",
+      description: "Vertical offset of the promo/discount bar (negative = up, positive = down)",
+      min: DISCOUNT_BAR_HEIGHT_OFFSET_MIN,
+      max: DISCOUNT_BAR_HEIGHT_OFFSET_MAX,
+      step: DISCOUNT_BAR_HEIGHT_OFFSET_STEP,
       unit: "px",
     },
   ];
@@ -502,6 +514,28 @@ export default function AdminSettingsDisplayScreen() {
               </View>
             );
           })}
+        </View>
+
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+          testID="display-row-discount-front"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Discount bar in front</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              On = promo bar sits in front of the bottom sheet. Off = sent behind it.
+            </Text>
+          </View>
+          <Switch
+            value={settings.discountBarInFront}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] discountBarInFront -> ${v}`);
+              update("discountBarInFront", v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-discountBarInFront"
+          />
         </View>
 
         <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>

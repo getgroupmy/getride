@@ -36,6 +36,10 @@ export const ADDRESS_BAR_TOP_OFFSET_MIN = -300 as const;
 export const ADDRESS_BAR_TOP_OFFSET_MAX = 300 as const;
 export const ADDRESS_BAR_TOP_OFFSET_STEP = 5 as const;
 
+export const DISCOUNT_BAR_HEIGHT_OFFSET_MIN = -300 as const;
+export const DISCOUNT_BAR_HEIGHT_OFFSET_MAX = 300 as const;
+export const DISCOUNT_BAR_HEIGHT_OFFSET_STEP = 5 as const;
+
 /** Side menu identifiers — used by admin display settings to customize MenuSideSheet & PartnerSideSheet. */
 export type SideMenuKey = "user" | "partner";
 
@@ -394,6 +398,10 @@ export interface DisplaySettings {
   dropPinHorizontalOffset: number;
   /** Vertical offset for the top address bar (px). Negative moves up, positive moves down. */
   addressBarTopOffset: number;
+  /** Vertical offset for the discount/promo bar in ride-confirm (px). Negative moves up, positive moves down. */
+  discountBarHeightOffset: number;
+  /** When true, the discount/promo bar sits in front of the bottom sheet; when false it sits behind it. */
+  discountBarInFront: boolean;
   /** Vehicle service entry IDs hidden from the home vehicle type bar. */
   hiddenVehicleServiceIds: string[];
   /** Show available vehicle icons/markers on the map. */
@@ -431,6 +439,8 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   dropPinTopOffset: 0,
   dropPinHorizontalOffset: 0,
   addressBarTopOffset: 0,
+  discountBarHeightOffset: 0,
+  discountBarInFront: false,
   hiddenVehicleServiceIds: [],
   showVehicleMarkers: false,
   vehicleBarOrder: [],
@@ -629,7 +639,7 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
   );
 
   const setNumeric = useCallback(
-    (key: "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset", value: number, min: number, max: number) => {
+    (key: "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset", value: number, min: number, max: number) => {
       const clamped = Math.max(min, Math.min(max, Math.round(value)));
       setSettings((prev) => {
         const next = { ...prev, [key]: clamped } as DisplaySettings;

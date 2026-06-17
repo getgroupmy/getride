@@ -343,6 +343,7 @@ export default function RideConfirmScreen() {
   const mapDragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fixedBottomSlideAnim = useRef(new Animated.Value(0)).current;
   const topButtonsHideAnim = useRef(new Animated.Value(1)).current;
+  const promoFadeAnim = useRef(new Animated.Value(1)).current;
   const menuSwipeThreshold = SCREEN_WIDTH * 0.25;
 
   useEffect(() => {
@@ -351,6 +352,14 @@ export default function RideConfirmScreen() {
     });
     return () => menuRevealAnim.removeListener(listenerId);
   }, [menuRevealAnim]);
+
+  useEffect(() => {
+    Animated.timing(promoFadeAnim, {
+      toValue: isExpanded ? 0 : 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [isExpanded, promoFadeAnim]);
 
   const menuPanResponder = useRef(
     PanResponder.create({
@@ -4369,13 +4378,16 @@ export default function RideConfirmScreen() {
       )}
 
       {/* Promo Code Banner - floats above bottom sheet, overlapped by sheet's top */}
-      {!isSearchingDriver && !isExpanded && (
+      {!isSearchingDriver && (
         <Animated.View
+          pointerEvents={isExpanded ? "none" : "box-none"}
           style={[
             styles.promoBanner,
             {
               bottom: BOTTOM_SHEET_MIN_HEIGHT - 22,
-              opacity: topButtonsHideAnim,
+              opacity: Animated.multiply(topButtonsHideAnim, promoFadeAnim),
+              transform: [{ translateY: displaySettings.discountBarHeightOffset }],
+              zIndex: displaySettings.discountBarInFront ? 1300 : 1100,
             },
           ]}
           {...menuPanResponder.panHandlers}
