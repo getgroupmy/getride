@@ -75,9 +75,13 @@ export function installGlobalErrorGuard(): void {
   if (errorUtils?.setGlobalHandler && errorUtils.getGlobalHandler) {
     const previous = errorUtils.getGlobalHandler();
     errorUtils.setGlobalHandler((error: unknown, isFatal?: boolean) => {
-      if (!isFatal && isContentlessError(error)) {
+      // A value with no message/stack is unactionable whether or not it is
+      // flagged fatal — surfacing it only produces the opaque `{}` overlay.
+      if (isContentlessError(error)) {
         console.log(
-          "[globalErrorGuard] Swallowed content-less non-fatal error:",
+          "[globalErrorGuard] Swallowed content-less error (isFatal=" +
+            String(isFatal) +
+            "):",
           error
         );
         return;

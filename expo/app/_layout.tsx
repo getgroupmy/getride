@@ -20,6 +20,7 @@ import { VoiceProtectionProvider } from "@/contexts/VoiceProtectionContext";
 import { PushNotificationProvider } from "@/contexts/PushNotificationContext";
 import { AppIconChangeModal } from "@/components/AppIconChangeModal";
 import SupportCallListener from "@/components/SupportCallListener";
+import { RootErrorBoundary } from "@/components/RootErrorBoundary";
 import { installGlobalErrorGuard } from "@/utils/globalErrorGuard";
 
 installGlobalErrorGuard();
@@ -259,9 +260,11 @@ export default function RootLayout() {
                     <VoiceProtectionProvider>
                       <PushNotificationProvider>
                         <GestureHandlerRootView style={{ flex: 1 }}>
-                          <TabletFrame>
-                            <RootLayoutNav />
-                          </TabletFrame>
+                          <RootErrorBoundary>
+                            <TabletFrame>
+                              <RootLayoutNav />
+                            </TabletFrame>
+                          </RootErrorBoundary>
                         </GestureHandlerRootView>
                       </PushNotificationProvider>
                     </VoiceProtectionProvider>
