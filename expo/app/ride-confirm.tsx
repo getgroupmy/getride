@@ -18,6 +18,7 @@ import {
   Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useRouter, useLocalSearchParams, Stack, useFocusEffect } from "expo-router";
 import { 
   ArrowLeft, 
@@ -547,55 +548,68 @@ export default function RideConfirmScreen() {
     })
   ).current;
 
-  // Lets the expanded vehicle list drag the whole bottom sheet down when the
-  // user pulls down while already at the top of the list. Uses capture so it
-  // steals the gesture from the inner ScrollView before it starts scrolling.
-  const expandedSheetDragResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
-        // Only hijack a clearly-downward drag that begins at the top of the list
-        return (
-          isAtScrollTop.current &&
-          gestureState.dy > 6 &&
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
-        );
-      },
-      onPanResponderGrant: () => {
-        lastGestureY.current = currentHeight.current;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        const newHeight = lastGestureY.current - gestureState.dy;
-        const clampedHeight = Math.max(
-          BOTTOM_SHEET_MIN_HEIGHT,
-          Math.min(BOTTOM_SHEET_MAX_HEIGHT, newHeight)
-        );
-        bottomSheetHeight.setValue(clampedHeight);
-        currentHeight.current = clampedHeight;
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const velocity = gestureState.vy;
-        const currentPos = currentHeight.current;
-        const midPoint = (BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_MAX_HEIGHT) / 2;
-        let targetHeight: number;
-        if (velocity > 0.5) {
-          targetHeight = BOTTOM_SHEET_MIN_HEIGHT;
-        } else if (velocity < -0.5) {
-          targetHeight = BOTTOM_SHEET_MAX_HEIGHT;
-        } else {
-          targetHeight = currentPos > midPoint ? BOTTOM_SHEET_MAX_HEIGHT : BOTTOM_SHEET_MIN_HEIGHT;
+  // Lets the expanded vehicle list drag the whole bottom sheet down. A JS
+  // PanResponder can't reliably win the gesture from a native ScrollView, so we
+  // use react-native-gesture-handler: a Pan gesture composed Simultaneously with
+  // the ScrollView's Native gesture. The Pan only drives the sheet while the
+  // list is at the top and the finger moves down; otherwise the list scrolls.
+  const sheetDragActive = useRef(false);
+  const sheetDragBaseline = useRef(0);
+  const sheetDragStartHeight = useRef(0);
+  const expandedScrollNativeGesture = useRef(Gesture.Native()).current;
+  const expandedSheetPan = useRef(
+    Gesture.Pan()
+      .activeOffsetY([-12, 12])
+      .onBegin(() => {
+        sheetDragActive.current = false;
+      })
+      .onUpdate((e) => {
+        // Drive the sheet only when at the top of the list and pulling down
+        if (isAtScrollTop.current && e.translationY > 0) {
+          if (!sheetDragActive.current) {
+            sheetDragActive.current = true;
+            sheetDragBaseline.current = e.translationY;
+            sheetDragStartHeight.current = currentHeight.current;
+          }
+          const delta = e.translationY - sheetDragBaseline.current;
+          const newHeight = Math.max(
+            BOTTOM_SHEET_MIN_HEIGHT,
+            Math.min(BOTTOM_SHEET_MAX_HEIGHT, sheetDragStartHeight.current - delta)
+          );
+          bottomSheetHeight.setValue(newHeight);
+          currentHeight.current = newHeight;
+        } else if (sheetDragActive.current && e.translationY <= 0) {
+          sheetDragActive.current = false;
         }
-        Animated.spring(bottomSheetHeight, {
-          toValue: targetHeight,
-          useNativeDriver: false,
-          tension: 100,
-          friction: 12,
-        }).start();
-        currentHeight.current = targetHeight;
-        setIsExpanded(targetHeight !== BOTTOM_SHEET_MIN_HEIGHT);
-      },
-      onPanResponderTerminationRequest: () => false,
-    })
+      })
+      .onEnd((e) => {
+        if (sheetDragActive.current) {
+          const midPoint = (BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_MAX_HEIGHT) / 2;
+          let targetHeight: number;
+          if (e.velocityY > 400) {
+            targetHeight = BOTTOM_SHEET_MIN_HEIGHT;
+          } else if (e.velocityY < -400) {
+            targetHeight = BOTTOM_SHEET_MAX_HEIGHT;
+          } else {
+            targetHeight = currentHeight.current > midPoint ? BOTTOM_SHEET_MAX_HEIGHT : BOTTOM_SHEET_MIN_HEIGHT;
+          }
+          Animated.spring(bottomSheetHeight, {
+            toValue: targetHeight,
+            useNativeDriver: false,
+            tension: 100,
+            friction: 12,
+          }).start();
+          currentHeight.current = targetHeight;
+          setIsExpanded(targetHeight !== BOTTOM_SHEET_MIN_HEIGHT);
+        }
+        sheetDragActive.current = false;
+      })
+      .onFinalize(() => {
+        sheetDragActive.current = false;
+      })
+  ).current;
+  const expandedComposedGesture = useRef(
+    Gesture.Simultaneous(expandedSheetPan, expandedScrollNativeGesture)
   ).current;
 
   const pickup = (params.pickup as string) || "Current Location";
@@ -4624,43 +4638,16 @@ export default function RideConfirmScreen() {
           </View>
         ) : (
           // Expanded state - show all ride options
-          <View style={{ flex: 1 }} {...expandedSheetDragResponder.panHandlers}>
+          <GestureDetector gesture={expandedComposedGesture}>
           <ScrollView 
             ref={scrollViewRef}
             style={styles.rideOptionsContainer} 
             contentContainerStyle={{ paddingBottom: 260 }}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
-            bounces={true}
+            bounces={false}
             onScroll={(e) => {
-              const offsetY = e.nativeEvent.contentOffset.y;
-              isAtScrollTop.current = offsetY <= 0;
-              // Overscrolling at the top drags the whole bottom sheet down with the finger
-              if (offsetY < 0) {
-                const newHeight = Math.max(
-                  BOTTOM_SHEET_MIN_HEIGHT,
-                  Math.min(BOTTOM_SHEET_MAX_HEIGHT, BOTTOM_SHEET_MAX_HEIGHT + offsetY)
-                );
-                bottomSheetHeight.setValue(newHeight);
-                currentHeight.current = newHeight;
-              }
-            }}
-            onScrollEndDrag={(e) => {
-              const offsetY = e.nativeEvent.contentOffset.y;
-              // When the drag was a downward pull on the sheet, snap to the nearest detent
-              if (offsetY < 0) {
-                const midPoint = (BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_MAX_HEIGHT) / 2;
-                const willCollapse = currentHeight.current < midPoint;
-                const target = willCollapse ? BOTTOM_SHEET_MIN_HEIGHT : BOTTOM_SHEET_MAX_HEIGHT;
-                Animated.spring(bottomSheetHeight, {
-                  toValue: target,
-                  useNativeDriver: false,
-                  tension: 100,
-                  friction: 12,
-                }).start();
-                currentHeight.current = target;
-                setIsExpanded(!willCollapse);
-              }
+              isAtScrollTop.current = e.nativeEvent.contentOffset.y <= 0;
             }}
           >
             {EXTENDED_RIDE_TYPES.map((ride) => {
@@ -4775,7 +4762,7 @@ export default function RideConfirmScreen() {
               );
             })}
           </ScrollView>
-          </View>
+          </GestureDetector>
         )}
 
         {/* Disclaimer - Only visible when expanded */}
