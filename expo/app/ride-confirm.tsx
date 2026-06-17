@@ -3264,6 +3264,8 @@ export default function RideConfirmScreen() {
       bottom: 0,
       backgroundColor: "rgba(0, 0, 0, 0.5)",
       justifyContent: "flex-end" as const,
+      zIndex: 2000,
+      elevation: 2000,
     },
     promoCodeSheet: {
       backgroundColor: colors.background,
