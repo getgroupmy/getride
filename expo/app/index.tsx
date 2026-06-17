@@ -1221,7 +1221,7 @@ export default function HomeScreen() {
         {/* Center Pin with Address Bar - positioned together */}
         <View style={styles.centerPinContainer} pointerEvents="box-none">
           {displaySettings.addressBar ? (
-          <Animated.View style={{ opacity: addressBarOpacity }}>
+          <Animated.View style={{ opacity: addressBarOpacity, transform: [{ translateY: displaySettings.addressBarTopOffset }] }}>
           <TouchableOpacity
             style={[
               styles.pickupAddressBar,

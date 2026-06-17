@@ -32,6 +32,10 @@ export const DROP_PIN_OFFSET_MIN = -200 as const;
 export const DROP_PIN_OFFSET_MAX = 200 as const;
 export const DROP_PIN_OFFSET_STEP = 5 as const;
 
+export const ADDRESS_BAR_TOP_OFFSET_MIN = -300 as const;
+export const ADDRESS_BAR_TOP_OFFSET_MAX = 300 as const;
+export const ADDRESS_BAR_TOP_OFFSET_STEP = 5 as const;
+
 /** Side menu identifiers — used by admin display settings to customize MenuSideSheet & PartnerSideSheet. */
 export type SideMenuKey = "user" | "partner";
 
@@ -388,6 +392,8 @@ export interface DisplaySettings {
   dropPinTopOffset: number;
   /** Horizontal offset for the drop pin (px). Negative moves left, positive moves right. */
   dropPinHorizontalOffset: number;
+  /** Vertical offset for the top address bar (px). Negative moves up, positive moves down. */
+  addressBarTopOffset: number;
   /** Vehicle service entry IDs hidden from the home vehicle type bar. */
   hiddenVehicleServiceIds: string[];
   /** Show available vehicle icons/markers on the map. */
@@ -424,6 +430,7 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   mapHeightOffset: 365,
   dropPinTopOffset: 0,
   dropPinHorizontalOffset: 0,
+  addressBarTopOffset: 0,
   hiddenVehicleServiceIds: [],
   showVehicleMarkers: false,
   vehicleBarOrder: [],
@@ -622,7 +629,7 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
   );
 
   const setNumeric = useCallback(
-    (key: "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset", value: number, min: number, max: number) => {
+    (key: "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset", value: number, min: number, max: number) => {
       const clamped = Math.max(min, Math.min(max, Math.round(value)));
       setSettings((prev) => {
         const next = { ...prev, [key]: clamped } as DisplaySettings;

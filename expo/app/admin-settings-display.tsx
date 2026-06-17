@@ -84,6 +84,9 @@ import {
   DROP_PIN_OFFSET_MIN,
   DROP_PIN_OFFSET_MAX,
   DROP_PIN_OFFSET_STEP,
+  ADDRESS_BAR_TOP_OFFSET_MIN,
+  ADDRESS_BAR_TOP_OFFSET_MAX,
+  ADDRESS_BAR_TOP_OFFSET_STEP,
   DEFAULT_USER_MENU_ITEMS,
   DEFAULT_PARTNER_MENU_ITEMS,
   SIDE_MENU_ICONS,
@@ -194,7 +197,7 @@ export default function AdminSettingsDisplayScreen() {
     return found ? found.label : path;
   };
 
-  type LayoutKey = "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset";
+  type LayoutKey = "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset";
   const layoutItems: { key: LayoutKey; label: string; description: string; min: number; max: number; step: number; unit: string }[] = [
     {
       key: "recenterButtonBottom",
@@ -230,6 +233,15 @@ export default function AdminSettingsDisplayScreen() {
       min: DROP_PIN_OFFSET_MIN,
       max: DROP_PIN_OFFSET_MAX,
       step: DROP_PIN_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "addressBarTopOffset",
+      label: "Address bar height",
+      description: "Vertical offset of the top address pill (negative = up, positive = down)",
+      min: ADDRESS_BAR_TOP_OFFSET_MIN,
+      max: ADDRESS_BAR_TOP_OFFSET_MAX,
+      step: ADDRESS_BAR_TOP_OFFSET_STEP,
       unit: "px",
     },
   ];
