@@ -593,20 +593,22 @@ export default function RideConfirmScreen() {
           } else {
             targetHeight = currentHeight.current > midPoint ? BOTTOM_SHEET_MAX_HEIGHT : BOTTOM_SHEET_MIN_HEIGHT;
           }
+          currentHeight.current = targetHeight;
+          // IMPORTANT: never flip `isExpanded` from inside the gesture. Doing so
+          // unmounts this GestureDetector while react-native-gesture-handler is
+          // still finalizing the gesture natively, which hard-crashes Expo Go.
+          // Instead, animate the height and flip the state only from the spring's
+          // completion callback, which fires well after the gesture is finalized.
+          const nextExpanded = targetHeight !== BOTTOM_SHEET_MIN_HEIGHT;
           Animated.spring(bottomSheetHeight, {
             toValue: targetHeight,
             useNativeDriver: false,
             tension: 100,
             friction: 12,
-          }).start();
-          currentHeight.current = targetHeight;
-          // Defer the state change to the next tick so the gesture can finish
-          // finalizing before React unmounts this GestureDetector (collapsing
-          // swaps the expanded ScrollView out). Unmounting mid-finalize crashes
-          // react-native-gesture-handler.
-          const nextExpanded = targetHeight !== BOTTOM_SHEET_MIN_HEIGHT;
-          requestAnimationFrame(() => {
-            setIsExpanded(nextExpanded);
+          }).start(({ finished }) => {
+            if (finished && !nextExpanded) {
+              setIsExpanded(false);
+            }
           });
         }
         sheetDragActive.current = false;
