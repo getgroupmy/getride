@@ -1462,6 +1462,22 @@ export default function HomeScreen() {
           onPress={() => {
             if (location && mapRef.current && Platform.OS !== "web") {
               console.log("Recentering map to user location");
+              // Move immediately to the location we already have so the pin
+              // jumps without waiting for a fresh GPS fetch + reverse geocode.
+              mapRef.current.animateToRegion(
+                {
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                },
+                350
+              );
+              setPinLocation({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              });
+              // Refresh in the background and fine-tune if the new fix differs.
               refreshLocation().then((result) => {
                 if (result && mapRef.current) {
                   const { location: newLocation, address: newAddress } = result;
@@ -1472,7 +1488,7 @@ export default function HomeScreen() {
                       latitudeDelta: 0.01,
                       longitudeDelta: 0.01,
                     },
-                    500
+                    350
                   );
                   setPinLocation({
                     latitude: newLocation.coords.latitude,
