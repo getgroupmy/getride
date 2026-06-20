@@ -128,6 +128,7 @@ export default function HomeScreen() {
   const isMapMoving = useRef(false);
   const menuHiddenBySheet = useRef(false);
   const skipRegionChangeRef = useRef(false);
+  const pendingRecenterRef = useRef(false);
 
   useEffect(() => {
     const listenerId = menuRevealAnim.addListener(({ value }) => {
@@ -1040,6 +1041,9 @@ export default function HomeScreen() {
     }
     if (!isMapMoving.current) {
       isMapMoving.current = true;
+      // User is moving the map: invalidate any pending recenter refresh so a
+      // late-resolving GPS fetch doesn't snap the pin back where they moved from.
+      pendingRecenterRef.current = false;
       console.log("Map started moving - hiding menu button and sliding bottom sheet down");
       Animated.parallel([
         Animated.timing(menuButtonAnim, {
@@ -1477,9 +1481,18 @@ export default function HomeScreen() {
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
               });
+              // Skip region-change handling triggered by this programmatic move,
+              // then mark a recenter refresh as pending so we can cancel it if the
+              // user starts dragging the map before it resolves.
+              skipRegionChangeRef.current = true;
+              pendingRecenterRef.current = true;
+              setTimeout(() => {
+                skipRegionChangeRef.current = false;
+              }, 500);
               // Refresh in the background and fine-tune if the new fix differs.
               refreshLocation().then((result) => {
-                if (result && mapRef.current) {
+                if (result && mapRef.current && pendingRecenterRef.current) {
+                  pendingRecenterRef.current = false;
                   const { location: newLocation, address: newAddress } = result;
                   mapRef.current.animateToRegion(
                     {
