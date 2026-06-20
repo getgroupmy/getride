@@ -42,6 +42,9 @@ import { useAirportAreas, applyAirportAreaFilter, AirportArea } from "@/utils/ai
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const MENU_WIDTH = SCREEN_WIDTH * 0.68;
+// Swipes that begin within this many px of the screen's left/right border are
+// ignored, so the very edge of the screen doesn't trigger the side menu.
+const EDGE_SWIPE_DEAD_ZONE = 20;
 
 interface Destination {
   address: string;
@@ -174,7 +177,9 @@ export default function OfferFareSideSheet({
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
-      const isLeftToRight = gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
+      const startX = gestureState.moveX - gestureState.dx;
+      const fromScreenEdge = startX <= EDGE_SWIPE_DEAD_ZONE || startX >= SCREEN_WIDTH - EDGE_SWIPE_DEAD_ZONE;
+      const isLeftToRight = !fromScreenEdge && gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
       const isRightToLeft = gestureState.dx < -10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2) && currentMenuPosition.current > 0;
       return isLeftToRight || isRightToLeft;
     },

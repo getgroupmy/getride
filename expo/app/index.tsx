@@ -32,6 +32,9 @@ const { width, height } = Dimensions.get("window");
 const BOTTOM_SHEET_MIN_HEIGHT = 310;
 const BOTTOM_SHEET_MAX_HEIGHT = height * 0.75;
 const MENU_WIDTH = width * 0.68;
+// Swipes that begin within this many px of the screen's left/right border are
+// ignored, so the very edge of the screen doesn't trigger the side menu.
+const EDGE_SWIPE_DEAD_ZONE = 20;
 
 const lightMapStyle = [
   { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
@@ -132,7 +135,9 @@ export default function HomeScreen() {
   const mainContentPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
-      const isLeftToRight = gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
+      const startX = gestureState.moveX - gestureState.dx;
+      const fromScreenEdge = startX <= EDGE_SWIPE_DEAD_ZONE || startX >= width - EDGE_SWIPE_DEAD_ZONE;
+      const isLeftToRight = !fromScreenEdge && gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
       const isRightToLeft = gestureState.dx < -10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2) && currentMenuPosition.current > 0;
       return isLeftToRight || isRightToLeft;
     },
@@ -249,6 +254,8 @@ export default function HomeScreen() {
   const bottomSheetPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
+      const startX = gestureState.moveX - gestureState.dx;
+      if (startX <= EDGE_SWIPE_DEAD_ZONE || startX >= width - EDGE_SWIPE_DEAD_ZONE) return false;
       return gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
     },
     onPanResponderGrant: () => {
@@ -419,6 +426,8 @@ export default function HomeScreen() {
   const menuButtonPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
+      const startX = gestureState.moveX - gestureState.dx;
+      if (startX <= EDGE_SWIPE_DEAD_ZONE || startX >= width - EDGE_SWIPE_DEAD_ZONE) return false;
       return gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
     },
     onPanResponderGrant: () => {
