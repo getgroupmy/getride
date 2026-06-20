@@ -50,6 +50,7 @@ import { Star } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { consumePendingLocationReturn } from "@/utils/locationReturn";
+import RollingFareAmount from "@/components/RollingFareAmount";
 
 const CHIME_SOURCE = { uri: "https://cdn.pixabay.com/audio/2022/11/17/audio_febc508520.mp3" };
 
@@ -4581,7 +4582,12 @@ export default function RideConfirmScreen() {
                           <Minus color={colors.text} size={24} />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.fareCenter} onPress={handleOpenOfferFare} activeOpacity={0.7}>
-                          <Text style={styles.fareAmount}>{currency.symbol} {adjustedRidePrice}</Text>
+                          <RollingFareAmount
+                            style={styles.fareAmount}
+                            prefix={currency.symbol}
+                            loading={isCalculatingFare || distance == null}
+                            value={isCalculatingFare || distance == null ? null : adjustedRidePrice}
+                          />
                           <Text style={styles.fareLabel}>
                             {fareAdjustment === 0 
                               ? "Recommended fare" 
@@ -4684,7 +4690,12 @@ export default function RideConfirmScreen() {
                           <Minus color={colors.text} size={24} />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.fareCenter} onPress={handleOpenOfferFare} activeOpacity={0.7}>
-                          <Text style={styles.fareAmount}>{currency.symbol} {adjustedRidePrice}</Text>
+                          <RollingFareAmount
+                            style={styles.fareAmount}
+                            prefix={currency.symbol}
+                            loading={isCalculatingFare || distance == null}
+                            value={isCalculatingFare || distance == null ? null : adjustedRidePrice}
+                          />
                           <Text style={styles.fareLabel}>
                             {fareAdjustment === 0 
                               ? "Recommended fare" 
