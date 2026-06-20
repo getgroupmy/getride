@@ -35,6 +35,10 @@ const MENU_WIDTH = width * 0.68;
 // Swipes that begin within this many px of the screen's left/right border are
 // ignored, so the very edge of the screen doesn't trigger the side menu.
 const EDGE_SWIPE_DEAD_ZONE = 20;
+// Horizontal swipes that begin within this many px of the screen's bottom border
+// are ignored, so the iOS/Android system app-switch gesture (a horizontal swipe
+// along the home indicator) doesn't start opening the side menu.
+const BOTTOM_SWIPE_DEAD_ZONE = 32;
 
 const lightMapStyle = [
   { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
@@ -132,14 +136,32 @@ export default function HomeScreen() {
     return () => menuRevealAnim.removeListener(listenerId);
   }, [menuRevealAnim]);
 
+  // Snap the menu to its nearest resting state (fully open or fully closed).
+  // Used when a drag is terminated by the system (e.g. the app-switch gesture)
+  // so the menu never gets stuck in a half-open position.
+  const resolveMenuToRestingState = React.useCallback(() => {
+    const shouldOpen = currentMenuPosition.current > MENU_WIDTH / 2;
+    Animated.spring(menuRevealAnim, {
+      toValue: shouldOpen ? MENU_WIDTH : 0,
+      useNativeDriver: true,
+      tension: shouldOpen ? 65 : 100,
+      friction: shouldOpen ? 11 : 10,
+    }).start(() => setMenuFullyOpen(shouldOpen));
+  }, [menuRevealAnim]);
+
   const mainContentPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
-      const startX = gestureState.moveX - gestureState.dx;
-      const fromScreenEdge = startX <= EDGE_SWIPE_DEAD_ZONE || startX >= width - EDGE_SWIPE_DEAD_ZONE;
-      const isLeftToRight = !fromScreenEdge && gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
+      const startY = gestureState.moveY - gestureState.dy;
+      if (startY >= height - BOTTOM_SWIPE_DEAD_ZONE) return false;
+      // Never open the menu by swiping across the content/map — opening is only via the
+      // menu button. Only claim horizontal swipes to CLOSE the menu when it's already open,
+      // so a left/right drag on the map just pans the map instead of revealing the menu.
       const isRightToLeft = gestureState.dx < -10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2) && currentMenuPosition.current > 0;
-      return isLeftToRight || isRightToLeft;
+      return isRightToLeft;
+    },
+    onPanResponderTerminate: () => {
+      resolveMenuToRestingState();
     },
     onPanResponderGrant: () => {
       console.log("Index content swipe started");
@@ -197,10 +219,15 @@ export default function HomeScreen() {
   const menuPanResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
+      const startY = gestureState.moveY - gestureState.dy;
+      if (startY >= height - BOTTOM_SWIPE_DEAD_ZONE) return false;
       return gestureState.dx < -5 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
     },
     onPanResponderGrant: () => {
       console.log("Menu swipe to close started");
+    },
+    onPanResponderTerminate: () => {
+      resolveMenuToRestingState();
     },
     onPanResponderMove: (_, gestureState) => {
       if (gestureState.dx < 0) {
@@ -255,11 +282,16 @@ export default function HomeScreen() {
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
       const startX = gestureState.moveX - gestureState.dx;
+      const startY = gestureState.moveY - gestureState.dy;
+      if (startY >= height - BOTTOM_SWIPE_DEAD_ZONE) return false;
       if (startX <= EDGE_SWIPE_DEAD_ZONE || startX >= width - EDGE_SWIPE_DEAD_ZONE) return false;
       return gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
     },
     onPanResponderGrant: () => {
       console.log("Bottom sheet pan started");
+    },
+    onPanResponderTerminate: () => {
+      resolveMenuToRestingState();
     },
     onPanResponderMove: (_, gestureState) => {
       if (gestureState.dx > 0 && currentMenuPosition.current < MENU_WIDTH) {
@@ -427,11 +459,16 @@ export default function HomeScreen() {
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
       const startX = gestureState.moveX - gestureState.dx;
+      const startY = gestureState.moveY - gestureState.dy;
+      if (startY >= height - BOTTOM_SWIPE_DEAD_ZONE) return false;
       if (startX <= EDGE_SWIPE_DEAD_ZONE || startX >= width - EDGE_SWIPE_DEAD_ZONE) return false;
       return gestureState.dx > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
     },
     onPanResponderGrant: () => {
       console.log("Menu button pan started");
+    },
+    onPanResponderTerminate: () => {
+      resolveMenuToRestingState();
     },
     onPanResponderMove: (_, gestureState) => {
       if (gestureState.dx > 0 && currentMenuPosition.current < MENU_WIDTH) {
