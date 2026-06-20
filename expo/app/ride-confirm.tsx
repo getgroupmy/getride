@@ -4567,7 +4567,12 @@ export default function RideConfirmScreen() {
                           <Pencil color="#9CA3AF" size={18} />
                         </TouchableOpacity>
                       ) : (
-                        <Text style={styles.rideOptionPrice}>{currency.symbol} {ridePrice}</Text>
+                        <RollingFareAmount
+                          style={styles.rideOptionPrice}
+                          prefix={currency.symbol}
+                          loading={isCalculatingFare || distance == null}
+                          value={isCalculatingFare || distance == null ? null : ridePrice}
+                        />
                       )}
                     </View>
                     
@@ -4751,7 +4756,12 @@ export default function RideConfirmScreen() {
                         </View>
                         <Text style={styles.rideOptionDesc}>{description}</Text>
                       </View>
-                      <Text style={styles.rideOptionPrice}>{currency.symbol} {ridePrice}</Text>
+                      <RollingFareAmount
+                        style={styles.rideOptionPrice}
+                        prefix={currency.symbol}
+                        loading={isCalculatingFare || distance == null}
+                        value={isCalculatingFare || distance == null ? null : ridePrice}
+                      />
                     </TouchableOpacity>
                   )}
                 </View>
