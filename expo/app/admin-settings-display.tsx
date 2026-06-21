@@ -699,6 +699,31 @@ export default function AdminSettingsDisplayScreen() {
         </View>
 
         <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>
+          Service
+        </Text>
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginBottom: 24 }]}
+          testID="display-row-service-enabled"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Service available</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              When off, booking actions on the home screen show a "Coming Soon" popup instead of opening ride confirmation
+            </Text>
+          </View>
+          <Switch
+            value={settings.serviceEnabled}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] serviceEnabled -> ${v}`);
+              update("serviceEnabled", v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-service-enabled"
+          />
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: Colors.text }]}>
           Service Boxes
         </Text>
         <View

@@ -97,6 +97,7 @@ export default function HomeScreen() {
   const { location, currentAddress: contextAddress, refreshLocation, shouldSkipLocationDetection } = useLocation();
   const hasInitializedFromParams = useRef(false);
   const [mapKey, setMapKey] = useState<number>(0);
+  const [serviceComingSoonVisible, setServiceComingSoonVisible] = useState<boolean>(false);
   const prevColorScheme = useRef<string>(colorScheme);
   const [currentAddress, setCurrentAddress] = useState<{
     name: string;
@@ -1284,6 +1285,10 @@ export default function HomeScreen() {
               isLoadingAddress && styles.pickupAddressBarLoading
             ]}
             onPress={() => {
+              if (!displaySettings.serviceEnabled) {
+                setServiceComingSoonVisible(true);
+                return;
+              }
               if (pinLocation) {
                 router.push({
                   pathname: "/search" as any,
@@ -1650,6 +1655,10 @@ export default function HomeScreen() {
           <TouchableOpacity
           style={[styles.searchButton, { backgroundColor: Colors.gray[100] }]}
           onPress={() => {
+            if (!displaySettings.serviceEnabled) {
+              setServiceComingSoonVisible(true);
+              return;
+            }
             if (pinLocation) {
               router.push({
                 pathname: "/search" as any,
@@ -1687,6 +1696,10 @@ export default function HomeScreen() {
               key={loc.id}
               style={styles.recentLocationItem}
               onPress={() => {
+                if (!displaySettings.serviceEnabled) {
+                  setServiceComingSoonVisible(true);
+                  return;
+                }
                 const pickupCoords = pinLocation || (location ? { latitude: location.coords.latitude, longitude: location.coords.longitude } : null);
                 if (pickupCoords) {
                   router.push({
@@ -1811,6 +1824,28 @@ export default function HomeScreen() {
         </View>
       </Animated.View>
       </Animated.View>
+
+      <Modal
+        visible={serviceComingSoonVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setServiceComingSoonVisible(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.csOverlay}>
+          <View style={[styles.csCard, { backgroundColor: Colors.secondary }]}>
+            <Text style={[styles.csTitle, { color: Colors.text }]}>Coming Soon</Text>
+            <Text style={[styles.csBody, { color: Colors.textSecondary }]}>This service isn&apos;t available yet. Please check back later.</Text>
+            <TouchableOpacity
+              style={[styles.csButton, { backgroundColor: Colors.accent }]}
+              onPress={() => setServiceComingSoonVisible(false)}
+              testID="service-coming-soon-ok"
+            >
+              <Text style={[styles.csButtonText, { color: Colors.secondary }]}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1819,6 +1854,45 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     flexDirection: 'row',
+  },
+  csOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: 40,
+  },
+  csCard: {
+    width: "100%" as const,
+    maxWidth: 320,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center" as const,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  csTitle: {
+    fontSize: 19,
+    fontWeight: "700" as const,
+    marginBottom: 8,
+  },
+  csBody: {
+    fontSize: 15,
+    textAlign: "center" as const,
+    marginBottom: 20,
+  },
+  csButton: {
+    alignSelf: "stretch" as const,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center" as const,
+  },
+  csButtonText: {
+    fontSize: 16,
+    fontWeight: "700" as const,
   },
   container: {
     flex: 1,

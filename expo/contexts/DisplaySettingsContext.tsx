@@ -393,6 +393,8 @@ export interface DisplaySettings {
   addressBar: boolean;
   /** Show "NEW" badge on the large/featured service box */
   serviceBoxBadge: boolean;
+  /** Master service switch. When false, any action that would open ride-confirm shows a "Coming Soon" popup instead. */
+  serviceEnabled: boolean;
   /** Show AI-estimated toll booth count row in ride-confirm */
   showAiTollBooths: boolean;
   /** Show AI-estimated toll charges row in ride-confirm */
@@ -461,6 +463,7 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   recenterButton: true,
   addressBar: true,
   serviceBoxBadge: true,
+  serviceEnabled: true,
   showAiTollBooths: true,
   showAiTollCharges: true,
   recentLocationsCount: 4,
