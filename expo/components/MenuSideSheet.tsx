@@ -368,9 +368,13 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
   };
   const userHiddenSet = new Set(userCfg.hidden ?? []);
   const userComingSoonSet = new Set(userCfg.comingSoon ?? []);
+  const [comingSoonVisible, setComingSoonVisible] = React.useState<boolean>(false);
+  // Show an in-app popup (NOT Alert.alert, which is a no-op on React Native Web
+  // and silently fails in the preview). We deliberately do not call onClose here
+  // because these sheets are conditionally mounted by their parents — closing
+  // first would unmount this component before the popup could render.
   const showComingSoon = () => {
-    onClose();
-    setTimeout(() => Alert.alert("Coming Soon", "This feature isn't available yet.", [{ text: "OK" }]), 150);
+    setComingSoonVisible(true);
   };
   const userCustomById = new Map(userCfg.customItems.map((c) => [c.id, c]));
   const userDefaultLabels = new Map(DEFAULT_USER_MENU_ITEMS.map((d) => [d.id, d.label]));
@@ -395,7 +399,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
           };
         }
         const override = userCfg.routes[o.id];
-        const onPress = isComingSoon
+        const basePress = isComingSoon
           ? showComingSoon
           : override
           ? () => {
@@ -403,6 +407,10 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
               setTimeout(() => router.push(override as any), 150);
             }
           : defaultPressById[o.id] ?? goHome;
+        const onPress = () => {
+          console.log(`[menu-sheet] tapped "${o.id}" comingSoon=${isComingSoon}`);
+          basePress();
+        };
         return {
           icon: defaultIconsById[o.id] ?? Settings,
           label: userCfg.renames[o.id] ?? userDefaultLabels.get(o.id) ?? o.id,
@@ -734,11 +742,36 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
     </>
   );
 
+  const comingSoonModal = (
+    <Modal
+      visible={comingSoonVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setComingSoonVisible(false)}
+      statusBarTranslucent
+    >
+      <View style={styles.csOverlay}>
+        <View style={[styles.csCard, { backgroundColor: Colors.secondary }]}>
+          <Text style={[styles.csTitle, { color: Colors.text }]}>Coming Soon</Text>
+          <Text style={[styles.csBody, { color: Colors.textSecondary }]}>This feature isn&apos;t available yet.</Text>
+          <TouchableOpacity
+            style={[styles.csButton, { backgroundColor: Colors.accent }]}
+            onPress={() => setComingSoonVisible(false)}
+            testID="coming-soon-ok"
+          >
+            <Text style={[styles.csButtonText, { color: Colors.secondary }]}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   if (inline) {
     return (
       <View style={[styles.inlineMenu, { backgroundColor: Colors.secondary }]}>
         {menuContent}
         {partnerModeModal}
+        {comingSoonModal}
       </View>
     );
   }
@@ -781,6 +814,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
           {menuContent}
         </Animated.View>
         {partnerModeModal}
+        {comingSoonModal}
       </View>
     </Modal>
   );
@@ -936,5 +970,44 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#FFFFFF",
     fontWeight: "700",
+  },
+  csOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: 40,
+  },
+  csCard: {
+    width: "100%" as const,
+    maxWidth: 320,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center" as const,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  csTitle: {
+    fontSize: 19,
+    fontWeight: "700" as const,
+    marginBottom: 8,
+  },
+  csBody: {
+    fontSize: 15,
+    textAlign: "center" as const,
+    marginBottom: 20,
+  },
+  csButton: {
+    alignSelf: "stretch" as const,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center" as const,
+  },
+  csButtonText: {
+    fontSize: 16,
+    fontWeight: "700" as const,
   },
 });

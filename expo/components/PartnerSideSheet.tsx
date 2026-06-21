@@ -224,9 +224,13 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     setTimeout(() => Alert.alert(label, "Coming soon"), 200);
   };
 
+  const [comingSoonVisible, setComingSoonVisible] = React.useState<boolean>(false);
+  // Use an in-app popup instead of Alert.alert (which is a no-op on React Native
+  // Web / the Rork preview). Do NOT call onClose first — this sheet is
+  // conditionally mounted by its parent, so closing would unmount the popup
+  // before it could render.
   const showComingSoon = () => {
-    onClose();
-    setTimeout(() => Alert.alert("Coming Soon", "This feature isn't available yet.", [{ text: "OK" }]), 200);
+    setComingSoonVisible(true);
   };
 
   const handleSwitchToRider = () => {
@@ -292,6 +296,9 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
   };
   const partnerHiddenSet = new Set(partnerCfg.hidden ?? []);
   const partnerComingSoonSet = new Set(partnerCfg.comingSoon ?? []);
+  useEffect(() => {
+    console.log("[partner-sheet] partner comingSoon flags:", JSON.stringify(partnerCfg.comingSoon ?? []));
+  }, [partnerCfg.comingSoon]);
   const partnerCustomById = new Map(partnerCfg.customItems.map((c) => [c.id, c]));
   const partnerDefaultLabels = new Map(DEFAULT_PARTNER_MENU_ITEMS.map((d) => [d.id, d.label]));
   const menuItems = [
@@ -317,7 +324,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
           };
         }
         const override = partnerCfg.routes[o.id];
-        const onPress = isComingSoon
+        const basePress = isComingSoon
           ? showComingSoon
           : override
           ? () => {
@@ -325,6 +332,10 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
               setTimeout(() => router.push(override as any), 200);
             }
           : defaultPressById[o.id] ?? (() => onClose());
+        const onPress = () => {
+          console.log(`[partner-sheet] tapped "${o.id}" comingSoon=${isComingSoon}`);
+          basePress();
+        };
         return {
           icon: defaultIconsById[o.id] ?? Settings,
           label: partnerCfg.renames[o.id] ?? partnerDefaultLabels.get(o.id) ?? o.id,
@@ -405,6 +416,30 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     </SafeAreaView>
   );
 
+  const comingSoonModal = (
+    <Modal
+      visible={comingSoonVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setComingSoonVisible(false)}
+      statusBarTranslucent
+    >
+      <View style={styles.csOverlay}>
+        <View style={[styles.csCard, { backgroundColor: Colors.secondary }]}>
+          <Text style={[styles.csTitle, { color: Colors.text }]}>Coming Soon</Text>
+          <Text style={[styles.csBody, { color: Colors.textSecondary }]}>This feature isn&apos;t available yet.</Text>
+          <TouchableOpacity
+            style={[styles.csButton, { backgroundColor: Colors.accent }]}
+            onPress={() => setComingSoonVisible(false)}
+            testID="partner-coming-soon-ok"
+          >
+            <Text style={[styles.csButtonText, { color: Colors.secondary }]}>OK</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <Modal
       visible={modalVisible}
@@ -435,6 +470,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
         >
           {menuContent}
         </Animated.View>
+        {comingSoonModal}
       </View>
     </Modal>
   );
@@ -521,4 +557,32 @@ const styles = StyleSheet.create({
     alignItems: "center" as const,
   },
   socialIconText: { fontSize: 20, color: "#FFFFFF", fontWeight: "700" as const },
+  csOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: 40,
+  },
+  csCard: {
+    width: "100%" as const,
+    maxWidth: 320,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center" as const,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  csTitle: { fontSize: 19, fontWeight: "700" as const, marginBottom: 8 },
+  csBody: { fontSize: 15, textAlign: "center" as const, marginBottom: 20 },
+  csButton: {
+    alignSelf: "stretch" as const,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center" as const,
+  },
+  csButtonText: { fontSize: 16, fontWeight: "700" as const },
 });
