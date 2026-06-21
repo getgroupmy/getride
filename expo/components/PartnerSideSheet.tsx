@@ -76,7 +76,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
   const { width } = useWindowDimensions();
   const Colors = useColors();
   const insets = useSafeAreaInsets();
-  const { settings } = useDisplaySettings();
+  const { settings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const { authState, profile, refreshProfile } = useAuth();
   const [liveProfile, setLiveProfile] = React.useState<{ name: string; avatar: string } | null>(null);
 
@@ -188,6 +188,14 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     menuWidthRef.current = MENU_WIDTH;
     if (!visible) slideAnim.setValue(-MENU_WIDTH);
   }, [MENU_WIDTH, slideAnim, visible]);
+
+  useEffect(() => {
+    if (visible) {
+      // Pull the latest admin display config (e.g. "Coming Soon" toggles) so it
+      // applies immediately when the menu opens instead of after the next poll.
+      refreshDisplaySettings();
+    }
+  }, [visible, refreshDisplaySettings]);
 
   useEffect(() => {
     const w = menuWidthRef.current;

@@ -92,7 +92,7 @@ export default function HomeScreen() {
   const params = useLocalSearchParams();
   const mapRef = useRef<any>(null);
   const Colors = useColors();
-  const { settings: displaySettings } = useDisplaySettings();
+  const { settings: displaySettings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const { colorScheme } = useTheme();
   const { location, currentAddress: contextAddress, refreshLocation, shouldSkipLocationDetection } = useLocation();
   const hasInitializedFromParams = useRef(false);
@@ -259,6 +259,11 @@ export default function HomeScreen() {
   }), [menuRevealAnim]);
 
   const handleOpenMenu = () => {
+    // Pull the latest admin display config (e.g. "Coming Soon" toggles) the
+    // moment the drawer opens so changes apply immediately instead of waiting
+    // for the next background poll. The home menu is always-mounted (inline),
+    // so it can't rely on a visibility effect like the other side sheets.
+    refreshDisplaySettings();
     Animated.spring(menuRevealAnim, {
       toValue: MENU_WIDTH,
       useNativeDriver: true,

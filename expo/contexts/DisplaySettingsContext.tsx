@@ -865,6 +865,20 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
     [persist]
   );
 
+  /**
+   * Force-pull the authoritative settings from Supabase and apply them. Used
+   * when a side menu opens so admin changes (e.g. "Coming Soon" toggles) take
+   * effect immediately on the user side instead of waiting for the next poll.
+   */
+  const refresh = useCallback(async () => {
+    try {
+      const remote = await fetchRemoteDisplaySettings();
+      applyRemote(remote);
+    } catch (e) {
+      console.log("[DisplaySettings] manual refresh error", e);
+    }
+  }, [applyRemote]);
+
   const reset = useCallback(async () => {
     setSettings(DEFAULT_DISPLAY_SETTINGS);
     latestSettings.current = DEFAULT_DISPLAY_SETTINGS;
@@ -897,6 +911,7 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
     setMenuItemComingSoon,
     moveMenuItem,
     removeCustomMenuItem,
+    refresh,
     reset,
     loaded,
   };

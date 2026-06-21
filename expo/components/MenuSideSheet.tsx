@@ -100,6 +100,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
   const insets = useSafeAreaInsets();
   const { logout, authState, profile, refreshProfile } = useAuth();
   const { rows: adminAccessRows, isSuper, refresh: refreshAdminAccess } = useAdminAccess();
+  const { settings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const showAdminLogin = isSuper || adminAccessRows.length > 0;
 
   // Re-check admin_access membership whenever the sheet opens so newly granted
@@ -107,8 +108,11 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
   useEffect(() => {
     if (visible) {
       refreshAdminAccess();
+      // Pull the latest admin display config (e.g. "Coming Soon" toggles) so it
+      // applies immediately when the menu opens instead of after the next poll.
+      refreshDisplaySettings();
     }
-  }, [visible, refreshAdminAccess]);
+  }, [visible, refreshAdminAccess, refreshDisplaySettings]);
   const [liveProfile, setLiveProfile] = React.useState<{ name: string; avatar: string } | null>(null);
 
   // Mirror profile.tsx exactly: fetch name/avatar directly from public.profiles
@@ -177,7 +181,6 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
     .trim()
     .charAt(0)
     .toUpperCase();
-  const { settings } = useDisplaySettings();
   const MENU_WIDTH = width * 0.68;
   
   const [modalVisible, setModalVisible] = React.useState(false);
