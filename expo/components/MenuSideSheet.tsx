@@ -62,7 +62,7 @@ import {
 import VehicleSelectModal from "@/components/VehicleSelectModal";
 import { Alert } from "react-native";
 import { useAdminData } from "@/contexts/AdminDataContext";
-import { useDisplaySettings, DEFAULT_USER_MENU_ITEMS, getMenuItemOrder } from "@/contexts/DisplaySettingsContext";
+import { useDisplaySettings, DEFAULT_USER_MENU_ITEMS, getMenuItemOrder, PROFILE_MENU_ITEM_ID, PARTNER_MODE_MENU_ITEM_ID, PARTNER_MODE_DEFAULT_LABEL } from "@/contexts/DisplaySettingsContext";
 import { useAdminAccess } from "@/contexts/AdminAccessContext";
 
 const SIDE_MENU_ICON_MAP: Record<string, LucideIcon> = {
@@ -419,12 +419,24 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
       }),
   ];
 
+  const profileHidden = userHiddenSet.has(PROFILE_MENU_ITEM_ID);
+  const profileComingSoon = userComingSoonSet.has(PROFILE_MENU_ITEM_ID);
+  const partnerModeHidden = userHiddenSet.has(PARTNER_MODE_MENU_ITEM_ID);
+  const partnerModeComingSoon = userComingSoonSet.has(PARTNER_MODE_MENU_ITEM_ID);
+  const partnerModeLabel = userCfg.renames[PARTNER_MODE_MENU_ITEM_ID] ?? PARTNER_MODE_DEFAULT_LABEL;
   const menuContent = (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+      {profileHidden ? (
+        <View style={{ paddingTop: insets.top + 12 }} />
+      ) : (
       <View style={[styles.profileSection, { borderBottomColor: Colors.border, paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
           style={styles.profileContainer}
           onPress={() => {
+            if (profileComingSoon) {
+              showComingSoon();
+              return;
+            }
             onClose();
             setTimeout(() => router.push("/profile" as any), 150);
           }}
@@ -447,6 +459,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
           <ChevronRight color={Colors.textSecondary} size={24} />
         </TouchableOpacity>
       </View>
+      )}
 
       <ScrollView
         style={styles.menuItems}
@@ -466,10 +479,15 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
       </ScrollView>
 
       <View style={styles.footer}>
+        {partnerModeHidden ? null : (
         <TouchableOpacity
           style={[styles.driverModeButton, { backgroundColor: Colors.accent }]}
           onPress={async () => {
             console.log("Partner mode tapped");
+            if (partnerModeComingSoon) {
+              showComingSoon();
+              return;
+            }
             const uid = authState.userId;
             if (!uid) {
               setDriverModeVisible(true);
@@ -494,8 +512,9 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
           }}
           testID="driver-mode-button"
         >
-          <Text style={[styles.driverModeText, { color: Colors.secondary }]}>Partner mode</Text>
+          <Text style={[styles.driverModeText, { color: Colors.secondary }]}>{partnerModeLabel}</Text>
         </TouchableOpacity>
+        )}
 
         {showAdminLogin ? (
           <TouchableOpacity

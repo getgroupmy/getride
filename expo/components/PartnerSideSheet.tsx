@@ -41,7 +41,7 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/useColors";
-import { useDisplaySettings, DEFAULT_PARTNER_MENU_ITEMS, getMenuItemOrder } from "@/contexts/DisplaySettingsContext";
+import { useDisplaySettings, DEFAULT_PARTNER_MENU_ITEMS, getMenuItemOrder, PROFILE_MENU_ITEM_ID, PASSENGER_MODE_MENU_ITEM_ID, PASSENGER_MODE_DEFAULT_LABEL } from "@/contexts/DisplaySettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 
@@ -344,12 +344,24 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
       }),
   ];
 
+  const profileHidden = partnerHiddenSet.has(PROFILE_MENU_ITEM_ID);
+  const profileComingSoon = partnerComingSoonSet.has(PROFILE_MENU_ITEM_ID);
+  const passengerModeHidden = partnerHiddenSet.has(PASSENGER_MODE_MENU_ITEM_ID);
+  const passengerModeComingSoon = partnerComingSoonSet.has(PASSENGER_MODE_MENU_ITEM_ID);
+  const passengerModeLabel = partnerCfg.renames[PASSENGER_MODE_MENU_ITEM_ID] ?? PASSENGER_MODE_DEFAULT_LABEL;
   const menuContent = (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+      {profileHidden ? (
+        <View style={{ paddingTop: insets.top + 12 }} />
+      ) : (
       <View style={[styles.profileSection, { borderBottomColor: Colors.border, paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
           style={styles.profileContainer}
           onPress={() => {
+            if (profileComingSoon) {
+              showComingSoon();
+              return;
+            }
             onClose();
             setTimeout(() => router.push("/profile" as any), 200);
           }}
@@ -371,6 +383,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
           <ChevronRight color={Colors.textSecondary} size={20} />
         </TouchableOpacity>
       </View>
+      )}
 
       <ScrollView
         style={styles.menuItems}
@@ -392,13 +405,21 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
       </ScrollView>
 
       <View style={styles.footer}>
+        {passengerModeHidden ? null : (
         <TouchableOpacity
           style={[styles.passengerModeButton, { backgroundColor: Colors.accent }]}
-          onPress={handleSwitchToRider}
+          onPress={() => {
+            if (passengerModeComingSoon) {
+              showComingSoon();
+              return;
+            }
+            handleSwitchToRider();
+          }}
           testID="passenger-mode-button"
         >
-          <Text style={[styles.passengerModeText, { color: Colors.secondary }]}>Passenger Mode</Text>
+          <Text style={[styles.passengerModeText, { color: Colors.secondary }]}>{passengerModeLabel}</Text>
         </TouchableOpacity>
+        )}
 
         <View style={styles.socialContainer}>
           <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Facebook")}>

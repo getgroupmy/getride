@@ -54,6 +54,31 @@ export const RIDE_CONFIRM_OFFSET_STEP = 5 as const;
 /** Side menu identifiers — used by admin display settings to customize MenuSideSheet & PartnerSideSheet. */
 export type SideMenuKey = "user" | "partner";
 
+/**
+ * Stable id for the profile header that sits at the very top of both side
+ * sheets. It isn't part of the default menu item lists, but admins can still
+ * hide it or mark it "Coming Soon" via the same hidden/comingSoon sets.
+ */
+export const PROFILE_MENU_ITEM_ID = "profile" as const;
+
+/**
+ * Stable id for the "Partner mode" button pinned in the footer of the user side
+ * sheet. Like the profile header it isn't part of the default menu item lists,
+ * but admins can hide it, mark it "Coming Soon", or rename it via the same
+ * hidden/comingSoon/renames sets.
+ */
+export const PARTNER_MODE_MENU_ITEM_ID = "partner-mode-button" as const;
+
+/**
+ * Stable id for the "Passenger Mode" button pinned in the footer of the partner
+ * side sheet. Same hide/coming-soon/rename behavior as the partner-mode button.
+ */
+export const PASSENGER_MODE_MENU_ITEM_ID = "passenger-mode-button" as const;
+
+/** Default labels for the footer mode buttons (used as rename fallbacks). */
+export const PARTNER_MODE_DEFAULT_LABEL = "Partner mode" as const;
+export const PASSENGER_MODE_DEFAULT_LABEL = "Passenger Mode" as const;
+
 export const DEFAULT_USER_MENU_ITEMS: { id: string; label: string }[] = [
   { id: "teksi-ev", label: "Book TEKSI EV" },
   { id: "city", label: "City" },

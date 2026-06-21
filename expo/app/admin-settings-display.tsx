@@ -97,6 +97,11 @@ import {
   DEFAULT_PARTNER_MENU_ITEMS,
   SIDE_MENU_ICONS,
   SideMenuKey,
+  PROFILE_MENU_ITEM_ID,
+  PARTNER_MODE_MENU_ITEM_ID,
+  PASSENGER_MODE_MENU_ITEM_ID,
+  PARTNER_MODE_DEFAULT_LABEL,
+  PASSENGER_MODE_DEFAULT_LABEL,
   AVAILABLE_MENU_ROUTES,
   DEFAULT_MENU_ROUTES,
   getMenuItemOrder,
@@ -1088,6 +1093,64 @@ export default function AdminSettingsDisplayScreen() {
                     <Text style={[styles.rowDesc, { color: Colors.textSecondary, marginBottom: 12 }]}>
                       Live preview of the {menu === "user" ? "user" : "partner"} side menu. Toggle items off to hide them, use the arrows to reorder, and tap the pencil to rename or link a page. New items added in future updates appear here automatically.
                     </Text>
+                    {(() => {
+                      const profileVisible = !hiddenSet.has(PROFILE_MENU_ITEM_ID);
+                      const profileComingSoon = comingSoonSet.has(PROFILE_MENU_ITEM_ID);
+                      return (
+                        <View
+                          style={[styles.optionRow, { borderColor: Colors.border, opacity: profileVisible ? 1 : 0.5 }]}
+                          testID={`display-sidemenu-${menu}-profile`}
+                        >
+                          <View style={[styles.svcIconWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+                            <User color={Colors.accent} size={18} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
+                              Profile
+                            </Text>
+                            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]} numberOfLines={1}>
+                              Profile header at the top of the sheet
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() => {
+                                console.log(`[DisplaySettings] ${menu} menu profile comingSoon -> ${!profileComingSoon}`);
+                                setMenuItemComingSoon(menu, PROFILE_MENU_ITEM_ID, !profileComingSoon);
+                              }}
+                              style={[
+                                styles.comingSoonChip,
+                                {
+                                  backgroundColor: profileComingSoon ? Colors.accent + "1A" : Colors.background,
+                                  borderColor: profileComingSoon ? Colors.accent : Colors.border,
+                                },
+                              ]}
+                              testID={`display-sidemenu-comingsoon-${menu}-profile`}
+                            >
+                              {profileComingSoon ? <Check color={Colors.accent} size={13} /> : null}
+                              <Text
+                                style={[
+                                  styles.comingSoonChipText,
+                                  { color: profileComingSoon ? Colors.accent : Colors.textSecondary },
+                                ]}
+                              >
+                                Coming Soon
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                          <View style={styles.arrangeBtns}>
+                            <Switch
+                              value={profileVisible}
+                              onValueChange={(v) => {
+                                console.log(`[DisplaySettings] ${menu} menu profile visible -> ${v}`);
+                                setMenuItemVisibility(menu, PROFILE_MENU_ITEM_ID, v);
+                              }}
+                              trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+                              thumbColor="#fff"
+                              testID={`display-sidemenu-toggle-${menu}-profile`}
+                            />
+                          </View>
+                        </View>
+                      );
+                    })()}
                     {ordered.map((o, idx) => {
                       const isFirst = idx === 0;
                       const isLast = idx === ordered.length - 1;
@@ -1217,6 +1280,79 @@ export default function AdminSettingsDisplayScreen() {
                         </View>
                       );
                     })}
+                    {(() => {
+                      const footerId = menu === "user" ? PARTNER_MODE_MENU_ITEM_ID : PASSENGER_MODE_MENU_ITEM_ID;
+                      const footerDefault = menu === "user" ? PARTNER_MODE_DEFAULT_LABEL : PASSENGER_MODE_DEFAULT_LABEL;
+                      const footerLabel = cfg.renames[footerId] ?? footerDefault;
+                      const footerVisible = !hiddenSet.has(footerId);
+                      const footerComingSoon = comingSoonSet.has(footerId);
+                      const FooterIcon = menu === "user" ? Car : UserRound;
+                      return (
+                        <View
+                          style={[styles.optionRow, { borderColor: Colors.border, opacity: footerVisible ? 1 : 0.5 }]}
+                          testID={`display-sidemenu-${menu}-footer-mode`}
+                        >
+                          <View style={[styles.svcIconWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+                            <FooterIcon color={Colors.accent} size={18} />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
+                              {footerLabel}
+                            </Text>
+                            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]} numberOfLines={1}>
+                              {menu === "user" ? "Partner mode button in the footer" : "Passenger mode button in the footer"}
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() => {
+                                console.log(`[DisplaySettings] ${menu} menu footer-mode comingSoon -> ${!footerComingSoon}`);
+                                setMenuItemComingSoon(menu, footerId, !footerComingSoon);
+                              }}
+                              style={[
+                                styles.comingSoonChip,
+                                {
+                                  backgroundColor: footerComingSoon ? Colors.accent + "1A" : Colors.background,
+                                  borderColor: footerComingSoon ? Colors.accent : Colors.border,
+                                },
+                              ]}
+                              testID={`display-sidemenu-comingsoon-${menu}-footer-mode`}
+                            >
+                              {footerComingSoon ? <Check color={Colors.accent} size={13} /> : null}
+                              <Text
+                                style={[
+                                  styles.comingSoonChipText,
+                                  { color: footerComingSoon ? Colors.accent : Colors.textSecondary },
+                                ]}
+                              >
+                                Coming Soon
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                          <View style={styles.arrangeBtns}>
+                            <TouchableOpacity
+                              onPress={() => {
+                                setRenameDraft(footerLabel);
+                                setRouteDraft("");
+                                setPicker({ kind: "sidemenu-rename", menu, itemId: footerId, currentLabel: footerLabel, isCustom: false });
+                              }}
+                              style={[styles.arrangeBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
+                              testID={`display-sidemenu-rename-${menu}-footer-mode`}
+                            >
+                              <Pencil color={Colors.accent} size={16} />
+                            </TouchableOpacity>
+                            <Switch
+                              value={footerVisible}
+                              onValueChange={(v) => {
+                                console.log(`[DisplaySettings] ${menu} menu footer-mode visible -> ${v}`);
+                                setMenuItemVisibility(menu, footerId, v);
+                              }}
+                              trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+                              thumbColor="#fff"
+                              testID={`display-sidemenu-toggle-${menu}-footer-mode`}
+                            />
+                          </View>
+                        </View>
+                      );
+                    })()}
                     <TouchableOpacity
                       style={[styles.addItemBtn, { backgroundColor: Colors.accent }]}
                       onPress={() => {
