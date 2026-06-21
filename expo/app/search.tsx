@@ -579,7 +579,8 @@ export default function SearchScreen() {
               fromOfferFare: true,
             });
             router.back();
-          } else {
+          } else if (isFromRideConfirm || isFromOfferFare) {
+            // Coming from ride-confirm/offer-fare: hand locations back to the existing screen
             setPendingLocationReturn({
               pickup,
               pickupLat: (pickupCoords?.latitude || currentLocation?.latitude || "").toString(),
@@ -588,12 +589,42 @@ export default function SearchScreen() {
               fromOfferFare: isFromOfferFare,
             });
             router.back();
+          } else {
+            // Fresh route entered from the home screen: go to ride-confirm.
+            // Search is presented as a modal, so router.replace params don't
+            // reliably reach ride-confirm. Hand the locations off via the same
+            // pending-return channel the editing flows use (consumed in
+            // ride-confirm's focus effect), and also pass params as a fallback.
+            const resolvedPickupLat = (pickupCoords?.latitude || currentLocation?.latitude || "").toString();
+            const resolvedPickupLng = (pickupCoords?.longitude || currentLocation?.longitude || "").toString();
+            setPendingLocationReturn({
+              pickup,
+              pickupLat: resolvedPickupLat,
+              pickupLng: resolvedPickupLng,
+              destinations: [{
+                address: destination,
+                lat: destinationCoords.latitude,
+                lng: destinationCoords.longitude,
+              }],
+              fromOfferFare: false,
+            });
+            router.replace({
+              pathname: "/ride-confirm" as any,
+              params: {
+                pickup,
+                destination,
+                pickupLat: resolvedPickupLat,
+                pickupLng: resolvedPickupLng,
+                destLat: destinationCoords.latitude.toString(),
+                destLng: destinationCoords.longitude.toString(),
+              },
+            });
           }
         }
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [pickup, destination, pickupCoords, destinationCoords, currentLocation, router, isFromRideConfirm, hasUserMadeSelection, isAddingNewDestination, existingDestinations]);
+  }, [pickup, destination, pickupCoords, destinationCoords, currentLocation, router, isFromRideConfirm, isFromOfferFare, hasUserMadeSelection, isAddingNewDestination, existingDestinations]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#1a1a1a' }]} edges={["top", "bottom"]}>
