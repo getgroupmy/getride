@@ -1860,7 +1860,13 @@ export default function RideConfirmScreen() {
       backgroundColor: colors.background,
     },
     calcModalOverlay: {
-      flex: 1,
+      position: "absolute" as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 9999,
+      elevation: 9999,
       backgroundColor: "rgba(0,0,0,0.55)",
       alignItems: "center" as const,
       justifyContent: "center" as const,
@@ -5514,15 +5520,11 @@ export default function RideConfirmScreen() {
         </Animated.View>
       </Modal>
 
-      {/* Calculating fare modal - blocks until route/fare calculation finishes */}
-      <Modal
-        visible={isCalculatingFare}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => {}}
-      >
-        <View style={styles.calcModalOverlay}>
+      {/* Calculating fare overlay - rendered in-screen (not a Modal) so it
+          reliably appears even when arriving via router.replace from the
+          search modal, where a nested Modal can't present mid-transition. */}
+      {isCalculatingFare && (
+        <View style={styles.calcModalOverlay} pointerEvents="auto">
           <View style={styles.calcModalCard}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.calcModalTitle}>Calculating fare</Text>
@@ -5531,7 +5533,7 @@ export default function RideConfirmScreen() {
             </Text>
           </View>
         </View>
-      </Modal>
+      )}
     </View>
   );
 }

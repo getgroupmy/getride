@@ -745,7 +745,7 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
         const customItems = current.customItems.map((c) =>
           c.id === itemId && trimmed ? { ...c, label: trimmed } : c
         );
-        const next = { ...prev, [key]: { renames, customItems } } as DisplaySettings;
+        const next = { ...prev, [key]: { ...current, renames, customItems } } as DisplaySettings;
         persist(next);
         return next;
       });
