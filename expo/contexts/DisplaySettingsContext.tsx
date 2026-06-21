@@ -10,8 +10,14 @@ import {
 } from "@/utils/displaySettingsStore";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 
-/** How often live sessions re-pull settings as a fallback to realtime (ms). */
-const LIVE_REFETCH_INTERVAL = 20000;
+/**
+ * How often live sessions re-pull the global settings (ms). Kept short so the
+ * config converges across ALL devices within a few seconds even when the
+ * Supabase realtime publication was never enabled on the database (this
+ * project has no automatic migration runner, so realtime may be off). The
+ * poll is the authoritative cross-device delivery path; realtime is a bonus.
+ */
+const LIVE_REFETCH_INTERVAL = 5000;
 
 const STORAGE_KEY = "@display_settings_v2";
 const LEGACY_STORAGE_KEY = "@display_settings_v1";
