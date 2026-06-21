@@ -216,6 +216,11 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     setTimeout(() => Alert.alert(label, "Coming soon"), 200);
   };
 
+  const showComingSoon = () => {
+    onClose();
+    setTimeout(() => Alert.alert("Coming Soon", "This feature isn't available yet.", [{ text: "OK" }]), 200);
+  };
+
   const handleSwitchToRider = () => {
     onClose();
     setTimeout(() => router.replace("/" as any), 200);
@@ -278,29 +283,35 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     "sign-out": handleSignOut,
   };
   const partnerHiddenSet = new Set(partnerCfg.hidden ?? []);
+  const partnerComingSoonSet = new Set(partnerCfg.comingSoon ?? []);
   const partnerCustomById = new Map(partnerCfg.customItems.map((c) => [c.id, c]));
   const partnerDefaultLabels = new Map(DEFAULT_PARTNER_MENU_ITEMS.map((d) => [d.id, d.label]));
   const menuItems = [
     ...getMenuItemOrder(DEFAULT_PARTNER_MENU_ITEMS, partnerCfg)
       .filter((o) => !partnerHiddenSet.has(o.id))
       .map((o) => {
+        const isComingSoon = partnerComingSoonSet.has(o.id);
         if (o.isCustom) {
           const c = partnerCustomById.get(o.id);
           return {
             icon: SIDE_MENU_ICON_MAP[c?.iconName ?? "Star"] ?? Star,
             label: c?.label ?? "",
-            onPress: () => {
-              onClose();
-              if (c?.route) {
-                setTimeout(() => router.push(c.route as any), 200);
-              } else {
-                setTimeout(() => Alert.alert(c?.label ?? "", "Coming soon"), 200);
-              }
-            },
+            onPress: isComingSoon
+              ? showComingSoon
+              : () => {
+                  onClose();
+                  if (c?.route) {
+                    setTimeout(() => router.push(c.route as any), 200);
+                  } else {
+                    setTimeout(() => Alert.alert(c?.label ?? "", "Coming soon"), 200);
+                  }
+                },
           };
         }
         const override = partnerCfg.routes[o.id];
-        const onPress = override
+        const onPress = isComingSoon
+          ? showComingSoon
+          : override
           ? () => {
               onClose();
               setTimeout(() => router.push(override as any), 200);

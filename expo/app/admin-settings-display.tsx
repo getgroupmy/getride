@@ -160,6 +160,7 @@ export default function AdminSettingsDisplayScreen() {
     addCustomMenuItem,
     setMenuItemRoute,
     setMenuItemVisibility,
+    setMenuItemComingSoon,
     moveMenuItem,
     removeCustomMenuItem,
     reset,
@@ -1053,6 +1054,7 @@ export default function AdminSettingsDisplayScreen() {
                 const ordered = getMenuItemOrder(defaults, cfg);
                 const orderedIds = ordered.map((o) => o.id);
                 const hiddenSet = new Set(cfg.hidden ?? []);
+                const comingSoonSet = new Set(cfg.comingSoon ?? []);
                 const customById = new Map(cfg.customItems.map((c) => [c.id, c]));
                 const defaultById = new Map(defaults.map((d) => [d.id, d]));
                 const defaultIcons = DEFAULT_MENU_ICON_NAMES[menu];
@@ -1065,6 +1067,7 @@ export default function AdminSettingsDisplayScreen() {
                       const isFirst = idx === 0;
                       const isLast = idx === ordered.length - 1;
                       const visible = !hiddenSet.has(o.id);
+                      const isComingSoon = comingSoonSet.has(o.id);
                       let label: string;
                       let iconName: string;
                       let route: string | undefined;
@@ -1118,6 +1121,32 @@ export default function AdminSettingsDisplayScreen() {
                             <Text style={[styles.rowDesc, { color: effectiveRoute ? Colors.accent : Colors.textSecondary }]} numberOfLines={1}>
                               Page: {routeLabelFor(effectiveRoute)}{usesDefaultLink ? "  ·  Default" : ""}{o.isCustom ? "  ·  Custom" : ""}
                             </Text>
+                            <TouchableOpacity
+                              onPress={() => {
+                                console.log(`[DisplaySettings] ${menu} menu ${o.id} comingSoon -> ${!isComingSoon}`);
+                                setMenuItemComingSoon(menu, o.id, !isComingSoon);
+                              }}
+                              style={[
+                                styles.comingSoonChip,
+                                {
+                                  backgroundColor: isComingSoon ? Colors.accent + "1A" : Colors.background,
+                                  borderColor: isComingSoon ? Colors.accent : Colors.border,
+                                },
+                              ]}
+                              testID={`display-sidemenu-comingsoon-${menu}-${o.id}`}
+                            >
+                              {isComingSoon ? (
+                                <Check color={Colors.accent} size={13} />
+                              ) : null}
+                              <Text
+                                style={[
+                                  styles.comingSoonChipText,
+                                  { color: isComingSoon ? Colors.accent : Colors.textSecondary },
+                                ]}
+                              >
+                                Coming Soon
+                              </Text>
+                            </TouchableOpacity>
                           </View>
                           <View style={styles.arrangeBtns}>
                             <TouchableOpacity
@@ -1812,6 +1841,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   optionText: { fontSize: 15, fontWeight: "600" as const, flex: 1, paddingRight: 12 },
+  comingSoonChip: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    alignSelf: "flex-start" as const,
+    gap: 4,
+    marginTop: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  comingSoonChipText: { fontSize: 11, fontWeight: "700" as const },
   emptyText: { fontSize: 13, textAlign: "center" as const, paddingVertical: 20 },
   iconGrid: {
     flexDirection: "row" as const,

@@ -364,27 +364,37 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
     "logout": handleLogout,
   };
   const userHiddenSet = new Set(userCfg.hidden ?? []);
+  const userComingSoonSet = new Set(userCfg.comingSoon ?? []);
+  const showComingSoon = () => {
+    onClose();
+    setTimeout(() => Alert.alert("Coming Soon", "This feature isn't available yet.", [{ text: "OK" }]), 150);
+  };
   const userCustomById = new Map(userCfg.customItems.map((c) => [c.id, c]));
   const userDefaultLabels = new Map(DEFAULT_USER_MENU_ITEMS.map((d) => [d.id, d.label]));
   const menuItems = [
     ...getMenuItemOrder(DEFAULT_USER_MENU_ITEMS, userCfg)
       .filter((o) => !userHiddenSet.has(o.id))
       .map((o) => {
+        const isComingSoon = userComingSoonSet.has(o.id);
         if (o.isCustom) {
           const c = userCustomById.get(o.id);
           return {
             icon: SIDE_MENU_ICON_MAP[c?.iconName ?? "Star"] ?? Star,
             label: c?.label ?? "",
-            onPress: () => {
-              onClose();
-              if (c?.route) {
-                setTimeout(() => router.push(c.route as any), 150);
-              }
-            },
+            onPress: isComingSoon
+              ? showComingSoon
+              : () => {
+                  onClose();
+                  if (c?.route) {
+                    setTimeout(() => router.push(c.route as any), 150);
+                  }
+                },
           };
         }
         const override = userCfg.routes[o.id];
-        const onPress = override
+        const onPress = isComingSoon
+          ? showComingSoon
+          : override
           ? () => {
               onClose();
               setTimeout(() => router.push(override as any), 150);

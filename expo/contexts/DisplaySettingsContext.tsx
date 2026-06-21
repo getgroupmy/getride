@@ -91,6 +91,8 @@ export interface MenuCustomization {
   customItems: CustomMenuItem[];
   /** Item ids (default or custom) hidden from the side menu. */
   hidden: string[];
+  /** Item ids (default or custom) marked "Coming Soon": tapping shows a popup instead of navigating. */
+  comingSoon: string[];
   /** Explicit display order of item ids (default + custom). Missing ids fall back to natural order. */
   order: string[];
 }
@@ -476,8 +478,8 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   hiddenVehicleServiceIds: [],
   showVehicleMarkers: false,
   vehicleBarOrder: [],
-  userMenu: { renames: {}, routes: {}, customItems: [], hidden: [], order: [] },
-  partnerMenu: { renames: {}, routes: {}, customItems: [], hidden: [], order: [] },
+  userMenu: { renames: {}, routes: {}, customItems: [], hidden: [], comingSoon: [], order: [] },
+  partnerMenu: { renames: {}, routes: {}, customItems: [], hidden: [], comingSoon: [], order: [] },
 };
 
 export const DISPLAY_SETTINGS_META: {
@@ -794,6 +796,22 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
     [persist]
   );
 
+  const setMenuItemComingSoon = useCallback(
+    (menu: SideMenuKey, itemId: string, comingSoon: boolean) => {
+      setSettings((prev) => {
+        const key = menu === "user" ? "userMenu" : "partnerMenu";
+        const current = prev[key];
+        const set = new Set(current.comingSoon ?? []);
+        if (comingSoon) set.add(itemId);
+        else set.delete(itemId);
+        const next = { ...prev, [key]: { ...current, comingSoon: Array.from(set) } } as DisplaySettings;
+        persist(next);
+        return next;
+      });
+    },
+    [persist]
+  );
+
   const setMenuItemVisibility = useCallback(
     (menu: SideMenuKey, itemId: string, visible: boolean) => {
       setSettings((prev) => {
@@ -837,8 +855,9 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
         const current = prev[key];
         const customItems = current.customItems.filter((c) => c.id !== itemId);
         const hidden = (current.hidden ?? []).filter((id) => id !== itemId);
+        const comingSoon = (current.comingSoon ?? []).filter((id) => id !== itemId);
         const order = (current.order ?? []).filter((id) => id !== itemId);
-        const next = { ...prev, [key]: { ...current, customItems, hidden, order } } as DisplaySettings;
+        const next = { ...prev, [key]: { ...current, customItems, hidden, comingSoon, order } } as DisplaySettings;
         persist(next);
         return next;
       });
@@ -875,6 +894,7 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
     addCustomMenuItem,
     setMenuItemRoute,
     setMenuItemVisibility,
+    setMenuItemComingSoon,
     moveMenuItem,
     removeCustomMenuItem,
     reset,
@@ -883,7 +903,7 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
 });
 
 function normalizeMenu(m: MenuCustomization | undefined): MenuCustomization {
-  if (!m || typeof m !== "object") return { renames: {}, routes: {}, customItems: [], hidden: [], order: [] };
+  if (!m || typeof m !== "object") return { renames: {}, routes: {}, customItems: [], hidden: [], comingSoon: [], order: [] };
   const renames: Record<string, string> = {};
   if (m.renames && typeof m.renames === "object") {
     for (const [k, v] of Object.entries(m.renames)) {
@@ -915,10 +935,13 @@ function normalizeMenu(m: MenuCustomization | undefined): MenuCustomization {
   const hidden: string[] = Array.isArray(m.hidden)
     ? m.hidden.filter((x): x is string => typeof x === "string")
     : [];
+  const comingSoon: string[] = Array.isArray(m.comingSoon)
+    ? m.comingSoon.filter((x): x is string => typeof x === "string")
+    : [];
   const order: string[] = Array.isArray(m.order)
     ? m.order.filter((x): x is string => typeof x === "string")
     : [];
-  return { renames, routes, customItems, hidden, order };
+  return { renames, routes, customItems, hidden, comingSoon, order };
 }
 
 function normalizeBoxes(boxes: ServiceBoxConfig[] | undefined): ServiceBoxConfig[] {
