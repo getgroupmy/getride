@@ -728,6 +728,28 @@ export default function AdminSettingsDisplayScreen() {
           />
         </View>
 
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginBottom: 24 }]}
+          testID="display-row-registration"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Turn off Registration</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              When on, phone numbers not already in the user list are blocked at login with a "contact Administrator" popup
+            </Text>
+          </View>
+          <Switch
+            value={!settings.registrationEnabled}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] registrationEnabled -> ${!v}`);
+              update("registrationEnabled", !v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-registration"
+          />
+        </View>
+
         <Text style={[styles.sectionTitle, { color: Colors.text }]}>
           Service Boxes
         </Text>

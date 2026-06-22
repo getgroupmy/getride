@@ -14,9 +14,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
-import { ArrowLeft, X, ChevronDown, Search, UserPlus, Stethoscope } from "lucide-react-native";
+import { ArrowLeft, X, ChevronDown, Search, UserPlus, Stethoscope, ShieldAlert } from "lucide-react-native";
 
 interface Country {
   name: string;
@@ -62,6 +63,7 @@ export default function PhoneAuthScreen() {
   const router = useRouter();
   const colors = useColors();
   const { isUserRegistered, isSupabaseAuth, sendOtp } = useAuth();
+  const { settings } = useDisplaySettings();
   void isUserRegistered;
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -70,6 +72,7 @@ export default function PhoneAuthScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [checkError, setCheckError] = useState<string | null>(null);
   const [signupSheet, setSignupSheet] = useState<{ phone: string } | null>(null);
+  const [registrationBlocked, setRegistrationBlocked] = useState<boolean>(false);
   const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
 
   const sendSignupOtpAndContinue = async (fullPhoneNumber: string) => {
@@ -203,6 +206,13 @@ export default function PhoneAuthScreen() {
         pathname: "/otp-verify",
         params: { phoneNumber: fullPhoneNumber, isNewUser: "false" },
       });
+      return;
+    }
+
+    // Registration disabled by admin -> block unknown numbers with a contact-admin popup.
+    if (!settings.registrationEnabled) {
+      setIsLoading(false);
+      setRegistrationBlocked(true);
       return;
     }
 
@@ -393,6 +403,32 @@ export default function PhoneAuthScreen() {
               </TouchableOpacity>
             </View>
             <SafeAreaView edges={["bottom"]} />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={registrationBlocked}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setRegistrationBlocked(false)}
+      >
+        <View style={styles.alertOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setRegistrationBlocked(false)} />
+          <View style={[styles.alertCard, { backgroundColor: colors.gray[50] }]}>
+            <View style={[styles.sheetIconWrap, { backgroundColor: colors.gray[100] }]}>
+              <ShieldAlert color={colors.text} size={26} />
+            </View>
+            <Text style={[styles.alertTitle, { color: colors.text }]}>Registration Unavailable</Text>
+            <Text style={[styles.alertMessage, { color: colors.textSecondary }]}>
+              For new registration please contact Administrator
+            </Text>
+            <TouchableOpacity
+              style={[styles.alertButton, { backgroundColor: colors.accent }]}
+              onPress={() => setRegistrationBlocked(false)}
+            >
+              <Text style={[styles.alertButtonText, { color: colors.secondary }]}>OK</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -728,5 +764,44 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginBottom: 12,
     textAlign: "center",
+  },
+  alertOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  alertCard: {
+    width: "100%",
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
+    alignItems: "center",
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  alertMessage: {
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  alertButton: {
+    width: "100%",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 54,
+  },
+  alertButtonText: {
+    fontSize: 17,
+    fontWeight: "600",
   },
 });

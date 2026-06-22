@@ -420,6 +420,8 @@ export interface DisplaySettings {
   serviceBoxBadge: boolean;
   /** Master service switch. When false, any action that would open ride-confirm shows a "Coming Soon" popup instead. */
   serviceEnabled: boolean;
+  /** When false, new phone numbers (not in the user list) are blocked at login with a "contact Administrator" popup. */
+  registrationEnabled: boolean;
   /** Show AI-estimated toll booth count row in ride-confirm */
   showAiTollBooths: boolean;
   /** Show AI-estimated toll charges row in ride-confirm */
@@ -489,6 +491,7 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   addressBar: true,
   serviceBoxBadge: true,
   serviceEnabled: true,
+  registrationEnabled: true,
   showAiTollBooths: true,
   showAiTollCharges: true,
   recentLocationsCount: 4,
