@@ -678,6 +678,22 @@ export default function RideConfirmScreen() {
   const basePrice = distance ? distance * 1.5 : 35;
   const estimatedPrice = Math.round(basePrice * selectedRide.priceMultiplier) + fareAdjustment;
 
+  /**
+   * Builds the mock driver offers with realistic prices derived from the
+   * passenger's requested fare (already in the active country's currency
+   * value), instead of a hardcoded number. Each driver asks at or slightly
+   * above the requested fare to mimic real bidding.
+   */
+  const buildPricedOffers = (): DriverOffer[] => {
+    const requestedFare =
+      estimatedPrice + committedFareRaise + searchFareAdjustment;
+    const markups = [0.06, 0, 0.03];
+    return MOCK_DRIVER_OFFERS.map((offer, i) => ({
+      ...offer,
+      price: Math.max(1, Math.round(requestedFare * (1 + (markups[i] ?? 0)))),
+    }));
+  };
+
   useEffect(() => {
     const initialDelayTimer = setTimeout(() => {
       console.log("Initial 5-second delay passed, detection now active");
@@ -998,7 +1014,7 @@ export default function RideConfirmScreen() {
       setViewingDrivers(MOCK_VIEWING_DRIVERS.slice(0, 2));
     }, 1500);
 
-    MOCK_DRIVER_OFFERS.forEach((offer, index) => {
+    buildPricedOffers().forEach((offer, index) => {
       setTimeout(() => {
         offerAnimations[offer.id] = {
           acceptProgress: new Animated.Value(0),
@@ -1267,7 +1283,7 @@ export default function RideConfirmScreen() {
       setViewingDrivers(MOCK_VIEWING_DRIVERS.slice(0, 2));
     }, 1500);
 
-    MOCK_DRIVER_OFFERS.forEach((offer, index) => {
+    buildPricedOffers().forEach((offer, index) => {
       setTimeout(() => {
         offerAnimations[offer.id] = {
           acceptProgress: new Animated.Value(0),
