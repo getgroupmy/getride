@@ -215,6 +215,19 @@ export const GATEWAY_PROVIDERS: GatewayProvider[] = [
       { key: "categoryCode", label: "Category Code", placeholder: "Category code" },
     ],
   },
+  {
+    id: "paydibs",
+    name: "Paydibs",
+    description: "Multi-channel payments (cards, FPX, e-wallets)",
+    website: "https://v3api-docs.paydibs.com",
+    modes: ["Live", "Sandbox"],
+    fields: [
+      { key: "merchantId", label: "Merchant ID", placeholder: "Merchant ID" },
+      { key: "merchantPassword", label: "Merchant Password", placeholder: "Merchant password", secret: true },
+      { key: "paymentUrl", label: "Payment URL", placeholder: "https://..." },
+      { key: "apiVersion", label: "API Version", placeholder: "3.8", optional: true },
+    ],
+  },
 ];
 
 interface AccountValues {
@@ -520,15 +533,15 @@ export default function AdminSettingsPaymentGatewayScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {entries.length > 0 ? (
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+            <View style={[styles.statCard, styles.cardShadow, { backgroundColor: Colors.card ?? Colors.background, borderColor: Colors.border }]}>
               <Text style={[styles.statValue, { color: Colors.text }]}>{stats.total}</Text>
               <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Configured</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+            <View style={[styles.statCard, styles.cardShadow, { backgroundColor: Colors.card ?? Colors.background, borderColor: Colors.border }]}>
               <Text style={[styles.statValue, { color: Colors.success ?? "#10B981" }]}>{stats.active}</Text>
               <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Active</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+            <View style={[styles.statCard, styles.cardShadow, { backgroundColor: Colors.card ?? Colors.background, borderColor: Colors.border }]}>
               <Text style={[styles.statValue, { color: Colors.accent }]}>{stats.live}</Text>
               <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Live mode</Text>
             </View>
@@ -572,7 +585,15 @@ export default function AdminSettingsPaymentGatewayScreen() {
             return (
               <TouchableOpacity
                 key={e.id}
-                style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+                style={[
+                  styles.row,
+                  styles.cardShadow,
+                  {
+                    backgroundColor: Colors.card ?? Colors.background,
+                    borderColor: isDefault ? Colors.accent + "55" : Colors.border,
+                    opacity: active ? 1 : 0.6,
+                  },
+                ]}
                 onPress={() => openEdit(e)}
                 activeOpacity={0.85}
                 testID={`payment-gateway-row-${e.id}`}
@@ -714,10 +735,23 @@ export default function AdminSettingsPaymentGatewayScreen() {
             style={{ width: "100%" }}
           >
             <View style={[styles.modalSheet, { backgroundColor: Colors.background }]}>
+              <View style={[styles.grabber, { backgroundColor: Colors.border }]} />
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: Colors.text }]} numberOfLines={1}>
-                  {editing ? "Edit Gateway" : `Add ${selectedProvider?.name ?? "Gateway"}`}
-                </Text>
+                <View style={styles.modalTitleWrap}>
+                  <View style={[styles.modalHeaderIcon, { backgroundColor: Colors.accent + "20" }]}>
+                    <CreditCard color={Colors.accent} size={18} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.modalTitle, { color: Colors.text }]} numberOfLines={1}>
+                      {editing ? "Edit Gateway" : `Add ${selectedProvider?.name ?? "Gateway"}`}
+                    </Text>
+                    {selectedProvider ? (
+                      <Text style={[styles.modalHeaderSub, { color: Colors.textSecondary }]} numberOfLines={1}>
+                        {selectedProvider.description}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
                 <TouchableOpacity
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
@@ -808,18 +842,45 @@ export default function AdminSettingsPaymentGatewayScreen() {
 
                 {selectedProvider ? (
                   <View style={{ marginTop: 4 }}>
-                    <Text style={[styles.sectionLabel, { color: Colors.text }]}>
-                      Credentials
-                    </Text>
-                    {selectedProvider.fields.map((f) => {
+                    <View style={styles.sectionHeaderRow}>
+                      <Text style={[styles.sectionLabel, { color: Colors.text }]}>
+                        Credentials
+                      </Text>
+                      <View style={[styles.sectionCount, { backgroundColor: Colors.accent + "18" }]}>
+                        <Text style={[styles.sectionCountText, { color: Colors.accent }]}>
+                          {selectedProvider.fields.length} fields
+                        </Text>
+                      </View>
+                    </View>
+                    <View
+                      style={[
+                        styles.credentialsCard,
+                        styles.cardShadow,
+                        { backgroundColor: Colors.card ?? Colors.background, borderColor: Colors.border },
+                      ]}
+                    >
+                    {selectedProvider.fields.map((f, fi) => {
                       const value = form.credentials[f.key] ?? "";
                       const reveal = !!revealMap[f.key];
+                      const isLast = fi === selectedProvider.fields.length - 1;
                       return (
-                        <View key={f.key} style={styles.fieldGroup}>
-                          <Text style={[styles.label, { color: Colors.textSecondary }]}>
-                            {f.label}
-                            {f.optional ? "" : " *"}
-                          </Text>
+                        <View
+                          key={f.key}
+                          style={[
+                            styles.credentialItem,
+                            !isLast ? { borderBottomColor: Colors.border, borderBottomWidth: 1 } : null,
+                          ]}
+                        >
+                          <View style={styles.credentialLabelRow}>
+                            <Text style={[styles.label, { color: Colors.textSecondary, marginBottom: 0 }]}>
+                              {f.label}
+                            </Text>
+                            {!f.optional ? (
+                              <Text style={[styles.requiredDot, { color: Colors.error }]}>*</Text>
+                            ) : (
+                              <Text style={[styles.optionalTag, { color: Colors.textSecondary }]}>Optional</Text>
+                            )}
+                          </View>
                           <View
                             style={[
                               styles.inputWrap,
@@ -863,6 +924,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                         </View>
                       );
                     })}
+                    </View>
                   </View>
                 ) : null}
 
@@ -979,6 +1041,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: { fontSize: 12, fontWeight: "700" as const },
+  cardShadow: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   content: { paddingHorizontal: 16, paddingTop: 4, gap: 10 },
   statsRow: { flexDirection: "row" as const, gap: 10, marginTop: 8, marginBottom: 2 },
   statCard: {
@@ -1068,6 +1137,28 @@ const styles = StyleSheet.create({
     padding: 18,
     paddingBottom: 28,
   },
+  grabber: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: "center" as const,
+    marginBottom: 14,
+  },
+  modalTitleWrap: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+    flex: 1,
+    marginRight: 12,
+  },
+  modalHeaderIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  modalHeaderSub: { fontSize: 12, marginTop: 2 },
   modalHeader: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -1075,7 +1166,35 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   modalTitle: { fontSize: 18, fontWeight: "800" as const, flex: 1, marginRight: 12 },
-  sectionLabel: { fontSize: 13, fontWeight: "800" as const, marginBottom: 8, marginTop: 4 },
+  sectionLabel: { fontSize: 13, fontWeight: "800" as const },
+  sectionHeaderRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  sectionCount: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  sectionCountText: { fontSize: 11, fontWeight: "800" as const },
+  credentialsCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  credentialItem: { paddingVertical: 12 },
+  credentialLabelRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    marginBottom: 6,
+  },
+  requiredDot: { fontSize: 13, fontWeight: "800" as const },
+  optionalTag: { fontSize: 10, fontWeight: "700" as const, textTransform: "uppercase" as const, letterSpacing: 0.4 },
   fieldGroup: { marginBottom: 12 },
   label: { fontSize: 12, fontWeight: "600" as const, marginBottom: 6 },
   inputWrap: {
