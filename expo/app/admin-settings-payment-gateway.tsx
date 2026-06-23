@@ -401,6 +401,19 @@ export default function AdminSettingsPaymentGatewayScreen() {
     return map;
   }, [entries]);
 
+  const stats = useMemo(() => {
+    const total = entries.length;
+    const active = entries.filter((e) => e.values.active !== false).length;
+    const live = entries.filter((e) => String(e.values.mode ?? "Live") === "Live").length;
+    const defaultEntry = entries.find((e) => e.values.isDefault);
+    return {
+      total,
+      active,
+      live,
+      defaultName: defaultEntry ? String(defaultEntry.values.providerName ?? "") : null,
+    };
+  }, [entries]);
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: Colors.background }]}
@@ -505,6 +518,31 @@ export default function AdminSettingsPaymentGatewayScreen() {
       </ScrollView>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {entries.length > 0 ? (
+          <View style={styles.statsRow}>
+            <View style={[styles.statCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+              <Text style={[styles.statValue, { color: Colors.text }]}>{stats.total}</Text>
+              <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Configured</Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+              <Text style={[styles.statValue, { color: Colors.success ?? "#10B981" }]}>{stats.active}</Text>
+              <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Active</Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+              <Text style={[styles.statValue, { color: Colors.accent }]}>{stats.live}</Text>
+              <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Live mode</Text>
+            </View>
+          </View>
+        ) : null}
+        {stats.defaultName ? (
+          <View style={[styles.defaultBanner, { backgroundColor: Colors.accent + "14", borderColor: Colors.accent + "40" }]}>
+            <Star color={Colors.accent} size={14} />
+            <Text style={[styles.defaultBannerText, { color: Colors.text }]} numberOfLines={1}>
+              <Text style={{ color: Colors.textSecondary }}>Default gateway:  </Text>
+              {stats.defaultName}
+            </Text>
+          </View>
+        ) : null}
         {filtered.length === 0 ? (
           <View style={[styles.emptyBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
             <Inbox color={Colors.textSecondary} size={28} />
@@ -942,6 +980,30 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 12, fontWeight: "700" as const },
   content: { paddingHorizontal: 16, paddingTop: 4, gap: 10 },
+  statsRow: { flexDirection: "row" as const, gap: 10, marginTop: 8, marginBottom: 2 },
+  statCard: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center" as const,
+    gap: 4,
+  },
+  statValue: { fontSize: 22, fontWeight: "900" as const },
+  statLabel: { fontSize: 11, fontWeight: "600" as const },
+  defaultBanner: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  defaultBannerText: { flex: 1, fontSize: 13, fontWeight: "800" as const },
   row: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
