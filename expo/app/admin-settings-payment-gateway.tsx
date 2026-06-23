@@ -478,6 +478,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.providerChips}
+        style={styles.providerChipsScroll}
       >
         <TouchableOpacity
           onPress={() => setProviderFilter(null)}
@@ -1028,11 +1029,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   searchInput: { flex: 1, fontSize: 14 },
+  providerChipsScroll: { flexGrow: 0, flexShrink: 0 },
   providerChips: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
     flexDirection: "row" as const,
+    alignItems: "center" as const,
   },
   chip: {
     paddingHorizontal: 12,
