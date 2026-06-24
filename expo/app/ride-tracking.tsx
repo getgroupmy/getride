@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -7,579 +7,912 @@ import {
   Dimensions,
   Animated,
   Platform,
+  Image,
+  Linking,
+  Modal,
+  ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { Phone, MessageCircle, Star, X, Navigation, MapPin } from "lucide-react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter, useLocalSearchParams, Stack } from "expo-router";
+import * as Haptics from "expo-haptics";
+import {
+  Phone,
+  MessageCircle,
+  Star,
+  X,
+  MapPin,
+  Navigation,
+  Shield,
+  Share2,
+  ChevronRight,
+  Crosshair,
+  Copy,
+  CheckCircle2,
+  Car,
+  XCircle,
+} from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
-import { MapView, Marker, Polyline } from "@/utils/maps";
+import { MapView, Marker, Polyline, calculateRoute } from "@/utils/maps";
 
 const { width, height } = Dimensions.get("window");
+
+interface Coord {
+  latitude: number;
+  longitude: number;
+}
+
+type Phase = "arriving" | "arrived" | "onTrip" | "completed";
 
 const lightMapStyle = [
   { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "on" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
-  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
-  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-  { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#5a5a5a" }] },
   { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
   { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#c8e6c9" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#4caf50" }] },
   { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
   { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#e0e0e0" }] },
-  { featureType: "road.highway.controlled_access", elementType: "geometry", stylers: [{ color: "#e0e0e0" }] },
-  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#b3e5fc" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#039be5" }] },
 ];
 
 const darkMapStyle = [
-  { elementType: "geometry", stylers: [{ color: "#212121" }] },
-  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
-  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
-  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-  { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+  { elementType: "geometry", stylers: [{ color: "#1a1a1a" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a1a" }] },
   { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#181818" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-  { featureType: "poi.park", elementType: "labels.text.stroke", stylers: [{ color: "#1b1b1b" }] },
   { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8a8a8a" }] },
-  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
   { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
-  { featureType: "road.highway.controlled_access", elementType: "geometry", stylers: [{ color: "#4e4e4e" }] },
-  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] },
 ];
+
+/** Compass bearing between two coordinates, in degrees. */
+function computeBearing(from: Coord, to: Coord): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const lat1 = toRad(from.latitude);
+  const lat2 = toRad(to.latitude);
+  const dLng = toRad(to.longitude - from.longitude);
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
 
 export default function RideTrackingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const Colors = useColors();
   const { colorScheme } = useTheme();
-  const [rideStatus, setRideStatus] = useState<
-    "searching" | "found" | "arriving" | "in-progress"
-  >("searching");
-  const pulseAnim = useState(new Animated.Value(1))[0];
-  const slideAnim = useState(new Animated.Value(400))[0];
+  const { currency } = useLocation();
+  const insets = useSafeAreaInsets();
+  const mapRef = useRef<any>(null);
 
   const pickup = (params.pickup as string) || "Current Location";
   const destination = (params.destination as string) || "Destination";
-  const pickupLat = params.pickupLat ? parseFloat(params.pickupLat as string) : 37.7749;
-  const pickupLng = params.pickupLng ? parseFloat(params.pickupLng as string) : -122.4194;
-  const destLat = params.destLat ? parseFloat(params.destLat as string) : 37.7849;
-  const destLng = params.destLng ? parseFloat(params.destLng as string) : -122.4094;
-  const { currency } = useLocation();
-  const price = (params.price as string) || `${currency.symbol} 12.50`;
+  const pickupLat = params.pickupLat ? parseFloat(params.pickupLat as string) : 3.139;
+  const pickupLng = params.pickupLng ? parseFloat(params.pickupLng as string) : 101.6869;
+  const destLat = params.destLat ? parseFloat(params.destLat as string) : 3.1569;
+  const destLng = params.destLng ? parseFloat(params.destLng as string) : 101.7123;
+
+  const driverName = (params.driverName as string) || "Your driver";
+  const driverPhoto = (params.driverPhoto as string) || "";
+  const driverRating = (params.driverRating as string) || "5.0";
+  const driverVehicle = (params.driverVehicle as string) || "Sedan";
+  const priceParam = (params.price as string) || "0";
+  const priceDisplay = useMemo<string>(() => {
+    const n = parseFloat(priceParam.replace(/[^0-9.]/g, ""));
+    if (isNaN(n)) return `${currency.symbol}${priceParam}`;
+    return `${currency.symbol}${Math.round(n)}`;
+  }, [priceParam, currency.symbol]);
+
+  const plateNo = useMemo<string>(() => {
+    const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const r = (n: number) => Array.from({ length: n }, () => letters[Math.floor(Math.random() * letters.length)]).join("");
+    return `${r(3)} ${Math.floor(1000 + Math.random() * 9000)}`;
+  }, []);
+  const otp = useMemo<string>(() => `${Math.floor(1000 + Math.random() * 9000)}`, []);
+
+  const pickupCoord = useMemo<Coord>(() => ({ latitude: pickupLat, longitude: pickupLng }), [pickupLat, pickupLng]);
+  const destCoord = useMemo<Coord>(() => ({ latitude: destLat, longitude: destLng }), [destLat, destLng]);
+  // Driver starts a short distance from the pickup point.
+  const driverStart = useMemo<Coord>(
+    () => ({ latitude: pickupLat - 0.012, longitude: pickupLng - 0.009 }),
+    [pickupLat, pickupLng]
+  );
+
+  const [phase, setPhase] = useState<Phase>("arriving");
+  const [routeCoords, setRouteCoords] = useState<Coord[]>([]);
+  const [driverPos, setDriverPos] = useState<Coord>(driverStart);
+  const [progress, setProgress] = useState<number>(0);
+  const [etaMin, setEtaMin] = useState<number>(4);
+  const [heading, setHeading] = useState<number>(0);
+  const [followDriver, setFollowDriver] = useState<boolean>(true);
+  const [showCancel, setShowCancel] = useState<boolean>(false);
+
+  const phaseRef = useRef<Phase>("arriving");
+  const prevPosRef = useRef<Coord | null>(null);
+  const didFitRef = useRef<boolean>(false);
+  const recenterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const slideAnim = useRef(new Animated.Value(60)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  const cancelAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  // Entrance + driver pulse
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 60, friction: 10 }),
+      Animated.timing(cardOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+    ]).start();
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1600, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
       ])
     ).start();
+  }, [slideAnim, cardOpacity, pulseAnim]);
 
-    const statusTimer = setTimeout(() => {
-      setRideStatus("found");
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 8,
-      }).start();
+  // Fetch the route for the current leg (driver→pickup, then pickup→destination).
+  useEffect(() => {
+    if (phase === "completed" || phase === "arrived") return;
+    let cancelled = false;
+    const from = phase === "arriving" ? driverStart : pickupCoord;
+    const to = phase === "arriving" ? pickupCoord : destCoord;
 
-      setTimeout(() => {
-        setRideStatus("arriving");
-      }, 2000);
-    }, 3000);
+    const fetchRoute = async () => {
+      try {
+        const result = await calculateRoute(from, to, undefined, "ride-tracking");
+        if (cancelled) return;
+        if (result?.coordinates && result.coordinates.length > 1) {
+          setRouteCoords(result.coordinates);
+          setDriverPos(result.coordinates[0]);
+          if (typeof result.duration === "number" && result.duration > 0) {
+            setEtaMin(Math.max(1, Math.round(result.duration)));
+          }
+        } else {
+          setRouteCoords([from, to]);
+          setDriverPos(from);
+        }
+      } catch {
+        if (!cancelled) {
+          setRouteCoords([from, to]);
+          setDriverPos(from);
+        }
+      }
+      if (!cancelled) {
+        setProgress(0);
+        didFitRef.current = false;
+      }
+    };
+    fetchRoute();
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, driverStart, pickupCoord, destCoord]);
 
-    return () => clearTimeout(statusTimer);
+  // Animate the driver marker along the active route.
+  useEffect(() => {
+    if (routeCoords.length < 2) return;
+    if (phase === "arrived" || phase === "completed") return;
+
+    const total = routeCoords.length - 1;
+    const tickMs = 700;
+    const totalMs = phase === "arriving" ? 14000 : 20000;
+    const stepPerTick = total / (totalMs / tickMs);
+
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + stepPerTick;
+        if (next >= total) {
+          clearInterval(interval);
+          setDriverPos(routeCoords[routeCoords.length - 1]);
+          if (phaseRef.current === "arriving") {
+            if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            setPhase("arrived");
+            setTimeout(() => setPhase("onTrip"), 3500);
+          } else if (phaseRef.current === "onTrip") {
+            if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            setPhase("completed");
+          }
+          return total;
+        }
+        const idx = Math.floor(next);
+        const frac = next - idx;
+        const a = routeCoords[idx];
+        const b = routeCoords[Math.min(idx + 1, routeCoords.length - 1)];
+        setDriverPos({
+          latitude: a.latitude + (b.latitude - a.latitude) * frac,
+          longitude: a.longitude + (b.longitude - a.longitude) * frac,
+        });
+        const pct = next / total;
+        const legMin = phaseRef.current === "arriving" ? etaMin : Math.max(etaMin, 8);
+        setEtaMin(Math.max(0, Math.round(legMin * (1 - pct))));
+        return next;
+      });
+    }, tickMs);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeCoords, phase]);
+
+  // Heading for the car marker.
+  useEffect(() => {
+    const prev = prevPosRef.current;
+    if (prev) {
+      const moved = Math.abs(driverPos.latitude - prev.latitude) + Math.abs(driverPos.longitude - prev.longitude);
+      if (moved > 1e-7) setHeading(computeBearing(prev, driverPos));
+    }
+    prevPosRef.current = driverPos;
+  }, [driverPos]);
+
+  // Camera follow.
+  useEffect(() => {
+    if (!mapRef.current || Platform.OS === "web" || !followDriver) return;
+    mapRef.current?.animateCamera?.(
+      { center: { latitude: driverPos.latitude, longitude: driverPos.longitude }, zoom: 16, heading: 0, pitch: 0 },
+      { duration: 700 }
+    );
+  }, [driverPos, followDriver]);
+
+  // Initial fit to show both driver and target.
+  useEffect(() => {
+    if (!mapRef.current || routeCoords.length < 2 || Platform.OS === "web" || didFitRef.current) return;
+    const t = setTimeout(() => {
+      mapRef.current?.fitToCoordinates?.(routeCoords, {
+        edgePadding: { top: 140, right: 80, bottom: 420, left: 80 },
+        animated: true,
+      });
+      didFitRef.current = true;
+    }, 400);
+    return () => clearTimeout(t);
+  }, [routeCoords]);
+
+  const handlePanDrag = useCallback(() => {
+    if (followDriver) setFollowDriver(false);
+    if (recenterTimer.current) clearTimeout(recenterTimer.current);
+    recenterTimer.current = setTimeout(() => setFollowDriver(true), 8000);
+  }, [followDriver]);
+
+  useEffect(() => {
+    return () => {
+      if (recenterTimer.current) clearTimeout(recenterTimer.current);
+    };
   }, []);
 
-  const pickupLocation = {
-    latitude: pickupLat,
-    longitude: pickupLng,
+  const handleRecenter = useCallback(() => {
+    setFollowDriver(true);
+    mapRef.current?.animateCamera?.(
+      { center: { latitude: driverPos.latitude, longitude: driverPos.longitude }, zoom: 16 },
+      { duration: 500 }
+    );
+  }, [driverPos]);
+
+  const handleCall = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    Linking.openURL("tel:+60123456789").catch(() => {});
+  }, []);
+
+  const handleMessage = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    Linking.openURL("sms:+60123456789").catch(() => {});
+  }, []);
+
+  const openCancel = useCallback(() => {
+    setShowCancel(true);
+    Animated.spring(cancelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }).start();
+  }, [cancelAnim]);
+
+  const closeCancel = useCallback((cb?: () => void) => {
+    Animated.timing(cancelAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      setShowCancel(false);
+      if (cb) cb();
+    });
+  }, [cancelAnim]);
+
+  const confirmCancel = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    closeCancel(() => router.replace("/" as any));
+  }, [closeCancel, router]);
+
+  const remainingCoords = useMemo<Coord[]>(() => {
+    if (routeCoords.length === 0) return [];
+    const idx = Math.floor(progress);
+    return [driverPos, ...routeCoords.slice(Math.min(idx + 1, routeCoords.length - 1))];
+  }, [routeCoords, progress, driverPos]);
+
+  const initialRegion = {
+    latitude: (driverStart.latitude + pickupLat) / 2,
+    longitude: (driverStart.longitude + pickupLng) / 2,
+    latitudeDelta: Math.abs(driverStart.latitude - pickupLat) * 2.2 || 0.04,
+    longitudeDelta: Math.abs(driverStart.longitude - pickupLng) * 2.2 || 0.04,
   };
 
-  const destinationLocation = {
-    latitude: destLat,
-    longitude: destLng,
-  };
+  const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.6] });
+  const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
 
-  const driverLocation = {
-    latitude: pickupLat - 0.005,
-    longitude: pickupLng - 0.005,
-  };
+  const statusText =
+    phase === "arriving"
+      ? `${driverName.split(" ")[0]} is on the way`
+      : phase === "arrived"
+        ? `${driverName.split(" ")[0]} has arrived`
+        : phase === "onTrip"
+          ? "On the way to destination"
+          : "You've arrived";
 
-  const routeCoordinates = [driverLocation, pickupLocation];
-
-  const centerLat = (pickupLat + destLat) / 2;
-  const centerLng = (pickupLng + destLng) / 2;
-  const latDelta = Math.abs(pickupLat - destLat) * 1.5 || 0.05;
-  const lngDelta = Math.abs(pickupLng - destLng) * 1.5 || 0.05;
+  const subStatus =
+    phase === "arriving"
+      ? etaMin <= 0
+        ? "Arriving now"
+        : `Arriving in ${etaMin} min`
+      : phase === "arrived"
+        ? "Meet your driver at the pickup point"
+        : phase === "onTrip"
+          ? etaMin <= 0
+            ? "Almost there"
+            : `${etaMin} min to destination`
+          : "Hope you enjoyed the ride";
 
   return (
     <View style={[styles.container, { backgroundColor: Colors.background }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+
       {Platform.OS !== "web" && MapView ? (
         <MapView
+          ref={mapRef}
           style={styles.map}
-          initialRegion={{
-            latitude: centerLat,
-            longitude: centerLng,
-            latitudeDelta: latDelta,
-            longitudeDelta: lngDelta,
-          }}
-          showsUserLocation
+          initialRegion={initialRegion}
           customMapStyle={colorScheme === "dark" ? darkMapStyle : lightMapStyle}
+          showsCompass={false}
+          showsMyLocationButton={false}
+          toolbarEnabled={false}
+          onPanDrag={handlePanDrag}
         >
           {Marker && (
-            <>
-              <Marker coordinate={pickupLocation}>
-                <View style={[styles.pickupMarker, { backgroundColor: Colors.accent, borderColor: Colors.secondary }]}>
-                  <View style={[styles.pickupMarkerInner, { backgroundColor: Colors.secondary }]} />
-                </View>
-              </Marker>
-
-              <Marker coordinate={destinationLocation}>
-                <View style={styles.destinationMarkerContainer}>
-                  <View style={[styles.destinationMarker, { backgroundColor: Colors.text }]}>
-                    <MapPin color={Colors.secondary} size={20} />
-                  </View>
-                </View>
-              </Marker>
-            </>
+            <Marker coordinate={pickupCoord} anchor={{ x: 0.5, y: 0.5 }}>
+              <View style={[styles.pickupMarker, { borderColor: Colors.background, backgroundColor: Colors.accent }]}>
+                <View style={[styles.pickupDot, { backgroundColor: Colors.background }]} />
+              </View>
+            </Marker>
           )}
 
-          {rideStatus !== "searching" && Marker && Polyline && (
-            <>
-              <Marker coordinate={driverLocation}>
-                <View style={[styles.driverMarker, { backgroundColor: Colors.secondary }]}>
-                  <Text style={styles.driverMarkerText}>🚗</Text>
-                </View>
-              </Marker>
+          {Marker && (phase === "onTrip" || phase === "completed") && (
+            <Marker coordinate={destCoord} anchor={{ x: 0.5, y: 1 }}>
+              <View style={[styles.destPin, { backgroundColor: Colors.text }]}>
+                <MapPin color={Colors.background} size={18} />
+              </View>
+            </Marker>
+          )}
 
-              <Polyline
-                coordinates={routeCoordinates}
-                strokeColor={Colors.accent}
-                strokeWidth={3}
-              />
-            </>
+          {Polyline && remainingCoords.length > 1 && (
+            <Polyline coordinates={remainingCoords} strokeColor={Colors.accent} strokeWidth={6} />
+          )}
+
+          {Marker && phase !== "completed" && (
+            <Marker coordinate={driverPos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={heading}>
+              <View style={styles.carWrap}>
+                <Animated.View
+                  style={[
+                    styles.pulseRing,
+                    { backgroundColor: Colors.accent, transform: [{ scale: pulseScale }], opacity: pulseOpacity },
+                  ]}
+                />
+                <View style={[styles.carDot, { backgroundColor: Colors.accent, borderColor: Colors.background }]}>
+                  <Navigation color={Colors.background} size={16} fill={Colors.background} />
+                </View>
+              </View>
+            </Marker>
           )}
         </MapView>
       ) : (
-        <View style={[styles.map, styles.webMapPlaceholder, { backgroundColor: colorScheme === "dark" ? "#1a1a1a" : "#e8e8e8" }]}>
-          <View style={styles.webMapContent}>
-            <MapPin color={Colors.accent} size={48} />
-            <Text style={[styles.webMapText, { color: Colors.text }]}>Map view</Text>
-            <Text style={[styles.webMapSubtext, { color: Colors.textSecondary }]}>Available on mobile</Text>
-          </View>
+        <View style={[styles.map, styles.webMap, { backgroundColor: colorScheme === "dark" ? "#1a1a1a" : "#eef2f5" }]}>
+          <Navigation color={Colors.accent} size={52} />
+          <Text style={[styles.webText, { color: Colors.text }]}>Live tracking</Text>
+          <Text style={[styles.webSub, { color: Colors.textSecondary }]}>Available on mobile</Text>
         </View>
       )}
 
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <View style={styles.topBar}>
-          <TouchableOpacity
-            style={[styles.closeButton, { backgroundColor: Colors.secondary }]}
-            onPress={() => router.push("/")}
-          >
-            <X color={Colors.text} size={24} />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-
-      {rideStatus === "searching" && (
-        <View style={styles.searchingOverlay}>
-          <Animated.View
+      {/* Top status pill */}
+      <SafeAreaView edges={["top"]} style={styles.topOverlay} pointerEvents="box-none">
+        <View style={[styles.statusPill, { backgroundColor: Colors.background }]}>
+          <View
             style={[
-              styles.searchingCircle,
-              {
-                backgroundColor: Colors.accent,
-                transform: [{ scale: pulseAnim }],
-              },
+              styles.liveDot,
+              { backgroundColor: phase === "completed" || phase === "arrived" ? Colors.success : Colors.accent },
             ]}
           />
-          <View style={[styles.searchingContent, { backgroundColor: Colors.secondary }]}>
-            <Text style={[styles.searchingText, { color: Colors.text }]}>Finding your ride...</Text>
-            <Text style={[styles.searchingSubtext, { color: Colors.textSecondary }]}>
-              This usually takes less than a minute
-            </Text>
-          </View>
+          <Text style={[styles.statusPillText, { color: Colors.text }]} numberOfLines={1}>
+            {subStatus}
+          </Text>
         </View>
-      )}
-
-      {rideStatus !== "searching" && (
-        <Animated.View
-          style={[
-            styles.driverCard,
-            {
-              backgroundColor: Colors.secondary,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => router.replace("/" as any)}
+          style={[styles.closeBtn, { backgroundColor: Colors.background }]}
         >
-          <View style={[styles.handle, { backgroundColor: Colors.gray[300] }]} />
+          <X color={Colors.text} size={22} />
+        </TouchableOpacity>
+      </SafeAreaView>
 
-          <View style={styles.driverHeader}>
-            <View style={styles.driverInfo}>
-              <View style={[styles.driverAvatar, { backgroundColor: Colors.accent }]}>
-                <Text style={[styles.driverAvatarText, { color: Colors.secondary }]}>JD</Text>
-              </View>
-              <View style={styles.driverDetails}>
-                <Text style={[styles.driverName, { color: Colors.text }]}>John Doe</Text>
-                <View style={styles.driverRating}>
-                  <Star
-                    color={Colors.warning}
-                    size={16}
-                    fill={Colors.warning}
-                  />
-                  <Text style={[styles.driverRatingText, { color: Colors.text }]}>4.9</Text>
-                  <Text style={[styles.driverRatingCount, { color: Colors.textSecondary }]}>(234 trips)</Text>
-                </View>
-                <Text style={[styles.driverVehicle, { color: Colors.textSecondary }]}>
-                  Toyota Camry • ABC 1234
-                </Text>
-              </View>
-            </View>
-            <View style={styles.driverActions}>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: Colors.gray[100] }]}>
-                <Phone color={Colors.text} size={20} />
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: Colors.gray[100] }]}>
-                <MessageCircle color={Colors.text} size={20} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={[styles.rideStatus, { backgroundColor: Colors.gray[50] }]}>
-            <View style={styles.statusIndicator}>
-              <View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: Colors.gray[400] },
-                  rideStatus === "arriving" && [styles.statusDotActive, { backgroundColor: Colors.accent }],
-                ]}
-              />
-              <Text style={[styles.statusText, { color: Colors.text }]}>
-                {rideStatus === "found"
-                  ? "Driver accepted your ride"
-                  : rideStatus === "arriving"
-                    ? "Driver is arriving in 2 minutes"
-                    : "On the way"}
-              </Text>
-            </View>
-            <TouchableOpacity style={[styles.navigationButton, { backgroundColor: Colors.accent + "20" }]}>
-              <Navigation color={Colors.accent} size={20} />
-              <Text style={[styles.navigationButtonText, { color: Colors.accent }]}>Navigate</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.tripInfo}>
-            <View style={styles.tripInfoRow}>
-              <Text style={[styles.tripInfoLabel, { color: Colors.textSecondary }]}>Pickup</Text>
-              <Text style={[styles.tripInfoValue, { color: Colors.text }]} numberOfLines={1}>{pickup}</Text>
-            </View>
-            <View style={styles.tripInfoRow}>
-              <Text style={[styles.tripInfoLabel, { color: Colors.textSecondary }]}>Dropoff</Text>
-              <Text style={[styles.tripInfoValue, { color: Colors.text }]} numberOfLines={1}>{destination}</Text>
-            </View>
-            <View style={styles.tripInfoRow}>
-              <Text style={[styles.tripInfoLabel, { color: Colors.textSecondary }]}>Price</Text>
-              <Text style={[styles.tripInfoValue, { color: Colors.text }]}>{price}</Text>
-            </View>
-          </View>
-        </Animated.View>
+      {/* Recenter */}
+      {!followDriver && Platform.OS !== "web" && phase !== "completed" && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleRecenter}
+          style={[styles.recenterBtn, { backgroundColor: Colors.background, bottom: 360 + insets.bottom }]}
+        >
+          <Crosshair color={Colors.accent} size={22} />
+        </TouchableOpacity>
       )}
+
+      {/* Bottom sheet */}
+      <Animated.View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: Colors.background,
+            paddingBottom: Math.max(insets.bottom, 16) + 12,
+            transform: [{ translateY: slideAnim }],
+            opacity: cardOpacity,
+            shadowColor: colorScheme === "dark" ? "#000" : "#0f172a",
+          },
+        ]}
+      >
+        <View style={styles.handleWrap}>
+          <View style={[styles.handle, { backgroundColor: Colors.gray[300] }]} />
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          contentContainerStyle={styles.sheetContent}
+        >
+          {/* Status header */}
+          <View style={styles.statusHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.statusTitle, { color: Colors.text }]}>{statusText}</Text>
+              <Text style={[styles.statusSub, { color: Colors.textSecondary }]}>{subStatus}</Text>
+            </View>
+            {phase === "arrived" && (
+              <View style={[styles.otpBox, { backgroundColor: Colors.accent + "1A", borderColor: Colors.accent }]}>
+                <Text style={[styles.otpLabel, { color: Colors.textSecondary }]}>PIN</Text>
+                <Text style={[styles.otpValue, { color: Colors.accent }]}>{otp}</Text>
+              </View>
+            )}
+            {phase === "completed" && (
+              <View style={[styles.doneIcon, { backgroundColor: Colors.success + "1A" }]}>
+                <CheckCircle2 color={Colors.success} size={28} />
+              </View>
+            )}
+          </View>
+
+          {phase !== "completed" ? (
+            <>
+              {/* Driver card */}
+              <View style={[styles.driverCard, { backgroundColor: Colors.gray[50], borderColor: Colors.gray[200] }]}>
+                <View style={styles.driverRow}>
+                  {driverPhoto ? (
+                    <Image source={{ uri: driverPhoto }} style={styles.driverPhoto} />
+                  ) : (
+                    <View style={[styles.driverPhoto, styles.driverPhotoFallback, { backgroundColor: Colors.accent }]}>
+                      <Text style={[styles.driverInitial, { color: Colors.background }]}>
+                        {driverName.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.driverName, { color: Colors.text }]} numberOfLines={1}>
+                      {driverName}
+                    </Text>
+                    <View style={styles.ratingRow}>
+                      <Star color={Colors.warning} size={14} fill={Colors.warning} />
+                      <Text style={[styles.ratingText, { color: Colors.text }]}>{driverRating}</Text>
+                      <Text style={[styles.dotSep, { color: Colors.textSecondary }]}>•</Text>
+                      <Car color={Colors.textSecondary} size={14} />
+                      <Text style={[styles.vehicleText, { color: Colors.textSecondary }]} numberOfLines={1}>
+                        {driverVehicle}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={[styles.plateChip, { backgroundColor: Colors.text }]}>
+                    <Text style={[styles.plateText, { color: Colors.background }]}>{plateNo}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleCall}
+                    style={[styles.actionBtn, { backgroundColor: Colors.accent }]}
+                  >
+                    <Phone color={Colors.background} size={18} />
+                    <Text style={[styles.actionText, { color: Colors.background }]}>Call</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleMessage}
+                    style={[styles.actionBtn, { backgroundColor: Colors.gray[200] }]}
+                  >
+                    <MessageCircle color={Colors.text} size={18} />
+                    <Text style={[styles.actionText, { color: Colors.text }]}>Message</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Trip route */}
+              <View style={[styles.tripCard, { backgroundColor: Colors.gray[50], borderColor: Colors.gray[200] }]}>
+                <View style={styles.locRow}>
+                  <View style={styles.locIconCol}>
+                    <View style={[styles.originDot, { backgroundColor: Colors.success ?? Colors.accent }]} />
+                    <View style={[styles.connector, { backgroundColor: Colors.gray[300] }]} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.locLabel, { color: Colors.textSecondary }]}>Pickup</Text>
+                    <Text style={[styles.locValue, { color: Colors.text }]} numberOfLines={1}>{pickup}</Text>
+                  </View>
+                </View>
+                <View style={styles.locRow}>
+                  <View style={styles.locIconCol}>
+                    <MapPin color={Colors.accent} size={18} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.locLabel, { color: Colors.textSecondary }]}>Dropoff</Text>
+                    <Text style={[styles.locValue, { color: Colors.text }]} numberOfLines={1}>{destination}</Text>
+                  </View>
+                </View>
+                <View style={[styles.fareRow, { borderTopColor: Colors.gray[200] }]}>
+                  <Text style={[styles.fareLabel, { color: Colors.textSecondary }]}>Total fare · Cash</Text>
+                  <Text style={[styles.fareValue, { color: Colors.text }]}>{priceDisplay}</Text>
+                </View>
+              </View>
+
+              {/* Secondary actions */}
+              <View style={styles.secondaryRow}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[styles.secondaryBtn, { borderColor: Colors.gray[200] }]}
+                  onPress={() => {
+                    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+                    Linking.openURL("sms:?body=Track my ride").catch(() => {});
+                  }}
+                >
+                  <Share2 color={Colors.text} size={16} />
+                  <Text style={[styles.secondaryText, { color: Colors.text }]}>Share trip</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[styles.secondaryBtn, { borderColor: Colors.gray[200] }]}
+                  onPress={() => {
+                    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+                  }}
+                >
+                  <Shield color={Colors.text} size={16} />
+                  <Text style={[styles.secondaryText, { color: Colors.text }]}>Safety</Text>
+                </TouchableOpacity>
+              </View>
+
+              {phase === "arriving" && (
+                <TouchableOpacity activeOpacity={0.8} style={styles.cancelLink} onPress={openCancel}>
+                  <Text style={[styles.cancelLinkText, { color: Colors.error }]}>Cancel ride</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Completed summary */}
+              <View style={[styles.tripCard, { backgroundColor: Colors.gray[50], borderColor: Colors.gray[200] }]}>
+                <View style={styles.completedDriver}>
+                  {driverPhoto ? (
+                    <Image source={{ uri: driverPhoto }} style={styles.completedPhoto} />
+                  ) : (
+                    <View style={[styles.completedPhoto, styles.driverPhotoFallback, { backgroundColor: Colors.accent }]}>
+                      <Text style={[styles.driverInitial, { color: Colors.background }]}>
+                        {driverName.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.driverName, { color: Colors.text }]}>{driverName}</Text>
+                    <Text style={[styles.vehicleText, { color: Colors.textSecondary }]}>
+                      {driverVehicle} · {plateNo}
+                    </Text>
+                  </View>
+                  <Text style={[styles.completedFare, { color: Colors.text }]}>{priceDisplay}</Text>
+                </View>
+              </View>
+
+              <Text style={[styles.rateTitle, { color: Colors.text }]}>Rate your trip</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+                    }}
+                  >
+                    <Star color={Colors.warning} size={36} fill={Colors.warning} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => router.replace("/" as any)}
+                style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
+              >
+                <Text style={[styles.primaryBtnText, { color: Colors.background }]}>Done</Text>
+                <ChevronRight color={Colors.background} size={20} />
+              </TouchableOpacity>
+            </>
+          )}
+        </ScrollView>
+      </Animated.View>
+
+      {/* Cancel modal */}
+      <Modal visible={showCancel} transparent animationType="none" onRequestClose={() => closeCancel()}>
+        <View style={styles.modalBackdrop}>
+          <Animated.View
+            style={[
+              styles.cancelCard,
+              {
+                backgroundColor: Colors.background,
+                opacity: cancelAnim,
+                transform: [
+                  { translateY: cancelAnim.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) },
+                  { scale: cancelAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
+                ],
+              },
+            ]}
+          >
+            <View style={[styles.warnWrap, { backgroundColor: Colors.error + "1A" }]}>
+              <XCircle color={Colors.error} size={32} />
+            </View>
+            <Text style={[styles.cancelTitle, { color: Colors.text }]}>Cancel this ride?</Text>
+            <Text style={[styles.cancelBody, { color: Colors.textSecondary }]}>
+              Your driver is already on the way. Frequent cancellations may affect your account.
+            </Text>
+            <View style={styles.cancelActions}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => closeCancel()}
+                style={[styles.cancelGhost, { backgroundColor: Colors.gray[100] }]}
+              >
+                <Text style={[styles.cancelGhostText, { color: Colors.text }]}>Keep ride</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={confirmCancel}
+                style={[styles.cancelConfirm, { backgroundColor: Colors.error }]}
+              >
+                <Text style={styles.cancelConfirmText}>Cancel ride</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    width,
-    height,
-  },
-  safeArea: {
+  container: { flex: 1 },
+  map: { width, height },
+  webMap: { justifyContent: "center", alignItems: "center", gap: 10 },
+  webText: { fontSize: 20, fontWeight: "700" },
+  webSub: { fontSize: 14 },
+
+  topOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 8,
     zIndex: 10,
   },
-  topBar: {
+  statusPill: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 24,
+    flex: 1,
+    marginRight: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  closeButton: {
+  liveDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
+  statusPillText: { fontSize: 14, fontWeight: "600", flex: 1 },
+  closeBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
-  pickupMarker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  pickupMarkerInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    position: "absolute" as const,
-    top: 3,
-    left: 3,
-  },
-  destinationMarkerContainer: {
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-  },
-  destinationMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  driverMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+
+  recenterBtn: {
+    position: "absolute",
+    right: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
+    zIndex: 10,
   },
-  driverMarkerText: {
-    fontSize: 24,
-  },
-  searchingOverlay: {
-    position: "absolute",
-    top: "40%",
-    left: 0,
-    right: 0,
+
+  pickupMarker: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 4,
+    justifyContent: "center",
     alignItems: "center",
-    zIndex: 20,
   },
-  searchingCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    opacity: 0.2,
-    position: "absolute",
-  },
-  searchingContent: {
+  pickupDot: { width: 6, height: 6, borderRadius: 3 },
+  destPin: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
     alignItems: "center",
-    padding: 24,
-    borderRadius: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  searchingText: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 8,
+  carWrap: { width: 56, height: 56, justifyContent: "center", alignItems: "center" },
+  pulseRing: { position: "absolute", width: 28, height: 28, borderRadius: 14 },
+  carDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 3,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  searchingSubtext: {
-    fontSize: 14,
-  },
-  driverCard: {
+
+  sheet: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 40,
-    shadowColor: "#000",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: height * 0.72,
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 20,
-  },
-  driverHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 20,
-  },
-  driverInfo: {
-    flexDirection: "row",
-    flex: 1,
-  },
-  driverAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
+  handleWrap: { alignItems: "center", paddingTop: 10, paddingBottom: 4 },
+  handle: { width: 40, height: 4, borderRadius: 2 },
+  sheetContent: { paddingHorizontal: 20, paddingTop: 8 },
+
+  statusHeader: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  statusTitle: { fontSize: 20, fontWeight: "800", marginBottom: 2 },
+  statusSub: { fontSize: 14, fontWeight: "500" },
+  otpBox: {
     alignItems: "center",
-    marginRight: 12,
-  },
-  driverAvatarText: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  driverDetails: {
-    flex: 1,
-  },
-  driverName: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  driverRating: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  driverRatingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 4,
-  },
-  driverRatingCount: {
-    fontSize: 14,
-    marginLeft: 4,
-  },
-  driverVehicle: {
-    fontSize: 14,
-  },
-  driverActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  actionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  rideStatus: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 12,
-    marginBottom: 20,
+    borderWidth: 1,
   },
-  statusIndicator: {
+  otpLabel: { fontSize: 10, fontWeight: "600", letterSpacing: 1 },
+  otpValue: { fontSize: 20, fontWeight: "800", letterSpacing: 2 },
+  doneIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: "center", alignItems: "center" },
+
+  driverCard: { borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 12 },
+  driverRow: { flexDirection: "row", alignItems: "center" },
+  driverPhoto: { width: 52, height: 52, borderRadius: 26, marginRight: 12 },
+  driverPhotoFallback: { justifyContent: "center", alignItems: "center" },
+  driverInitial: { fontSize: 22, fontWeight: "800" },
+  driverName: { fontSize: 16, fontWeight: "700", marginBottom: 3 },
+  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  ratingText: { fontSize: 13, fontWeight: "700" },
+  dotSep: { fontSize: 13, marginHorizontal: 2 },
+  vehicleText: { fontSize: 13, flexShrink: 1 },
+  plateChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  plateText: { fontSize: 13, fontWeight: "800", letterSpacing: 1 },
+
+  actionsRow: { flexDirection: "row", gap: 10, marginTop: 14 },
+  actionBtn: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  statusDotActive: {},
-  statusText: {
-    fontSize: 14,
-    fontWeight: "600",
-    flex: 1,
-  },
-  navigationButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  navigationButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 4,
-  },
-  tripInfo: {
-    gap: 12,
-  },
-  tripInfoRow: {
+  actionText: { fontSize: 15, fontWeight: "700" },
+
+  tripCard: { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 12 },
+  locRow: { flexDirection: "row" },
+  locIconCol: { width: 28, alignItems: "center", marginRight: 8 },
+  originDot: { width: 12, height: 12, borderRadius: 6, marginTop: 3 },
+  connector: { width: 2, flex: 1, marginVertical: 4, minHeight: 18 },
+  locLabel: { fontSize: 12, fontWeight: "500", marginBottom: 2 },
+  locValue: { fontSize: 15, fontWeight: "600", marginBottom: 12 },
+  fareRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    borderTopWidth: 1,
+    paddingTop: 12,
+    marginTop: 2,
   },
-  tripInfoLabel: {
-    fontSize: 14,
-  },
-  tripInfoValue: {
-    fontSize: 14,
-    fontWeight: "600" as const,
+  fareLabel: { fontSize: 13, fontWeight: "500" },
+  fareValue: { fontSize: 18, fontWeight: "800" },
+
+  secondaryRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
+  secondaryBtn: {
     flex: 1,
-    textAlign: "right" as const,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
   },
-  webMapPlaceholder: {
+  secondaryText: { fontSize: 14, fontWeight: "600" },
+
+  cancelLink: { alignItems: "center", paddingVertical: 14 },
+  cancelLinkText: { fontSize: 15, fontWeight: "700" },
+
+  completedDriver: { flexDirection: "row", alignItems: "center" },
+  completedPhoto: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
+  completedFare: { fontSize: 18, fontWeight: "800" },
+  rateTitle: { fontSize: 16, fontWeight: "700", textAlign: "center", marginTop: 8, marginBottom: 12 },
+  starsRow: { flexDirection: "row", justifyContent: "center", gap: 10, marginBottom: 20 },
+  primaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: "800" },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 28,
   },
-  webMapContent: {
-    alignItems: "center",
-    gap: 12,
-  },
-  webMapText: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  webMapSubtext: {
-    fontSize: 14,
-  },
+  cancelCard: { width: "100%", borderRadius: 24, padding: 24, alignItems: "center" },
+  warnWrap: { width: 60, height: 60, borderRadius: 30, justifyContent: "center", alignItems: "center", marginBottom: 16 },
+  cancelTitle: { fontSize: 19, fontWeight: "800", marginBottom: 8, textAlign: "center" },
+  cancelBody: { fontSize: 14, lineHeight: 20, textAlign: "center", marginBottom: 22 },
+  cancelActions: { flexDirection: "row", gap: 12, width: "100%" },
+  cancelGhost: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center" },
+  cancelGhostText: { fontSize: 15, fontWeight: "700" },
+  cancelConfirm: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center" },
+  cancelConfirmText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
 });
