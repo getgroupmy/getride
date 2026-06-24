@@ -30,6 +30,7 @@ import {
   CheckCircle2,
   Car,
   XCircle,
+  ShieldAlert,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -314,6 +315,11 @@ export default function RideTrackingScreen() {
       if (cb) cb();
     });
   }, [cancelAnim]);
+
+  const handleSos = useCallback(() => {
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    Linking.openURL("tel:999").catch(() => {});
+  }, []);
 
   const confirmCancel = useCallback(() => {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
@@ -601,6 +607,17 @@ export default function RideTrackingScreen() {
                   <Text style={[styles.cancelLinkText, { color: Colors.error }]}>Cancel ride</Text>
                 </TouchableOpacity>
               )}
+
+              {phase === "onTrip" && (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={[styles.sosBtn, { backgroundColor: Colors.error }]}
+                  onPress={handleSos}
+                >
+                  <ShieldAlert color="#FFFFFF" size={20} />
+                  <Text style={styles.sosText}>SOS · Emergency</Text>
+                </TouchableOpacity>
+              )}
             </>
           ) : (
             <>
@@ -883,6 +900,17 @@ const styles = StyleSheet.create({
 
   cancelLink: { alignItems: "center", paddingVertical: 14 },
   cancelLinkText: { fontSize: 15, fontWeight: "700" },
+
+  sosBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 4,
+  },
+  sosText: { fontSize: 15, fontWeight: "800", color: "#FFFFFF", letterSpacing: 0.3 },
 
   completedDriver: { flexDirection: "row", alignItems: "center" },
   completedPhoto: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
