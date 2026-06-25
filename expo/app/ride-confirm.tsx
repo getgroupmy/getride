@@ -282,6 +282,9 @@ export default function RideConfirmScreen() {
   const activeRequestIdRef = useRef<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const requestNavigatedRef = useRef<boolean>(false);
+  // Tracks partner offers already surfaced as popups (keyed by request+partner)
+  // so repeated realtime UPDATE echoes don't spawn duplicate cards.
+  const presentedOfferKeysRef = useRef<Set<string>>(new Set());
   const [distance, setDistance] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [isCalculatingFare, setIsCalculatingFare] = useState(false);
@@ -716,6 +719,140 @@ export default function RideConfirmScreen() {
   };
 
   /**
+   * Surfaces a single driver offer card: wires up its animations + swipe
+   * pan-responder, appends it to the visible list, plays the chime, and starts
+   * the auto-accept progress bar. Shared by the mock-offer flow and the
+   * real-partner-offer realtime handler so both look and behave identically.
+   */
+  const presentDriverOffer = (offer: DriverOffer) => {
+    offerAnimations[offer.id] = {
+      acceptProgress: new Animated.Value(0),
+      cardSlide: new Animated.Value(0),
+      slideIn: new Animated.Value(1),
+      swipeX: new Animated.Value(0),
+    };
+
+    offerCardPanResponders[offer.id] = PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dx < -10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
+      },
+      onPanResponderGrant: () => {
+        if (offerAnimations[offer.id]?.timeoutId) {
+          clearTimeout(offerAnimations[offer.id].timeoutId);
+        }
+        offerAnimations[offer.id]?.acceptProgress?.stopAnimation();
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx < 0) {
+          offerAnimations[offer.id]?.swipeX?.setValue(gestureState.dx);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const shouldDismiss = gestureState.dx < -SCREEN_WIDTH * 0.6;
+        if (shouldDismiss) {
+          Animated.timing(offerAnimations[offer.id]?.swipeX || new Animated.Value(0), {
+            toValue: -SCREEN_WIDTH - 50,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
+            delete offerAnimations[offer.id];
+            delete offerCardPanResponders[offer.id];
+          });
+        } else {
+          Animated.spring(offerAnimations[offer.id]?.swipeX || new Animated.Value(0), {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 10,
+          }).start(() => {
+            if (!offerAnimations[offer.id]) return;
+            const currentProgress = (offerAnimations[offer.id]?.acceptProgress as any)?._value || 0;
+            const remainingDuration = (1 - currentProgress) * 10000;
+            if (remainingDuration > 0) {
+              Animated.timing(offerAnimations[offer.id].acceptProgress, {
+                toValue: 1,
+                duration: remainingDuration,
+                useNativeDriver: false,
+              }).start(() => {
+                if (!offerAnimations[offer.id]) return;
+                Animated.timing(offerAnimations[offer.id].cardSlide, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                  }).start(() => {
+                    setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
+                    delete offerAnimations[offer.id];
+                    delete offerCardPanResponders[offer.id];
+                  });
+              });
+            }
+          });
+        }
+      },
+    });
+
+    setDriverOffers(prev => [...prev, offer]);
+    setViewingDrivers([]);
+
+    chimePlayer.seekTo(0);
+    chimePlayer.play();
+
+    Animated.spring(offerAnimations[offer.id].slideIn, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 80,
+      friction: 12,
+    }).start();
+
+    Animated.timing(offerAnimations[offer.id].acceptProgress, {
+      toValue: 1,
+      duration: 10000,
+      useNativeDriver: false,
+    }).start(() => {
+      if (!offerAnimations[offer.id]) return;
+      Animated.timing(offerAnimations[offer.id].cardSlide, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => {
+          setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
+          delete offerAnimations[offer.id];
+          delete offerCardPanResponders[offer.id];
+        });
+    });
+  };
+
+  /**
+   * Builds a DriverOffer card from a real partner's counter-offer row (their
+   * `submitRideOffer` keeps the request `open` and fills `offered_fare` +
+   * partner identity) and surfaces it as a popup. De-duplicated so repeated
+   * realtime echoes for the same partner don't stack cards.
+   */
+  const presentPartnerOffer = (row: RideRequest) => {
+    const fare = row.offered_fare;
+    if (fare == null) return;
+    const key = `${row.id}:${row.partner_id ?? row.partner_name ?? "partner"}`;
+    if (presentedOfferKeysRef.current.has(key)) return;
+    presentedOfferKeysRef.current.add(key);
+    const offer: DriverOffer = {
+      id: key,
+      name: row.partner_name ?? "Driver",
+      photo: row.partner_photo ?? "https://randomuser.me/api/portraits/men/32.jpg",
+      rating: row.partner_rating ?? 5,
+      totalRides: 0,
+      vehicle: row.partner_vehicle ?? "",
+      tier: "standard",
+      ltfrbNumber: row.partner_plate ?? "—",
+      price: Math.round(fare),
+      eta: 5,
+      distance: 1,
+    };
+    presentDriverOffer(offer);
+  };
+
+  /**
    * Creates a real ride request in Supabase so any online partner can view and
    * accept it. Stores the id locally; the passenger then watches that row for
    * the partner's acceptance (see the subscription effect below).
@@ -750,6 +887,7 @@ export default function RideConfirmScreen() {
       fare: requestedFare,
       currency: currency.code,
       passengers: selectedRide.capacity ?? 1,
+      offerMe: biddingEnabled,
       deviceOs: meta.deviceOs,
       ipAddress: meta.ipAddress,
       country: meta.country,
@@ -803,6 +941,17 @@ export default function RideConfirmScreen() {
   useEffect(() => {
     if (!activeRequestId) return;
     const handleAccepted = (row: RideRequest) => {
+      // A partner submitting a counter-offer (OfferMe bidding) keeps the request
+      // `open` and just fills `offered_fare` + their identity. Surface it as an
+      // offer popup instead of navigating.
+      if (
+        row.status === "open" &&
+        row.offered_fare != null &&
+        !requestNavigatedRef.current
+      ) {
+        presentPartnerOffer(row);
+        return;
+      }
       if (row.status !== "accepted" || requestNavigatedRef.current) return;
       requestNavigatedRef.current = true;
       console.log("[ride-confirm] partner accepted request", row.id, row.partner_name);
@@ -1164,103 +1313,7 @@ export default function RideConfirmScreen() {
     const offersToShow = displaySettings.userMockEnabled ? buildPricedOffers() : [];
     offersToShow.forEach((offer, index) => {
       setTimeout(() => {
-        offerAnimations[offer.id] = {
-          acceptProgress: new Animated.Value(0),
-          cardSlide: new Animated.Value(0),
-          slideIn: new Animated.Value(1),
-          swipeX: new Animated.Value(0),
-        };
-        
-        offerCardPanResponders[offer.id] = PanResponder.create({
-          onStartShouldSetPanResponder: () => false,
-          onMoveShouldSetPanResponder: (_, gestureState) => {
-            return gestureState.dx < -10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
-          },
-          onPanResponderGrant: () => {
-            if (offerAnimations[offer.id]?.timeoutId) {
-              clearTimeout(offerAnimations[offer.id].timeoutId);
-            }
-            offerAnimations[offer.id]?.acceptProgress?.stopAnimation();
-          },
-          onPanResponderMove: (_, gestureState) => {
-            if (gestureState.dx < 0) {
-              offerAnimations[offer.id]?.swipeX?.setValue(gestureState.dx);
-            }
-          },
-          onPanResponderRelease: (_, gestureState) => {
-            const shouldDismiss = gestureState.dx < -SCREEN_WIDTH * 0.6;
-            if (shouldDismiss) {
-              Animated.timing(offerAnimations[offer.id]?.swipeX || new Animated.Value(0), {
-                toValue: -SCREEN_WIDTH - 50,
-                duration: 200,
-                useNativeDriver: true,
-              }).start(() => {
-                setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
-                delete offerAnimations[offer.id];
-                delete offerCardPanResponders[offer.id];
-              });
-            } else {
-              Animated.spring(offerAnimations[offer.id]?.swipeX || new Animated.Value(0), {
-                toValue: 0,
-                useNativeDriver: true,
-                tension: 100,
-                friction: 10,
-              }).start(() => {
-                if (!offerAnimations[offer.id]) return;
-                const currentProgress = (offerAnimations[offer.id]?.acceptProgress as any)?._value || 0;
-                const remainingDuration = (1 - currentProgress) * 10000;
-                if (remainingDuration > 0) {
-                  Animated.timing(offerAnimations[offer.id].acceptProgress, {
-                    toValue: 1,
-                    duration: remainingDuration,
-                    useNativeDriver: false,
-                  }).start(() => {
-                    if (!offerAnimations[offer.id]) return;
-                    Animated.timing(offerAnimations[offer.id].cardSlide, {
-                        toValue: 1,
-                        duration: 300,
-                        useNativeDriver: true,
-                      }).start(() => {
-                        setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
-                        delete offerAnimations[offer.id];
-                        delete offerCardPanResponders[offer.id];
-                      });
-                  });
-                }
-              });
-            }
-          },
-        });
-        
-        setDriverOffers(prev => [...prev, offer]);
-        setViewingDrivers([]);
-        
-        chimePlayer.seekTo(0);
-        chimePlayer.play();
-        
-        Animated.spring(offerAnimations[offer.id].slideIn, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 80,
-          friction: 12,
-        }).start();
-        
-        Animated.timing(offerAnimations[offer.id].acceptProgress, {
-          toValue: 1,
-          duration: 10000,
-          useNativeDriver: false,
-        }).start(() => {
-          if (!offerAnimations[offer.id]) return;
-          Animated.timing(offerAnimations[offer.id].cardSlide, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: true,
-            }).start(() => {
-              setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
-              delete offerAnimations[offer.id];
-              delete offerCardPanResponders[offer.id];
-            });
-        });
+        presentDriverOffer(offer);
       }, (index + 1) * 3000);
     });
   };
@@ -1443,103 +1496,7 @@ export default function RideConfirmScreen() {
     const offersToShow = displaySettings.userMockEnabled ? buildPricedOffers() : [];
     offersToShow.forEach((offer, index) => {
       setTimeout(() => {
-        offerAnimations[offer.id] = {
-          acceptProgress: new Animated.Value(0),
-          cardSlide: new Animated.Value(0),
-          slideIn: new Animated.Value(1),
-          swipeX: new Animated.Value(0),
-        };
-        
-        offerCardPanResponders[offer.id] = PanResponder.create({
-          onStartShouldSetPanResponder: () => false,
-          onMoveShouldSetPanResponder: (_, gestureState) => {
-            return gestureState.dx < -10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 2);
-          },
-          onPanResponderGrant: () => {
-            if (offerAnimations[offer.id]?.timeoutId) {
-              clearTimeout(offerAnimations[offer.id].timeoutId);
-            }
-            offerAnimations[offer.id]?.acceptProgress?.stopAnimation();
-          },
-          onPanResponderMove: (_, gestureState) => {
-            if (gestureState.dx < 0) {
-              offerAnimations[offer.id]?.swipeX?.setValue(gestureState.dx);
-            }
-          },
-          onPanResponderRelease: (_, gestureState) => {
-            const shouldDismiss = gestureState.dx < -SCREEN_WIDTH * 0.6;
-            if (shouldDismiss) {
-              Animated.timing(offerAnimations[offer.id]?.swipeX || new Animated.Value(0), {
-                toValue: -SCREEN_WIDTH - 50,
-                duration: 200,
-                useNativeDriver: true,
-              }).start(() => {
-                setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
-                delete offerAnimations[offer.id];
-                delete offerCardPanResponders[offer.id];
-              });
-            } else {
-              Animated.spring(offerAnimations[offer.id]?.swipeX || new Animated.Value(0), {
-                toValue: 0,
-                useNativeDriver: true,
-                tension: 100,
-                friction: 10,
-              }).start(() => {
-                if (!offerAnimations[offer.id]) return;
-                const currentProgress = (offerAnimations[offer.id]?.acceptProgress as any)?._value || 0;
-                const remainingDuration = (1 - currentProgress) * 10000;
-                if (remainingDuration > 0) {
-                  Animated.timing(offerAnimations[offer.id].acceptProgress, {
-                    toValue: 1,
-                    duration: remainingDuration,
-                    useNativeDriver: false,
-                  }).start(() => {
-                    if (!offerAnimations[offer.id]) return;
-                    Animated.timing(offerAnimations[offer.id].cardSlide, {
-                        toValue: 1,
-                        duration: 300,
-                        useNativeDriver: true,
-                      }).start(() => {
-                        setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
-                        delete offerAnimations[offer.id];
-                        delete offerCardPanResponders[offer.id];
-                      });
-                  });
-                }
-              });
-            }
-          },
-        });
-        
-        setDriverOffers(prev => [...prev, offer]);
-        setViewingDrivers([]);
-        
-        chimePlayer.seekTo(0);
-        chimePlayer.play();
-        
-        Animated.spring(offerAnimations[offer.id].slideIn, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 80,
-          friction: 12,
-        }).start();
-        
-        Animated.timing(offerAnimations[offer.id].acceptProgress, {
-          toValue: 1,
-          duration: 10000,
-          useNativeDriver: false,
-        }).start(() => {
-          if (!offerAnimations[offer.id]) return;
-          Animated.timing(offerAnimations[offer.id].cardSlide, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: true,
-            }).start(() => {
-              setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
-              delete offerAnimations[offer.id];
-              delete offerCardPanResponders[offer.id];
-            });
-        });
+        presentDriverOffer(offer);
       }, (index + 1) * 3000);
     });
   };
