@@ -59,6 +59,9 @@ import {
   notifyPartnersOfNewRequest,
   gatherRequestMetadata,
   raiseRideRequestFare,
+  fetchOngoingRequestForRider,
+  expireRideRequest,
+  REQUEST_EXPIRY_MS,
   type RideRequest,
 } from "@/utils/rideRequestsStore";
 import { consumePendingLocationReturn } from "@/utils/locationReturn";
@@ -283,6 +286,12 @@ export default function RideConfirmScreen() {
   const activeRequestIdRef = useRef<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const requestNavigatedRef = useRef<boolean>(false);
+  // Auto-expires the active request 7 minutes after it's created so an
+  // unanswered search never stays "ongoing" and block future requests.
+  const expiryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against double-tapping "find driver" while we check for an
+  // existing ongoing request.
+  const startingSearchRef = useRef<boolean>(false);
   // Tracks partner offers already surfaced as popups (keyed by request+partner)
   // so repeated realtime UPDATE echoes don't spawn duplicate cards.
   const presentedOfferKeysRef = useRef<Set<string>>(new Set());
@@ -719,6 +728,10 @@ export default function RideConfirmScreen() {
     }));
   };
 
+  // Drivers shown in the raise-fare sheet: prefer the explicit fare viewers,
+  // but fall back to the live "viewing" drivers so the count is never a stale 0.
+  const raiseFareViewers = fareViewers.length > 0 ? fareViewers : viewingDrivers;
+
   /**
    * Surfaces a single driver offer card: wires up its animations + swipe
    * pan-responder, appends it to the visible list, plays the chime, and starts
@@ -904,6 +917,28 @@ export default function RideConfirmScreen() {
       console.log("[ride-confirm] created real ride request", row.id);
       // Notify online partners (popup push when their app isn't on screen).
       void notifyPartnersOfNewRequest(row);
+      // Auto-expire after 7 minutes if no partner accepts.
+      if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current);
+      expiryTimerRef.current = setTimeout(() => {
+        if (requestNavigatedRef.current) return;
+        const id = activeRequestIdRef.current;
+        if (!id) return;
+        console.log("[ride-confirm] request expired after 7 min", id);
+        void expireRideRequest(id);
+        activeRequestIdRef.current = null;
+        setActiveRequestId(null);
+        if (countdownRef.current) {
+          clearInterval(countdownRef.current);
+          countdownRef.current = null;
+        }
+        setIsSearchingDriver(false);
+        setDriverOffers([]);
+        setShowRaiseFareSheet(false);
+        Alert.alert(
+          "Request expired",
+          "We couldn't find a driver in time. Please try again."
+        );
+      }, REQUEST_EXPIRY_MS);
     }
   }, [
     authState.userId,
@@ -926,6 +961,10 @@ export default function RideConfirmScreen() {
 
   /** Cancels the active real ride request (if any) when the search is aborted. */
   const cancelRealRideRequest = React.useCallback(() => {
+    if (expiryTimerRef.current) {
+      clearTimeout(expiryTimerRef.current);
+      expiryTimerRef.current = null;
+    }
     const id = activeRequestIdRef.current;
     if (id && !requestNavigatedRef.current) {
       void cancelRideRequest(id);
@@ -956,6 +995,10 @@ export default function RideConfirmScreen() {
       if (row.status !== "accepted" || requestNavigatedRef.current) return;
       requestNavigatedRef.current = true;
       console.log("[ride-confirm] partner accepted request", row.id, row.partner_name);
+      if (expiryTimerRef.current) {
+        clearTimeout(expiryTimerRef.current);
+        expiryTimerRef.current = null;
+      }
       if (countdownRef.current) {
         clearInterval(countdownRef.current);
         countdownRef.current = null;
@@ -1254,9 +1297,35 @@ export default function RideConfirmScreen() {
     setShowOfferFareSheet(true);
   };
 
-  const handleOfferFareFindDriver = (fare: number, autoAcceptValue: boolean) => {
+  /**
+   * Blocks starting a new search while the rider already has an ongoing request
+   * (open / accepted / in-progress). Stale open requests older than 7 minutes are
+   * auto-expired first, so an abandoned search never blocks the rider forever.
+   * Returns true when it's safe to proceed.
+   */
+  const ensureNoOngoingRequest = React.useCallback(async (): Promise<boolean> => {
+    if (startingSearchRef.current) return false;
+    startingSearchRef.current = true;
+    try {
+      const ongoing = await fetchOngoingRequestForRider(authState.userId ?? null);
+      if (ongoing && ongoing.id !== activeRequestIdRef.current) {
+        Alert.alert(
+          "Request in progress",
+          "You already have an ongoing ride request. Please finish or cancel it before placing a new one."
+        );
+        return false;
+      }
+      return true;
+    } finally {
+      startingSearchRef.current = false;
+    }
+  }, [authState.userId]);
+
+  const handleOfferFareFindDriver = async (fare: number, autoAcceptValue: boolean) => {
     console.log('Find driver with fare:', fare, 'autoAccept:', autoAcceptValue);
-    
+
+    if (!(await ensureNoOngoingRequest())) return;
+
     // Update fare adjustment based on the offered fare
     const recommendedFare = Math.round(basePrice * selectedRide.priceMultiplier);
     const adjustment = fare - recommendedFare;
@@ -1447,11 +1516,12 @@ export default function RideConfirmScreen() {
     closeEntranceSheet();
   };
 
-  const handleConfirmRide = () => {
+  const handleConfirmRide = async () => {
     if (isBlacklisted) {
       Alert.alert("Service Not Available", "This device is not permitted to place a request.");
       return;
     }
+    if (!(await ensureNoOngoingRequest())) return;
     setIsSearchingDriver(true);
     void createRealRideRequest();
     setDriverOffers([]);
@@ -5194,9 +5264,9 @@ export default function RideConfirmScreen() {
           <View style={styles.raiseFareContent}>
             <Text style={styles.raiseFareTitle}>Raise your fare to get{"\n"}drivers&apos; attention</Text>
             <View style={styles.raiseFareSubtitleRow}>
-              <Text style={styles.raiseFareSubtitle}>{fareViewers.length} drivers viewed{"\n"}your request</Text>
+              <Text style={styles.raiseFareSubtitle}>{raiseFareViewers.length} {raiseFareViewers.length === 1 ? 'driver' : 'drivers'} viewed{"\n"}your request</Text>
               <View style={styles.fareViewersAvatars}>
-                {fareViewers.map((viewer, index) => (
+                {raiseFareViewers.map((viewer, index) => (
                   <Image
                     key={viewer.id}
                     source={{ uri: viewer.photo }}
@@ -5228,11 +5298,11 @@ export default function RideConfirmScreen() {
             ))}
             
             <TouchableOpacity style={styles.raiseFareActionButton} onPress={handleRaiseFare}>
-              <Text style={styles.raiseFareActionText}>Raise fare to {currency.symbol} {estimatedPrice + searchFareAdjustment + 5}</Text>
+              <Text style={styles.raiseFareActionText}>Raise fare to {currency.symbol} {estimatedPrice + committedFareRaise + searchFareAdjustment + 5}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.keepFareButton} onPress={handleKeepFare}>
-              <Text style={styles.keepFareText}>Keep {currency.symbol} {estimatedPrice + searchFareAdjustment}</Text>
+              <Text style={styles.keepFareText}>Keep {currency.symbol} {estimatedPrice + committedFareRaise + searchFareAdjustment}</Text>
             </TouchableOpacity>
           </View>
           </Animated.View>

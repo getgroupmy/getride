@@ -183,6 +183,21 @@ export interface PartnerOfferInput {
 
 const TABLE = "ride_requests";
 
+/**
+ * How long an unaccepted (still searching) request stays "ongoing" before it is
+ * automatically expired. After this window the passenger is free to place a new
+ * request and the row drops out of the partner queue.
+ */
+export const REQUEST_EXPIRY_MS = 7 * 60 * 1000;
+
+/** Statuses that count as an active/ongoing request for a rider. */
+const ONGOING_STATUSES: RideRequestStatus[] = [
+  "open",
+  "accepted",
+  "arrived",
+  "on_trip",
+];
+
 /** Device / location / identity metadata captured at request-creation time. */
 export interface RequestMetadata {
   deviceOs: string | null;
@@ -445,6 +460,66 @@ export async function notifyPartnersOfNewRequest(row: RideRequest): Promise<void
   } catch (e) {
     console.log("[rideRequests] notify partners error", e);
   }
+}
+
+/**
+ * Expires stale `open` requests that have been searching longer than
+ * {@link REQUEST_EXPIRY_MS} (7 minutes). Only touches still-open rows, so an
+ * accepted/in-progress trip is never expired. Best-effort: never throws.
+ * When `riderId` is given, only that rider's stale requests are expired.
+ */
+export async function expireStaleOpenRequests(
+  riderId?: string | null
+): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  const cutoff = new Date(Date.now() - REQUEST_EXPIRY_MS).toISOString();
+  try {
+    let query = supabase
+      .from(TABLE)
+      .update({ status: "expired" as const })
+      .eq("status", "open")
+      .lt("created_at", cutoff);
+    if (riderId) query = query.eq("rider_id", riderId);
+    const { error } = await query;
+    if (error) console.log("[rideRequests] expire stale failed", error.message);
+  } catch (e) {
+    console.log("[rideRequests] expire stale error", e);
+  }
+}
+
+/**
+ * Returns the rider's current ongoing request (open / accepted / arrived /
+ * on_trip), or null if they have none. Stale open requests are expired first so
+ * a 7-minute-old abandoned search never blocks a new request. Used to stop a
+ * passenger from placing a second request while one is still active.
+ */
+export async function fetchOngoingRequestForRider(
+  riderId?: string | null
+): Promise<RideRequest | null> {
+  if (!isSupabaseConfigured || !supabase || !riderId) return null;
+  await expireStaleOpenRequests(riderId);
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("*")
+      .eq("rider_id", riderId)
+      .in("status", ONGOING_STATUSES)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) {
+      console.log("[rideRequests] fetchOngoing failed", error.message);
+      return null;
+    }
+    return (data?.[0] as RideRequest) ?? null;
+  } catch (e) {
+    console.log("[rideRequests] fetchOngoing error", e);
+    return null;
+  }
+}
+
+/** Marks a request expired (search timed out without acceptance). */
+export async function expireRideRequest(id: string): Promise<boolean> {
+  return updateRideRequestStatus(id, "expired");
 }
 
 /** Fetches the current open requests, newest first. */
