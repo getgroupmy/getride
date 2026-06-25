@@ -66,12 +66,13 @@ export default function AdminSettingsIpAccessScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [r, ip] = await Promise.all([listIpRules(), getPublicIp(true)]);
+      const r = await listIpRules();
       setRules(r);
-      setMyIp(ip);
     } finally {
       setLoading(false);
     }
+    // IP lookup runs separately so a slow/blocked network never blocks the list.
+    void getPublicIp(true).then(setMyIp).catch(() => setMyIp(null));
   }, []);
 
   useEffect(() => {
