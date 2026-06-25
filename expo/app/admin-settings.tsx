@@ -99,6 +99,7 @@ export default function AdminSettingsScreen() {
           { id: "referral-settings", label: "Referral Settings", description: "Configure referral rewards", icon: Gift, tone: "success" },
           { id: "referral-tree", label: "Referral Tree", description: "Visualize referral network", icon: GitBranch, tone: "neutral" },
           { id: "sub-admin", label: "Sub Admin", description: "Manage admin staff", icon: ShieldCheck, tone: "accent" },
+          { id: "ip-access", label: "IP Whitelist / Blacklist", description: "Allow trusted IPs, block others", icon: ShieldAlert, tone: "warning" },
         ],
       },
       {
@@ -189,6 +190,7 @@ export default function AdminSettingsScreen() {
     "referral-settings": "/admin-settings-referral",
     "referral-tree": "/admin-settings-referral-tree",
     "sub-admin": "/admin-settings-sub-admin",
+    "ip-access": "/admin-settings-ip-access",
     "geo-fencing": "/admin-settings-geo-fencing",
     "multi-gate-places": "/admin-settings-multi-gate-places",
     "airport-areas": "/admin-settings-airport-areas",

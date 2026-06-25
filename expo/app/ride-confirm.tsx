@@ -49,6 +49,7 @@ import { useLocation } from "@/contexts/LocationContext";
 import { Star } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { useIpAccess } from "@/contexts/IpAccessContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   createRideRequest,
@@ -219,6 +220,7 @@ export default function RideConfirmScreen() {
   const colors = useColors();
   const { settings: displaySettings } = useDisplaySettings();
   const { authState } = useAuth();
+  const { isBlacklisted } = useIpAccess();
   const { setSkipNextLocationDetection, currency } = useLocation();
   const { getEntries } = useAdminData();
   const vehicleServiceEntries = getEntries("vehicle-services");
@@ -1388,6 +1390,10 @@ export default function RideConfirmScreen() {
   };
 
   const handleConfirmRide = () => {
+    if (isBlacklisted) {
+      Alert.alert("Service Not Available", "This device is not permitted to place a request.");
+      return;
+    }
     setIsSearchingDriver(true);
     void createRealRideRequest();
     setDriverOffers([]);

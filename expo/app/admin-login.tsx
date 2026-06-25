@@ -16,6 +16,7 @@ import { Stack, useRouter } from "expo-router";
 import { ArrowLeft, Eye, EyeOff, ShieldCheck, Lock, User, Delete, KeyRound } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { markSuperAdminSession } from "@/contexts/AdminAccessContext";
+import { useIpAccess } from "@/contexts/IpAccessContext";
 
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "admin123";
@@ -26,6 +27,7 @@ type Mode = "pin" | "credentials";
 export default function AdminLoginScreen() {
   const router = useRouter();
   const Colors = useColors();
+  const { isWhitelisted, currentIp, isLoading: ipLoading } = useIpAccess();
   const [mode, setMode] = useState<Mode>("pin");
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -53,6 +55,20 @@ export default function AdminLoginScreen() {
       }
     } catch (e) {
       console.log("Admin login error", e);
+      Alert.alert("Error", "Could not sign in. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWhitelistBypass = async () => {
+    setLoading(true);
+    try {
+      console.log("Admin login success (whitelisted IP bypass)", currentIp);
+      await markSuperAdminSession();
+      router.replace("/admin-dashboard" as any);
+    } catch (e) {
+      console.log("Admin whitelist bypass error", e);
       Alert.alert("Error", "Could not sign in. Try again.");
     } finally {
       setLoading(false);
@@ -135,6 +151,30 @@ export default function AdminLoginScreen() {
           <Text style={[styles.subtitle, { color: Colors.textSecondary }]}>
             Sign in to access the admin dashboard
           </Text>
+
+          {!ipLoading && isWhitelisted ? (
+            <View style={[styles.whitelistCard, { backgroundColor: Colors.success + "15", borderColor: Colors.success + "40" }]}>
+              <View style={styles.whitelistHeader}>
+                <ShieldCheck color={Colors.success} size={18} />
+                <Text style={[styles.whitelistTitle, { color: Colors.text }]}>Trusted IP detected</Text>
+              </View>
+              <Text style={[styles.whitelistSub, { color: Colors.textSecondary }]}>
+                {currentIp} is whitelisted. Enter the dashboard without a PIN.
+              </Text>
+              <TouchableOpacity
+                style={[styles.whitelistBtn, { backgroundColor: Colors.success, opacity: loading ? 0.7 : 1 }]}
+                onPress={handleWhitelistBypass}
+                disabled={loading}
+                testID="admin-whitelist-bypass"
+              >
+                {loading ? (
+                  <ActivityIndicator color={Colors.secondary} />
+                ) : (
+                  <Text style={[styles.whitelistBtnText, { color: Colors.secondary }]}>Enter as admin</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <View style={[styles.tabs, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
             <TouchableOpacity
@@ -423,4 +463,28 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: "center" as const,
   },
+  whitelistCard: {
+    width: "100%" as const,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 20,
+  },
+  whitelistHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    marginBottom: 6,
+  },
+  whitelistTitle: { fontSize: 15, fontWeight: "800" as const },
+  whitelistSub: { fontSize: 13, marginBottom: 14, lineHeight: 18 },
+  whitelistBtn: {
+    width: "100%" as const,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    minHeight: 50,
+  },
+  whitelistBtnText: { fontSize: 15, fontWeight: "700" as const },
 });

@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { useIpAccess } from "@/contexts/IpAccessContext";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 import { ArrowLeft, X, ChevronDown, Search, UserPlus, Stethoscope, ShieldAlert } from "lucide-react-native";
@@ -64,6 +65,7 @@ export default function PhoneAuthScreen() {
   const colors = useColors();
   const { isUserRegistered, isSupabaseAuth, sendOtp } = useAuth();
   const { settings } = useDisplaySettings();
+  const { isBlacklisted } = useIpAccess();
   void isUserRegistered;
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -97,6 +99,11 @@ export default function PhoneAuthScreen() {
 
   const handleNext = async () => {
     if (!phoneNumber) return;
+
+    if (isBlacklisted) {
+      setCheckError("Service Not Available");
+      return;
+    }
 
     setIsLoading(true);
     setCheckError(null);
@@ -296,6 +303,13 @@ export default function PhoneAuthScreen() {
             We&apos;ll text a code to verify your phone
           </Text>
 
+          {isBlacklisted ? (
+            <View style={[styles.blockBanner, { backgroundColor: colors.error + "15", borderColor: colors.error + "40" }]}>
+              <ShieldAlert color={colors.error} size={18} />
+              <Text style={[styles.blockBannerText, { color: colors.error }]}>Service Not Available</Text>
+            </View>
+          ) : null}
+
           <View style={styles.inputContainer}>
             <View style={[styles.inputWrapper, { backgroundColor: colors.gray[100], borderColor: colors.text }]}>
               <TouchableOpacity
@@ -336,7 +350,7 @@ export default function PhoneAuthScreen() {
               (!phoneNumber || isLoading) && styles.nextButtonDisabled,
             ]}
             onPress={handleNext}
-            disabled={!phoneNumber || isLoading}
+            disabled={!phoneNumber || isLoading || isBlacklisted}
           >
             {isLoading ? (
               <View style={[styles.loadingIndicator, { borderColor: colors.secondary, borderTopColor: "transparent" }]} />
@@ -543,6 +557,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     marginBottom: 40,
+  },
+  blockBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  blockBannerText: {
+    fontSize: 15,
+    fontWeight: "700",
   },
   inputContainer: {
     marginBottom: 20,

@@ -60,6 +60,7 @@ import { Alert } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { useIpAccess } from "@/contexts/IpAccessContext";
 import {
   fetchOpenRequests,
   subscribeToOpenRequests,
@@ -189,6 +190,7 @@ export default function DriverEhailingScreen() {
   const { authState } = useAuth();
   const { getEntries } = useAdminData();
   const { settings: displaySettings } = useDisplaySettings();
+  const { isBlacklisted } = useIpAccess();
   const partnerMockEnabledRef = useRef<boolean>(true);
   const openPartnerModeSelector = React.useCallback(async () => {
     const opts = await loadAssignedPartnerModeOptions(authState.userId, getEntries);
@@ -645,6 +647,17 @@ export default function DriverEhailingScreen() {
 
   const acceptRequest = async (accepted: RideRequest) => {
     console.log("[partner-ehailing] accepted request", accepted.id);
+    // Blacklisted partners cannot accept rides.
+    if (isBlacklisted) {
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      }
+      Alert.alert(
+        "Service Not Available",
+        "Your device has been blocked and cannot accept ride requests. Please contact support."
+      );
+      return;
+    }
     // Real request: claim it atomically. If another partner already took it,
     // bail out gracefully instead of starting a trip on a taken request.
     if (accepted.dbId) {

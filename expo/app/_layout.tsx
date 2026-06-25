@@ -18,6 +18,7 @@ import { BrandingProvider } from "@/contexts/BrandingContext";
 import { EmergencyContactsProvider } from "@/contexts/EmergencyContactsContext";
 import { VoiceProtectionProvider } from "@/contexts/VoiceProtectionContext";
 import { PushNotificationProvider } from "@/contexts/PushNotificationContext";
+import { IpAccessProvider } from "@/contexts/IpAccessContext";
 import { AppIconChangeModal } from "@/components/AppIconChangeModal";
 import SupportCallListener from "@/components/SupportCallListener";
 import { RootErrorBoundary } from "@/components/RootErrorBoundary";
@@ -184,6 +185,7 @@ function RootLayoutNav() {
       <Stack.Screen name="admin-settings-referral" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-referral-tree" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-sub-admin" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="admin-settings-ip-access" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-geo-fencing" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-multi-gate-places" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-multi-gate-place-gates" options={{ animation: "slide_from_right", gestureEnabled: false }} />
@@ -259,6 +261,7 @@ export default function RootLayout() {
                   <EmergencyContactsProvider>
                     <VoiceProtectionProvider>
                       <PushNotificationProvider>
+                        <IpAccessProvider>
                         <GestureHandlerRootView style={{ flex: 1 }}>
                           <RootErrorBoundary>
                             <TabletFrame>
@@ -266,6 +269,7 @@ export default function RootLayout() {
                             </TabletFrame>
                           </RootErrorBoundary>
                         </GestureHandlerRootView>
+                        </IpAccessProvider>
                       </PushNotificationProvider>
                     </VoiceProtectionProvider>
                   </EmergencyContactsProvider>
