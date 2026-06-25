@@ -430,6 +430,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
   const [formLat, setFormLat] = useState<string>("");
   const [formLng, setFormLng] = useState<string>("");
   const [formServices, setFormServices] = useState<Record<string, boolean>>({});
+  const [formBiddingEnabled, setFormBiddingEnabled] = useState<boolean>(true);
   // Country-level metadata
   const [formCurrencyName, setFormCurrencyName] = useState<string>("");
   const [formCurrencySymbol, setFormCurrencySymbol] = useState<string>("");
@@ -702,6 +703,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
     setFormLat("");
     setFormLng("");
     setFormServices({});
+    setFormBiddingEnabled(true);
     setFormCurrencyName("");
     setFormCurrencySymbol("");
     setFormEmergencyNumber("");
@@ -724,6 +726,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
       setFormLat(typeof v.lat === "number" ? String(v.lat) : "");
       setFormLng(typeof v.lng === "number" ? String(v.lng) : "");
       setFormServices(parseServicesMap(v.services));
+      setFormBiddingEnabled(v.biddingEnabled !== false);
       // Fill in country defaults for any missing country-level fields, but keep saved overrides.
       const cn = String(v.country ?? "");
       const isCountryRow = !v.state && !v.city && !v.suburb;
@@ -754,6 +757,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
       setFormLat(typeof r.lat === "number" ? String(r.lat) : "");
       setFormLng(typeof r.lng === "number" ? String(r.lng) : "");
       setFormServices({});
+      setFormBiddingEnabled(true);
       // Prefill country defaults from country-state-city when adding a country row.
       const ci = countryByName.get(r.country);
       if (r.level === "country" && ci) {
@@ -839,6 +843,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
       if (formServices[k]) enabledServices[k] = true;
     });
     values.services = JSON.stringify(enabledServices);
+    values.biddingEnabled = formBiddingEnabled;
 
     setSaving(true);
     try {
@@ -1594,6 +1599,24 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     })}
                   </View>
                 )}
+              </View>
+
+              <View style={styles.serviceRow}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={styles.serviceName}>Bidding (OfferMe)</Text>
+                  <Text style={styles.serviceDesc} numberOfLines={2}>
+                    {formBiddingEnabled
+                      ? "Riders & drivers can raise/lower the fare in this region."
+                      : "Fare is locked to the recommended price \u2014 no +/- in this region."}
+                  </Text>
+                </View>
+                <Switch
+                  value={formBiddingEnabled}
+                  onValueChange={setFormBiddingEnabled}
+                  trackColor={{ true: Colors.accent, false: Colors.gray[300] }}
+                  thumbColor={Colors.secondary}
+                  testID="bidding-toggle"
+                />
               </View>
 
               <View style={styles.row2}>

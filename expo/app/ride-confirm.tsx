@@ -46,6 +46,7 @@ import MenuSideSheet from "@/components/MenuSideSheet";
 import { MapView, Marker, Polyline, calculateRoute } from "@/utils/maps";
 import { estimateRouteWithGemini, type TollBooth } from "@/utils/geminiRoute";
 import { useLocation } from "@/contexts/LocationContext";
+import { useRegionBidding } from "@/utils/regionBidding";
 import { Star } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
@@ -623,6 +624,9 @@ export default function RideConfirmScreen() {
   const pickup = (params.pickup as string) || "Current Location";
   const pickupLat = params.pickupLat ? parseFloat(params.pickupLat as string) : 3.139;
   const pickupLng = params.pickupLng ? parseFloat(params.pickupLng as string) : 101.6869;
+
+  const { isBiddingEnabledAt } = useRegionBidding();
+  const biddingEnabled = isBiddingEnabledAt(pickupLat, pickupLng);
   
   // Support multiple destinations (up to 5)
   const [destinations, setDestinations] = useState<Array<{
@@ -4565,6 +4569,8 @@ export default function RideConfirmScreen() {
                 />
               )}
             </View>
+            {biddingEnabled ? (
+              <>
             <View style={styles.searchFareSection}>
               <TouchableOpacity 
                 style={searchFareAdjustment > 0 ? styles.searchFareButton : styles.searchFareButtonDisabled}
@@ -4594,6 +4600,8 @@ export default function RideConfirmScreen() {
             >
               <Text style={searchFareAdjustment > 0 ? styles.raiseFareText : styles.raiseFareTextDisabled}>Raise fare</Text>
             </TouchableOpacity>
+              </>
+            ) : null}
             <View style={styles.searchAutoAcceptRow}>
               <View style={styles.searchAutoAcceptLeft}>
                 <Send color="#000" size={20} style={styles.searchAutoAcceptIcon} />
@@ -4763,12 +4771,14 @@ export default function RideConfirmScreen() {
                     {/* Fare Adjustment - only for selected */}
                     {isSelected && (
                       <View style={styles.fareSection}>
+                        {biddingEnabled && (
                         <TouchableOpacity 
                           style={styles.fareButton} 
                           onPress={(e) => { e.stopPropagation(); adjustFare(-5); }}
                         >
                           <Minus color={colors.text} size={24} />
                         </TouchableOpacity>
+                        )}
                         <TouchableOpacity style={styles.fareCenter} onPress={handleOpenOfferFare} activeOpacity={0.7}>
                           <RollingFareAmount
                             style={styles.fareAmount}
@@ -4801,12 +4811,14 @@ export default function RideConfirmScreen() {
                             );
                           })()}
                         </TouchableOpacity>
+                        {biddingEnabled && (
                         <TouchableOpacity
                           style={styles.fareButton}
                           onPress={(e) => { e.stopPropagation(); adjustFare(5); }}
                         >
                           <Plus color={colors.text} size={24} />
                         </TouchableOpacity>
+                        )}
                       </View>
                     )}
                   </Animated.View>
@@ -4871,12 +4883,14 @@ export default function RideConfirmScreen() {
                       
                       {/* Fare Adjustment Section - Inside Selected Card */}
                       <View style={styles.fareSection}>
+                        {biddingEnabled && (
                         <TouchableOpacity 
                           style={styles.fareButton} 
                           onPress={(e) => { e.stopPropagation(); adjustFare(-5); }}
                         >
                           <Minus color={colors.text} size={24} />
                         </TouchableOpacity>
+                        )}
                         <TouchableOpacity style={styles.fareCenter} onPress={handleOpenOfferFare} activeOpacity={0.7}>
                           <RollingFareAmount
                             style={styles.fareAmount}
@@ -4909,12 +4923,14 @@ export default function RideConfirmScreen() {
                             );
                           })()}
                         </TouchableOpacity>
+                        {biddingEnabled && (
                         <TouchableOpacity
                           style={styles.fareButton}
                           onPress={(e) => { e.stopPropagation(); adjustFare(5); }}
                         >
                           <Plus color={colors.text} size={24} />
                         </TouchableOpacity>
+                        )}
                       </View>
                     </Animated.View>
                   ) : (
@@ -5481,6 +5497,7 @@ export default function RideConfirmScreen() {
         paymentMethod={selectedPaymentMethod}
         pickupLat={pickupLat}
         pickupLng={pickupLng}
+        biddingEnabled={biddingEnabled}
         onFindDriver={handleOfferFareFindDriver}
         onRemoveStop={(index) => {
           if (destinations.length > 1) {

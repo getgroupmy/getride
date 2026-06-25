@@ -101,6 +101,7 @@ interface OfferFareSideSheetProps {
   paymentMethod?: string;
   pickupLat?: number;
   pickupLng?: number;
+  biddingEnabled?: boolean;
   onFindDriver?: (fare: number, autoAccept: boolean) => void;
   onPickupPress?: () => void;
   onDestinationPress?: (index: number) => void;
@@ -124,6 +125,7 @@ export default function OfferFareSideSheet({
   paymentMethod = "duitnow",
   pickupLat,
   pickupLng,
+  biddingEnabled = true,
   onFindDriver,
   onPickupPress,
   onDestinationPress,
@@ -680,14 +682,17 @@ export default function OfferFareSideSheet({
         </View>
 
         <View style={styles.content}>
-          {isEditing && (
+          {isEditing && biddingEnabled && (
             <Text style={styles.instructionText}>You can change the recommended fare</Text>
+          )}
+          {!biddingEnabled && (
+            <Text style={styles.instructionText}>Bidding is off in this area — fare is fixed</Text>
           )}
 
           <TouchableOpacity
             style={styles.fareContainer}
-            onPress={() => setIsEditing(true)}
-            activeOpacity={0.8}
+            onPress={() => { if (biddingEnabled) setIsEditing(true); }}
+            activeOpacity={biddingEnabled ? 0.8 : 1}
           >
             <View style={styles.fareRow}>
               <Text style={styles.fareCurrency}>{currency.symbol}</Text>

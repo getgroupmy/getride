@@ -147,7 +147,8 @@ function generateRandomRequest(driverLat: number, driverLng: number): RideReques
   const paymentMode = paymentModes[Math.floor(Math.random() * paymentModes.length)];
   const passengers = 1 + Math.floor(Math.random() * 4);
   const luggage = Math.floor(Math.random() * 4);
-  const offerMe = Math.random() < 0.5;
+  // Incoming offers default to OfferMe (Bidding) unless explicitly disabled.
+  const offerMe = true;
   return {
     id: `req-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     passengerName: name,
@@ -750,7 +751,9 @@ export default function DriverEhailingScreen() {
         paymentMode: pm,
         passengers: row.passengers ?? 1,
         luggage: row.luggage ?? 0,
-        offerMe: allowOfferMeRef.current ? !!row.offer_me : false,
+        // Default to OfferMe (Bidding) unless the row explicitly opts out
+        // or the partner has turned off Allow OfferMe requests.
+        offerMe: allowOfferMeRef.current ? row.offer_me !== false : false,
       };
     },
     [driverLat, driverLng]
