@@ -751,6 +751,53 @@ export default function AdminSettingsDisplayScreen() {
         </View>
 
         <Text style={[styles.sectionTitle, { color: Colors.text }]}>
+          Demo / Mockup Data
+        </Text>
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginBottom: 12 }]}
+          testID="display-row-user-mock"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Turn off Mockup (User)</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              When on, passengers no longer see demo driver offers, bids, and "viewing" avatars while searching for a ride
+            </Text>
+          </View>
+          <Switch
+            value={!settings.userMockEnabled}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] userMockEnabled -> ${!v}`);
+              update("userMockEnabled", !v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-user-mock"
+          />
+        </View>
+
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginBottom: 24 }]}
+          testID="display-row-partner-mock"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Turn off Mockup (Partner)</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              When on, drivers no longer receive demo/auto-generated incoming ride requests while online
+            </Text>
+          </View>
+          <Switch
+            value={!settings.partnerMockEnabled}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] partnerMockEnabled -> ${!v}`);
+              update("partnerMockEnabled", !v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-partner-mock"
+          />
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: Colors.text }]}>
           Service Boxes
         </Text>
         <View

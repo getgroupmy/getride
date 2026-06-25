@@ -59,6 +59,7 @@ import { checkPartnerModeDocuments, summarizeDocIssues } from "@/utils/partnerMo
 import { Alert } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminData } from "@/contexts/AdminDataContext";
+import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import PartnerSideSheet from "@/components/PartnerSideSheet";
 import HeatmapOverlay from "@/components/HeatmapOverlay";
 import { runWithMappingRotation } from "@/utils/mappingClient";
@@ -177,6 +178,8 @@ export default function DriverEhailingScreen() {
   const [partnerModeOptions, setPartnerModeOptions] = useState<PartnerModeOption[]>([]);
   const { authState } = useAuth();
   const { getEntries } = useAdminData();
+  const { settings: displaySettings } = useDisplaySettings();
+  const partnerMockEnabledRef = useRef<boolean>(true);
   const openPartnerModeSelector = React.useCallback(async () => {
     const opts = await loadAssignedPartnerModeOptions(authState.userId, getEntries);
     setPartnerModeOptions(opts);
@@ -313,6 +316,7 @@ export default function DriverEhailingScreen() {
 
   const scheduleNextRequest = () => {
     if (!isOnline) return;
+    if (!partnerMockEnabledRef.current) return;
     const delay = 6000 + Math.floor(Math.random() * 8000);
     console.log("[partner-ehailing] scheduling next request in", delay, "ms");
     requestTimer.current = setTimeout(() => {
@@ -387,6 +391,17 @@ export default function DriverEhailingScreen() {
   useEffect(() => {
     allowOfferMeRef.current = allowOfferMe;
   }, [allowOfferMe]);
+
+  useEffect(() => {
+    partnerMockEnabledRef.current = displaySettings.partnerMockEnabled;
+    if (!displaySettings.partnerMockEnabled) {
+      clearRequestTimers();
+      closeRequest(false);
+    } else if (isOnline && !request) {
+      scheduleNextRequest();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displaySettings.partnerMockEnabled]);
 
   useEffect(() => {
     autoAcceptRef.current = autoAccept;

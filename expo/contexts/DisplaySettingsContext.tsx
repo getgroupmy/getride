@@ -422,6 +422,10 @@ export interface DisplaySettings {
   serviceEnabled: boolean;
   /** When false, new phone numbers (not in the user list) are blocked at login with a "contact Administrator" popup. */
   registrationEnabled: boolean;
+  /** When false, the passenger side stops showing demo/mock driver offers & viewers in ride-confirm. */
+  userMockEnabled: boolean;
+  /** When false, the partner (driver) side stops generating demo/mock incoming ride requests. */
+  partnerMockEnabled: boolean;
   /** Show AI-estimated toll booth count row in ride-confirm */
   showAiTollBooths: boolean;
   /** Show AI-estimated toll charges row in ride-confirm */
@@ -492,6 +496,8 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   serviceBoxBadge: true,
   serviceEnabled: true,
   registrationEnabled: true,
+  userMockEnabled: true,
+  partnerMockEnabled: true,
   showAiTollBooths: true,
   showAiTollCharges: true,
   recentLocationsCount: 4,

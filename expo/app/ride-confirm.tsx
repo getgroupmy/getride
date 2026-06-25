@@ -988,8 +988,10 @@ export default function RideConfirmScreen() {
         if (prev <= 1) {
           if (countdownRef.current) clearInterval(countdownRef.current);
           setTimeout(() => {
-            setAvailableDrivers(MOCK_AVAILABLE_DRIVERS);
-            setFareViewers(MOCK_FARE_VIEWERS.slice(0, 4));
+            if (displaySettings.userMockEnabled) {
+              setAvailableDrivers(MOCK_AVAILABLE_DRIVERS);
+              setFareViewers(MOCK_FARE_VIEWERS.slice(0, 4));
+            }
             setShowRaiseFareSheet(true);
             Animated.spring(raiseFareSheetAnim, {
               toValue: 1,
@@ -1010,11 +1012,14 @@ export default function RideConfirmScreen() {
       });
     }, 1000);
     
-    setTimeout(() => {
-      setViewingDrivers(MOCK_VIEWING_DRIVERS.slice(0, 2));
-    }, 1500);
+    if (displaySettings.userMockEnabled) {
+      setTimeout(() => {
+        setViewingDrivers(MOCK_VIEWING_DRIVERS.slice(0, 2));
+      }, 1500);
+    }
 
-    buildPricedOffers().forEach((offer, index) => {
+    const offersToShow = displaySettings.userMockEnabled ? buildPricedOffers() : [];
+    offersToShow.forEach((offer, index) => {
       setTimeout(() => {
         offerAnimations[offer.id] = {
           acceptProgress: new Animated.Value(0),
@@ -1257,8 +1262,10 @@ export default function RideConfirmScreen() {
         if (prev <= 1) {
           if (countdownRef.current) clearInterval(countdownRef.current);
           setTimeout(() => {
-            setAvailableDrivers(MOCK_AVAILABLE_DRIVERS);
-            setFareViewers(MOCK_FARE_VIEWERS.slice(0, 4));
+            if (displaySettings.userMockEnabled) {
+              setAvailableDrivers(MOCK_AVAILABLE_DRIVERS);
+              setFareViewers(MOCK_FARE_VIEWERS.slice(0, 4));
+            }
             setShowRaiseFareSheet(true);
             Animated.spring(raiseFareSheetAnim, {
               toValue: 1,
@@ -1279,11 +1286,14 @@ export default function RideConfirmScreen() {
       });
     }, 1000);
     
-    setTimeout(() => {
-      setViewingDrivers(MOCK_VIEWING_DRIVERS.slice(0, 2));
-    }, 1500);
+    if (displaySettings.userMockEnabled) {
+      setTimeout(() => {
+        setViewingDrivers(MOCK_VIEWING_DRIVERS.slice(0, 2));
+      }, 1500);
+    }
 
-    buildPricedOffers().forEach((offer, index) => {
+    const offersToShow = displaySettings.userMockEnabled ? buildPricedOffers() : [];
+    offersToShow.forEach((offer, index) => {
       setTimeout(() => {
         offerAnimations[offer.id] = {
           acceptProgress: new Animated.Value(0),
