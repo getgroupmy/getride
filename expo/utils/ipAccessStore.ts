@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "@/utils/supabase";
+import { lookupPublicIp } from "@/utils/rideRequestsStore";
 
 /** A single admin-managed IP rule. */
 export interface IpAccessRule {
@@ -26,21 +27,8 @@ let cachedIp: string | null = null;
  */
 export async function getPublicIp(force?: boolean): Promise<string | null> {
   if (cachedIp && !force) return cachedIp;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 6000);
-  try {
-    const res = await fetch("https://api.ipify.org?format=json", {
-      signal: controller.signal,
-    });
-    const json = (await res.json()) as { ip?: string };
-    cachedIp = json?.ip ?? null;
-    return cachedIp;
-  } catch (e) {
-    console.log("[ipAccess] ip lookup failed", e);
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+  cachedIp = await lookupPublicIp("[ipAccess]");
+  return cachedIp;
 }
 
 /** Fetch all rules, newest first. */

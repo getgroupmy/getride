@@ -243,14 +243,47 @@ export async function gatherRequestMetadata(opts: {
 }
 
 async function fetchPublicIp(): Promise<string | null> {
-  try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const json = (await res.json()) as { ip?: string };
-    return json?.ip ?? null;
-  } catch (e) {
-    console.log("[rideRequests] ip lookup failed", e);
-    return null;
+  return lookupPublicIp("[rideRequests]");
+}
+
+/**
+ * Best-effort public IP lookup with multiple fallback providers and a per-request
+ * timeout. A single provider (e.g. ipify) is often unreachable on cellular or in
+ * certain regions on a real TestFlight/App Store build, so we race through a few
+ * well-known endpoints and return the first that responds.
+ */
+export async function lookupPublicIp(logTag: string): Promise<string | null> {
+  const providers: { url: string; parse: (text: string) => string | null }[] = [
+    {
+      url: "https://api.ipify.org?format=json",
+      parse: (t) => (JSON.parse(t) as { ip?: string })?.ip ?? null,
+    },
+    {
+      url: "https://api64.ipify.org?format=json",
+      parse: (t) => (JSON.parse(t) as { ip?: string })?.ip ?? null,
+    },
+    {
+      url: "https://ipapi.co/json/",
+      parse: (t) => (JSON.parse(t) as { ip?: string })?.ip ?? null,
+    },
+    { url: "https://icanhazip.com", parse: (t) => t.trim() || null },
+  ];
+  for (const provider of providers) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const res = await fetch(provider.url, { signal: controller.signal });
+      const text = await res.text();
+      const ip = provider.parse(text);
+      if (ip) return ip;
+    } catch (e) {
+      console.log(`${logTag} ip provider failed`, provider.url, e);
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  console.log(`${logTag} all ip providers failed`);
+  return null;
 }
 
 async function reverseGeocode(
