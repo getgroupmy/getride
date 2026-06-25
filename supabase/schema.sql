@@ -789,3 +789,122 @@ create policy "push_notifications delete" on public.push_notifications for delet
 
 grant select, insert, update, delete on public.push_tokens to anon, authenticated;
 grant select, insert, update, delete on public.push_notifications to anon, authenticated;
+
+-- ============================================================================
+-- Ride requests (real passenger → partner ride hailing). See migration
+-- 0046_ride_requests.sql. Kept here so a fresh bootstrap includes the table.
+-- ============================================================================
+create table if not exists public.ride_requests (
+  id uuid primary key default gen_random_uuid(),
+  rider_id      uuid references public.profiles(id) on delete set null,
+  rider_name    text,
+  rider_phone   text,
+  rider_photo   text,
+  rider_rating  numeric(3,2) not null default 5,
+  service       text,
+  payment_mode  text not null default 'Cash',
+  pickup_name   text,
+  pickup_address text,
+  pickup_lat    double precision,
+  pickup_lng    double precision,
+  drop_name     text,
+  drop_address  text,
+  drop_lat      double precision,
+  drop_lng      double precision,
+  distance_km   numeric(10,2),
+  duration_min  integer,
+  fare          numeric(10,2),
+  currency      text not null default 'MYR',
+  passengers    integer not null default 1,
+  luggage       integer not null default 0,
+  note          text,
+
+  -- Bidding (OfferMe) ----------------------------------------------------------
+  offer_me      boolean not null default false,
+  offered_fare  numeric(10,2),
+
+  -- Fare breakdown -------------------------------------------------------------
+  ride_fare     numeric(10,2),
+  toll_charges  numeric(10,2),
+  other_charges numeric(10,2),
+
+  -- Partner location checkpoints -----------------------------------------------
+  partner_accept_lat double precision,
+  partner_accept_lng double precision,
+  partner_arrive_lat double precision,
+  partner_arrive_lng double precision,
+  partner_drop_lat   double precision,
+  partner_drop_lng   double precision,
+
+  -- User location checkpoints --------------------------------------------------
+  user_accept_lat double precision,
+  user_accept_lng double precision,
+  user_arrive_lat double precision,
+  user_arrive_lng double precision,
+  user_drop_lat   double precision,
+  user_drop_lng   double precision,
+
+  -- Trip OTP -------------------------------------------------------------------
+  otp           text,
+
+  -- Vehicle + address geography ------------------------------------------------
+  vehicle_id    text,
+  full_address  text,
+  country       text,
+  state         text,
+  city          text,
+  suburb        text,
+
+  -- Device / identity metadata -------------------------------------------------
+  device_os     text,
+  ip_address    text,
+  gender        text,
+
+  status        text not null default 'open'
+    check (status in ('open','accepted','arrived','on_trip','completed','cancelled','expired')),
+  partner_id        uuid,
+  partner_name      text,
+  partner_phone     text,
+  partner_photo     text,
+  partner_vehicle   text,
+  partner_plate     text,
+  partner_rating    numeric(3,2),
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  accepted_at   timestamptz,
+  arrived_at    timestamptz,
+  started_at    timestamptz,
+  completed_at  timestamptz,
+  cancelled_at  timestamptz
+);
+
+create index if not exists ride_requests_status_idx       on public.ride_requests(status);
+create index if not exists ride_requests_rider_idx        on public.ride_requests(rider_id);
+create index if not exists ride_requests_partner_idx      on public.ride_requests(partner_id);
+create index if not exists ride_requests_open_created_idx on public.ride_requests(created_at desc) where status = 'open';
+
+do $$
+begin
+  drop trigger if exists trg_ride_requests_updated_at on public.ride_requests;
+  create trigger trg_ride_requests_updated_at before update on public.ride_requests
+    for each row execute function public.set_updated_at();
+end$$;
+
+alter table public.ride_requests enable row level security;
+
+drop policy if exists "ride_requests read"   on public.ride_requests;
+drop policy if exists "ride_requests insert" on public.ride_requests;
+drop policy if exists "ride_requests update" on public.ride_requests;
+drop policy if exists "ride_requests delete" on public.ride_requests;
+
+create policy "ride_requests read"   on public.ride_requests for select using (true);
+create policy "ride_requests insert" on public.ride_requests for insert to public with check (true);
+create policy "ride_requests update" on public.ride_requests for update to public using (true) with check (true);
+create policy "ride_requests delete" on public.ride_requests for delete to public using (true);
+
+grant select, insert, update, delete on public.ride_requests to anon, authenticated;
+
+do $$ begin
+  alter publication supabase_realtime add table public.ride_requests;
+exception when duplicate_object then null; end$$;
+alter table public.ride_requests replica identity full;

@@ -49,6 +49,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useVoiceProtection } from "@/contexts/VoiceProtectionContext";
 import { MapView, Marker, Polyline, calculateRoute, reverseGeocode, calculateFare, type TariffType } from "@/utils/maps";
+import { updateRideRequestStatus, completeRideRequest } from "@/utils/rideRequestsStore";
 
 const { width, height } = Dimensions.get("window");
 
@@ -118,6 +119,9 @@ export default function RideRunningScreen() {
   const driverLngParam = params.driverLng ? parseFloat(params.driverLng as string) : null;
   const distanceToPickupParam = parseFloat((params.distanceToPickup as string) || "0");
   const initialPhase = ((params.initialPhase as string) || "toDestination") as "toPickup" | "toDestination";
+  // When the trip originated from a real Supabase ride request, keep its
+  // lifecycle status in sync so the passenger sees arrived → on trip → completed.
+  const rideRequestId = (params.requestId as string) || null;
   const [phase, setPhase] = useState<"toPickup" | "toDestination">(
     initialPhase === "toPickup" && driverLatParam !== null && driverLngParam !== null
       ? "toPickup"
@@ -560,7 +564,14 @@ export default function RideRunningScreen() {
     return isNaN(n) || n < 0 ? 0 : n;
   }, [extrasAmount]);
 
+  // Mirror the driver's progress onto the real ride request row (if any).
+  useEffect(() => {
+    if (!rideRequestId) return;
+    void updateRideRequestStatus(rideRequestId, phase === "toPickup" ? "arrived" : "on_trip");
+  }, [rideRequestId, phase]);
+
   const finalizeCompletedRide = useCallback((paymentMethod: string) => {
+    if (rideRequestId) void completeRideRequest(rideRequestId);
     const tripDurationMin = Math.max(1, Math.round(elapsedSec / 60));
     const actualKm = traveledKm > 0 ? traveledKm : distanceParam;
     const recalculatedFare = calculateFare(actualKm, tripDurationMin, 1, tariff);

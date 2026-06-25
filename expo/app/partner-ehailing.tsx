@@ -60,6 +60,12 @@ import { Alert } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import {
+  fetchOpenRequests,
+  subscribeToOpenRequests,
+  acceptRideRequest,
+  type RideRequest as DbRideRequest,
+} from "@/utils/rideRequestsStore";
 import PartnerSideSheet from "@/components/PartnerSideSheet";
 import HeatmapOverlay from "@/components/HeatmapOverlay";
 import { runWithMappingRotation } from "@/utils/mappingClient";
@@ -99,6 +105,9 @@ type RideRequest = {
   passengers: number;
   luggage: number;
   offerMe: boolean;
+  /** Set when this card is backed by a real Supabase ride_requests row. */
+  dbId?: string;
+  riderId?: string;
 };
 
 const PASSENGER_NAMES = [
@@ -633,8 +642,28 @@ export default function DriverEhailingScreen() {
     });
   };
 
-  const acceptRequest = (accepted: RideRequest) => {
+  const acceptRequest = async (accepted: RideRequest) => {
     console.log("[partner-ehailing] accepted request", accepted.id);
+    // Real request: claim it atomically. If another partner already took it,
+    // bail out gracefully instead of starting a trip on a taken request.
+    if (accepted.dbId) {
+      const claimed = await acceptRideRequest(accepted.dbId, {
+        partnerId: authState.userId ?? null,
+        partnerName: authState.profileName ?? "Driver",
+        partnerPhone: authState.phoneNumber ?? null,
+        partnerPhoto: authState.profileAvatar ?? null,
+        partnerRating: 4.9,
+      });
+      if (!claimed) {
+        console.log("[partner-ehailing] request already taken", accepted.dbId);
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        }
+        closeRequest(true);
+        Alert.alert("Request taken", "Another driver accepted this ride first.");
+        return;
+      }
+    }
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
@@ -643,6 +672,7 @@ export default function DriverEhailingScreen() {
       pathname: "/ride-running" as any,
       params: {
         driverMode: "eHailing",
+        ...(accepted.dbId ? { requestId: accepted.dbId } : {}),
         dropName: accepted.dropName,
         dropLat: accepted.dropLat.toString(),
         dropLng: accepted.dropLng.toString(),
@@ -662,9 +692,126 @@ export default function DriverEhailingScreen() {
     });
   };
 
+  // Keep a ref of the currently displayed request so realtime callbacks (which
+  // capture a stale `request`) can read the latest value.
+  const currentRequestRef = useRef<RideRequest | null>(null);
+  useEffect(() => {
+    currentRequestRef.current = request;
+  }, [request]);
+
+  /** Maps a Supabase ride_requests row into the local request card shape. */
+  const mapDbToLocal = React.useCallback(
+    (row: DbRideRequest): RideRequest => {
+      const pLat = row.pickup_lat ?? driverLat;
+      const pLng = row.pickup_lng ?? driverLng;
+      const pdx = (pLat - driverLat) * 111;
+      const pdy = (pLng - driverLng) * 111 * Math.cos((driverLat * Math.PI) / 180);
+      const distanceToPickupKm = Math.max(0.4, Math.sqrt(pdx * pdx + pdy * pdy));
+      const pm: RideRequest["paymentMode"] =
+        row.payment_mode === "Card" ||
+        row.payment_mode === "E-Wallet" ||
+        row.payment_mode === "Get Pay"
+          ? row.payment_mode
+          : "Cash";
+      return {
+        id: row.id,
+        dbId: row.id,
+        riderId: row.rider_id ?? undefined,
+        passengerName: row.rider_name ?? "Passenger",
+        passengerRating: row.rider_rating ?? 5,
+        pickupName: row.pickup_name ?? "Pickup",
+        pickupAddress: row.pickup_address ?? "",
+        dropName: row.drop_name ?? "Destination",
+        dropAddress: row.drop_address ?? "",
+        distanceKm: row.distance_km ?? 1,
+        durationMin: row.duration_min ?? 5,
+        fare: row.fare ?? 0,
+        distanceToPickupKm: Math.round(distanceToPickupKm * 10) / 10,
+        pickupLat: pLat,
+        pickupLng: pLng,
+        dropLat: row.drop_lat ?? driverLat,
+        dropLng: row.drop_lng ?? driverLng,
+        paymentMode: pm,
+        passengers: row.passengers ?? 1,
+        luggage: row.luggage ?? 0,
+        offerMe: false,
+      };
+    },
+    [driverLat, driverLng]
+  );
+
+  /** Presents a real incoming request using the same card animation as mocks. */
+  const showRealRequest = (req: RideRequest) => {
+    if (currentRequestRef.current) return;
+    if (autoAcceptRef.current) {
+      void acceptRequest(req);
+      return;
+    }
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    }
+    setRequest(req);
+    const allowed = REQUEST_TIMEOUT_SECONDS;
+    setSecondsLeft(allowed);
+    timerAnim.setValue(1);
+    Animated.spring(requestAnim, {
+      toValue: 1,
+      tension: 60,
+      friction: 11,
+      useNativeDriver: true,
+    }).start();
+    Animated.timing(timerAnim, {
+      toValue: 0,
+      duration: allowed * 1000,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    }).start();
+    if (tickInterval.current) clearInterval(tickInterval.current);
+    tickInterval.current = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          if (tickInterval.current) {
+            clearInterval(tickInterval.current);
+            tickInterval.current = null;
+          }
+          closeRequest(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Subscribe to REAL passenger requests while online. New open requests are
+  // shown as incoming cards; ones taken/cancelled by others are dismissed.
+  useEffect(() => {
+    if (!isOnline) return;
+    let active = true;
+    void fetchOpenRequests().then((rows) => {
+      if (!active) return;
+      const first = rows[0];
+      if (first && !currentRequestRef.current) {
+        showRealRequest(mapDbToLocal(first));
+      }
+    });
+    const unsub = subscribeToOpenRequests((row, event) => {
+      if (event === "INSERT" && row.status === "open") {
+        if (!currentRequestRef.current) showRealRequest(mapDbToLocal(row));
+      } else if (event === "UPDATE" && row.status !== "open") {
+        const cur = currentRequestRef.current;
+        if (cur?.dbId === row.id) closeRequest(true);
+      }
+    });
+    return () => {
+      active = false;
+      unsub();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
+
   const handleAccept = () => {
     if (!request) return;
-    acceptRequest(request);
+    void acceptRequest(request);
   };
 
   const handleDecline = () => {

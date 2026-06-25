@@ -49,6 +49,14 @@ import { useLocation } from "@/contexts/LocationContext";
 import { Star } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  createRideRequest,
+  cancelRideRequest,
+  subscribeToRideRequest,
+  notifyPartnersOfNewRequest,
+  type RideRequest,
+} from "@/utils/rideRequestsStore";
 import { consumePendingLocationReturn } from "@/utils/locationReturn";
 import RollingFareAmount from "@/components/RollingFareAmount";
 
@@ -209,6 +217,7 @@ export default function RideConfirmScreen() {
   const insets = useSafeAreaInsets();
   const colors = useColors();
   const { settings: displaySettings } = useDisplaySettings();
+  const { authState } = useAuth();
   const { setSkipNextLocationDetection, currency } = useLocation();
   const { getEntries } = useAdminData();
   const vehicleServiceEntries = getEntries("vehicle-services");
@@ -264,6 +273,11 @@ export default function RideConfirmScreen() {
   }, [EXTENDED_RIDE_TYPES, selectedRide.id]);
   const [fareAdjustment, setFareAdjustment] = useState(0);
   const [autoAccept, setAutoAccept] = useState(false);
+  // Id of the real ride request created in Supabase while searching, so an
+  // online partner can view/accept it. Watched for the partner's acceptance.
+  const activeRequestIdRef = useRef<string | null>(null);
+  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+  const requestNavigatedRef = useRef<boolean>(false);
   const [distance, setDistance] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [isCalculatingFare, setIsCalculatingFare] = useState(false);
@@ -694,6 +708,112 @@ export default function RideConfirmScreen() {
     }));
   };
 
+  /**
+   * Creates a real ride request in Supabase so any online partner can view and
+   * accept it. Stores the id locally; the passenger then watches that row for
+   * the partner's acceptance (see the subscription effect below).
+   */
+  const createRealRideRequest = React.useCallback(async () => {
+    requestNavigatedRef.current = false;
+    const requestedFare = estimatedPrice;
+    const row = await createRideRequest({
+      riderId: authState.userId ?? null,
+      riderName: authState.profileName ?? null,
+      riderPhone: authState.phoneNumber ?? null,
+      riderPhoto: authState.profileAvatar ?? null,
+      service: selectedRide.name,
+      paymentMode: selectedPaymentMethod === "duitnow" ? "DuitNow" : "Cash",
+      pickupName: pickup,
+      pickupAddress: pickup,
+      pickupLat,
+      pickupLng,
+      dropName: destination,
+      dropAddress: destination,
+      dropLat: destLat,
+      dropLng: destLng,
+      distanceKm: distance ?? null,
+      durationMin: duration ?? null,
+      fare: requestedFare,
+      currency: currency.code,
+      passengers: selectedRide.capacity ?? 1,
+    });
+    if (row) {
+      activeRequestIdRef.current = row.id;
+      setActiveRequestId(row.id);
+      console.log("[ride-confirm] created real ride request", row.id);
+      // Notify online partners (popup push when their app isn't on screen).
+      void notifyPartnersOfNewRequest(row);
+    }
+  }, [
+    authState.userId,
+    authState.profileName,
+    authState.phoneNumber,
+    authState.profileAvatar,
+    selectedRide,
+    selectedPaymentMethod,
+    pickup,
+    pickupLat,
+    pickupLng,
+    destination,
+    destLat,
+    destLng,
+    distance,
+    duration,
+    estimatedPrice,
+    currency.code,
+  ]);
+
+  /** Cancels the active real ride request (if any) when the search is aborted. */
+  const cancelRealRideRequest = React.useCallback(() => {
+    const id = activeRequestIdRef.current;
+    if (id && !requestNavigatedRef.current) {
+      void cancelRideRequest(id);
+      console.log("[ride-confirm] cancelled real ride request", id);
+    }
+    activeRequestIdRef.current = null;
+    setActiveRequestId(null);
+  }, []);
+
+  /**
+   * Watches the passenger's own request row. When a real partner accepts it,
+   * navigate straight into live tracking with the partner's details.
+   */
+  useEffect(() => {
+    if (!activeRequestId) return;
+    const handleAccepted = (row: RideRequest) => {
+      if (row.status !== "accepted" || requestNavigatedRef.current) return;
+      requestNavigatedRef.current = true;
+      console.log("[ride-confirm] partner accepted request", row.id, row.partner_name);
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+      setIsSearchingDriver(false);
+      setDriverOffers([]);
+      setShowRaiseFareSheet(false);
+      router.push({
+        pathname: "/ride-tracking",
+        params: {
+          requestId: row.id,
+          pickup,
+          destination,
+          pickupLat,
+          pickupLng,
+          destLat,
+          destLng,
+          price: `${row.fare ?? estimatedPrice}`,
+          driverName: row.partner_name ?? "Driver",
+          driverPhoto: row.partner_photo ?? "",
+          driverRating: `${row.partner_rating ?? 5}`,
+          driverVehicle: row.partner_vehicle ?? "",
+        },
+      } as any);
+    };
+    const unsub = subscribeToRideRequest(activeRequestId, handleAccepted);
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRequestId]);
+
   useEffect(() => {
     const initialDelayTimer = setTimeout(() => {
       console.log("Initial 5-second delay passed, detection now active");
@@ -978,6 +1098,7 @@ export default function RideConfirmScreen() {
     
     // Start searching for driver
     setIsSearchingDriver(true);
+    void createRealRideRequest();
     setDriverOffers([]);
     setSearchCountdown(60);
     setSearchFareAdjustment(0);
@@ -1252,6 +1373,7 @@ export default function RideConfirmScreen() {
 
   const handleConfirmRide = () => {
     setIsSearchingDriver(true);
+    void createRealRideRequest();
     setDriverOffers([]);
     setSearchCountdown(60);
     setSearchFareAdjustment(0);
@@ -1435,6 +1557,7 @@ export default function RideConfirmScreen() {
 
   const handleConfirmCancelFromNoFare = () => {
     closeNoFareRaiseCancelSheet();
+    cancelRealRideRequest();
     setIsSearchingDriver(false);
     setDriverOffers([]);
     setViewingDrivers([]);
@@ -1640,6 +1763,7 @@ export default function RideConfirmScreen() {
 
   const handleCancelRequest = () => {
     closeCancelConfirmSheet();
+    cancelRealRideRequest();
     setIsSearchingDriver(false);
     setDriverOffers([]);
     setViewingDrivers([]);
