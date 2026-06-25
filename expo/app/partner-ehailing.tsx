@@ -223,8 +223,24 @@ export default function DriverEhailingScreen() {
   const [offerPendingVisible, setOfferPendingVisible] = useState<boolean>(false);
   const [offerPendingSeconds, setOfferPendingSeconds] = useState<number>(45);
   const [pendingOfferAmount, setPendingOfferAmount] = useState<number>(0);
+  // Tracks the request a pending counter-offer belongs to, so realtime updates
+  // (e.g. the passenger raising their fare) can re-surface that exact request.
+  const pendingOfferReqRef = useRef<RideRequest | null>(null);
+  // Tracks the real (Supabase-backed) request this partner is currently engaged
+  // with — whether it's shown as a card, sitting behind a pending counter-offer,
+  // or recently expired. Lets passenger fare raises reach the partner even after
+  // the original popup has closed. Holds the latest mapped request.
+  const engagedReqRef = useRef<RideRequest | null>(null);
+  // Highest passenger fare already surfaced per request id, so repeated realtime
+  // UPDATE events for the same raise don't re-trigger over and over.
+  const raisedFareSeenRef = useRef<Map<string, number>>(new Map());
+  const offerVisibleRef = useRef<boolean>(false);
   const offerPendingTick = useRef<ReturnType<typeof setInterval> | null>(null);
   const offerPendingAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    offerVisibleRef.current = offerVisible;
+  }, [offerVisible]);
 
   useEffect(() => {
     if (!heatmapVisible) return;
@@ -676,6 +692,7 @@ export default function DriverEhailingScreen() {
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         }
+        engagedReqRef.current = null;
         closeRequest(true);
         Alert.alert("Request taken", "Another driver accepted this ride first.");
         return;
@@ -760,12 +777,17 @@ export default function DriverEhailingScreen() {
   );
 
   /** Presents a real incoming request using the same card animation as mocks. */
-  const showRealRequest = (req: RideRequest) => {
-    if (currentRequestRef.current) return;
+  const showRealRequest = (req: RideRequest, opts?: { force?: boolean }) => {
+    if (currentRequestRef.current && !opts?.force) return;
     if (autoAcceptRef.current) {
       void acceptRequest(req);
       return;
     }
+    if (req.dbId) {
+      engagedReqRef.current = req;
+      raisedFareSeenRef.current.set(req.dbId, req.fare);
+    }
+    currentRequestRef.current = req;
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     }
@@ -816,9 +838,29 @@ export default function DriverEhailingScreen() {
     const unsub = subscribeToOpenRequests((row, event) => {
       if (event === "INSERT" && row.status === "open") {
         if (!currentRequestRef.current) showRealRequest(mapDbToLocal(row));
-      } else if (event === "UPDATE" && row.status !== "open") {
-        const cur = currentRequestRef.current;
-        if (cur?.dbId === row.id) closeRequest(true);
+      } else if (event === "UPDATE") {
+        if (row.status !== "open") {
+          const cur = currentRequestRef.current;
+          if (cur?.dbId === row.id) closeRequest(true);
+          const pending = pendingOfferReqRef.current;
+          if (pending?.dbId === row.id) dismissPendingForRaise();
+          if (engagedReqRef.current?.dbId === row.id) engagedReqRef.current = null;
+          raisedFareSeenRef.current.delete(row.id);
+          return;
+        }
+        // Passenger raised their fare on a request this partner is engaged with.
+        // Detect a genuine increase (deduped across repeated realtime events)
+        // and surface it — in place if a card is up, or as a fresh card if the
+        // previous popup already closed.
+        const engaged = engagedReqRef.current;
+        if (engaged?.dbId === row.id && row.offered_fare == null) {
+          const newFare = row.fare ?? 0;
+          const lastSeen = raisedFareSeenRef.current.get(row.id) ?? engaged.fare;
+          if (newFare > lastSeen) {
+            raisedFareSeenRef.current.set(row.id, newFare);
+            presentRaisedFare(mapDbToLocal(row));
+          }
+        }
       }
     });
     return () => {
@@ -838,6 +880,10 @@ export default function DriverEhailingScreen() {
     console.log("[partner-ehailing] declined request", request.id);
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    if (request.dbId) {
+      engagedReqRef.current = null;
+      raisedFareSeenRef.current.delete(request.dbId);
     }
     closeRequest(true);
     setTimeout(() => {
@@ -865,6 +911,7 @@ export default function DriverEhailingScreen() {
   const startOfferPending = (sentAmount: number) => {
     if (!request) return;
     setPendingOfferAmount(sentAmount);
+    pendingOfferReqRef.current = request;
     setOfferVisible(false);
     closeRequest(false);
     setOfferPendingSeconds(45);
@@ -931,6 +978,53 @@ export default function DriverEhailingScreen() {
     startOfferPending(amount);
   };
 
+  /**
+   * Tears down the pending-offer popup because the passenger raised their fare
+   * (or the request closed). Does NOT schedule a mock next request — the caller
+   * re-surfaces the same real request instead.
+   */
+  const dismissPendingForRaise = () => {
+    clearOfferPendingTimer();
+    setOfferPendingVisible(false);
+    pendingOfferReqRef.current = null;
+  };
+
+  /**
+   * Surfaces a passenger fare raise on a request this partner is engaged with.
+   * Updates the live card in place when one is already showing, otherwise tears
+   * down any pending-offer popup / mock card and re-opens a fresh card with the
+   * raised amount.
+   */
+  const presentRaisedFare = (updated: RideRequest) => {
+    engagedReqRef.current = updated;
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    }
+    // A counter-offer is pending: drop it and re-surface so the partner can
+    // re-offer or accept the higher fare.
+    if (pendingOfferReqRef.current?.dbId === updated.dbId) {
+      dismissPendingForRaise();
+      closeRequest(false);
+      showRealRequest(updated, { force: true });
+      return;
+    }
+    // The card for this exact request is on screen: update its fare in place so
+    // the partner immediately sees the new amount (and bump the offer sheet
+    // baseline if they're mid-offer).
+    if (currentRequestRef.current?.dbId === updated.dbId) {
+      setRequest(updated);
+      currentRequestRef.current = updated;
+      if (offerVisibleRef.current) {
+        setOfferAmount((prev) => (prev < updated.fare ? updated.fare : prev));
+      }
+      return;
+    }
+    // Nothing is showing for this request (the old popup already closed) —
+    // re-open a fresh card with the raised amount.
+    closeRequest(false);
+    showRealRequest(updated, { force: true });
+  };
+
   const handleOfferPendingExpired = () => {
     console.log("[partner-ehailing] offer expired - passenger did not accept");
     if (Platform.OS !== "web") {
@@ -938,6 +1032,10 @@ export default function DriverEhailingScreen() {
     }
     clearOfferPendingTimer();
     setOfferPendingVisible(false);
+    // Offer lapsed but keep the partner engaged so a later passenger raise can
+    // still re-surface this request. pendingOfferReqRef tracks the *visible*
+    // pending popup, so clear it now that the popup is gone.
+    pendingOfferReqRef.current = null;
     setTimeout(() => {
       scheduleNextRequest();
     }, 400);
@@ -950,6 +1048,14 @@ export default function DriverEhailingScreen() {
     }
     clearOfferPendingTimer();
     setOfferPendingVisible(false);
+    const cancelled = pendingOfferReqRef.current;
+    pendingOfferReqRef.current = null;
+    // The partner backed out of this request entirely — stop tracking it so a
+    // later raise won't drag them back in.
+    if (cancelled?.dbId && engagedReqRef.current?.dbId === cancelled.dbId) {
+      engagedReqRef.current = null;
+      raisedFareSeenRef.current.delete(cancelled.dbId);
+    }
     setTimeout(() => {
       scheduleNextRequest();
     }, 400);

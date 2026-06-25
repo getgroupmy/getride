@@ -578,6 +578,46 @@ export async function submitRideOffer(
 }
 
 /**
+ * Updates the passenger's requested fare on an open request when they raise their
+ * offer while searching. Clears any prior partner counter-offer (`offered_fare`
+ * and partner identity) so the bid re-opens — partners then see the request again
+ * with the higher fare. Returns the updated row, or null if no longer open / on error.
+ */
+export async function raiseRideRequestFare(
+  id: string,
+  fare: number
+): Promise<RideRequest | null> {
+  if (!isSupabaseConfigured || !supabase || !id) return null;
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update({
+        fare,
+        offered_fare: null,
+        partner_id: null,
+        partner_name: null,
+        partner_phone: null,
+        partner_photo: null,
+        partner_vehicle: null,
+        partner_plate: null,
+        partner_rating: null,
+      })
+      .eq("id", id)
+      .eq("status", "open")
+      .select("*")
+      .maybeSingle();
+    if (error) {
+      console.log("[rideRequests] raise fare failed", error.message);
+      return null;
+    }
+    return (data as RideRequest) ?? null;
+  } catch (e) {
+    console.log("[rideRequests] raise fare error", e);
+    return null;
+  }
+}
+
+/**
  * Records the partner's live lat-lng at a trip checkpoint:
  * - `accept` — where the partner was when claiming the request
  * - `arrive` — where the partner was when reaching the pickup

@@ -58,6 +58,7 @@ import {
   subscribeToRideRequest,
   notifyPartnersOfNewRequest,
   gatherRequestMetadata,
+  raiseRideRequestFare,
   type RideRequest,
 } from "@/utils/rideRequestsStore";
 import { consumePendingLocationReturn } from "@/utils/locationReturn";
@@ -1533,6 +1534,7 @@ export default function RideConfirmScreen() {
 
   const handleSearchHigherFare = () => {
     closeNoFareRaiseCancelSheet();
+    persistRaisedFare(estimatedPrice + 20);
     setSearchFareAdjustment(10);
     setCommittedFareRaise(10);
     showFareRaisedNotification();
@@ -1782,7 +1784,19 @@ export default function RideConfirmScreen() {
     }, 2000);
   };
 
+  /**
+   * Persists the passenger's raised fare to their open request so any partner
+   * who was viewing or had already counter-offered sees the request re-pop with
+   * the higher amount (their prior offer is cleared server-side).
+   */
+  const persistRaisedFare = React.useCallback((newTotal: number) => {
+    const id = activeRequestIdRef.current;
+    if (!id) return;
+    void raiseRideRequestFare(id, newTotal);
+  }, []);
+
   const handleRaiseFare = () => {
+    persistRaisedFare(estimatedPrice + committedFareRaise + searchFareAdjustment + 5);
     setSearchFareAdjustment(prev => prev + 5);
     setShowRaiseFareSheet(false);
     raiseFareSheetAnim.setValue(0);
@@ -4550,6 +4564,7 @@ export default function RideConfirmScreen() {
               style={searchFareAdjustment > 0 ? styles.raiseFareButton : styles.raiseFareButtonDisabled}
               disabled={searchFareAdjustment <= 0}
               onPress={() => {
+                persistRaisedFare(estimatedPrice + committedFareRaise + searchFareAdjustment);
                 setCommittedFareRaise(prev => prev + searchFareAdjustment);
                 setSearchFareAdjustment(0);
                 showFareRaisedNotification();
