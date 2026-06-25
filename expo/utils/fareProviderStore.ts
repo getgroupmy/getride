@@ -61,6 +61,8 @@ export interface FareAIKey {
 }
 
 export interface FareAIConfig {
+  /** When false, AI route estimation is turned off entirely (callers fall back to the routing engine). */
+  serviceEnabled: boolean;
   /** Which provider performs the fare route estimate. */
   provider: FareAIProvider;
   /** How long a failed key is skipped before it is retried. */
@@ -98,6 +100,7 @@ function emptyKeyMap(): Record<FareAIProvider, FareAIKey[]> {
 }
 
 export const DEFAULT_FARE_AI_CONFIG: FareAIConfig = {
+  serviceEnabled: true,
   provider: "gemini",
   retryAfterValue: 1,
   retryAfterUnit: "hour",
@@ -146,6 +149,8 @@ interface LegacyConfig {
 function normalize(raw: unknown): FareAIConfig {
   const obj = (raw ?? {}) as Partial<FareAIConfig> & LegacyConfig;
 
+  const serviceEnabled = typeof obj.serviceEnabled === "boolean" ? obj.serviceEnabled : true;
+
   const provider: FareAIProvider = FARE_AI_PROVIDERS.includes(obj.provider as FareAIProvider)
     ? (obj.provider as FareAIProvider)
     : "gemini";
@@ -189,7 +194,7 @@ function normalize(raw: unknown): FareAIConfig {
     keys[p] = list;
   }
 
-  return { provider, retryAfterValue, retryAfterUnit, models, keys };
+  return { serviceEnabled, provider, retryAfterValue, retryAfterUnit, models, keys };
 }
 
 /** Convert the retry policy to milliseconds. */

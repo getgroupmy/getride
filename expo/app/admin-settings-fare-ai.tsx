@@ -27,6 +27,7 @@ import {
   ListChecks,
   CircleCheck,
   CircleX,
+  Power,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useAdminAccess } from "@/contexts/AdminAccessContext";
@@ -341,8 +342,39 @@ export default function AdminSettingsFareAIScreen() {
               tried automatically. Pull down to refresh usage stats.
             </Text>
 
+            {/* Service on/off */}
+            <View
+              style={[
+                styles.serviceCard,
+                {
+                  backgroundColor: Colors.gray[100],
+                  borderColor: config.serviceEnabled ? Colors.accent : Colors.border,
+                },
+              ]}
+            >
+              <View style={[styles.providerIcon, { backgroundColor: Colors.accent + "20" }]}>
+                <Power color={config.serviceEnabled ? Colors.accent : Colors.textSecondary} size={18} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.providerLabel, { color: Colors.text }]}>AI fare service</Text>
+                <Text style={[styles.providerDesc, { color: Colors.textSecondary }]}>
+                  {config.serviceEnabled
+                    ? "AI estimates trip distance & time for fares"
+                    : "Turned off — fares use the routing engine fallback"}
+                </Text>
+              </View>
+              <Switch
+                value={config.serviceEnabled}
+                onValueChange={(v) => update({ serviceEnabled: v })}
+                disabled={!editable}
+                trackColor={{ true: Colors.accent, false: Colors.border }}
+                thumbColor="#fff"
+                testID="fare-ai-service-toggle"
+              />
+            </View>
+
             {/* Provider selector */}
-            <Text style={[styles.sectionTitle, { color: Colors.text }]}>Provider</Text>
+            <Text style={[styles.sectionTitle, { color: Colors.text, opacity: config.serviceEnabled ? 1 : 0.5 }]}>Provider</Text>
             {PROVIDERS.map((p) => {
               const selected = config.provider === p.id;
               const keyCount = (config.keys[p.id] ?? []).filter((k) => k.enabled && k.key.trim()).length;
@@ -662,6 +694,15 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     marginBottom: 10,
+  },
+  serviceCard: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 2,
+    marginBottom: 20,
   },
   providerIcon: {
     width: 40,

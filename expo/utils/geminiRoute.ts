@@ -125,6 +125,10 @@ export async function estimateRouteWithAI(
   destination: LatLng
 ): Promise<RouteEstimate | null> {
   const config = await loadFareAIConfig();
+  if (!config.serviceEnabled) {
+    console.warn("Route AI estimate skipped: fare AI service is turned off");
+    return null;
+  }
   const provider = config.provider;
   const model = config.models[provider];
 
