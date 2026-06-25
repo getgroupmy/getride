@@ -881,9 +881,12 @@ export default function DriverEhailingScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     }
+    // Keep the partner engaged with this request after declining so a later
+    // passenger fare raise re-surfaces it. Baseline the seen fare at the current
+    // amount so only a genuine increase pops the card back up.
     if (request.dbId) {
-      engagedReqRef.current = null;
-      raisedFareSeenRef.current.delete(request.dbId);
+      engagedReqRef.current = request;
+      raisedFareSeenRef.current.set(request.dbId, request.fare);
     }
     closeRequest(true);
     setTimeout(() => {
