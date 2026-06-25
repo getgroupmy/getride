@@ -64,6 +64,7 @@ import {
   fetchOpenRequests,
   subscribeToOpenRequests,
   acceptRideRequest,
+  submitRideOffer,
   type RideRequest as DbRideRequest,
 } from "@/utils/rideRequestsStore";
 import PartnerSideSheet from "@/components/PartnerSideSheet";
@@ -653,6 +654,8 @@ export default function DriverEhailingScreen() {
         partnerPhone: authState.phoneNumber ?? null,
         partnerPhoto: authState.profileAvatar ?? null,
         partnerRating: 4.9,
+        acceptLat: driverLat,
+        acceptLng: driverLng,
       });
       if (!claimed) {
         console.log("[partner-ehailing] request already taken", accepted.dbId);
@@ -734,7 +737,7 @@ export default function DriverEhailingScreen() {
         paymentMode: pm,
         passengers: row.passengers ?? 1,
         luggage: row.luggage ?? 0,
-        offerMe: false,
+        offerMe: allowOfferMeRef.current ? !!row.offer_me : false,
       };
     },
     [driverLat, driverLng]
@@ -873,12 +876,31 @@ export default function DriverEhailingScreen() {
     }, 1000);
   };
 
+  /** Records the partner's fare offer on a real (Supabase-backed) request. */
+  const persistOffer = (req: RideRequest, amount: number) => {
+    if (!req.dbId) return;
+    void submitRideOffer(
+      req.dbId,
+      { offeredFare: amount },
+      {
+        partnerId: authState.userId ?? null,
+        partnerName: authState.profileName ?? "Driver",
+        partnerPhone: authState.phoneNumber ?? null,
+        partnerPhoto: authState.profileAvatar ?? null,
+        partnerRating: 4.9,
+        acceptLat: driverLat,
+        acceptLng: driverLng,
+      }
+    );
+  };
+
   const handleSubmitOffer = () => {
     if (!request) return;
     console.log("[partner-ehailing] sent counter offer", request.id, "RM", offerAmount);
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
+    persistOffer(request, offerAmount);
     startOfferPending(offerAmount);
   };
 
@@ -889,6 +911,7 @@ export default function DriverEhailingScreen() {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
+    persistOffer(request, amount);
     startOfferPending(amount);
   };
 

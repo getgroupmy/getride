@@ -55,6 +55,7 @@ import {
   cancelRideRequest,
   subscribeToRideRequest,
   notifyPartnersOfNewRequest,
+  gatherRequestMetadata,
   type RideRequest,
 } from "@/utils/rideRequestsStore";
 import { consumePendingLocationReturn } from "@/utils/locationReturn";
@@ -716,6 +717,13 @@ export default function RideConfirmScreen() {
   const createRealRideRequest = React.useCallback(async () => {
     requestNavigatedRef.current = false;
     const requestedFare = estimatedPrice;
+    // Capture device / IP / geography / gender so the request row stores the
+    // full context (best-effort; never blocks request creation on failure).
+    const meta = await gatherRequestMetadata({
+      lat: pickupLat,
+      lng: pickupLng,
+      userId: authState.userId ?? null,
+    });
     const row = await createRideRequest({
       riderId: authState.userId ?? null,
       riderName: authState.profileName ?? null,
@@ -736,6 +744,14 @@ export default function RideConfirmScreen() {
       fare: requestedFare,
       currency: currency.code,
       passengers: selectedRide.capacity ?? 1,
+      deviceOs: meta.deviceOs,
+      ipAddress: meta.ipAddress,
+      country: meta.country,
+      state: meta.state,
+      city: meta.city,
+      suburb: meta.suburb,
+      fullAddress: meta.fullAddress,
+      gender: meta.gender,
     });
     if (row) {
       activeRequestIdRef.current = row.id;

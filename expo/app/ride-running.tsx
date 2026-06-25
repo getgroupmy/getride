@@ -49,7 +49,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useVoiceProtection } from "@/contexts/VoiceProtectionContext";
 import { MapView, Marker, Polyline, calculateRoute, reverseGeocode, calculateFare, type TariffType } from "@/utils/maps";
-import { updateRideRequestStatus, completeRideRequest } from "@/utils/rideRequestsStore";
+import { updateRideRequestStatus, completeRideRequest, recordPartnerCheckpoint } from "@/utils/rideRequestsStore";
 
 const { width, height } = Dimensions.get("window");
 
@@ -570,8 +570,26 @@ export default function RideRunningScreen() {
     void updateRideRequestStatus(rideRequestId, phase === "toPickup" ? "arrived" : "on_trip");
   }, [rideRequestId, phase]);
 
+  // Capture the partner's live lat-lng when they reach the pickup (once).
+  const arriveCheckpointRecorded = useRef<boolean>(false);
+  useEffect(() => {
+    if (!rideRequestId) return;
+    if (phase === "toPickup" && arrived && !arriveCheckpointRecorded.current) {
+      arriveCheckpointRecorded.current = true;
+      void recordPartnerCheckpoint(
+        rideRequestId,
+        "arrive",
+        driverPos.latitude,
+        driverPos.longitude
+      );
+    }
+  }, [rideRequestId, phase, arrived, driverPos.latitude, driverPos.longitude]);
+
   const finalizeCompletedRide = useCallback((paymentMethod: string) => {
-    if (rideRequestId) void completeRideRequest(rideRequestId);
+    if (rideRequestId) {
+      void recordPartnerCheckpoint(rideRequestId, "drop", driverPos.latitude, driverPos.longitude);
+      void completeRideRequest(rideRequestId);
+    }
     const tripDurationMin = Math.max(1, Math.round(elapsedSec / 60));
     const actualKm = traveledKm > 0 ? traveledKm : distanceParam;
     const recalculatedFare = calculateFare(actualKm, tripDurationMin, 1, tariff);

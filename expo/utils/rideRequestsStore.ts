@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+import * as Location from "expo-location";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
 
 /**
@@ -180,6 +182,132 @@ export interface PartnerOfferInput {
 }
 
 const TABLE = "ride_requests";
+
+/** Device / location / identity metadata captured at request-creation time. */
+export interface RequestMetadata {
+  deviceOs: string | null;
+  ipAddress: string | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  suburb: string | null;
+  fullAddress: string | null;
+  gender: string | null;
+}
+
+/**
+ * Gathers the contextual metadata for a new ride request that the creating
+ * screen doesn't already have on hand:
+ * - `deviceOs`   — from React Native's `Platform`
+ * - `ipAddress`  — public IP via ipify (best-effort)
+ * - geography    — reverse-geocoded from the pickup coordinates
+ * - `gender`     — read from the rider's `profiles` row
+ *
+ * Every lookup is independent and best-effort: a failure in one leaves that
+ * field `null` rather than aborting the others, so request creation is never
+ * blocked by metadata.
+ */
+export async function gatherRequestMetadata(opts: {
+  lat?: number | null;
+  lng?: number | null;
+  userId?: string | null;
+}): Promise<RequestMetadata> {
+  const meta: RequestMetadata = {
+    deviceOs: `${Platform.OS} ${String(Platform.Version)}`,
+    ipAddress: null,
+    country: null,
+    state: null,
+    city: null,
+    suburb: null,
+    fullAddress: null,
+    gender: null,
+  };
+
+  const [ipResult, geoResult, genderResult] = await Promise.allSettled([
+    fetchPublicIp(),
+    reverseGeocode(opts.lat, opts.lng),
+    fetchRiderGender(opts.userId),
+  ]);
+
+  if (ipResult.status === "fulfilled") meta.ipAddress = ipResult.value;
+  if (geoResult.status === "fulfilled" && geoResult.value) {
+    meta.country = geoResult.value.country;
+    meta.state = geoResult.value.state;
+    meta.city = geoResult.value.city;
+    meta.suburb = geoResult.value.suburb;
+    meta.fullAddress = geoResult.value.fullAddress;
+  }
+  if (genderResult.status === "fulfilled") meta.gender = genderResult.value;
+
+  return meta;
+}
+
+async function fetchPublicIp(): Promise<string | null> {
+  try {
+    const res = await fetch("https://api.ipify.org?format=json");
+    const json = (await res.json()) as { ip?: string };
+    return json?.ip ?? null;
+  } catch (e) {
+    console.log("[rideRequests] ip lookup failed", e);
+    return null;
+  }
+}
+
+async function reverseGeocode(
+  lat?: number | null,
+  lng?: number | null
+): Promise<{
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  suburb: string | null;
+  fullAddress: string | null;
+} | null> {
+  if (lat == null || lng == null || Platform.OS === "web") return null;
+  try {
+    const places = await Location.reverseGeocodeAsync({
+      latitude: lat,
+      longitude: lng,
+    });
+    const p = places?.[0];
+    if (!p) return null;
+    const fullAddress =
+      [p.name, p.street, p.district, p.city, p.region, p.postalCode, p.country]
+        .filter(Boolean)
+        .join(", ") || null;
+    return {
+      country: p.country ?? null,
+      state: p.region ?? null,
+      city: p.city ?? p.subregion ?? null,
+      suburb: p.district ?? p.subregion ?? null,
+      fullAddress,
+    };
+  } catch (e) {
+    console.log("[rideRequests] reverse geocode failed", e);
+    return null;
+  }
+}
+
+async function fetchRiderGender(
+  userId?: string | null
+): Promise<string | null> {
+  if (!userId || !isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("gender")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) {
+      console.log("[rideRequests] gender lookup failed", error.message);
+      return null;
+    }
+    return (data as { gender?: string | null } | null)?.gender ?? null;
+  } catch (e) {
+    console.log("[rideRequests] gender lookup error", e);
+    return null;
+  }
+}
 
 /**
  * Creates a new open ride request and returns the inserted row. The client
@@ -367,6 +495,84 @@ export async function acceptRideRequest(
   } catch (e) {
     console.log("[rideRequests] accept error", e);
     return null;
+  }
+}
+
+/**
+ * Records a partner's fare offer on an OfferMe request. Keeps the request `open`
+ * so the passenger can review and accept it, while attaching the partner's
+ * proposed fare, optional charge breakdown, partner identity, and the live
+ * lat-lng where the partner submitted the offer. Returns the updated row, or
+ * null if the request is no longer open / on error.
+ */
+export async function submitRideOffer(
+  id: string,
+  offer: PartnerOfferInput,
+  partner: PartnerAcceptInfo
+): Promise<RideRequest | null> {
+  if (!isSupabaseConfigured || !supabase || !id) return null;
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .update({
+        offered_fare: offer.offeredFare,
+        toll_charges: offer.tollCharges ?? null,
+        other_charges: offer.otherCharges ?? null,
+        partner_id: partner.partnerId ?? null,
+        partner_name: partner.partnerName ?? null,
+        partner_phone: partner.partnerPhone ?? null,
+        partner_photo: partner.partnerPhoto ?? null,
+        partner_vehicle: partner.partnerVehicle ?? null,
+        partner_plate: partner.partnerPlate ?? null,
+        partner_rating: partner.partnerRating ?? null,
+        vehicle_id: partner.vehicleId ?? null,
+        partner_accept_lat: partner.acceptLat ?? null,
+        partner_accept_lng: partner.acceptLng ?? null,
+      })
+      .eq("id", id)
+      .eq("status", "open")
+      .select("*")
+      .maybeSingle();
+    if (error) {
+      console.log("[rideRequests] submit offer failed", error.message);
+      return null;
+    }
+    return (data as RideRequest) ?? null;
+  } catch (e) {
+    console.log("[rideRequests] submit offer error", e);
+    return null;
+  }
+}
+
+/**
+ * Records the partner's live lat-lng at a trip checkpoint:
+ * - `accept` — where the partner was when claiming the request
+ * - `arrive` — where the partner was when reaching the pickup
+ * - `drop`   — where the partner was when completing the trip
+ * Best-effort: never throws, so trip progress is unaffected if it fails.
+ */
+export async function recordPartnerCheckpoint(
+  id: string,
+  checkpoint: "accept" | "arrive" | "drop",
+  lat: number | null,
+  lng: number | null
+): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase || !id) return false;
+  if (lat == null || lng == null) return false;
+  const patch: Record<string, unknown> = {
+    [`partner_${checkpoint}_lat`]: lat,
+    [`partner_${checkpoint}_lng`]: lng,
+  };
+  try {
+    const { error } = await supabase.from(TABLE).update(patch).eq("id", id);
+    if (error) {
+      console.log("[rideRequests] checkpoint update failed", checkpoint, error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log("[rideRequests] checkpoint update error", checkpoint, e);
+    return false;
   }
 }
 
