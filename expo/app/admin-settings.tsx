@@ -55,7 +55,6 @@ import {
   Image as ImageIconLucide,
   Smartphone,
   BrainCircuit,
-  Rocket,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
@@ -157,7 +156,6 @@ export default function AdminSettingsScreen() {
           { id: "page-list", label: "Page List", description: "Static content pages", icon: FileText, tone: "neutral" },
           { id: "email-templates", label: "Email Templates", description: "Manage email content", icon: Mail, tone: "accent" },
           { id: "supabase", label: "Supabase", description: "Connection, project URL, keys & health", icon: Database, tone: "success" },
-          { id: "app-build-publish", label: "App Build & Publish", description: "Trigger builds & publish to stores", icon: Rocket, tone: "accent" },
         ],
       },
     ],
@@ -226,7 +224,6 @@ export default function AdminSettingsScreen() {
     supabase: "/admin-settings-supabase",
     "splash-screen": "/admin-settings-splash",
     "app-icon": "/admin-settings-app-icon",
-    "app-build-publish": "/admin-settings-app-build-publish",
   };
 
   const handlePress = (item: SettingItem) => {
