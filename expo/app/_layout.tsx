@@ -220,6 +220,7 @@ function RootLayoutNav() {
       <Stack.Screen name="admin-settings-supabase" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-splash" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-app-icon" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="admin-settings-app-build-publish" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-ev-vehicle-details" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-ev-vehicle-inventory" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-ev-delivery-advisors" options={{ animation: "slide_from_right", gestureEnabled: false }} />
