@@ -1029,6 +1029,51 @@ export default function RideConfirmScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRequestId]);
 
+  // Resume an in-progress search after an app restart. When the home screen
+  // routes here with a `restoreRequestId`, re-enter the searching state and
+  // re-watch that request for the partner's acceptance/offer, and rebuild the
+  // 7-minute expiry from the original creation time so it never lingers.
+  const restoredSearchRef = useRef<boolean>(false);
+  useEffect(() => {
+    const restoreId = params.restoreRequestId as string | undefined;
+    if (!restoreId || restoredSearchRef.current) return;
+    restoredSearchRef.current = true;
+    requestNavigatedRef.current = false;
+    activeRequestIdRef.current = restoreId;
+    setActiveRequestId(restoreId);
+    setIsSearchingDriver(true);
+    setDriverOffers([]);
+    console.log("[ride-confirm] resuming search for request", restoreId);
+
+    const createdMs = params.restoreCreatedAt
+      ? Date.parse(params.restoreCreatedAt as string)
+      : Date.now();
+    const elapsed = Number.isFinite(createdMs) ? Date.now() - createdMs : 0;
+    const remaining = Math.max(0, REQUEST_EXPIRY_MS - elapsed);
+    if (expiryTimerRef.current) clearTimeout(expiryTimerRef.current);
+    expiryTimerRef.current = setTimeout(() => {
+      if (requestNavigatedRef.current) return;
+      const id = activeRequestIdRef.current;
+      if (!id) return;
+      console.log("[ride-confirm] restored request expired", id);
+      void expireRideRequest(id);
+      activeRequestIdRef.current = null;
+      setActiveRequestId(null);
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+      setIsSearchingDriver(false);
+      setDriverOffers([]);
+      setShowRaiseFareSheet(false);
+      Alert.alert(
+        "Request expired",
+        "We couldn't find a driver in time. Please try again."
+      );
+    }, remaining);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.restoreRequestId, params.restoreCreatedAt]);
+
   useEffect(() => {
     const initialDelayTimer = setTimeout(() => {
       console.log("Initial 5-second delay passed, detection now active");

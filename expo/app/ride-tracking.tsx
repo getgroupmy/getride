@@ -122,7 +122,16 @@ export default function RideTrackingScreen() {
     [pickupLat, pickupLng]
   );
 
-  const [phase, setPhase] = useState<Phase>("arriving");
+  // When restored after an app restart, resume the matching phase instead of
+  // replaying the driver-arriving leg from scratch.
+  const restoreStatus = params.restoreStatus as string | undefined;
+  const initialPhase: Phase =
+    restoreStatus === "on_trip"
+      ? "onTrip"
+      : restoreStatus === "arrived"
+        ? "arrived"
+        : "arriving";
+  const [phase, setPhase] = useState<Phase>(initialPhase);
   const [routeCoords, setRouteCoords] = useState<Coord[]>([]);
   const [driverPos, setDriverPos] = useState<Coord>(driverStart);
   const [progress, setProgress] = useState<number>(0);

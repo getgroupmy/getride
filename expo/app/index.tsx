@@ -27,6 +27,14 @@ import { useTheme } from "@/contexts/ThemeContext";
 import MenuSideSheet from "@/components/MenuSideSheet";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchOngoingRequestForRider } from "@/utils/rideRequestsStore";
+import { buildRestoreTarget } from "@/utils/ongoingRequestRestore";
+
+// Set once per app session so a cold launch restores an ongoing ride exactly
+// once, while later returns to the home screen (after a completed/cancelled
+// trip) never bounce the rider back.
+let ongoingRestoreAttempted = false;
 
 const { width, height } = Dimensions.get("window");
 const BOTTOM_SHEET_MIN_HEIGHT = 310;
@@ -90,12 +98,14 @@ const darkMapStyle = [
 export default function HomeScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { authState } = useAuth();
   const mapRef = useRef<any>(null);
   const Colors = useColors();
   const { settings: displaySettings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const { colorScheme } = useTheme();
   const { location, currentAddress: contextAddress, refreshLocation, shouldSkipLocationDetection } = useLocation();
   const hasInitializedFromParams = useRef(false);
+  const restoreCheckedRef = useRef<boolean>(false);
   const [mapKey, setMapKey] = useState<number>(0);
   const [serviceComingSoonVisible, setServiceComingSoonVisible] = useState<boolean>(false);
   const prevColorScheme = useRef<string>(colorScheme);
@@ -137,6 +147,34 @@ export default function HomeScreen() {
     });
     return () => menuRevealAnim.removeListener(listenerId);
   }, [menuRevealAnim]);
+
+  // On a cold app launch, restore an in-progress ride: if the rider has an
+  // ongoing request (still searching, accepted, or on-trip), jump straight back
+  // to its screen instead of starting fresh on the home map. Runs once per app
+  // session so returning home after a finished trip never bounces back.
+  useEffect(() => {
+    if (ongoingRestoreAttempted || restoreCheckedRef.current) return;
+    if (!authState.isAuthenticated || !authState.userId) return;
+    ongoingRestoreAttempted = true;
+    restoreCheckedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const ongoing = await fetchOngoingRequestForRider(authState.userId);
+        if (cancelled || !ongoing) return;
+        const target = buildRestoreTarget(ongoing);
+        if (target) {
+          console.log("[index] restoring ongoing request", ongoing.id, ongoing.status);
+          router.replace(target as any);
+        }
+      } catch (e) {
+        console.log("[index] restore ongoing failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authState.isAuthenticated, authState.userId, router]);
 
   // Snap the menu to its nearest resting state (fully open or fully closed).
   // Used when a drag is terminated by the system (e.g. the app-switch gesture)
