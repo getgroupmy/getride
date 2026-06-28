@@ -24,6 +24,7 @@
     "expo-application": "~7.0.8",
     "expo-audio": "~1.1.1",
     "expo-blur": "~15.0.7",
+    "expo-cellular": "~8.0.8",
     "expo-clipboard": "~8.0.8",
     "expo-constants": "~18.0.10",
     "expo-contacts": "~15.0.11",

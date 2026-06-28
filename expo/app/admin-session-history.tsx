@@ -58,6 +58,10 @@ interface SessionRow {
   network_is_connected: boolean | null;
   network_is_internet_reachable: boolean | null;
   ip_address: string | null;
+  connection_type: string | null;
+  isp_provider: string | null;
+  iccid: string | null;
+  mobile_operator_name: string | null;
   app_version: string | null;
   app_build_version: string | null;
   app_id: string | null;
@@ -404,6 +408,10 @@ export default function AdminSessionHistoryScreen() {
       "network_is_connected",
       "network_is_internet_reachable",
       "ip_address",
+      "connection_type",
+      "isp_provider",
+      "iccid",
+      "mobile_operator_name",
       "app_version",
       "app_build_version",
       "app_id",
@@ -433,6 +441,10 @@ export default function AdminSessionHistoryScreen() {
             "network_type",
             "network_operator",
             "ip_address",
+            "connection_type",
+            "isp_provider",
+            "iccid",
+            "mobile_operator_name",
             "app_version",
             "app_build_version",
             "id",
@@ -898,6 +910,30 @@ export default function AdminSessionHistoryScreen() {
                       icon={<Wifi color={Colors.textSecondary} size={14} />}
                       label="Network"
                       value={`${s.network_type ?? "?"}${s.network_operator ? " · " + s.network_operator : ""}`}
+                      Colors={Colors}
+                    />
+                    <KV
+                      icon={<Smartphone color={Colors.textSecondary} size={14} />}
+                      label="Connection"
+                      value={s.connection_type ?? "—"}
+                      Colors={Colors}
+                    />
+                    <KV
+                      icon={<Globe color={Colors.textSecondary} size={14} />}
+                      label="Provider"
+                      value={s.isp_provider ?? "—"}
+                      Colors={Colors}
+                    />
+                    <KV
+                      icon={<Smartphone color={Colors.textSecondary} size={14} />}
+                      label="Mobile Operator"
+                      value={s.mobile_operator_name ?? "—"}
+                      Colors={Colors}
+                    />
+                    <KV
+                      icon={<Hash color={Colors.textSecondary} size={14} />}
+                      label="ICCID"
+                      value={s.iccid ?? "—"}
                       Colors={Colors}
                     />
                     <KV

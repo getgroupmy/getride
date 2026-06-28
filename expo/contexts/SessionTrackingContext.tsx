@@ -4,6 +4,7 @@ import createContextHook from "@nkzw/create-context-hook";
 import * as Location from "expo-location";
 import * as Device from "expo-device";
 import * as Network from "expo-network";
+import * as Cellular from "expo-cellular";
 import * as Application from "expo-application";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,12 +88,26 @@ interface NetworkSnapshot {
   network_is_internet_reachable: boolean | null;
   network_operator: string | null;
   ip_address: string | null;
+  connection_type: string | null;
+  isp_provider: string | null;
+  iccid: string | null;
+  mobile_operator_name: string | null;
 }
 
 function networkTypeLabel(t: Network.NetworkStateType | undefined): string | null {
   if (!t) return null;
   // The enum values are already strings like "WIFI", "CELLULAR", etc.
   return String(t).toUpperCase();
+}
+
+function connectionTypeLabel(t: Network.NetworkStateType | undefined): string | null {
+  if (!t) return null;
+  const upper = String(t).toUpperCase();
+  if (upper === "WIFI") return "wifi";
+  if (upper === "CELLULAR") return "mobile";
+  if (upper === "ETHERNET") return "ethernet";
+  if (upper === "NONE" || upper === "UNKNOWN") return "other";
+  return "other";
 }
 
 async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
@@ -112,10 +127,33 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
   // Best-effort carrier / operator. Some SDK versions expose `details.carrier`
   // when on cellular; fall back gracefully when unavailable.
   let operator: string | null = null;
+  let ispProvider: string | null = null;
   const anyState = state as unknown as {
     details?: { carrier?: string; isConnectionExpensive?: boolean };
   } | null;
-  if (anyState?.details?.carrier) operator = anyState.details.carrier;
+  if (anyState?.details?.carrier) {
+    operator = anyState.details.carrier;
+    ispProvider = anyState.details.carrier;
+  }
+
+  // expo-cellular: carrier name / mobile operator (Android-only)
+  let mobileOperatorName: string | null = null;
+  try {
+    const carrierName = await Cellular.getCarrierNameAsync();
+    if (carrierName) {
+      mobileOperatorName = carrierName;
+      // Prefer cellular carrier as isp_provider when on mobile
+      if (!ispProvider || connectionTypeLabel(state?.type) === "mobile") {
+        ispProvider = carrierName;
+      }
+    }
+  } catch (e) {
+    console.log("[session] getCarrierNameAsync failed", e);
+  }
+
+  // ICCID — best-effort. expo-cellular does not expose it directly;
+  // Android-only possible via native module. Leave null for now.
+  let iccid: string | null = null;
 
   return {
     network_type: networkTypeLabel(state?.type),
@@ -123,6 +161,10 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     network_is_internet_reachable: state?.isInternetReachable ?? null,
     network_operator: operator,
     ip_address: ip,
+    connection_type: connectionTypeLabel(state?.type),
+    isp_provider: ispProvider,
+    iccid,
+    mobile_operator_name: mobileOperatorName,
   };
 }
 
