@@ -55,6 +55,7 @@ import {
   Image as ImageIconLucide,
   Smartphone,
   BrainCircuit,
+  Bot,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
@@ -155,6 +156,7 @@ export default function AdminSettingsScreen() {
           { id: "search-radius", label: "Search Radius", description: "Partner search range", icon: Radius, tone: "neutral" },
           { id: "page-list", label: "Page List", description: "Static content pages", icon: FileText, tone: "neutral" },
           { id: "email-templates", label: "Email Templates", description: "Manage email content", icon: Mail, tone: "accent" },
+          { id: "rork-chat", label: "Rork AI Chat", description: "AI assistant to manage your platform", icon: Bot, tone: "accent" },
           { id: "supabase", label: "Supabase", description: "Connection, project URL, keys & health", icon: Database, tone: "success" },
         ],
       },
@@ -222,6 +224,7 @@ export default function AdminSettingsScreen() {
     "ev-finance-options": "/admin-settings-ev-finance-options",
     "ev-order-fee": "/admin-settings-ev-order-fee",
     supabase: "/admin-settings-supabase",
+    "rork-chat": "/admin-settings-rork-chat",
     "splash-screen": "/admin-settings-splash",
     "app-icon": "/admin-settings-app-icon",
   };
