@@ -41,6 +41,7 @@ import {
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePushNotifications } from "@/contexts/PushNotificationContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 import PartnerModeSelectModal, { PartnerMode, PartnerModeOption } from "@/components/PartnerModeSelectModal";
 import {
@@ -100,6 +101,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
   const Colors = useColors();
   const insets = useSafeAreaInsets();
   const { logout, authState, profile, refreshProfile } = useAuth();
+  const { unregister } = usePushNotifications();
   const { rows: adminAccessRows, isSuper, refresh: refreshAdminAccess } = useAdminAccess();
   const { settings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const showAdminLogin = isSuper || adminAccessRows.length > 0;
@@ -311,6 +313,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
 
   const handleLogout = async () => {
     console.log("Logging out...");
+    await unregister();
     await logout();
     onClose();
   };

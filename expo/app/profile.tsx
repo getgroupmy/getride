@@ -33,6 +33,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePushNotifications } from "@/contexts/PushNotificationContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 
 interface ProfileData {
@@ -54,6 +55,7 @@ export default function ProfileScreen() {
   const Colors = useColors();
   const styles = makeStyles(Colors);
   const { authState, logout, hasPinSet, forgotPin, refreshProfile } = useAuth();
+  const { unregister } = usePushNotifications();
 
   const [data, setData] = useState<ProfileData>({ name: "", email: "", avatar: "", country: "", idNumber: "", address: "", idImage: "" });
   const [loading, setLoading] = useState<boolean>(true);
@@ -180,6 +182,7 @@ export default function ProfileScreen() {
         text: "Sign out",
         style: "destructive",
         onPress: async () => {
+          await unregister();
           await logout();
           router.replace("/onboarding" as any);
         },

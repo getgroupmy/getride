@@ -171,6 +171,8 @@ Deno.serve(async (req: Request) => {
   const tickets: unknown[] = [];
   let sent = 0;
   let failed = 0;
+  // Tokens Expo reports as no longer valid — pruned after dispatch.
+  const deadTokens = new Set<string>();
 
   for (let i = 0; i < messages.length; i += 100) {
     const chunk = messages.slice(i, i + 100);
@@ -186,16 +188,40 @@ Deno.serve(async (req: Request) => {
       });
       const result = await res.json();
       const data = Array.isArray(result?.data) ? result.data : [];
-      for (const ticket of data) {
+      for (let j = 0; j < data.length; j += 1) {
+        const ticket = data[j];
         tickets.push(ticket);
-        if (ticket?.status === "ok") sent += 1;
-        else failed += 1;
+        if (ticket?.status === "ok") {
+          sent += 1;
+        } else {
+          failed += 1;
+          // Expo flags unregistered/invalid tokens — collect them for pruning.
+          const errCode = ticket?.details?.error;
+          if (errCode === "DeviceNotRegistered" || errCode === "InvalidCredentials") {
+            const badToken = chunk[j]?.to;
+            if (typeof badToken === "string") deadTokens.add(badToken);
+          }
+        }
       }
       // If Expo returned fewer tickets than messages (hard error), count the rest as failed.
       if (data.length < chunk.length) failed += chunk.length - data.length;
     } catch (e) {
       failed += chunk.length;
       tickets.push({ status: "error", message: String(e) });
+    }
+  }
+
+  // Auto-prune dead tokens so future broadcasts stay lean.
+  let pruned = 0;
+  if (deadTokens.size > 0) {
+    const { error: pruneErr } = await supabase
+      .from("push_tokens")
+      .delete()
+      .in("token", Array.from(deadTokens));
+    if (pruneErr) {
+      console.log("[send-push] failed to prune dead tokens:", pruneErr.message);
+    } else {
+      pruned = deadTokens.size;
     }
   }
 
@@ -208,5 +234,5 @@ Deno.serve(async (req: Request) => {
     failed,
   });
 
-  return json({ recipients: tokens.length, sent, failed, tickets });
+  return json({ recipients: tokens.length, sent, failed, pruned, tickets });
 });

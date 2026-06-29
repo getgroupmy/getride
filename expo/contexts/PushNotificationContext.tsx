@@ -8,7 +8,7 @@ import {
   configureNotificationHandler,
   registerForPushNotificationsAsync,
 } from "@/utils/pushNotifications";
-import { savePushToken } from "@/utils/adminSync";
+import { removePushToken, savePushToken } from "@/utils/adminSync";
 
 /**
  * Owns the device's push-notification lifecycle:
@@ -85,11 +85,26 @@ export const [PushNotificationProvider, usePushNotifications] = createContextHoo
     register().catch((e) => console.log("[push] register failed", e));
   }, [register]);
 
+  // ---- Unregister the current device token (call on logout) -----------------
+  const unregister = useCallback(async () => {
+    const token = expoPushToken;
+    registeredKeyRef.current = null;
+    setExpoPushToken(null);
+    if (!token) return;
+    try {
+      await removePushToken(token);
+    } catch (e) {
+      console.log("[push] unregister failed", e);
+    }
+  }, [expoPushToken]);
+
   return {
     expoPushToken,
     permissionGranted,
     lastNotification,
     /** Manually (re)trigger registration, e.g. from a settings screen. */
     register,
+    /** Remove this device's token from the backend (call on logout). */
+    unregister,
   };
 });
