@@ -45,6 +45,7 @@ import OfferFareSideSheet from "@/components/OfferFareSideSheet";
 import MenuSideSheet from "@/components/MenuSideSheet";
 import { MapView, Marker, Polyline, calculateRoute } from "@/utils/maps";
 import { estimateRouteWithGemini, type TollBooth } from "@/utils/geminiRoute";
+import { getCachedFareAIConfig, loadFareAIConfig } from "@/utils/fareProviderStore";
 import { useLocation } from "@/contexts/LocationContext";
 import { useRegionBidding } from "@/utils/regionBidding";
 import { Star } from "lucide-react-native";
@@ -1189,11 +1190,25 @@ export default function RideConfirmScreen() {
           setAiTollBooths([]);
           setAiTollCount(null);
           setAiTollTotal(null);
-          Alert.alert(
-            "Unable to fetch current traffic conditions",
-            "Actual travel time and distance may vary",
-            [{ text: "OK" }]
-          );
+          // Only warn about traffic conditions when the AI fare service is enabled.
+          // When it's turned off the routing engine is the source of truth, so the
+          // warning would be misleading.
+          let aiServiceEnabled = getCachedFareAIConfig()?.serviceEnabled ?? null;
+          if (aiServiceEnabled === null) {
+            try {
+              aiServiceEnabled = (await loadFareAIConfig()).serviceEnabled;
+            } catch {
+              aiServiceEnabled = false;
+            }
+          }
+          if (isCancelled) return;
+          if (aiServiceEnabled) {
+            Alert.alert(
+              "Unable to fetch current traffic conditions",
+              "Actual travel time and distance may vary",
+              [{ text: "OK" }]
+            );
+          }
         }
       } catch (error) {
         if (isCancelled) return;
