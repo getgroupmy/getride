@@ -94,6 +94,39 @@ interface NetworkSnapshot {
   mobile_operator_name: string | null;
 }
 
+/**
+ * Server-resolved public IP + ISP geolocation. The device can only read its
+ * LAN/local IP (e.g. 192.168.x.x), which reveals nothing about the ISP. The
+ * `ip-lookup` edge function reads the caller's PUBLIC IP from request headers
+ * and resolves the ISP/geo via an IP geolocation provider.
+ */
+interface IpLookupResult {
+  public_ip: string | null;
+  isp_provider: string | null;
+  isp_org: string | null;
+  ip_city: string | null;
+  ip_region: string | null;
+  ip_country: string | null;
+}
+
+async function fetchIpLookup(): Promise<IpLookupResult | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase.functions.invoke<IpLookupResult>(
+      "ip-lookup",
+      { body: {} }
+    );
+    if (error) {
+      console.log("[session] ip-lookup error", error.message);
+      return null;
+    }
+    return data ?? null;
+  } catch (e) {
+    console.log("[session] ip-lookup threw", e);
+    return null;
+  }
+}
+
 function networkTypeLabel(t: Network.NetworkStateType | undefined): string | null {
   if (!t) return null;
   // The enum values are already strings like "WIFI", "CELLULAR", etc.
@@ -190,9 +223,10 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
           const sid = uuidv4();
           sessionIdRef.current = sid;
 
-          const [device, network] = await Promise.all([
+          const [device, network, ipInfo] = await Promise.all([
             captureDeviceSnapshot(),
             captureNetworkSnapshot(),
+            fetchIpLookup(),
           ]);
 
           const row = {
@@ -202,6 +236,14 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
             event_type: eventType,
             ...device,
             ...network,
+            // Server-resolved public IP + ISP take priority over the device's
+            // best-effort carrier guess; fall back to the device value.
+            public_ip: ipInfo?.public_ip ?? null,
+            isp_provider: ipInfo?.isp_provider ?? network.isp_provider,
+            isp_org: ipInfo?.isp_org ?? null,
+            ip_city: ipInfo?.ip_city ?? null,
+            ip_region: ipInfo?.ip_region ?? null,
+            ip_country: ipInfo?.ip_country ?? null,
             raw: {
               platform: Platform.OS,
               platformVersion: Platform.Version,

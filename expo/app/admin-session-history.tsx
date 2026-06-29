@@ -58,8 +58,13 @@ interface SessionRow {
   network_is_connected: boolean | null;
   network_is_internet_reachable: boolean | null;
   ip_address: string | null;
+  public_ip: string | null;
   connection_type: string | null;
   isp_provider: string | null;
+  isp_org: string | null;
+  ip_city: string | null;
+  ip_region: string | null;
+  ip_country: string | null;
   iccid: string | null;
   mobile_operator_name: string | null;
   app_version: string | null;
@@ -93,6 +98,7 @@ interface UserSummary {
   lastLat: number | null;
   lastLng: number | null;
   lastPingAt: string | null;
+  lastIsp: string | null;
 }
 
 function csvEscape(v: unknown): string {
@@ -267,6 +273,7 @@ export default function AdminSessionHistoryScreen() {
           lastLat: null,
           lastLng: null,
           lastPingAt: null,
+          lastIsp: s.isp_provider,
         });
       } else {
         existing.sessionCount += 1;
@@ -274,6 +281,7 @@ export default function AdminSessionHistoryScreen() {
           existing.lastSeen = s.captured_at;
           existing.lastDevice = s.device_model_name;
           existing.lastOs = s.os_name ? `${s.os_name}${s.os_version ? ` ${s.os_version}` : ""}` : null;
+          existing.lastIsp = s.isp_provider;
         }
       }
     }
@@ -408,8 +416,13 @@ export default function AdminSessionHistoryScreen() {
       "network_is_connected",
       "network_is_internet_reachable",
       "ip_address",
+      "public_ip",
       "connection_type",
       "isp_provider",
+      "isp_org",
+      "ip_city",
+      "ip_region",
+      "ip_country",
       "iccid",
       "mobile_operator_name",
       "app_version",
@@ -441,8 +454,13 @@ export default function AdminSessionHistoryScreen() {
             "network_type",
             "network_operator",
             "ip_address",
+            "public_ip",
             "connection_type",
             "isp_provider",
+            "isp_org",
+            "ip_city",
+            "ip_region",
+            "ip_country",
             "iccid",
             "mobile_operator_name",
             "app_version",
@@ -547,6 +565,14 @@ export default function AdminSessionHistoryScreen() {
           <Text style={[styles.userMeta, { color: Colors.textSecondary }]} numberOfLines={1}>
             {item.sessionCount} session{item.sessionCount === 1 ? "" : "s"} · last {formatDate(item.lastSeen)}
           </Text>
+          {item.lastIsp ? (
+            <View style={styles.ispRow}>
+              <Wifi color={Colors.accent} size={12} />
+              <Text style={[styles.ispText, { color: Colors.accent }]} numberOfLines={1}>
+                {item.lastIsp}
+              </Text>
+            </View>
+          ) : null}
         </View>
         {item.lastLat != null && item.lastLng != null ? (
           <View
@@ -920,8 +946,24 @@ export default function AdminSessionHistoryScreen() {
                     />
                     <KV
                       icon={<Globe color={Colors.textSecondary} size={14} />}
-                      label="Provider"
+                      label="ISP / Provider"
                       value={s.isp_provider ?? "—"}
+                      Colors={Colors}
+                    />
+                    <KV
+                      icon={<Globe color={Colors.textSecondary} size={14} />}
+                      label="ISP Org"
+                      value={s.isp_org ?? "—"}
+                      Colors={Colors}
+                    />
+                    <KV
+                      icon={<Globe color={Colors.textSecondary} size={14} />}
+                      label="IP Location"
+                      value={
+                        [s.ip_city, s.ip_region, s.ip_country]
+                          .filter((v) => !!v)
+                          .join(", ") || "—"
+                      }
                       Colors={Colors}
                     />
                     <KV
@@ -938,8 +980,14 @@ export default function AdminSessionHistoryScreen() {
                     />
                     <KV
                       icon={<Globe color={Colors.textSecondary} size={14} />}
-                      label="IP"
+                      label="Local IP"
                       value={s.ip_address ?? "—"}
+                      Colors={Colors}
+                    />
+                    <KV
+                      icon={<Globe color={Colors.textSecondary} size={14} />}
+                      label="Public IP"
+                      value={s.public_ip ?? "—"}
                       Colors={Colors}
                     />
                     <KV
@@ -1229,6 +1277,8 @@ const styles = StyleSheet.create({
   userTitle: { fontSize: 15, fontWeight: "700" as const },
   userSub: { fontSize: 12, marginTop: 2 },
   userMeta: { fontSize: 11, marginTop: 2 },
+  ispRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 4, marginTop: 3 },
+  ispText: { fontSize: 11, fontWeight: "600" as const, flexShrink: 1 },
   center: { flex: 1, justifyContent: "center" as const, alignItems: "center" as const, padding: 24 },
   muted: { fontSize: 13, textAlign: "center" as const },
   sectionTitle: { fontSize: 14, fontWeight: "800" as const, marginBottom: 10 },
