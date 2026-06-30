@@ -2961,7 +2961,7 @@ export default function RideConfirmScreen() {
     cancelRequestText: {
       fontSize: 15,
       fontWeight: "600" as const,
-      color: "#FFFFFF",
+      color: colors.background === "#000000" ? "#FFFFFF" : "#000000",
       marginLeft: 8,
     },
     driverOffersOverlay: {
@@ -4419,7 +4419,7 @@ export default function RideConfirmScreen() {
       {/* Cancel Request Button - show when searching but not when raise fare sheet is shown */}
       {isSearchingDriver && !showRaiseFareSheet && (
         <TouchableOpacity style={styles.cancelRequestButton} onPress={openCancelConfirmSheet}>
-          <X color="#FFFFFF" size={20} />
+          <X color={colors.background === "#000000" ? "#FFFFFF" : "#000000"} size={20} />
           <Text style={styles.cancelRequestText}>Cancel request</Text>
         </TouchableOpacity>
       )}
