@@ -4436,9 +4436,9 @@ export default function RideConfirmScreen() {
                 { translateY: displaySettings.rcBackVertical },
                 { scale: topButtonsHideAnim },
               ],
-            }
+            },
+            { pointerEvents: "auto" },
           ]}
-          pointerEvents="auto"
         >
           <TouchableOpacity
             style={{ width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}
@@ -4455,9 +4455,9 @@ export default function RideConfirmScreen() {
       {/* Recenter Button - hide when searching or map moving */}
       {Platform.OS !== "web" && !isSearchingDriver && (
         <Animated.View
-          pointerEvents={isMapMoved ? "auto" : "none"}
           style={[
             styles.recenterButton,
+            { pointerEvents: isMapMoved ? "auto" : "none" },
             {
               opacity: Animated.multiply(recenterButtonAnim, topButtonsHideAnim),
               transform: [
@@ -4739,9 +4739,9 @@ export default function RideConfirmScreen() {
       {/* Promo Code Banner - floats above bottom sheet, overlapped by sheet's top */}
       {!isSearchingDriver && displaySettings.discountBar && (
         <Animated.View
-          pointerEvents={isExpanded ? "none" : "box-none"}
           style={[
             styles.promoBanner,
+            { pointerEvents: isExpanded ? "none" : "box-none" },
             {
               bottom: BOTTOM_SHEET_MIN_HEIGHT - 22,
               opacity: Animated.multiply(topButtonsHideAnim, promoFadeAnim),
@@ -5815,7 +5815,7 @@ export default function RideConfirmScreen() {
           reliably appears even when arriving via router.replace from the
           search modal, where a nested Modal can't present mid-transition. */}
       {isCalculatingFare && (
-        <View style={styles.calcModalOverlay} pointerEvents="auto">
+        <View style={[styles.calcModalOverlay, { pointerEvents: "auto" }]}>
           <View style={styles.calcModalCard}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.calcModalTitle}>Calculating fare</Text>

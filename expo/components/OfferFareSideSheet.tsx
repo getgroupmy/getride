@@ -4,11 +4,11 @@ import {
   View,
   Text,
   TouchableOpacity,
+  Pressable,
   Switch,
   Dimensions,
   Animated,
   Image,
-  TouchableWithoutFeedback,
   PanResponder,
   ScrollView,
   TextInput,
@@ -603,7 +603,7 @@ export default function OfferFareSideSheet({
 
   return (
     <View style={styles.overlay}>
-      <TouchableWithoutFeedback onPress={handleClose}>
+      <Pressable onPress={handleClose} style={StyleSheet.absoluteFill}>
         <Animated.View
           style={[
             styles.backdrop,
@@ -615,7 +615,7 @@ export default function OfferFareSideSheet({
             },
           ]}
         />
-      </TouchableWithoutFeedback>
+      </Pressable>
 
       <Animated.View
         style={[
@@ -653,14 +653,12 @@ export default function OfferFareSideSheet({
             styles.menuOverlay,
             {
               opacity: menuOverlayOpacity,
+              pointerEvents: menuFullyOpen ? 'auto' : 'none',
             },
           ]}
-          pointerEvents={menuFullyOpen ? 'auto' : 'none'}
           {...panResponder.panHandlers}
         >
-          <TouchableWithoutFeedback onPress={handleCloseMenu}>
-            <View style={styles.menuOverlayTouchable} />
-          </TouchableWithoutFeedback>
+          <Pressable onPress={handleCloseMenu} style={styles.menuOverlayTouchable} />
         </Animated.View>
 
         <View

@@ -578,9 +578,8 @@ export default function AdminSessionHistoryScreen() {
           <View
             style={[
               styles.miniMap,
-              { borderColor: Colors.border, backgroundColor: Colors.gray[200] },
+              { borderColor: Colors.border, backgroundColor: Colors.gray[200], pointerEvents: "none" },
             ]}
-            pointerEvents="none"
           >
             {Platform.OS === "web" ? (
               <View style={styles.miniMapWeb}>
@@ -592,8 +591,7 @@ export default function AdminSessionHistoryScreen() {
             ) : (
               <MapView
                 provider={PROVIDER_DEFAULT}
-                style={styles.miniMapInner}
-                pointerEvents="none"
+                style={[styles.miniMapInner, { pointerEvents: "none" }]}
                 liteMode
                 scrollEnabled={false}
                 zoomEnabled={false}

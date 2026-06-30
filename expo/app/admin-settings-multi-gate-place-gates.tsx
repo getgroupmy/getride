@@ -789,7 +789,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.mapPin} pointerEvents="none">
+          <View style={[styles.mapPin, { pointerEvents: "none" }]}>
             <View style={[styles.mapPinDot, { backgroundColor: Colors.accent }]} />
           </View>
         </View>

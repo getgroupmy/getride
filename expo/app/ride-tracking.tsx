@@ -433,7 +433,7 @@ export default function RideTrackingScreen() {
       )}
 
       {/* Top status pill */}
-      <SafeAreaView edges={["top"]} style={styles.topOverlay} pointerEvents="box-none">
+      <SafeAreaView edges={["top"]} style={[styles.topOverlay, { pointerEvents: "box-none" }]}>
         <View style={[styles.statusPill, { backgroundColor: Colors.background }]}>
           <View
             style={[

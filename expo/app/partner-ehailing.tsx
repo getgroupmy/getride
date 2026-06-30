@@ -1123,7 +1123,7 @@ export default function DriverEhailingScreen() {
 
       {/* Online pulse on the map center */}
       {isOnline && (
-        <View pointerEvents="none" style={styles.pulseWrap}>
+        <View style={[styles.pulseWrap, { pointerEvents: "none" }]}>
           <Animated.View
             style={[
               styles.pulseRing,
@@ -1139,8 +1139,8 @@ export default function DriverEhailingScreen() {
       )}
 
       {/* Header */}
-      <SafeAreaView style={styles.headerSafe} edges={["top"]} pointerEvents="box-none">
-        <View style={styles.headerRow} pointerEvents="box-none">
+      <SafeAreaView style={[styles.headerSafe, { pointerEvents: "box-none" }]} edges={["top"]}>
+        <View style={[styles.headerRow, { pointerEvents: "box-none" }]}>
           <TouchableOpacity
             style={[
               styles.iconButton,
@@ -1152,7 +1152,7 @@ export default function DriverEhailingScreen() {
             <Menu color={isLightMode ? "#000" : "#fff"} size={22} />
           </TouchableOpacity>
 
-          <View style={styles.headerBadgeCenter} pointerEvents="box-none">
+          <View style={[styles.headerBadgeCenter, { pointerEvents: "box-none" }]}>
             <TouchableOpacity
               style={[styles.headerBadge, { backgroundColor: Colors.accent }]}
               onPress={openPartnerModeSelector}
@@ -1164,7 +1164,7 @@ export default function DriverEhailingScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.walletGapSpacer} pointerEvents="none" />
+          <View style={[styles.walletGapSpacer, { pointerEvents: "none" }]} />
 
           <View style={styles.walletStack}>
             <View
@@ -1210,8 +1210,8 @@ export default function DriverEhailingScreen() {
         style={[
           styles.statusPillWrap,
           { top: insets.top + 70 },
+          { pointerEvents: "box-none" },
         ]}
-        pointerEvents="box-none"
       >
         <View
           style={[

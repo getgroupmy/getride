@@ -89,7 +89,7 @@ export default function PdfRasterizer({
   }
 
   return (
-    <View pointerEvents="none" style={styles.hidden}>
+    <View style={[styles.hidden, { pointerEvents: "none" }]}>
       <WebView
         originWhitelist={["*"]}
         source={source}

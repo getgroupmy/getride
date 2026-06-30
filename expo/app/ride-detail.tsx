@@ -625,9 +625,8 @@ export default function RideDetailScreen() {
         <View style={[styles.mapCard, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}>
           {Platform.OS !== "web" && MapView ? (
             <MapView
-              style={styles.mapImage}
+              style={[styles.mapImage, { pointerEvents: "none" }]}
               provider={PROVIDER_GOOGLE}
-              pointerEvents="none"
               initialRegion={{
                 latitude: (pickupLat + dropLat) / 2,
                 longitude: (pickupLng + dropLng) / 2,

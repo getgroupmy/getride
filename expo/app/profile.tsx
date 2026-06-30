@@ -378,9 +378,9 @@ export default function ProfileScreen() {
 
       {toastMsg ? (
         <Animated.View
-          pointerEvents="none"
           style={[
             styles.toast,
+            { pointerEvents: "none" },
             {
               opacity: toastAnim,
               transform: [

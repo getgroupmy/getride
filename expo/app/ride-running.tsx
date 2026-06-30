@@ -1118,7 +1118,7 @@ export default function RideRunningScreen() {
         </TouchableOpacity>
       )}
 
-      <SafeAreaView edges={["top"]} style={styles.topOverlay} pointerEvents="box-none">
+      <SafeAreaView edges={["top"]} style={[styles.topOverlay, { pointerEvents: "box-none" }]}>
         <View style={[styles.statusPill, { backgroundColor: Colors.background }]}>
           <View style={[styles.liveDot, { backgroundColor: arrived ? Colors.success : Colors.accent }]} />
           <Text style={[styles.statusText, { color: Colors.text }]}>
@@ -1430,7 +1430,7 @@ export default function RideRunningScreen() {
       </Modal>
 
       {showRecalcSheet && (
-        <View style={styles.recalcOverlay} pointerEvents="box-none">
+        <View style={[styles.recalcOverlay, { pointerEvents: "box-none" }]}>
           <View style={styles.recalcDim} />
           <Animated.View
             style={[
@@ -2016,7 +2016,7 @@ export default function RideRunningScreen() {
       </Modal>
 
       {showPaymentSheet && (
-        <View style={styles.recalcOverlay} pointerEvents="box-none">
+        <View style={[styles.recalcOverlay, { pointerEvents: "box-none" }]}>
           <TouchableOpacity
             activeOpacity={1}
             onPress={closePaymentSheet}

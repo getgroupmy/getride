@@ -1776,7 +1776,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 </View>
               )}
               {drawMode !== "off" ? (
-                <View style={styles.drawHint} pointerEvents="none">
+                <View style={[styles.drawHint, { pointerEvents: "none" }]}>
                   <Text style={styles.drawHintText}>
                     {drawMode === "draw"
                       ? `Tap map to add points · ${draftPoints.length} placed`

@@ -12,7 +12,6 @@ import {
   PanResponder,
   Image,
   ScrollView,
-  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -1262,17 +1261,17 @@ export default function HomeScreen() {
         {...mainContentPanResponder.panHandlers}
       >
         {/* Menu overlay when open */}
-        <TouchableWithoutFeedback onPress={handleCloseMenu}>
+        <Pressable onPress={handleCloseMenu} style={styles.menuOverlay}>
           <Animated.View
             style={[
-              styles.menuOverlay,
+              StyleSheet.absoluteFill,
               {
                 opacity: menuOverlayOpacity,
+                pointerEvents: menuFullyOpen ? 'auto' : 'none',
               },
             ]}
-            pointerEvents={menuFullyOpen ? 'auto' : 'none'}
           />
-        </TouchableWithoutFeedback>
+        </Pressable>
 
         {Platform.OS !== "web" && MapView ? (
           <MapView
@@ -1313,7 +1312,7 @@ export default function HomeScreen() {
         )}
 
         {/* Center Pin with Address Bar - positioned together */}
-        <View style={styles.centerPinContainer} pointerEvents="box-none">
+        <View style={[styles.centerPinContainer, { pointerEvents: "box-none" }]}>
           {displaySettings.addressBar ? (
           <Animated.View style={{ opacity: addressBarOpacity, transform: [{ translateY: displaySettings.addressBarTopOffset }] }}>
           <TouchableOpacity
@@ -1386,13 +1385,13 @@ export default function HomeScreen() {
           ) : null}
           
           {/* Pin directly below address bar */}
-          <Animated.View style={[styles.centerPinWrapper, { marginTop: 24 + displaySettings.dropPinTopOffset, marginLeft: displaySettings.dropPinHorizontalOffset, transform: [{ translateY: pinDropAnim }] }]} pointerEvents="none">
+          <Animated.View style={[styles.centerPinWrapper, { marginTop: 24 + displaySettings.dropPinTopOffset, marginLeft: displaySettings.dropPinHorizontalOffset, transform: [{ translateY: pinDropAnim }], pointerEvents: "none" }]}>
             <View style={styles.centerPin}>
               <Animated.View style={[styles.centerPinInner, { transform: [{ scale: pinInnerScaleAnim }], backgroundColor: colorScheme === 'dark' ? '#1a1a1a' : '#fff' }]} />
             </View>
             <View style={styles.pinPointer} />
           </Animated.View>
-          <Animated.View style={[styles.centerPinShadow, { opacity: pinShadowOpacity }]} pointerEvents="none" />
+          <Animated.View style={[styles.centerPinShadow, { opacity: pinShadowOpacity, pointerEvents: "none" }]} />
         </View>
 
         <SafeAreaView style={styles.safeArea} edges={["top"]}>
