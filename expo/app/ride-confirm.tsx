@@ -43,6 +43,7 @@ import { useAudioPlayer } from "expo-audio";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import OfferFareSideSheet from "@/components/OfferFareSideSheet";
 import MenuSideSheet from "@/components/MenuSideSheet";
+import { AppAlertModal } from "@/components/AppAlertModal";
 import { MapView, Marker, Polyline, calculateRoute } from "@/utils/maps";
 import { estimateRouteWithGemini, type TollBooth } from "@/utils/geminiRoute";
 import { getCachedFareAIConfig, loadFareAIConfig } from "@/utils/fareProviderStore";
@@ -224,6 +225,7 @@ export default function RideConfirmScreen() {
   
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const [expiredAlertVisible, setExpiredAlertVisible] = React.useState<boolean>(false);
   const { settings: displaySettings } = useDisplaySettings();
   const { authState } = useAuth();
   const { isBlacklisted } = useIpAccess();
@@ -935,10 +937,7 @@ export default function RideConfirmScreen() {
         setIsSearchingDriver(false);
         setDriverOffers([]);
         setShowRaiseFareSheet(false);
-        Alert.alert(
-          "Request expired",
-          "We couldn't find a driver in time. Please try again."
-        );
+        setExpiredAlertVisible(true);
       }, REQUEST_EXPIRY_MS);
     }
   }, [
@@ -1067,10 +1066,7 @@ export default function RideConfirmScreen() {
       setIsSearchingDriver(false);
       setDriverOffers([]);
       setShowRaiseFareSheet(false);
-      Alert.alert(
-        "Request expired",
-        "We couldn't find a driver in time. Please try again."
-      );
+      setExpiredAlertVisible(true);
     }, remaining);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.restoreRequestId, params.restoreCreatedAt]);
@@ -2738,7 +2734,7 @@ export default function RideConfirmScreen() {
     findDriverText: {
       fontSize: 16,
       fontWeight: "700" as const,
-      color: colors.text,
+      color: colors.onAccent,
     },
     settingsIcon: {
       width: 36,
@@ -2898,7 +2894,7 @@ export default function RideConfirmScreen() {
     entranceDoneText: {
       fontSize: 18,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: colors.onAccent,
     },
     keypadContainer: {
       backgroundColor: "#d1d5db",
@@ -3129,7 +3125,7 @@ export default function RideConfirmScreen() {
     acceptButtonText: {
       fontSize: 16,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: colors.onAccent,
     },
     searchingBottomSheet: {
       position: "absolute" as const,
@@ -3242,7 +3238,7 @@ export default function RideConfirmScreen() {
     raiseFareText: {
       fontSize: 16,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: colors.onAccent,
     },
     raiseFareTextDisabled: {
       fontSize: 16,
@@ -3433,7 +3429,7 @@ export default function RideConfirmScreen() {
     raiseFareActionText: {
       fontSize: 16,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: colors.onAccent,
     },
     keepFareButton: {
       backgroundColor: colors.background,
@@ -3511,7 +3507,7 @@ export default function RideConfirmScreen() {
     keepSearchingText: {
       fontSize: 16,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: colors.onAccent,
     },
     confirmCancelButton: {
       backgroundColor: "#F3F4F6",
@@ -3580,7 +3576,7 @@ export default function RideConfirmScreen() {
     searchHigherFareText: {
       fontSize: 16,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: colors.onAccent,
     },
     searchHigherFareHint: {
       fontSize: 13,
@@ -3894,6 +3890,12 @@ export default function RideConfirmScreen() {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
+      <AppAlertModal
+        visible={expiredAlertVisible}
+        title="Request expired"
+        message="We couldn't find a driver in time. Please try again."
+        onClose={() => setExpiredAlertVisible(false)}
+      />
       
       {/* Menu Side Sheet - positioned behind main content */}
       {(showMenuSideSheet || isMenuDragging) && (
