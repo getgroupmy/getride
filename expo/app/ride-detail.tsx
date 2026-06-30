@@ -289,7 +289,7 @@ export default function RideDetailScreen() {
     const statusLabel = isCompleted ? "Completed" : "Ended early";
     const statusBgHex = isCompleted ? "#d1fae5" : "#fee2e2";
     const statusFgHex = isCompleted ? "#065f46" : "#991b1b";
-    const accent = "#ff007f";
+    const accent = "#2dabe2";
     const logoUrl = "https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/9i4ujpszilk1s08krecs3.png";
     const fareStr = `${currency.symbol}${Math.ceil(fare)}`;
     return `<!doctype html>

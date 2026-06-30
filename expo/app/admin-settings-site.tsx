@@ -58,8 +58,8 @@ interface AppSettings {
 }
 
 const defaultLight: ThemePalette = {
-  accent: "#ff007f",
-  accentDark: "#ce2883",
+  accent: "#2dabe2",
+  accentDark: "#238baf",
   background: "#FFFFFF",
   text: "#111827",
   textSecondary: "#6B7280",
@@ -70,8 +70,8 @@ const defaultLight: ThemePalette = {
 };
 
 const defaultDark: ThemePalette = {
-  accent: "#ff007f",
-  accentDark: "#ce2883",
+  accent: "#2dabe2",
+  accentDark: "#238baf",
   background: "#000000",
   text: "#FFFFFF",
   textSecondary: "#9CA3AF",

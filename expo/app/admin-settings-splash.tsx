@@ -29,7 +29,7 @@ import { useBranding, DEFAULT_BRANDING } from "@/contexts/BrandingContext";
 
 const HEX_RE = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/;
 const PRESET_COLORS: string[] = [
-  "#ff007f",
+  "#2dabe2",
   "#000000",
   "#FFFFFF",
   "#0EA5E9",

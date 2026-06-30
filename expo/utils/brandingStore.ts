@@ -16,7 +16,7 @@ export interface RemoteBranding {
 
 const DEFAULT_REMOTE: RemoteBranding = {
   splash_image_url: null,
-  splash_bg_color: "#ff007f",
+  splash_bg_color: "#2dabe2",
   app_icon_url: null,
   icon_changed_at: null,
   updated_at: null,

@@ -1261,14 +1261,14 @@ export default function HomeScreen() {
         {...mainContentPanResponder.panHandlers}
       >
         {/* Menu overlay when open */}
-        <Pressable onPress={handleCloseMenu} style={styles.menuOverlay}>
+        <Pressable
+          onPress={handleCloseMenu}
+          style={[styles.menuOverlay, { pointerEvents: menuFullyOpen ? 'auto' : 'none' }]}
+        >
           <Animated.View
             style={[
               StyleSheet.absoluteFill,
-              {
-                opacity: menuOverlayOpacity,
-                pointerEvents: menuFullyOpen ? 'auto' : 'none',
-              },
+              { backgroundColor: '#000', opacity: menuOverlayOpacity },
             ]}
           />
         </Pressable>
@@ -1937,7 +1937,6 @@ const styles = StyleSheet.create({
   },
   menuOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#000",
     zIndex: 100,
   },
   inlineMenuContainer: {

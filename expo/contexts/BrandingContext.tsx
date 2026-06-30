@@ -23,7 +23,7 @@ export interface BrandingState {
 
 export const DEFAULT_BRANDING: BrandingState = {
   splashImageUri: null,
-  splashBgColor: "#ff007f",
+  splashBgColor: "#2dabe2",
   appIconUri: null,
   iconChangedAt: null,
   iconAckAt: null,

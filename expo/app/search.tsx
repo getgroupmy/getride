@@ -959,9 +959,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#ce2883",
+    backgroundColor: "#238baf",
     borderWidth: 2,
-    borderColor: "#ce2883",
+    borderColor: "#238baf",
   },
   inputContent: {
     flex: 1,

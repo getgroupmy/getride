@@ -451,7 +451,7 @@ export default function UserGuideScreen() {
   const [downloading, setDownloading] = useState<boolean>(false);
 
   const buildGuideHtml = (): string => {
-    const accent = "#ff007f";
+    const accent = "#2dabe2";
     const logoUrl = "https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/9i4ujpszilk1s08krecs3.png";
     const dateStr = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
     const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

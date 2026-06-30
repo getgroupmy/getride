@@ -2728,7 +2728,7 @@ export default function RideConfirmScreen() {
     },
     findDriverButton: {
       flex: 1,
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
       borderRadius: 12,
       paddingVertical: 16,
       marginHorizontal: 12,
@@ -2886,7 +2886,7 @@ export default function RideConfirmScreen() {
       minHeight: 60,
     },
     entranceDoneButton: {
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
       marginHorizontal: 20,
       marginTop: 20,
       marginBottom: 16,
@@ -3117,14 +3117,14 @@ export default function RideConfirmScreen() {
     },
     acceptButtonUnfilled: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
     },
     acceptButtonFilled: {
       position: "absolute" as const,
       top: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: "#ce2883",
+      backgroundColor: "#238baf",
     },
     acceptButtonText: {
       fontSize: 16,
@@ -3226,7 +3226,7 @@ export default function RideConfirmScreen() {
       color: colors.text,
     },
     raiseFareButton: {
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
       borderRadius: 12,
       paddingVertical: 16,
       alignItems: "center" as const,
@@ -3423,7 +3423,7 @@ export default function RideConfirmScreen() {
       marginTop: 2,
     },
     raiseFareActionButton: {
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
       borderRadius: 12,
       paddingVertical: 16,
       alignItems: "center" as const,
@@ -3501,7 +3501,7 @@ export default function RideConfirmScreen() {
       marginBottom: 28,
     },
     keepSearchingButton: {
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
       borderRadius: 12,
       paddingVertical: 16,
       alignItems: "center" as const,
@@ -3570,7 +3570,7 @@ export default function RideConfirmScreen() {
       marginBottom: 20,
     },
     searchHigherFareButton: {
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
       borderRadius: 12,
       paddingVertical: 16,
       alignItems: "center" as const,
@@ -3715,7 +3715,7 @@ export default function RideConfirmScreen() {
       width: 56,
       height: 56,
       borderRadius: 12,
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
       justifyContent: "center" as const,
       alignItems: "center" as const,
     },
@@ -3723,7 +3723,7 @@ export default function RideConfirmScreen() {
       width: 56,
       height: 56,
       borderRadius: 12,
-      backgroundColor: "#ff007f",
+      backgroundColor: "#2dabe2",
       justifyContent: "center" as const,
       alignItems: "center" as const,
       opacity: 0.7,
@@ -4715,7 +4715,7 @@ export default function RideConfirmScreen() {
                 value={searchAutoAccept}
                 onValueChange={setSearchAutoAccept}
                 trackColor={{ false: "#E5E5E5", true: "#4a5a3a" }}
-                thumbColor={searchAutoAccept ? "#ff007f" : "#fff"}
+                thumbColor={searchAutoAccept ? "#2dabe2" : "#fff"}
               />
             </View>
             <View style={styles.searchPaymentRow}>
@@ -5095,7 +5095,7 @@ export default function RideConfirmScreen() {
         {/* Auto Accept Toggle */}
         <View style={styles.autoAcceptRow}>
           <View style={styles.autoAcceptLeft}>
-            <Send color="#ff007f" size={18} style={styles.autoAcceptIcon} />
+            <Send color="#2dabe2" size={18} style={styles.autoAcceptIcon} />
             <Text style={styles.autoAcceptText}>
               Auto-accept offer of {currency.symbol} {estimatedPrice}
             </Text>
@@ -5104,14 +5104,14 @@ export default function RideConfirmScreen() {
             value={autoAccept}
             onValueChange={setAutoAccept}
             trackColor={{ false: "#3a3a3a", true: "#4a5a3a" }}
-            thumbColor={autoAccept ? "#ff007f" : "#6B7280"}
+            thumbColor={autoAccept ? "#2dabe2" : "#6B7280"}
           />
         </View>
 
         {/* Bottom Bar */}
         <View style={styles.bottomBar}>
           <TouchableOpacity style={styles.paymentIcon} onPress={openPaymentSheet}>
-            <CreditCard color="#ff007f" size={20} />
+            <CreditCard color="#2dabe2" size={20} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.findDriverButton}

@@ -740,7 +740,7 @@ export default function OfferFareSideSheet({
               value={autoAccept}
               onValueChange={setAutoAccept}
               trackColor={{ false: "#E5E5E5", true: "#4a5a3a" }}
-              thumbColor={autoAccept ? "#ff007f" : "#fff"}
+              thumbColor={autoAccept ? "#2dabe2" : "#fff"}
             />
           </View>
 
@@ -1056,7 +1056,7 @@ export default function OfferFareSideSheet({
           <View style={styles.embeddedSearchResults}>
             {isSearching && (
               <View style={styles.embeddedSearchLoading}>
-                <ActivityIndicator color="#ff007f" size="small" />
+                <ActivityIndicator color="#2dabe2" size="small" />
                 <Text style={styles.embeddedSearchLoadingText}>Searching...</Text>
               </View>
             )}
@@ -1514,7 +1514,7 @@ const styles = StyleSheet.create({
   },
   findDriverButton: {
     flex: 1,
-    backgroundColor: "#ff007f",
+    backgroundColor: "#2dabe2",
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
@@ -1542,7 +1542,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 12,
-    backgroundColor: "#ff007f",
+    backgroundColor: "#2dabe2",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 12,
@@ -1647,9 +1647,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#ce2883",
+    backgroundColor: "#238baf",
     borderWidth: 2,
-    borderColor: "#ce2883",
+    borderColor: "#238baf",
   },
   embeddedSearchSearchIcon: {
     width: 24,

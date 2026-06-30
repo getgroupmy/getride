@@ -1,8 +1,8 @@
 export const lightColors = {
   primary: "#000000",
   secondary: "#FFFFFF",
-  accent: "#ff007f",
-  accentDark: "#ce2883",
+  accent: "#2dabe2",
+  accentDark: "#238baf",
   gray: {
     50: "#F9FAFB",
     100: "#F3F4F6",
@@ -33,8 +33,8 @@ export const lightColors = {
 export const darkColors = {
   primary: "#FFFFFF",
   secondary: "#000000",
-  accent: "#ff007f",
-  accentDark: "#ce2883",
+  accent: "#2dabe2",
+  accentDark: "#238baf",
   gray: {
     50: "#1F2937",
     100: "#374151",
