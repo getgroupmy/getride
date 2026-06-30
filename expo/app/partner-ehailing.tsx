@@ -1159,7 +1159,7 @@ export default function DriverEhailingScreen() {
               activeOpacity={0.8}
               testID="partner-ehailing-mode-switch"
             >
-              <Smartphone color="#fff" size={16} />
+              <Smartphone color="#000000" size={16} />
               <Text style={styles.headerBadgeText}>eHAILING</Text>
             </TouchableOpacity>
           </View>
@@ -1743,7 +1743,7 @@ export default function DriverEhailingScreen() {
                     onPress={handleAccept}
                     testID="ehailing-accept"
                   >
-                    <Check color="#fff" size={18} />
+                    <Check color="#000000" size={18} />
                     <Text style={styles.acceptText}>Accept · RM {request.fare}</Text>
                   </TouchableOpacity>
                 </View>
@@ -1888,7 +1888,7 @@ export default function DriverEhailingScreen() {
                 onPress={handleSubmitOffer}
                 testID="offer-send"
               >
-                <Check color="#fff" size={18} />
+                <Check color="#000000" size={18} />
                 <Text style={styles.acceptText}>Send Offer · RM {offerAmount}</Text>
               </TouchableOpacity>
             </View>
@@ -2047,7 +2047,7 @@ export default function DriverEhailingScreen() {
                 onPress={() => setDestinationsVisible(false)}
                 testID="dest-done"
               >
-                <Check color="#fff" size={18} />
+                <Check color="#000000" size={18} />
                 <Text style={styles.acceptText}>Done</Text>
               </TouchableOpacity>
             </View>
@@ -2392,7 +2392,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   headerBadgeText: {
-    color: "#fff",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "800" as const,
     letterSpacing: 0.5,
@@ -2808,7 +2808,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   acceptText: {
-    color: "#fff",
+    color: "#000000",
     fontSize: 15,
     fontWeight: "800" as const,
     letterSpacing: 0.3,

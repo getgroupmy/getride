@@ -497,14 +497,14 @@ export default function AdminSettingsSubAdminScreen() {
                       ]}
                     >
                       {isEditLevel ? (
-                        <Pencil color={Colors.secondary} size={10} />
+                        <Pencil color={Colors.onAccent} size={10} />
                       ) : (
                         <Eye color={Colors.textSecondary} size={10} />
                       )}
                       <Text
                         style={[
                           styles.badgeTxt,
-                          { color: isEditLevel ? Colors.secondary : Colors.textSecondary },
+                          { color: isEditLevel ? Colors.onAccent : Colors.textSecondary },
                         ]}
                       >
                         {row.access_level}
@@ -738,7 +738,7 @@ export default function AdminSettingsSubAdminScreen() {
                             <Text
                               style={[
                                 styles.pagePillTxt,
-                                { color: active ? Colors.secondary : Colors.text },
+                                { color: active ? Colors.onAccent : Colors.text },
                               ]}
                               numberOfLines={1}
                             >
@@ -772,14 +772,14 @@ export default function AdminSettingsSubAdminScreen() {
                             testID={`sub-admin-level-${lvl}`}
                           >
                             {lvl === "edit" ? (
-                              <Pencil color={active ? Colors.secondary : Colors.text} size={14} />
+                              <Pencil color={active ? Colors.onAccent : Colors.text} size={14} />
                             ) : (
-                              <Eye color={active ? Colors.secondary : Colors.text} size={14} />
+                              <Eye color={active ? Colors.onAccent : Colors.text} size={14} />
                             )}
                             <Text
                               style={[
                                 styles.levelTxt,
-                                { color: active ? Colors.secondary : Colors.text },
+                                { color: active ? Colors.onAccent : Colors.text },
                               ]}
                             >
                               {lvl === "edit" ? "Edit" : "Read-only"}
@@ -846,7 +846,7 @@ export default function AdminSettingsSubAdminScreen() {
                             <Text
                               style={[
                                 styles.filterChipTxt,
-                                { color: active ? Colors.secondary : Colors.text },
+                                { color: active ? Colors.onAccent : Colors.text },
                               ]}
                             >
                               {f.label}
@@ -899,7 +899,7 @@ export default function AdminSettingsSubAdminScreen() {
                         const fg = !active
                           ? Colors.text
                           : isEditLvl
-                            ? Colors.secondary
+                            ? Colors.onAccent
                             : Colors.text;
                         const border = active
                           ? isEditLvl
@@ -963,11 +963,11 @@ export default function AdminSettingsSubAdminScreen() {
                 testID="sub-admin-form-save"
               >
                 {saving ? (
-                  <ActivityIndicator color={Colors.secondary} />
+                  <ActivityIndicator color={Colors.onAccent} />
                 ) : (
                   <>
-                    <Save color={Colors.secondary} size={16} />
-                    <Text style={[styles.saveTxt, { color: Colors.secondary }]}>
+                    <Save color={Colors.onAccent} size={16} />
+                    <Text style={[styles.saveTxt, { color: Colors.onAccent }]}>
                       {editing ? "Save changes" : "Grant access"}
                     </Text>
                   </>

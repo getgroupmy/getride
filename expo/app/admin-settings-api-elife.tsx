@@ -357,7 +357,7 @@ export default function AdminSettingsApiElifeScreen() {
                   <Text
                     style={[
                       styles.segmentTxt,
-                      { color: active ? "#fff" : Colors.text },
+                      { color: active ? "#000000" : Colors.text },
                     ]}
                   >
                     {env === "sandbox" ? "Sandbox" : "Production"}
@@ -491,11 +491,11 @@ export default function AdminSettingsApiElifeScreen() {
                 testID="elife-save"
               >
                 {saving ? (
-                  <ActivityIndicator color={dirty ? "#fff" : Colors.accent} size="small" />
+                  <ActivityIndicator color={dirty ? "#000000" : Colors.accent} size="small" />
                 ) : (
-                  <Save color={dirty ? "#fff" : Colors.textSecondary} size={18} />
+                  <Save color={dirty ? "#000000" : Colors.textSecondary} size={18} />
                 )}
-                <Text style={[styles.actionTxt, { color: dirty ? "#fff" : Colors.textSecondary }]}>
+                <Text style={[styles.actionTxt, { color: dirty ? "#000000" : Colors.textSecondary }]}>
                   {dirty ? "Save changes" : "Saved"}
                 </Text>
               </TouchableOpacity>

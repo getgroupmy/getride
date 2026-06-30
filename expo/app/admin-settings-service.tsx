@@ -268,8 +268,8 @@ export default function AdminSettingsServiceScreen() {
               {name}
             </Text>
             <View style={[styles.priorityPill, { backgroundColor: Colors.accent }]}>
-              <ListOrdered color={Colors.secondary} size={10} />
-              <Text style={[styles.priorityText, { color: Colors.secondary }]}>{priority}</Text>
+              <ListOrdered color={Colors.onAccent} size={10} />
+              <Text style={[styles.priorityText, { color: Colors.onAccent }]}>{priority}</Text>
             </View>
             {isDefault ? (
               <View style={[styles.defaultPill, { backgroundColor: Colors.gray[200] }]}>
@@ -337,7 +337,7 @@ export default function AdminSettingsServiceScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="service-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -366,8 +366,8 @@ export default function AdminSettingsServiceScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="service-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add Service</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Service</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -419,8 +419,8 @@ export default function AdminSettingsServiceScreen() {
                         style={[styles.uploadBtn, { backgroundColor: Colors.accent }]}
                         testID="service-icon-upload"
                       >
-                        <Upload color={Colors.secondary} size={16} />
-                        <Text style={[styles.uploadBtnText, { color: Colors.secondary }]}>
+                        <Upload color={Colors.onAccent} size={16} />
+                        <Text style={[styles.uploadBtnText, { color: Colors.onAccent }]}>
                           {form.iconUri ? "Replace icon" : "Upload icon"}
                         </Text>
                       </TouchableOpacity>
@@ -537,8 +537,8 @@ export default function AdminSettingsServiceScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="service-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Service"}
                 </Text>
               </TouchableOpacity>

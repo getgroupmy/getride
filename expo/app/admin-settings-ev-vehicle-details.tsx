@@ -713,7 +713,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -742,8 +742,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="ev-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add Vehicle</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Vehicle</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -885,8 +885,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Vehicle"}
                 </Text>
               </TouchableOpacity>

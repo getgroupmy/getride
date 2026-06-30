@@ -385,7 +385,7 @@ export default function AdminCrudList({
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
             testID={`${testID ?? "crud"}-add`}
           >
-            <Plus color={Colors.secondary} size={22} />
+            <Plus color={Colors.onAccent} size={22} />
           </TouchableOpacity>
         ) : (
           <View style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]} testID={`${testID ?? "crud"}-readonly`} />
@@ -423,8 +423,8 @@ export default function AdminCrudList({
                 style={[styles.cta, { backgroundColor: Colors.accent }]}
                 testID={`${testID ?? "crud"}-empty-add`}
               >
-                <Plus color={Colors.secondary} size={16} />
-                <Text style={[styles.ctaText, { color: Colors.secondary }]}>{primaryAction ?? "Add new"}</Text>
+                <Plus color={Colors.onAccent} size={16} />
+                <Text style={[styles.ctaText, { color: Colors.onAccent }]}>{primaryAction ?? "Add new"}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -506,8 +506,8 @@ export default function AdminCrudList({
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID={`${testID ?? "crud"}-save`}
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : primaryAction ?? "Add entry"}
                 </Text>
               </TouchableOpacity>

@@ -462,8 +462,8 @@ export default function AdminPartnerEditScreen() {
             testID="edit-partner-save"
             activeOpacity={0.9}
           >
-            <Save color={Colors.secondary} size={18} />
-            <Text style={[styles.submitText, { color: Colors.secondary }]}>Save changes</Text>
+            <Save color={Colors.onAccent} size={18} />
+            <Text style={[styles.submitText, { color: Colors.onAccent }]}>Save changes</Text>
           </TouchableOpacity>
 
           <View style={{ height: 24 }} />

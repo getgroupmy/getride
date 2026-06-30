@@ -742,9 +742,9 @@ export default function UserGuideScreen() {
           testID="user-guide-download-cta"
         >
           {downloading ? (
-            <ActivityIndicator size="small" color={"#fff"} />
+            <ActivityIndicator size="small" color={"#000000"} />
           ) : (
-            <Download color={"#fff"} size={18} />
+            <Download color={"#000000"} size={18} />
           )}
           <Text style={styles.downloadBtnText}>
             {downloading ? "Preparing PDF..." : "Download / Share PDF"}
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   downloadBtnText: {
-    color: "#fff",
+    color: "#000000",
     fontSize: 15,
     fontWeight: "700" as const,
     letterSpacing: 0.3,

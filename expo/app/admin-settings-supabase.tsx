@@ -271,10 +271,10 @@ export default function AdminSettingsSupabaseScreen() {
           testID="supabase-save"
         >
           {saving ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color="#000000" size="small" />
           ) : (
             <>
-              <Save color="#fff" size={14} />
+              <Save color="#000000" size={14} />
               <Text style={styles.saveBtnText}>Save</Text>
             </>
           )}
@@ -416,7 +416,7 @@ export default function AdminSettingsSupabaseScreen() {
               style={[styles.actionBtn, { backgroundColor: Colors.accent }]}
               testID="supabase-test-url"
             >
-              <RefreshCcw color="#fff" size={14} />
+              <RefreshCcw color="#000000" size={14} />
               <Text style={styles.actionBtnText}>Test URL</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -424,7 +424,7 @@ export default function AdminSettingsSupabaseScreen() {
               style={[styles.actionBtn, { backgroundColor: Colors.success }]}
               testID="supabase-ping-client"
             >
-              <Database color="#fff" size={14} />
+              <Database color="#000000" size={14} />
               <Text style={styles.actionBtnText}>Ping Client</Text>
             </TouchableOpacity>
           </View>
@@ -497,9 +497,9 @@ export default function AdminSettingsSupabaseScreen() {
               testID="supabase-connection-check-run"
             >
               {checkStatus === "checking" ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color="#000000" size="small" />
               ) : (
-                <Activity color="#fff" size={14} />
+                <Activity color="#000000" size={14} />
               )}
               <Text style={styles.actionBtnText}>
                 {checkStatus === "checking" ? "Checking..." : "Run Check"}
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
   },
-  saveBtnText: { color: "#fff", fontWeight: "700" as const, fontSize: 13 },
+  saveBtnText: { color: "#000000", fontWeight: "700" as const, fontSize: 13 },
   content: { paddingHorizontal: 16, paddingTop: 16 },
   statusCard: {
     flexDirection: "row" as const,
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
   },
-  actionBtnText: { color: "#fff", fontWeight: "700" as const, fontSize: 13 },
+  actionBtnText: { color: "#000000", fontWeight: "700" as const, fontSize: 13 },
   helper: { fontSize: 11, lineHeight: 16, marginTop: 6 },
   statRow: { flexDirection: "row" as const, gap: 8, flexWrap: "wrap" as const },
   statPill: {

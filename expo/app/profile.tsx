@@ -243,7 +243,7 @@ export default function ProfileScreen() {
                 )}
               </View>
               <View style={[styles.editBadge, { backgroundColor: Colors.accent }]}>
-                <Pencil color={Colors.secondary} size={12} />
+                <Pencil color={Colors.onAccent} size={12} />
               </View>
             </TouchableOpacity>
             <Text style={styles.nameText}>{displayName}</Text>

@@ -166,7 +166,7 @@ export default function AdminAppIconScreen() {
               style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
               testID="app-icon-pick"
             >
-              <Upload color="#fff" size={16} />
+              <Upload color="#000000" size={16} />
               <Text style={styles.primaryBtnText}>{icon ? "Replace icon" : "Upload icon"}</Text>
             </TouchableOpacity>
             {icon ? (
@@ -200,10 +200,10 @@ export default function AdminAppIconScreen() {
           testID="app-icon-save"
         >
           {saving ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#000000" />
           ) : (
             <>
-              <Save color="#fff" size={18} />
+              <Save color="#000000" size={18} />
               <Text style={styles.saveText}>Publish to all users</Text>
             </>
           )}
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  primaryBtnText: { color: "#fff", fontWeight: "600" as const },
+  primaryBtnText: { color: "#000000", fontWeight: "600" as const },
   ghostBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginTop: 8,
   },
-  saveText: { color: "#fff", fontWeight: "700" as const, fontSize: 15 },
+  saveText: { color: "#000000", fontWeight: "700" as const, fontSize: 15 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -350,5 +350,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  modalBtnText: { color: "#fff", fontWeight: "700" as const, fontSize: 14 },
+  modalBtnText: { color: "#000000", fontWeight: "700" as const, fontSize: 14 },
 });

@@ -190,7 +190,7 @@ export default function VehiclePhotosUploader({
                 <Text style={[styles.tileLabel, { color: Colors.text }]}>{SLOT_LABEL[slot]}</Text>
                 {done ? (
                   <View style={[styles.badge, { backgroundColor: Colors.accent }]}>
-                    <Check color={Colors.secondary} size={11} />
+                    <Check color={Colors.onAccent} size={11} />
                   </View>
                 ) : (
                   <View style={[styles.badge, { backgroundColor: Colors.border }]}>

@@ -428,8 +428,8 @@ export default function AdminSettingsVehicleServicesScreen() {
               {name}
             </Text>
             <View style={[styles.priorityPill, { backgroundColor: Colors.accent }]}>
-              <ListOrdered color={Colors.secondary} size={10} />
-              <Text style={[styles.priorityText, { color: Colors.secondary }]}>{priority}</Text>
+              <ListOrdered color={Colors.onAccent} size={10} />
+              <Text style={[styles.priorityText, { color: Colors.onAccent }]}>{priority}</Text>
             </View>
             <View
               style={[
@@ -507,7 +507,7 @@ export default function AdminSettingsVehicleServicesScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="vehicle-service-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -546,8 +546,8 @@ export default function AdminSettingsVehicleServicesScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="vehicle-service-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>
                 Add Vehicle Service
               </Text>
             </TouchableOpacity>
@@ -618,9 +618,9 @@ export default function AdminSettingsVehicleServicesScreen() {
                         ]}
                         testID="vehicle-service-icon-upload"
                       >
-                        <Upload color={Colors.secondary} size={16} />
+                        <Upload color={Colors.onAccent} size={16} />
                         <Text
-                          style={[styles.uploadBtnText, { color: Colors.secondary }]}
+                          style={[styles.uploadBtnText, { color: Colors.onAccent }]}
                         >
                           {form.iconUri ? "Change Image" : "Upload Image"}
                         </Text>
@@ -694,8 +694,8 @@ export default function AdminSettingsVehicleServicesScreen() {
                       ]}
                       testID="vehicle-service-hero-upload"
                     >
-                      <Upload color={Colors.secondary} size={16} />
-                      <Text style={[styles.uploadBtnText, { color: Colors.secondary }]}>
+                      <Upload color={Colors.onAccent} size={16} />
+                      <Text style={[styles.uploadBtnText, { color: Colors.onAccent }]}>
                         {form.heroImageUri ? "Change Hero" : "Upload Hero"}
                       </Text>
                     </TouchableOpacity>
@@ -779,8 +779,8 @@ export default function AdminSettingsVehicleServicesScreen() {
                         ]}
                         testID="vehicle-service-map-icon-upload"
                       >
-                        <Upload color={Colors.secondary} size={16} />
-                        <Text style={[styles.uploadBtnText, { color: Colors.secondary }]}>
+                        <Upload color={Colors.onAccent} size={16} />
+                        <Text style={[styles.uploadBtnText, { color: Colors.onAccent }]}>
                           {form.mapIconUri ? "Change Icon" : "Upload Icon"}
                         </Text>
                       </TouchableOpacity>
@@ -1097,8 +1097,8 @@ export default function AdminSettingsVehicleServicesScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="vehicle-service-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Vehicle Service"}
                 </Text>
               </TouchableOpacity>

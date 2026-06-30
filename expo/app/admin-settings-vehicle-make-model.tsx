@@ -977,7 +977,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="vmm-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -1006,14 +1006,14 @@ export default function AdminSettingsVehicleMakeModelScreen() {
               >
                 {idx === 0 ? (
                   <HomeIcon
-                    color={isLast ? Colors.secondary : Colors.text}
+                    color={isLast ? Colors.onAccent : Colors.text}
                     size={12}
                   />
                 ) : null}
                 <Text
                   style={[
                     styles.crumbText,
-                    { color: isLast ? Colors.secondary : Colors.text },
+                    { color: isLast ? Colors.onAccent : Colors.text },
                   ]}
                   numberOfLines={1}
                 >
@@ -1061,8 +1061,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="vmm-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>
                 {levelMeta.addLabel}
               </Text>
             </TouchableOpacity>
@@ -1163,7 +1163,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                 <Text
                                   style={[
                                     styles.chipText,
-                                    { color: active ? Colors.secondary : Colors.text },
+                                    { color: active ? Colors.onAccent : Colors.text },
                                   ]}
                                 >
                                   {v.name}
@@ -1224,7 +1224,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                 <Text
                                   style={[
                                     styles.chipText,
-                                    { color: active ? Colors.secondary : Colors.text },
+                                    { color: active ? Colors.onAccent : Colors.text },
                                   ]}
                                 >
                                   {name}
@@ -1311,7 +1311,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     styles.chipText,
                                     {
                                       color: active
-                                        ? Colors.secondary
+                                        ? Colors.onAccent
                                         : Colors.text,
                                     },
                                   ]}
@@ -1330,8 +1330,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                     style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                     testID="vmm-cat-save"
                   >
-                    <Save color={Colors.secondary} size={18} />
-                    <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                    <Save color={Colors.onAccent} size={18} />
+                    <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                       {categoryRenameFrom ? "Save changes" : "Add"}
                     </Text>
                   </TouchableOpacity>
@@ -1375,9 +1375,9 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           ]}
                           testID="vmm-model-icon-upload"
                         >
-                          <Upload color={Colors.secondary} size={16} />
+                          <Upload color={Colors.onAccent} size={16} />
                           <Text
-                            style={[styles.uploadBtnText, { color: Colors.secondary }]}
+                            style={[styles.uploadBtnText, { color: Colors.onAccent }]}
                           >
                             {modelForm.iconUri ? "Change Image" : "Upload Image"}
                           </Text>
@@ -1454,7 +1454,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                 {
                                   color:
                                     modelForm.vehicleType === v.name
-                                      ? Colors.secondary
+                                      ? Colors.onAccent
                                       : Colors.text,
                                 },
                               ]}
@@ -1516,7 +1516,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                   styles.chipText,
                                   {
                                     color: active
-                                      ? Colors.secondary
+                                      ? Colors.onAccent
                                       : Colors.text,
                                   },
                                 ]}
@@ -1577,7 +1577,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                   styles.chipText,
                                   {
                                     color: active
-                                      ? Colors.secondary
+                                      ? Colors.onAccent
                                       : Colors.text,
                                   },
                                 ]}
@@ -1657,7 +1657,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     styles.chipText,
                                     {
                                       color: active
-                                        ? Colors.secondary
+                                        ? Colors.onAccent
                                         : Colors.text,
                                     },
                                   ]}
@@ -1801,8 +1801,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                     style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                     testID="vmm-model-save"
                   >
-                    <Save color={Colors.secondary} size={18} />
-                    <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                    <Save color={Colors.onAccent} size={18} />
+                    <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                       {editingModelEntry ? "Save changes" : "Add Model"}
                     </Text>
                   </TouchableOpacity>

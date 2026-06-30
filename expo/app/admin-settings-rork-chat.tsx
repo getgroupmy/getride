@@ -188,7 +188,7 @@ export default function AdminSettingsRorkChatScreen() {
           <Text
             style={[
               styles.bubbleText,
-              { color: isUser ? "#FFFFFF" : Colors.text },
+              { color: isUser ? "#000000" : Colors.text },
             ]}
           >
             {msg.content}
@@ -317,7 +317,7 @@ export default function AdminSettingsRorkChatScreen() {
           >
             <Send
               color={
-                loading || !input.trim() ? Colors.textSecondary : "#FFFFFF"
+                loading || !input.trim() ? Colors.textSecondary : "#000000"
               }
               size={18}
             />

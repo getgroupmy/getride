@@ -1355,7 +1355,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 : "Try a different search or add a custom entry."}
             </Text>
             <TouchableOpacity onPress={openAdd} style={styles.emptyBtn}>
-              <Plus size={14} color={Colors.secondary} />
+              <Plus size={14} color={Colors.onAccent} />
               <Text style={styles.emptyBtnText}>Add {currentLevel}</Text>
             </TouchableOpacity>
           </View>
@@ -1651,10 +1651,10 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 testID="save"
               >
                 {saving ? (
-                  <ActivityIndicator color={Colors.secondary} />
+                  <ActivityIndicator color={Colors.onAccent} />
                 ) : (
                   <>
-                    <Check size={16} color={Colors.secondary} />
+                    <Check size={16} color={Colors.onAccent} />
                     <Text style={styles.saveBtnText}>
                       {editEntry ? "Update" : "Save"}
                     </Text>
@@ -1834,7 +1834,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     disabled={draftPoints.length < 3}
                     testID="draw-finish"
                   >
-                    <Check size={16} color={Colors.secondary} />
+                    <Check size={16} color={Colors.onAccent} />
                     <Text style={styles.saveBtnText}>Finish</Text>
                   </TouchableOpacity>
                 </>
@@ -1940,10 +1940,10 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 testID="save-boundary"
               >
                 {fetching ? (
-                  <ActivityIndicator color={Colors.secondary} />
+                  <ActivityIndicator color={Colors.onAccent} />
                 ) : (
                   <>
-                    <Download size={16} color={Colors.secondary} />
+                    <Download size={16} color={Colors.onAccent} />
                     <Text style={styles.saveBtnText}>Save override</Text>
                   </>
                 )}
@@ -2190,7 +2190,7 @@ function FetchChip({
       testID={`fetch-${label.toLowerCase()}`}
     >
       {active ? (
-        <ActivityIndicator size="small" color={Colors.secondary} />
+        <ActivityIndicator size="small" color={Colors.onAccent} />
       ) : (
         <Download size={14} color={Colors.text} />
       )}
@@ -2404,7 +2404,7 @@ const createStyles = (Colors: ReturnType<typeof useColors>) =>
     },
     chipActive: { backgroundColor: Colors.accent, borderColor: Colors.accent },
     chipText: { color: Colors.text, fontSize: 13, fontWeight: "600" as const },
-    chipTextActive: { color: Colors.secondary },
+    chipTextActive: { color: Colors.onAccent },
     bboxGrid: { flexDirection: "row", gap: 8 },
     mapActions: { flexDirection: "row", gap: 10, marginTop: 4 },
     actionBtn: {
@@ -2446,7 +2446,7 @@ const createStyles = (Colors: ReturnType<typeof useColors>) =>
       alignItems: "center",
       justifyContent: "center",
     },
-    vertexDotText: { color: Colors.secondary, fontSize: 10, fontWeight: "700" as const },
+    vertexDotText: { color: Colors.onAccent, fontSize: 10, fontWeight: "700" as const },
     empty: { alignItems: "center", paddingVertical: 60, gap: 8 },
     emptyTitle: {
       color: Colors.text,
@@ -2471,7 +2471,7 @@ const createStyles = (Colors: ReturnType<typeof useColors>) =>
       marginTop: 12,
     },
     emptyBtnText: {
-      color: Colors.secondary,
+      color: Colors.onAccent,
       fontWeight: "700" as const,
       fontSize: 13,
     },
@@ -2537,7 +2537,7 @@ const createStyles = (Colors: ReturnType<typeof useColors>) =>
       marginTop: 8,
     },
     saveBtnText: {
-      color: Colors.secondary,
+      color: Colors.onAccent,
       fontWeight: "700" as const,
       fontSize: 15,
     },

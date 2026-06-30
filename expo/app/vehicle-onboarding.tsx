@@ -820,7 +820,7 @@ export default function VehicleOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Continue</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -864,7 +864,7 @@ export default function VehicleOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Yes, use this vehicle</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Yes, use this vehicle</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -906,7 +906,7 @@ export default function VehicleOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Verify & claim</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Verify & claim</Text>
               )}
             </TouchableOpacity>
             <TouchableOpacity
@@ -945,7 +945,7 @@ export default function VehicleOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Continue</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -992,7 +992,7 @@ export default function VehicleOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Continue</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -1043,7 +1043,7 @@ export default function VehicleOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>
                   {docsComplete ? "Finish" : "Upload required documents to continue"}
                 </Text>
               )}
@@ -1089,7 +1089,7 @@ export default function VehicleOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>
                   {photosComplete ? "Continue" : "Add all four photos to continue"}
                 </Text>
               )}
@@ -1208,7 +1208,7 @@ export default function VehicleOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>
                   {isOwnVehicle === null
                     ? "Select an option to continue"
                     : allFilled
@@ -1301,7 +1301,7 @@ export default function VehicleOnboardingScreen() {
               testID="veh-onboard-continue"
             >
               <View style={styles.row}>
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Continue</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
                 <ChevronRight color={Colors.secondary} size={18} />
               </View>
             </TouchableOpacity>
@@ -1331,7 +1331,7 @@ export default function VehicleOnboardingScreen() {
         <View style={styles.center}>
           <Text style={[styles.title, { color: Colors.text }]}>Please sign in first</Text>
           <TouchableOpacity onPress={() => router.back()} style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}>
-            <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Go back</Text>
+            <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Go back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

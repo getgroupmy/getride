@@ -361,11 +361,11 @@ export default function AdminAppSettingsScreen() {
                     ]}
                     testID={`mode-${m}`}
                   >
-                    <Icon color={active ? "#FFFFFF" : Colors.text} size={14} />
+                    <Icon color={active ? "#000000" : Colors.text} size={14} />
                     <Text
                       style={[
                         styles.modeText,
-                        { color: active ? "#FFFFFF" : Colors.text },
+                        { color: active ? "#000000" : Colors.text },
                       ]}
                     >
                       {m === "light" ? "Light" : "Dark"}
@@ -422,7 +422,7 @@ export default function AdminAppSettingsScreen() {
                   style={[styles.uploadBtn, { backgroundColor: Colors.accent }]}
                   testID="upload-app-icon"
                 >
-                  <Upload color="#FFFFFF" size={14} />
+                  <Upload color="#000000" size={14} />
                   <Text style={styles.uploadBtnText}>
                     {settings.appIconUri ? "Replace" : "Upload"}
                   </Text>
@@ -469,7 +469,7 @@ export default function AdminAppSettingsScreen() {
                   style={[styles.uploadBtn, { backgroundColor: Colors.accent }]}
                   testID="upload-splash-icon"
                 >
-                  <Upload color="#FFFFFF" size={14} />
+                  <Upload color="#000000" size={14} />
                   <Text style={styles.uploadBtnText}>
                     {settings.splashIconUri ? "Replace" : "Upload"}
                   </Text>
@@ -567,15 +567,15 @@ export default function AdminAppSettingsScreen() {
             activeOpacity={0.85}
           >
             {saving ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color="#000000" />
             ) : savedTick ? (
               <>
-                <Check color="#FFFFFF" size={18} />
+                <Check color="#000000" size={18} />
                 <Text style={styles.saveText}>Saved</Text>
               </>
             ) : (
               <>
-                <Save color="#FFFFFF" size={18} />
+                <Save color="#000000" size={18} />
                 <Text style={styles.saveText}>Save Settings</Text>
               </>
             )}
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignSelf: "flex-start",
   },
-  uploadBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
+  uploadBtnText: { color: "#000000", fontSize: 13, fontWeight: "700" },
   latLngRow: { flexDirection: "row", gap: 10 },
   fieldLabel: {
     fontSize: 11,
@@ -719,5 +719,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
   },
-  saveText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  saveText: { color: "#000000", fontSize: 15, fontWeight: "800" },
 });

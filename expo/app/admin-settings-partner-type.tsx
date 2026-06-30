@@ -515,13 +515,13 @@ export default function AdminSettingsPartnerTypeScreen() {
                 {name}
               </Text>
               <View style={[styles.priorityPill, { backgroundColor: Colors.accent }]}>
-                <ListOrdered color={Colors.secondary} size={10} />
-                <Text style={[styles.priorityText, { color: Colors.secondary }]}>{priority}</Text>
+                <ListOrdered color={Colors.onAccent} size={10} />
+                <Text style={[styles.priorityText, { color: Colors.onAccent }]}>{priority}</Text>
               </View>
               {isDefault ? (
                 <View style={[styles.badge, { backgroundColor: Colors.accent }]}>
-                  <ShieldCheck color={Colors.secondary} size={10} />
-                  <Text style={[styles.badgeText, { color: Colors.secondary }]}>Default</Text>
+                  <ShieldCheck color={Colors.onAccent} size={10} />
+                  <Text style={[styles.badgeText, { color: Colors.onAccent }]}>Default</Text>
                 </View>
               ) : null}
             </View>
@@ -698,7 +698,7 @@ export default function AdminSettingsPartnerTypeScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="partner-type-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -727,8 +727,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="partner-type-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add partner type</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add partner type</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -844,8 +844,8 @@ export default function AdminSettingsPartnerTypeScreen() {
                         style={[styles.iconActionBtn, { backgroundColor: Colors.accent, opacity: uploadingIcon ? 0.6 : 1 }]}
                         testID="partner-type-field-icon-upload"
                       >
-                        <ImagePlus color={Colors.secondary} size={14} />
-                        <Text style={[styles.iconActionText, { color: Colors.secondary }]}>
+                        <ImagePlus color={Colors.onAccent} size={14} />
+                        <Text style={[styles.iconActionText, { color: Colors.onAccent }]}>
                           {form.iconUrl ? "Replace" : "Upload"}
                         </Text>
                       </TouchableOpacity>
@@ -892,11 +892,11 @@ export default function AdminSettingsPartnerTypeScreen() {
                           ]}
                           testID="partner-type-doctype-all"
                         >
-                          {allSelected ? <Check color={Colors.secondary} size={13} /> : null}
+                          {allSelected ? <Check color={Colors.onAccent} size={13} /> : null}
                           <Text
                             style={[
                               styles.pillText,
-                              { color: allSelected ? Colors.secondary : Colors.text },
+                              { color: allSelected ? Colors.onAccent : Colors.text },
                             ]}
                           >
                             All
@@ -934,11 +934,11 @@ export default function AdminSettingsPartnerTypeScreen() {
                                 ]}
                                 testID={`partner-type-doctype-${id}`}
                               >
-                                {checked ? <Check color={Colors.secondary} size={13} /> : null}
+                                {checked ? <Check color={Colors.onAccent} size={13} /> : null}
                                 <Text
                                   style={[
                                     styles.pillText,
-                                    { color: checked ? Colors.secondary : Colors.text },
+                                    { color: checked ? Colors.onAccent : Colors.text },
                                   ]}
                                   numberOfLines={1}
                                 >
@@ -1033,8 +1033,8 @@ export default function AdminSettingsPartnerTypeScreen() {
                         style={[styles.addRootBtn, { backgroundColor: Colors.accent }]}
                         testID="partner-type-add-root"
                       >
-                        <Plus color={Colors.secondary} size={14} />
-                        <Text style={[styles.addRootText, { color: Colors.secondary }]}>
+                        <Plus color={Colors.onAccent} size={14} />
+                        <Text style={[styles.addRootText, { color: Colors.onAccent }]}>
                           Add level 1
                         </Text>
                       </TouchableOpacity>
@@ -1059,8 +1059,8 @@ export default function AdminSettingsPartnerTypeScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="partner-type-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add partner type"}
                 </Text>
               </TouchableOpacity>
@@ -1115,7 +1115,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                       style={[styles.renameBtn, { backgroundColor: Colors.accent }]}
                       testID="partner-type-rename-save"
                     >
-                      <Text style={[styles.renameBtnText, { color: Colors.secondary }]}>Save</Text>
+                      <Text style={[styles.renameBtnText, { color: Colors.onAccent }]}>Save</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

@@ -2953,7 +2953,7 @@ export default function RideConfirmScreen() {
       left: 16,
       flexDirection: "row" as const,
       alignItems: "center" as const,
-      backgroundColor: "#FFE4E6",
+      backgroundColor: "#643030",
       borderRadius: 20,
       paddingVertical: 10,
       paddingHorizontal: 16,
@@ -2961,7 +2961,7 @@ export default function RideConfirmScreen() {
     cancelRequestText: {
       fontSize: 15,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: "#FFFFFF",
       marginLeft: 8,
     },
     driverOffersOverlay: {
@@ -4419,7 +4419,7 @@ export default function RideConfirmScreen() {
       {/* Cancel Request Button - show when searching but not when raise fare sheet is shown */}
       {isSearchingDriver && !showRaiseFareSheet && (
         <TouchableOpacity style={styles.cancelRequestButton} onPress={openCancelConfirmSheet}>
-          <X color="#000" size={20} />
+          <X color="#FFFFFF" size={20} />
           <Text style={styles.cancelRequestText}>Cancel request</Text>
         </TouchableOpacity>
       )}

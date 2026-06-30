@@ -552,8 +552,8 @@ export default function AdminPartnerAddScreen() {
               testID="submit-driver"
               activeOpacity={0.9}
             >
-              <UserPlus color={Colors.secondary} size={18} />
-              <Text style={[styles.submitText, { color: Colors.secondary }]}>
+              <UserPlus color={Colors.onAccent} size={18} />
+              <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                 Create partner & continue
               </Text>
             </TouchableOpacity>
@@ -633,7 +633,7 @@ export default function AdminPartnerAddScreen() {
                 testID="finish-add-partner"
               >
                 <Check color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>Done</Text>
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>Done</Text>
               </TouchableOpacity>
             </View>
 

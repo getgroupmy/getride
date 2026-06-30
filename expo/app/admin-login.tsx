@@ -168,9 +168,9 @@ export default function AdminLoginScreen() {
                 testID="admin-whitelist-bypass"
               >
                 {loading ? (
-                  <ActivityIndicator color={Colors.secondary} />
+                  <ActivityIndicator color={Colors.onAccent} />
                 ) : (
-                  <Text style={[styles.whitelistBtnText, { color: Colors.secondary }]}>Enter as admin</Text>
+                  <Text style={[styles.whitelistBtnText, { color: Colors.onAccent }]}>Enter as admin</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -185,11 +185,11 @@ export default function AdminLoginScreen() {
               onPress={() => setMode("pin")}
               testID="admin-tab-pin"
             >
-              <KeyRound color={mode === "pin" ? Colors.secondary : Colors.textSecondary} size={16} />
+              <KeyRound color={mode === "pin" ? Colors.onAccent : Colors.textSecondary} size={16} />
               <Text
                 style={[
                   styles.tabText,
-                  { color: mode === "pin" ? Colors.secondary : Colors.textSecondary },
+                  { color: mode === "pin" ? Colors.onAccent : Colors.textSecondary },
                 ]}
               >
                 PIN
@@ -203,11 +203,11 @@ export default function AdminLoginScreen() {
               onPress={() => setMode("credentials")}
               testID="admin-tab-credentials"
             >
-              <User color={mode === "credentials" ? Colors.secondary : Colors.textSecondary} size={16} />
+              <User color={mode === "credentials" ? Colors.onAccent : Colors.textSecondary} size={16} />
               <Text
                 style={[
                   styles.tabText,
-                  { color: mode === "credentials" ? Colors.secondary : Colors.textSecondary },
+                  { color: mode === "credentials" ? Colors.onAccent : Colors.textSecondary },
                 ]}
               >
                 User ID / Password
@@ -316,9 +316,9 @@ export default function AdminLoginScreen() {
                 testID="admin-login-submit"
               >
                 {loading ? (
-                  <ActivityIndicator color={Colors.secondary} />
+                  <ActivityIndicator color={Colors.onAccent} />
                 ) : (
-                  <Text style={[styles.loginText, { color: Colors.secondary }]}>Sign in</Text>
+                  <Text style={[styles.loginText, { color: Colors.onAccent }]}>Sign in</Text>
                 )}
               </TouchableOpacity>
 

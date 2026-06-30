@@ -365,7 +365,7 @@ export default function PartnerOnboardingScreen() {
         <View style={styles.center}>
           <Text style={[styles.title, { color: Colors.text }]}>Please sign in first</Text>
           <TouchableOpacity onPress={() => router.back()} style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}>
-            <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Go back</Text>
+            <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Go back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -434,7 +434,7 @@ export default function PartnerOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Upload photo</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Upload photo</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -472,7 +472,7 @@ export default function PartnerOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Continue</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -501,7 +501,7 @@ export default function PartnerOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Continue</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -523,7 +523,7 @@ export default function PartnerOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Continue</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -545,7 +545,7 @@ export default function PartnerOnboardingScreen() {
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Continue</Text>
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -587,7 +587,7 @@ export default function PartnerOnboardingScreen() {
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
                 <View style={styles.row}>
-                  <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>
+                  <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>
                     {docsComplete ? "Continue" : "Upload all compulsory documents"}
                   </Text>
                   <ChevronRight color={Colors.secondary} size={18} />
@@ -612,7 +612,7 @@ export default function PartnerOnboardingScreen() {
               style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
               testID="onboard-pick-mode"
             >
-              <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>Choose service mode</Text>
+              <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Choose service mode</Text>
             </TouchableOpacity>
           </View>
         );

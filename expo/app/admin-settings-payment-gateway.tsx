@@ -458,7 +458,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="payment-gateway-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -494,7 +494,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
           <Text
             style={[
               styles.chipText,
-              { color: providerFilter === null ? Colors.secondary : Colors.text },
+              { color: providerFilter === null ? Colors.onAccent : Colors.text },
             ]}
           >
             All ({entries.length})
@@ -519,7 +519,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
               <Text
                 style={[
                   styles.chipText,
-                  { color: active ? Colors.secondary : Colors.text },
+                  { color: active ? Colors.onAccent : Colors.text },
                 ]}
                 numberOfLines={1}
               >
@@ -569,8 +569,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
               style={[styles.emptyAction, { backgroundColor: Colors.accent }]}
               testID="payment-gateway-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.emptyActionText, { color: Colors.secondary }]}>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.emptyActionText, { color: Colors.onAccent }]}>
                 Add Gateway
               </Text>
             </TouchableOpacity>
@@ -609,8 +609,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                     </Text>
                     {isDefault ? (
                       <View style={[styles.pill, { backgroundColor: Colors.accent }]}>
-                        <Star color={Colors.secondary} size={10} />
-                        <Text style={[styles.pillText, { color: Colors.secondary }]}>Default</Text>
+                        <Star color={Colors.onAccent} size={10} />
+                        <Text style={[styles.pillText, { color: Colors.onAccent }]}>Default</Text>
                       </View>
                     ) : null}
                     <View
@@ -830,7 +830,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                           <Text
                             style={[
                               styles.segmentText,
-                              { color: active ? Colors.secondary : Colors.text },
+                              { color: active ? Colors.onAccent : Colors.text },
                             ]}
                           >
                             {m}
@@ -970,8 +970,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="payment-gateway-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add gateway"}
                 </Text>
               </TouchableOpacity>

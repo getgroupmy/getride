@@ -297,7 +297,7 @@ export default function AdminDocumentsUsersScreen() {
               testID={`docs-users-tab-${t.key}`}
               activeOpacity={0.85}
             >
-              <Text style={[styles.tabText, { color: isActive ? Colors.secondary : Colors.text }]}>{t.label}</Text>
+              <Text style={[styles.tabText, { color: isActive ? Colors.onAccent : Colors.text }]}>{t.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -501,11 +501,11 @@ export default function AdminDocumentsUsersScreen() {
                 testID="docs-users-modal-approve"
               >
                 {saving ? (
-                  <ActivityIndicator color={Colors.secondary} size="small" />
+                  <ActivityIndicator color={Colors.onAccent} size="small" />
                 ) : (
                   <>
-                    <CheckCircle2 color={Colors.secondary} size={18} />
-                    <Text style={[styles.actionText, { color: Colors.secondary }]}>Approve</Text>
+                    <CheckCircle2 color={Colors.onAccent} size={18} />
+                    <Text style={[styles.actionText, { color: Colors.onAccent }]}>Approve</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -581,11 +581,11 @@ export default function AdminDocumentsUsersScreen() {
               testID="docs-users-edit-save"
             >
               {editSaving ? (
-                <ActivityIndicator color={Colors.secondary} size="small" />
+                <ActivityIndicator color={Colors.onAccent} size="small" />
               ) : (
                 <>
-                  <Save color={Colors.secondary} size={18} />
-                  <Text style={[styles.actionText, { color: Colors.secondary }]}>Save</Text>
+                  <Save color={Colors.onAccent} size={18} />
+                  <Text style={[styles.actionText, { color: Colors.onAccent }]}>Save</Text>
                 </>
               )}
             </TouchableOpacity>

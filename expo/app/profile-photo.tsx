@@ -353,7 +353,7 @@ export default function ProfilePhotoScreen() {
             )}
           </View>
           <View style={[styles.cameraBadge, { backgroundColor: Colors.accent, borderColor: Colors.background }]}>
-            <Camera color={Colors.secondary} size={14} />
+            <Camera color={Colors.onAccent} size={14} />
           </View>
         </View>
 
@@ -438,7 +438,7 @@ export default function ProfilePhotoScreen() {
                 onPress={() => closeInstruction(true)}
                 testID="instruction-continue"
               >
-                <Camera color={Colors.secondary} size={18} />
+                <Camera color={Colors.onAccent} size={18} />
                 <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>
                   {instruction?.action ?? "Open camera"}
                 </Text>
@@ -487,7 +487,7 @@ export default function ProfilePhotoScreen() {
                 <ActivityIndicator color={Colors.secondary} />
               ) : (
                 <>
-                  <Camera color={Colors.secondary} size={18} />
+                  <Camera color={Colors.onAccent} size={18} />
                   <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>
                     Start liveness check
                   </Text>

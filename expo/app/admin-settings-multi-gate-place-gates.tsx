@@ -320,8 +320,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               {name}
             </Text>
             <View style={[styles.priorityPill, { backgroundColor: Colors.accent }]}>
-              <ListOrdered color={Colors.secondary} size={10} />
-              <Text style={[styles.priorityText, { color: Colors.secondary }]}>{priority}</Text>
+              <ListOrdered color={Colors.onAccent} size={10} />
+              <Text style={[styles.priorityText, { color: Colors.onAccent }]}>{priority}</Text>
             </View>
           </View>
           <View style={styles.badgeRow}>
@@ -409,7 +409,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="gates-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -439,8 +439,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="gates-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add gate</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add gate</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -721,8 +721,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="gate-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Gate"}
                 </Text>
               </TouchableOpacity>
@@ -785,7 +785,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
               testID="gate-map-done"
             >
-              <Save color={Colors.secondary} size={18} />
+              <Save color={Colors.onAccent} size={18} />
             </TouchableOpacity>
           </View>
 

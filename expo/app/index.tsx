@@ -1878,7 +1878,7 @@ export default function HomeScreen() {
               onPress={() => setServiceComingSoonVisible(false)}
               testID="service-coming-soon-ok"
             >
-              <Text style={[styles.csButtonText, { color: Colors.secondary }]}>OK</Text>
+              <Text style={[styles.csButtonText, { color: Colors.onAccent }]}>OK</Text>
             </TouchableOpacity>
           </View>
         </View>

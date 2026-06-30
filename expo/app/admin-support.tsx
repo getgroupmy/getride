@@ -149,7 +149,7 @@ export default function AdminSupportScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="open-pool"
         >
-          <Inbox color="#fff" size={20} />
+          <Inbox color="#000000" size={20} />
         </TouchableOpacity>
       </View>
 
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   rowSubLine: { flexDirection: "row" as const, alignItems: "center" as const, justifyContent: "space-between" as const, marginTop: 3, gap: 8 },
   rowSub: { fontSize: 13, flex: 1 },
   badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, justifyContent: "center" as const, alignItems: "center" as const },
-  badgeText: { color: "#fff", fontSize: 11, fontWeight: "700" as const },
+  badgeText: { color: "#000000", fontSize: 11, fontWeight: "700" as const },
   emptyWrap: { flex: 1, justifyContent: "center" as const, alignItems: "center" as const, paddingTop: 80 },
   emptyText: { fontSize: 14 },
 });

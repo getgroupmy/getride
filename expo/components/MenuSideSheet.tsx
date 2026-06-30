@@ -517,7 +517,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
           }}
           testID="driver-mode-button"
         >
-          <Text style={[styles.driverModeText, { color: Colors.secondary }]}>{partnerModeLabel}</Text>
+          <Text style={[styles.driverModeText, { color: Colors.onAccent }]}>{partnerModeLabel}</Text>
         </TouchableOpacity>
         )}
 
@@ -807,7 +807,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
             onPress={() => setComingSoonVisible(false)}
             testID="coming-soon-ok"
           >
-            <Text style={[styles.csButtonText, { color: Colors.secondary }]}>OK</Text>
+            <Text style={[styles.csButtonText, { color: Colors.onAccent }]}>OK</Text>
           </TouchableOpacity>
         </View>
       </View>

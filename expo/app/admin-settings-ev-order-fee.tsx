@@ -296,7 +296,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-order-fee-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -344,8 +344,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     </Text>
                     {isDefault ? (
                       <View style={[styles.defaultPill, { backgroundColor: Colors.accent }]}>
-                        <Star color={Colors.secondary} size={10} />
-                        <Text style={[styles.defaultPillText, { color: Colors.secondary }]}>
+                        <Star color={Colors.onAccent} size={10} />
+                        <Text style={[styles.defaultPillText, { color: Colors.onAccent }]}>
                           Default
                         </Text>
                       </View>
@@ -510,8 +510,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-order-fee-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Order Fee"}
                 </Text>
               </TouchableOpacity>

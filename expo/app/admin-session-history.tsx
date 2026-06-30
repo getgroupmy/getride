@@ -873,7 +873,7 @@ export default function AdminSessionHistoryScreen() {
                   ]}
                   testID="open-trail"
                 >
-                  <MapIcon color="#fff" size={16} />
+                  <MapIcon color="#000000" size={16} />
                   <Text style={styles.trailBtnText}>
                     View full trail ({filteredDetailLocations.length} pings)
                   </Text>
@@ -1083,11 +1083,11 @@ export default function AdminSessionHistoryScreen() {
               ]}
               testID="trail-polyline"
             >
-              <RouteIcon color={trailMode === "polyline" ? "#fff" : Colors.text} size={14} />
+              <RouteIcon color={trailMode === "polyline" ? "#000000" : Colors.text} size={14} />
               <Text
                 style={[
                   styles.trailModeText,
-                  { color: trailMode === "polyline" ? "#fff" : Colors.text },
+                  { color: trailMode === "polyline" ? "#000000" : Colors.text },
                 ]}
               >
                 Path
@@ -1104,11 +1104,11 @@ export default function AdminSessionHistoryScreen() {
               ]}
               testID="trail-heatmap"
             >
-              <Flame color={trailMode === "heatmap" ? "#fff" : Colors.text} size={14} />
+              <Flame color={trailMode === "heatmap" ? "#000000" : Colors.text} size={14} />
               <Text
                 style={[
                   styles.trailModeText,
-                  { color: trailMode === "heatmap" ? "#fff" : Colors.text },
+                  { color: trailMode === "heatmap" ? "#000000" : Colors.text },
                 ]}
               >
                 Heatmap
@@ -1387,7 +1387,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  trailBtnText: { color: "#fff", fontSize: 14, fontWeight: "800" as const },
+  trailBtnText: { color: "#000000", fontSize: 14, fontWeight: "800" as const },
   trailModeRow: {
     flexDirection: "row" as const,
     gap: 8,

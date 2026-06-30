@@ -161,7 +161,7 @@ export default function AdminVehiclesScreen() {
           testID="vehicles-add"
           activeOpacity={0.85}
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -173,7 +173,7 @@ export default function AdminVehiclesScreen() {
           testID="vehicles-add-cta"
         >
           <View style={[styles.addCtaIcon, { backgroundColor: Colors.accent }]}>
-            <Plus color={Colors.secondary} size={18} />
+            <Plus color={Colors.onAccent} size={18} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.addCtaTitle, { color: Colors.text }]}>Add Vehicle</Text>

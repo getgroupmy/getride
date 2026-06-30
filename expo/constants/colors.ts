@@ -3,6 +3,7 @@ export const lightColors = {
   secondary: "#FFFFFF",
   accent: "#2dabe2",
   accentDark: "#238baf",
+  onAccent: "#000000",
   gray: {
     50: "#F9FAFB",
     100: "#F3F4F6",
@@ -35,6 +36,7 @@ export const darkColors = {
   secondary: "#000000",
   accent: "#2dabe2",
   accentDark: "#238baf",
+  onAccent: "#000000",
   gray: {
     50: "#1F2937",
     100: "#374151",

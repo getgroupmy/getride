@@ -908,7 +908,7 @@ export default function DriverTeksiScreen() {
               activeOpacity={0.8}
               testID="partner-teksi-idle-mode-switch"
             >
-              <Car color="#fff" size={16} />
+              <Car color="#000000" size={16} />
               <Text style={styles.headerBadgeText}>TEKSI</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1533,7 +1533,7 @@ export default function DriverTeksiScreen() {
               activeOpacity={0.8}
               testID="partner-teksi-mode-switch"
             >
-              <Car color="#fff" size={16} />
+              <Car color="#000000" size={16} />
               <Text style={styles.headerBadgeText}>TEKSI</Text>
             </TouchableOpacity>
             <TouchableOpacity

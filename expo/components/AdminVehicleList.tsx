@@ -358,7 +358,7 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
                       style={[styles.callBtn, { backgroundColor: Colors.accent }]}
                       testID={`vehicle-call-${v.id}`}
                     >
-                      <Phone color={Colors.secondary} size={16} />
+                      <Phone color={Colors.onAccent} size={16} />
                     </TouchableOpacity>
                   </View>
                 )}

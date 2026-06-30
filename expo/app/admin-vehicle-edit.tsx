@@ -428,7 +428,7 @@ export default function AdminVehicleEditScreen() {
                 },
               ]}
             >
-              {documentsOk && <Check color={Colors.secondary} size={16} />}
+              {documentsOk && <Check color={Colors.onAccent} size={16} />}
             </View>
           </TouchableOpacity>
 
@@ -438,8 +438,8 @@ export default function AdminVehicleEditScreen() {
             activeOpacity={0.9}
             testID="edit-vehicle-save"
           >
-            <Save color={Colors.secondary} size={18} />
-            <Text style={[styles.submitText, { color: Colors.secondary }]}>Save changes</Text>
+            <Save color={Colors.onAccent} size={18} />
+            <Text style={[styles.submitText, { color: Colors.onAccent }]}>Save changes</Text>
           </TouchableOpacity>
 
           <View style={{ height: 24 }} />

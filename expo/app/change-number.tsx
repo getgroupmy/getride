@@ -687,7 +687,7 @@ const makeStyles = (Colors: ReturnType<typeof useColors>) => StyleSheet.create({
     color: Colors.gray[400],
   },
   continueButtonTextActive: {
-    color: "#FFFFFF",
+    color: "#000000",
   },
   sendErrorText: {
     fontSize: 14,
@@ -859,6 +859,6 @@ const makeStyles = (Colors: ReturnType<typeof useColors>) => StyleSheet.create({
   errorCloseButtonText: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: "#000000",
   },
 });

@@ -176,7 +176,7 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
             testID="partner-list-add"
           >
-            <UserPlus color={Colors.secondary} size={20} />
+            <UserPlus color={Colors.onAccent} size={20} />
           </TouchableOpacity>
         ) : null}
         <View style={[styles.countBadge, { backgroundColor: Colors.accent + "20" }]}>
@@ -309,7 +309,7 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
                       style={[styles.callBtn, { backgroundColor: Colors.accent }]}
                       testID={`partner-call-${d.id}`}
                     >
-                      <Phone color={Colors.secondary} size={16} />
+                      <Phone color={Colors.onAccent} size={16} />
                     </TouchableOpacity>
                   </View>
                 )}

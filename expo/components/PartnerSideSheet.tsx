@@ -417,7 +417,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
           }}
           testID="passenger-mode-button"
         >
-          <Text style={[styles.passengerModeText, { color: Colors.secondary }]}>{passengerModeLabel}</Text>
+          <Text style={[styles.passengerModeText, { color: Colors.onAccent }]}>{passengerModeLabel}</Text>
         </TouchableOpacity>
         )}
 
@@ -454,7 +454,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
             onPress={() => setComingSoonVisible(false)}
             testID="partner-coming-soon-ok"
           >
-            <Text style={[styles.csButtonText, { color: Colors.secondary }]}>OK</Text>
+            <Text style={[styles.csButtonText, { color: Colors.onAccent }]}>OK</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -215,11 +215,11 @@ export default function DocumentMetadataEditModal({
             testID="doc-edit-save"
           >
             {saving ? (
-              <ActivityIndicator color={Colors.secondary} size="small" />
+              <ActivityIndicator color={Colors.onAccent} size="small" />
             ) : (
               <>
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.actionText, { color: Colors.secondary }]}>Save</Text>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.actionText, { color: Colors.onAccent }]}>Save</Text>
               </>
             )}
           </TouchableOpacity>

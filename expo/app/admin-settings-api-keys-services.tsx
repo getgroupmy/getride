@@ -282,7 +282,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               style={[styles.addBtn, { backgroundColor: Colors.accent }]}
               testID="services-add-bottom"
             >
-              <Plus color="#fff" size={18} />
+              <Plus color="#000000" size={18} />
               <Text style={styles.addTxt}>Add Service</Text>
             </TouchableOpacity>
           ) : null}
@@ -354,7 +354,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                     testID={`bulk-svc-${s.id}`}
                   >
                     <View style={[styles.bulkCheckbox, { borderColor: checked ? Colors.accent : Colors.border, backgroundColor: checked ? Colors.accent : "transparent" }]}>
-                      {checked ? <Check color="#fff" size={14} /> : null}
+                      {checked ? <Check color="#000000" size={14} /> : null}
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.bulkRowTitle, { color: Colors.text }]}>{s.name}</Text>
@@ -425,9 +425,9 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 testID="bulk-add-confirm"
               >
                 {bulkSaving ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="#000000" />
                 ) : (
-                  <Text style={[styles.modalBtnTxt, { color: "#fff" }]}>
+                  <Text style={[styles.modalBtnTxt, { color: "#000000" }]}>
                     Add to {Object.values(bulkSelected).filter(Boolean).length || 0}
                   </Text>
                 )}
@@ -477,7 +477,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="service-add-confirm"
               >
-                <Text style={[styles.modalBtnTxt, { color: "#fff" }]}>Add</Text>
+                <Text style={[styles.modalBtnTxt, { color: "#000000" }]}>Add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 6,
   },
-  addTxt: { color: "#fff", fontSize: 15, fontWeight: "800" as const },
+  addTxt: { color: "#000000", fontSize: 15, fontWeight: "800" as const },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" as const },
   modalCard: {
     borderTopLeftRadius: 20,

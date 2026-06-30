@@ -330,7 +330,7 @@ export default function AdminUserEditScreen() {
                     testID={`edit-user-gender-${g.key}`}
                     activeOpacity={0.85}
                   >
-                    <Text style={[styles.chipText, { color: selected ? Colors.secondary : Colors.text }]}>
+                    <Text style={[styles.chipText, { color: selected ? Colors.onAccent : Colors.text }]}>
                       {g.label}
                     </Text>
                   </TouchableOpacity>
@@ -365,7 +365,7 @@ export default function AdminUserEditScreen() {
                   testID={`edit-user-status-${s.key}`}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.chipText, { color: selected ? Colors.secondary : Colors.text }]}>
+                  <Text style={[styles.chipText, { color: selected ? Colors.onAccent : Colors.text }]}>
                     {s.label}
                   </Text>
                 </TouchableOpacity>
@@ -397,7 +397,7 @@ export default function AdminUserEditScreen() {
                 },
               ]}
             >
-              {docsOk && <Check color={Colors.secondary} size={16} />}
+              {docsOk && <Check color={Colors.onAccent} size={16} />}
             </View>
           </TouchableOpacity>
 
@@ -407,8 +407,8 @@ export default function AdminUserEditScreen() {
             testID="save-user"
             activeOpacity={0.9}
           >
-            <Save color={Colors.secondary} size={18} />
-            <Text style={[styles.submitText, { color: Colors.secondary }]}>Save Changes</Text>
+            <Save color={Colors.onAccent} size={18} />
+            <Text style={[styles.submitText, { color: Colors.onAccent }]}>Save Changes</Text>
           </TouchableOpacity>
 
           <View style={{ height: 24 }} />

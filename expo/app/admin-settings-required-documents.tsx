@@ -672,7 +672,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="required-documents-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -701,8 +701,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="required-documents-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add document</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add document</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -792,11 +792,11 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     ]}
                     testID="required-documents-doctype-all"
                   >
-                    {allSelected ? <Check color={Colors.secondary} size={13} /> : null}
+                    {allSelected ? <Check color={Colors.onAccent} size={13} /> : null}
                     <Text
                       style={[
                         styles.pillText,
-                        { color: allSelected ? Colors.secondary : Colors.text },
+                        { color: allSelected ? Colors.onAccent : Colors.text },
                       ]}
                     >
                       All
@@ -835,11 +835,11 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                           ]}
                           testID={`required-documents-doctype-${id}`}
                         >
-                          {checked ? <Check color={Colors.secondary} size={13} /> : null}
+                          {checked ? <Check color={Colors.onAccent} size={13} /> : null}
                           <Text
                             style={[
                               styles.pillText,
-                              { color: checked ? Colors.secondary : Colors.text },
+                              { color: checked ? Colors.onAccent : Colors.text },
                             ]}
                             numberOfLines={1}
                           >
@@ -877,14 +877,14 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     testID="required-documents-partnertype-all"
                   >
                     {form.partnerTypes.includes(ALL_TOKEN) ? (
-                      <Check color={Colors.secondary} size={13} />
+                      <Check color={Colors.onAccent} size={13} />
                     ) : null}
                     <Text
                       style={[
                         styles.pillText,
                         {
                           color: form.partnerTypes.includes(ALL_TOKEN)
-                            ? Colors.secondary
+                            ? Colors.onAccent
                             : Colors.text,
                         },
                       ]}
@@ -928,11 +928,11 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                           ]}
                           testID={`required-documents-partnertype-${name}`}
                         >
-                          {checked ? <Check color={Colors.secondary} size={13} /> : null}
+                          {checked ? <Check color={Colors.onAccent} size={13} /> : null}
                           <Text
                             style={[
                               styles.pillText,
-                              { color: checked ? Colors.secondary : Colors.text },
+                              { color: checked ? Colors.onAccent : Colors.text },
                             ]}
                             numberOfLines={1}
                           >
@@ -977,7 +977,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     ]}
                   >
                     <Globe2
-                      color={form.regionsGlobal ? Colors.secondary : Colors.textSecondary}
+                      color={form.regionsGlobal ? Colors.onAccent : Colors.textSecondary}
                       size={16}
                     />
                   </View>
@@ -1128,7 +1128,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                                     styles.compulsoryTextSm,
                                     {
                                       color: r.compulsory
-                                        ? Colors.secondary
+                                        ? Colors.onAccent
                                         : Colors.textSecondary,
                                     },
                                   ]}
@@ -1201,13 +1201,13 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                               testID={`required-documents-region-country-${c.key}`}
                             >
                               <Globe2
-                                color={checked ? Colors.secondary : Colors.textSecondary}
+                                color={checked ? Colors.onAccent : Colors.textSecondary}
                                 size={12}
                               />
                               <Text
                                 style={[
                                   styles.pillText,
-                                  { color: checked ? Colors.secondary : Colors.text },
+                                  { color: checked ? Colors.onAccent : Colors.text },
                                 ]}
                                 numberOfLines={1}
                               >
@@ -1271,13 +1271,13 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                               testID={`required-documents-region-state-${s.key}`}
                             >
                               <MapPin
-                                color={checked ? Colors.secondary : Colors.textSecondary}
+                                color={checked ? Colors.onAccent : Colors.textSecondary}
                                 size={12}
                               />
                               <Text
                                 style={[
                                   styles.pillText,
-                                  { color: checked ? Colors.secondary : Colors.text },
+                                  { color: checked ? Colors.onAccent : Colors.text },
                                 ]}
                                 numberOfLines={1}
                               >
@@ -1365,7 +1365,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                         ]}
                       >
                         <Icon
-                          color={v ? Colors.secondary : Colors.textSecondary}
+                          color={v ? Colors.onAccent : Colors.textSecondary}
                           size={16}
                         />
                       </View>
@@ -1414,7 +1414,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     ]}
                   >
                     <Car
-                      color={form.isTaxiPermit ? Colors.secondary : Colors.textSecondary}
+                      color={form.isTaxiPermit ? Colors.onAccent : Colors.textSecondary}
                       size={16}
                     />
                   </View>
@@ -1481,8 +1481,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="required-documents-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add document"}
                 </Text>
               </TouchableOpacity>

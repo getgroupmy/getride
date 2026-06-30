@@ -545,8 +545,8 @@ export default function RideTrackingScreen() {
                     onPress={handleCall}
                     style={[styles.actionBtn, { backgroundColor: Colors.accent }]}
                   >
-                    <Phone color={Colors.background} size={18} />
-                    <Text style={[styles.actionText, { color: Colors.background }]}>Call</Text>
+                    <Phone color={Colors.onAccent} size={18} />
+                    <Text style={[styles.actionText, { color: Colors.onAccent }]}>Call</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     activeOpacity={0.85}
@@ -672,8 +672,8 @@ export default function RideTrackingScreen() {
                 onPress={() => router.replace("/" as any)}
                 style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
               >
-                <Text style={[styles.primaryBtnText, { color: Colors.background }]}>Done</Text>
-                <ChevronRight color={Colors.background} size={20} />
+                <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Done</Text>
+                <ChevronRight color={Colors.onAccent} size={20} />
               </TouchableOpacity>
             </>
           )}

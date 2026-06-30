@@ -1432,8 +1432,8 @@ export default function AdminSettingsDisplayScreen() {
                       }}
                       testID={`display-sidemenu-add-${menu}`}
                     >
-                      <Plus color={Colors.secondary} size={18} />
-                      <Text style={[styles.addItemBtnText, { color: Colors.secondary }]}>
+                      <Plus color={Colors.onAccent} size={18} />
+                      <Text style={[styles.addItemBtnText, { color: Colors.onAccent }]}>
                         Add new item
                       </Text>
                     </TouchableOpacity>
@@ -1495,7 +1495,7 @@ export default function AdminSettingsDisplayScreen() {
                       }}
                       testID="display-sidemenu-rename-save"
                     >
-                      <Text style={[styles.modalBtnText, { color: Colors.secondary }]}>Save</Text>
+                      <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Save</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1616,7 +1616,7 @@ export default function AdminSettingsDisplayScreen() {
                       }}
                       testID="display-sidemenu-add-save"
                     >
-                      <Text style={[styles.modalBtnText, { color: Colors.secondary }]}>Add</Text>
+                      <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Add</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

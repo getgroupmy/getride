@@ -1131,7 +1131,7 @@ export default function EditProfileScreen() {
                 )}
               </View>
               <View style={[styles.cameraBadge, { backgroundColor: Colors.accent }]}>
-                <Camera color={Colors.secondary} size={14} />
+                <Camera color={Colors.onAccent} size={14} />
               </View>
             </TouchableOpacity>
             <View style={styles.avatarHintRow}>

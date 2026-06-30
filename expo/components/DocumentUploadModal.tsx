@@ -1032,7 +1032,7 @@ export default function DocumentUploadModal({
               testID="doc-source-snap"
             >
               <View style={[styles.sourceIcon, { backgroundColor: Colors.accent }]}>
-                <Camera color={Colors.secondary} size={22} />
+                <Camera color={Colors.onAccent} size={22} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.sourceTitle, { color: Colors.text }]}>
@@ -1646,9 +1646,9 @@ export default function DocumentUploadModal({
                   testID="doc-modal-submit"
                 >
                   {busy ? (
-                    <ActivityIndicator color={Colors.secondary} />
+                    <ActivityIndicator color={Colors.onAccent} />
                   ) : (
-                    <Text style={[styles.footerBtnText, { color: Colors.secondary }]}>
+                    <Text style={[styles.footerBtnText, { color: Colors.onAccent }]}>
                       Submit
                     </Text>
                   )}
@@ -1667,7 +1667,7 @@ export default function DocumentUploadModal({
                   ]}
                   testID="doc-modal-next"
                 >
-                  <Text style={[styles.footerBtnText, { color: Colors.secondary }]}>
+                  <Text style={[styles.footerBtnText, { color: Colors.onAccent }]}>
                     Continue
                   </Text>
                 </TouchableOpacity>

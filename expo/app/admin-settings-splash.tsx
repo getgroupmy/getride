@@ -170,7 +170,7 @@ export default function AdminSplashScreen() {
               style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
               testID="splash-pick"
             >
-              <Upload color="#fff" size={16} />
+              <Upload color="#000000" size={16} />
               <Text style={styles.primaryBtnText}>{image ? "Replace image" : "Upload image"}</Text>
             </TouchableOpacity>
             {image ? (
@@ -238,17 +238,17 @@ export default function AdminSplashScreen() {
         >
           {saving ? (
             <>
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#000000" />
               <Text style={styles.saveText}>Uploading…</Text>
             </>
           ) : saved ? (
             <>
-              <Check color="#fff" size={18} />
+              <Check color="#000000" size={18} />
               <Text style={styles.saveText}>Published to all users</Text>
             </>
           ) : (
             <>
-              <Save color="#fff" size={18} />
+              <Save color="#000000" size={18} />
               <Text style={styles.saveText}>Publish to all users</Text>
             </>
           )}
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  primaryBtnText: { color: "#fff", fontWeight: "600" as const },
+  primaryBtnText: { color: "#000000", fontWeight: "600" as const },
   ghostBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -328,5 +328,5 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginTop: 8,
   },
-  saveText: { color: "#fff", fontWeight: "700" as const, fontSize: 15 },
+  saveText: { color: "#000000", fontWeight: "700" as const, fontSize: 15 },
 });

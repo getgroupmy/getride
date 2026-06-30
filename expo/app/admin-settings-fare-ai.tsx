@@ -413,7 +413,7 @@ export default function AdminSettingsFareAIScreen() {
                       },
                     ]}
                   >
-                    {selected ? <Check color="#fff" size={14} /> : null}
+                    {selected ? <Check color="#000000" size={14} /> : null}
                   </View>
                 </TouchableOpacity>
               );
@@ -461,7 +461,7 @@ export default function AdminSettingsFareAIScreen() {
                       ]}
                       testID={`fare-ai-retry-unit-${u.id}`}
                     >
-                      <Text style={[styles.unitChipTxt, { color: selected ? "#fff" : Colors.text }]}>
+                      <Text style={[styles.unitChipTxt, { color: selected ? "#000000" : Colors.text }]}>
                         {u.label}
                       </Text>
                     </TouchableOpacity>
@@ -609,10 +609,10 @@ export default function AdminSettingsFareAIScreen() {
                 testID="fare-ai-save"
               >
                 {saving ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="#000000" />
                 ) : (
                   <>
-                    <Save color="#fff" size={18} />
+                    <Save color="#000000" size={18} />
                     <Text style={styles.saveTxt}>{dirty ? "Save changes" : "Saved"}</Text>
                   </>
                 )}
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 22,
   },
-  saveTxt: { color: "#fff", fontSize: 15, fontWeight: "800" as const },
+  saveTxt: { color: "#000000", fontSize: 15, fontWeight: "800" as const },
   logsBtn: {
     flexDirection: "row" as const,
     alignItems: "center" as const,

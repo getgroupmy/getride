@@ -540,7 +540,7 @@ export default function SupportChatView({
         </View>
         {onCall ? (
           <TouchableOpacity onPress={onCall} style={[styles.iconBtn, { backgroundColor: Colors.accent }]} testID="support-call">
-            <Phone color="#fff" size={20} />
+            <Phone color="#000000" size={20} />
           </TouchableOpacity>
         ) : (
           <View style={styles.iconBtn} />
@@ -585,7 +585,7 @@ export default function SupportChatView({
               style={[styles.sendBtn, { backgroundColor: Colors.accent }]}
               testID="stop-record"
             >
-              <Square color="#fff" size={18} fill="#fff" />
+              <Square color="#000000" size={18} fill="#000000" />
             </TouchableOpacity>
           </View>
         ) : (
@@ -612,7 +612,7 @@ export default function SupportChatView({
                 style={[styles.sendBtn, { backgroundColor: Colors.accent }]}
                 testID="send"
               >
-                <Send color="#fff" size={18} />
+                <Send color="#000000" size={18} />
               </TouchableOpacity>
             ) : (
               <Pressable
@@ -620,7 +620,7 @@ export default function SupportChatView({
                 style={[styles.sendBtn, { backgroundColor: Colors.accent }]}
                 testID="record"
               >
-                <Mic color="#fff" size={20} />
+                <Mic color="#000000" size={20} />
               </Pressable>
             )}
           </View>

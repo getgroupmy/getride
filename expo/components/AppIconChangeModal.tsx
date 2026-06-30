@@ -99,5 +99,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  btnText: { color: "#fff", fontWeight: "700" as const, fontSize: 14 },
+  btnText: { color: "#000000", fontWeight: "700" as const, fontSize: 14 },
 });

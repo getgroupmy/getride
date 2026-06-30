@@ -282,7 +282,7 @@ export default function AdminSettingsApiKeysScreen() {
               style={[styles.addBtn, { backgroundColor: Colors.accent }]}
               testID="api-keys-add-bottom"
             >
-              <Plus color="#fff" size={18} />
+              <Plus color="#000000" size={18} />
               <Text style={styles.addTxt}>Add Provider</Text>
             </TouchableOpacity>
           ) : null}
@@ -322,7 +322,7 @@ export default function AdminSettingsApiKeysScreen() {
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="provider-add-confirm"
               >
-                <Text style={[styles.modalBtnTxt, { color: "#fff" }]}>Add</Text>
+                <Text style={[styles.modalBtnTxt, { color: "#000000" }]}>Add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 6,
   },
-  addTxt: { color: "#fff", fontSize: 15, fontWeight: "800" as const },
+  addTxt: { color: "#000000", fontSize: 15, fontWeight: "800" as const },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

@@ -1007,7 +1007,7 @@ export default function AdminSettingsAirportAreasScreen() {
             </Text>
             {!!code && (
               <View style={[styles.codePill, { backgroundColor: Colors.accent }]}>
-                <Text style={[styles.codeText, { color: Colors.secondary }]}>{code}</Text>
+                <Text style={[styles.codeText, { color: Colors.onAccent }]}>{code}</Text>
               </View>
             )}
             {hasBoundary && (
@@ -1080,7 +1080,7 @@ export default function AdminSettingsAirportAreasScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="airport-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -1146,8 +1146,8 @@ export default function AdminSettingsAirportAreasScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="airport-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add Airport</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Airport</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -1290,8 +1290,8 @@ export default function AdminSettingsAirportAreasScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="airport-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Airport"}
                 </Text>
               </TouchableOpacity>
@@ -1375,7 +1375,7 @@ export default function AdminSettingsAirportAreasScreen() {
                             }}
                           >
                             <View style={[styles.vertexDot, { backgroundColor: Colors.accent }]}>
-                              <Text style={[styles.vertexDotText, { color: Colors.secondary }]}>{idx + 1}</Text>
+                              <Text style={[styles.vertexDotText, { color: Colors.onAccent }]}>{idx + 1}</Text>
                             </View>
                           </MarkerRN>
                         ))
@@ -1452,8 +1452,8 @@ export default function AdminSettingsAirportAreasScreen() {
                       disabled={draftPoints.length < 3}
                       testID="airport-draw-finish"
                     >
-                      <Check size={16} color={Colors.secondary} />
-                      <Text style={[styles.actionBtnGhostText, { color: Colors.secondary }]}>Finish</Text>
+                      <Check size={16} color={Colors.onAccent} />
+                      <Text style={[styles.actionBtnGhostText, { color: Colors.onAccent }]}>Finish</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -1478,11 +1478,11 @@ export default function AdminSettingsAirportAreasScreen() {
                       testID={`airport-fetch-${src}`}
                     >
                       {active ? (
-                        <ActivityIndicator size="small" color={Colors.secondary} />
+                        <ActivityIndicator size="small" color={Colors.onAccent} />
                       ) : (
                         <Download size={14} color={Colors.text} />
                       )}
-                      <Text style={{ color: active ? Colors.secondary : Colors.text, fontSize: 13, fontWeight: "600" as const }}>
+                      <Text style={{ color: active ? Colors.onAccent : Colors.text, fontSize: 13, fontWeight: "600" as const }}>
                         {src.toUpperCase()}
                       </Text>
                     </TouchableOpacity>
@@ -1527,8 +1527,8 @@ export default function AdminSettingsAirportAreasScreen() {
                   disabled={!boundary}
                   testID="airport-save-boundary"
                 >
-                  <Download size={16} color={Colors.secondary} />
-                  <Text style={[styles.actionBtnGhostText, { color: Colors.secondary }]}>Save geofence</Text>
+                  <Download size={16} color={Colors.onAccent} />
+                  <Text style={[styles.actionBtnGhostText, { color: Colors.onAccent }]}>Save geofence</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>

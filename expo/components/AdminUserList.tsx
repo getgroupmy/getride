@@ -157,7 +157,7 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
             testID="user-list-add"
           >
-            <UserPlus color={Colors.secondary} size={20} />
+            <UserPlus color={Colors.onAccent} size={20} />
           </TouchableOpacity>
         ) : null}
         <View style={[styles.countBadge, { backgroundColor: Colors.accent + "20" }]}>
@@ -267,7 +267,7 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
                       style={[styles.callBtn, { backgroundColor: Colors.accent }]}
                       testID={`user-call-${u.id}`}
                     >
-                      <Phone color={Colors.secondary} size={16} />
+                      <Phone color={Colors.onAccent} size={16} />
                     </TouchableOpacity>
                   </View>
                 )}

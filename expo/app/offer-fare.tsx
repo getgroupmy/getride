@@ -344,7 +344,7 @@ export default function OfferFareScreen() {
     findDriverText: {
       fontSize: 16,
       fontWeight: "700",
-      color: "#FFFFFF",
+      color: "#000000",
     },
     findDriverTextDisabled: {
       fontSize: 16,
@@ -614,7 +614,7 @@ export default function OfferFareScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.settingsButton}>
-              <SlidersHorizontal color="#FFFFFF" size={22} />
+              <SlidersHorizontal color="#000000" size={22} />
             </TouchableOpacity>
           </View>
         </View>

@@ -203,9 +203,9 @@ function AdminTripAudioPanel({ profileId, ticketId, adminId }: Props) {
                       testID={`trip-audio-play-${rec.id}`}
                     >
                       {playingId === rec.id ? (
-                        <Pause color="#fff" size={16} />
+                        <Pause color="#000000" size={16} />
                       ) : (
-                        <Play color="#fff" size={16} />
+                        <Play color="#000000" size={16} />
                       )}
                       <Text style={styles.actionText}>{playingId === rec.id ? "Pause" : "Play"}</Text>
                     </TouchableOpacity>
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     minWidth: 84,
     justifyContent: "center",
   },
-  actionText: { fontSize: 12, fontWeight: "700", color: "#fff" },
+  actionText: { fontSize: 12, fontWeight: "700", color: "#000000" },
   statusTag: {
     flexDirection: "row",
     alignItems: "center",

@@ -190,7 +190,7 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
           }}
           testID="passenger-mode-button"
         >
-          <Text style={[styles.passengerModeText, { color: Colors.secondary }]}>Passenger Mode</Text>
+          <Text style={[styles.passengerModeText, { color: Colors.onAccent }]}>Passenger Mode</Text>
         </TouchableOpacity>
 
         <View style={styles.socialContainer}>

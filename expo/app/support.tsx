@@ -183,7 +183,7 @@ export default function SupportScreen() {
         activeOpacity={0.9}
         testID="support-new"
       >
-        <Plus color="#fff" size={22} />
+        <Plus color="#000000" size={22} />
         <Text style={styles.fabText}>New chat</Text>
       </TouchableOpacity>
     </SafeAreaView>

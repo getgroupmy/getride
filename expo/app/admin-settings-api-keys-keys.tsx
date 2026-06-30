@@ -445,7 +445,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
             style={[styles.addBtn, { backgroundColor: Colors.accent }]}
             testID="keys-add-bottom"
           >
-            <Plus color="#fff" size={18} />
+            <Plus color="#000000" size={18} />
             <Text style={styles.addTxt}>Add Key</Text>
           </TouchableOpacity>
 
@@ -498,7 +498,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="key-add-confirm"
               >
-                <Text style={[styles.modalBtnTxt, { color: "#fff" }]}>Add</Text>
+                <Text style={[styles.modalBtnTxt, { color: "#000000" }]}>Add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, flexWrap: "wrap" as const },
   cardLabel: { fontSize: 15, fontWeight: "700" as const },
   activeBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  activeBadgeTxt: { color: "#fff", fontSize: 9, fontWeight: "800" as const, letterSpacing: 0.5 },
+  activeBadgeTxt: { color: "#000000", fontSize: 9, fontWeight: "800" as const, letterSpacing: 0.5 },
   disabledBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
   disabledBadgeTxt: { fontSize: 9, fontWeight: "800" as const, letterSpacing: 0.5 },
   smallBtn: { padding: 6 },
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 6,
   },
-  addTxt: { color: "#fff", fontSize: 15, fontWeight: "800" as const },
+  addTxt: { color: "#000000", fontSize: 15, fontWeight: "800" as const },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" as const },
   modalCard: {
     borderTopLeftRadius: 20,

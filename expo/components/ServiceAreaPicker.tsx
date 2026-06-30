@@ -202,7 +202,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
           },
         ]}
       >
-        {selected && <Check color={Colors.secondary} size={14} />}
+        {selected && <Check color={Colors.onAccent} size={14} />}
       </View>
     </TouchableOpacity>
   );
@@ -410,7 +410,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
               activeOpacity={0.9}
               testID="service-area-done"
             >
-              <Text style={[styles.doneText, { color: Colors.secondary }]}>Done</Text>
+              <Text style={[styles.doneText, { color: Colors.onAccent }]}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>

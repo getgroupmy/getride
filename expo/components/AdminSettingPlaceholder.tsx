@@ -84,8 +84,8 @@ export default function AdminSettingPlaceholder({
             activeOpacity={0.9}
             testID={`${testID ?? "setting"}-cta`}
           >
-            <Plus color="#fff" size={18} />
-            <Text style={styles.ctaText}>{primaryAction ?? `Add ${title}`}</Text>
+            <Plus color="#000000" size={18} />
+            <Text style={[styles.ctaText, { color: "#000000" }]}>{primaryAction ?? `Add ${title}`}</Text>
           </TouchableOpacity>
         </View>
 

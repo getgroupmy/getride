@@ -339,7 +339,7 @@ export default function AdminVehicleAddScreen() {
                 },
               ]}
             >
-              {documentsOk && <Check color={Colors.secondary} size={16} />}
+              {documentsOk && <Check color={Colors.onAccent} size={16} />}
             </View>
           </TouchableOpacity>
 
@@ -364,7 +364,7 @@ export default function AdminVehicleAddScreen() {
                 },
               ]}
             >
-              {autoApprove && <Check color={Colors.secondary} size={16} />}
+              {autoApprove && <Check color={Colors.onAccent} size={16} />}
             </View>
           </TouchableOpacity>
 
@@ -374,8 +374,8 @@ export default function AdminVehicleAddScreen() {
             activeOpacity={0.9}
             testID="add-vehicle-submit"
           >
-            <Save color={Colors.secondary} size={18} />
-            <Text style={[styles.submitText, { color: Colors.secondary }]}>Add Vehicle</Text>
+            <Save color={Colors.onAccent} size={18} />
+            <Text style={[styles.submitText, { color: Colors.onAccent }]}>Add Vehicle</Text>
           </TouchableOpacity>
 
           <View style={{ height: 24 }} />

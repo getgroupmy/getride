@@ -227,7 +227,7 @@ export default function AdminDocumentsVehiclesScreen() {
               testID={`docs-vehicles-tab-${t.key}`}
               activeOpacity={0.85}
             >
-              <Text style={[styles.tabText, { color: isActive ? Colors.secondary : Colors.text }]}>{t.label}</Text>
+              <Text style={[styles.tabText, { color: isActive ? Colors.onAccent : Colors.text }]}>{t.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -463,11 +463,11 @@ function VehicleDocReviewModal({
             testID="docs-veh-modal-approve"
           >
             {saving ? (
-              <ActivityIndicator color={Colors.secondary} size="small" />
+              <ActivityIndicator color={Colors.onAccent} size="small" />
             ) : (
               <>
-                <CheckCircle2 color={Colors.secondary} size={18} />
-                <Text style={[styles.actionText, { color: Colors.secondary }]}>Approve</Text>
+                <CheckCircle2 color={Colors.onAccent} size={18} />
+                <Text style={[styles.actionText, { color: Colors.onAccent }]}>Approve</Text>
               </>
             )}
           </TouchableOpacity>
@@ -508,7 +508,7 @@ function FilePreview({ url, label, onOpen }: { url: string | null; label: string
         <Text style={styles.previewBadgeText}>Tap to zoom</Text>
       </View>
       <View style={[styles.previewSideTag, { backgroundColor: Colors.accent }]}>
-        <Text style={{ color: Colors.secondary, fontSize: 11, fontWeight: "800" as const }}>{label}</Text>
+        <Text style={{ color: Colors.onAccent, fontSize: 11, fontWeight: "800" as const }}>{label}</Text>
       </View>
     </TouchableOpacity>
   );

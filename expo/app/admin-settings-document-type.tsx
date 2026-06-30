@@ -220,8 +220,8 @@ export default function AdminSettingsDocumentTypeScreen() {
               </Text>
               {isDefault ? (
                 <View style={[styles.badge, { backgroundColor: Colors.accent }]}>
-                  <ShieldCheck color={Colors.secondary} size={10} />
-                  <Text style={[styles.badgeText, { color: Colors.secondary }]}>Default</Text>
+                  <ShieldCheck color={Colors.onAccent} size={10} />
+                  <Text style={[styles.badgeText, { color: Colors.onAccent }]}>Default</Text>
                 </View>
               ) : null}
             </View>
@@ -291,7 +291,7 @@ export default function AdminSettingsDocumentTypeScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="document-type-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -320,8 +320,8 @@ export default function AdminSettingsDocumentTypeScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="document-type-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add document type</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add document type</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -422,8 +422,8 @@ export default function AdminSettingsDocumentTypeScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="document-type-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add document type"}
                 </Text>
               </TouchableOpacity>

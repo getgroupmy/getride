@@ -327,7 +327,7 @@ export default function AdminSettingsIpAccessScreen() {
                   ]}
                   testID={`ip-access-filter-${f.key}`}
                 >
-                  <Text style={[styles.filterChipTxt, { color: active ? Colors.secondary : Colors.text }]}>
+                  <Text style={[styles.filterChipTxt, { color: active ? Colors.onAccent : Colors.text }]}>
                     {f.label}
                   </Text>
                 </TouchableOpacity>
@@ -356,7 +356,7 @@ export default function AdminSettingsIpAccessScreen() {
                   </Text>
                 </View>
                 <View style={[styles.typeBadge, { backgroundColor: tone }]}>
-                  <Text style={[styles.typeBadgeTxt, { color: Colors.secondary }]}>
+                  <Text style={[styles.typeBadgeTxt, { color: Colors.onAccent }]}>
                     {isWhite ? "Allow" : "Block"}
                   </Text>
                 </View>
@@ -480,11 +480,11 @@ export default function AdminSettingsIpAccessScreen() {
                 testID="ip-access-form-save"
               >
                 {saving ? (
-                  <ActivityIndicator color={Colors.secondary} />
+                  <ActivityIndicator color={Colors.onAccent} />
                 ) : (
                   <>
-                    <Save color={Colors.secondary} size={16} />
-                    <Text style={[styles.saveTxt, { color: Colors.secondary }]}>
+                    <Save color={Colors.onAccent} size={16} />
+                    <Text style={[styles.saveTxt, { color: Colors.onAccent }]}>
                       {editingId ? "Save changes" : "Add rule"}
                     </Text>
                   </>

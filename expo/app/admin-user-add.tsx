@@ -248,7 +248,7 @@ export default function AdminUserAddScreen() {
                     testID={`add-user-gender-${g.key}`}
                     activeOpacity={0.85}
                   >
-                    <Text style={[styles.chipText, { color: selected ? Colors.secondary : Colors.text }]}>
+                    <Text style={[styles.chipText, { color: selected ? Colors.onAccent : Colors.text }]}>
                       {g.label}
                     </Text>
                   </TouchableOpacity>
@@ -289,7 +289,7 @@ export default function AdminUserAddScreen() {
                 },
               ]}
             >
-              {autoApprove && <Check color={Colors.secondary} size={16} />}
+              {autoApprove && <Check color={Colors.onAccent} size={16} />}
             </View>
           </TouchableOpacity>
 
@@ -299,8 +299,8 @@ export default function AdminUserAddScreen() {
             testID="submit-user"
             activeOpacity={0.9}
           >
-            <UserPlus color={Colors.secondary} size={18} />
-            <Text style={[styles.submitText, { color: Colors.secondary }]}>Add User</Text>
+            <UserPlus color={Colors.onAccent} size={18} />
+            <Text style={[styles.submitText, { color: Colors.onAccent }]}>Add User</Text>
           </TouchableOpacity>
 
           <View style={{ height: 24 }} />

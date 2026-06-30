@@ -260,12 +260,12 @@ export default function AdminOrdersScreen() {
               ]}
               testID={`orders-filter-${f.key}`}
             >
-              <ChipIcon color={sel ? Colors.secondary : (isRefit ? refitColor : Colors.text)} size={12} />
-              <Text style={[styles.filterText, { color: sel ? Colors.secondary : Colors.text }]}>
+              <ChipIcon color={sel ? Colors.onAccent : (isRefit ? refitColor : Colors.text)} size={12} />
+              <Text style={[styles.filterText, { color: sel ? Colors.onAccent : Colors.text }]}>
                 {f.label}
               </Text>
-              <View style={[styles.filterCount, { backgroundColor: sel ? Colors.secondary + "30" : Colors.background }]}>
-                <Text style={[styles.filterCountText, { color: sel ? Colors.secondary : Colors.textSecondary }]}>{count}</Text>
+              <View style={[styles.filterCount, { backgroundColor: sel ? Colors.onAccent + "30" : Colors.background }]}>
+                <Text style={[styles.filterCountText, { color: sel ? Colors.onAccent : Colors.textSecondary }]}>{count}</Text>
               </View>
             </TouchableOpacity>
           );
@@ -616,8 +616,8 @@ export default function AdminOrdersScreen() {
                     style={[styles.assignCta, { backgroundColor: Colors.accent }]}
                     testID="order-assign"
                   >
-                    <UserCheck color={Colors.secondary} size={18} />
-                    <Text style={[styles.assignCtaText, { color: Colors.secondary }]}>Assign Delivery Advisor</Text>
+                    <UserCheck color={Colors.onAccent} size={18} />
+                    <Text style={[styles.assignCtaText, { color: Colors.onAccent }]}>Assign Delivery Advisor</Text>
                   </TouchableOpacity>
                 )}
 
@@ -638,11 +638,11 @@ export default function AdminOrdersScreen() {
                         ]}
                         testID={`order-status-${s}`}
                       >
-                        {sel && <Check color={Colors.secondary} size={12} />}
+                        {sel && <Check color={Colors.onAccent} size={12} />}
                         <Text
                           style={[
                             styles.statusBtnText,
-                            { color: sel ? Colors.secondary : Colors.text },
+                            { color: sel ? Colors.onAccent : Colors.text },
                           ]}
                         >
                           {statusLabel(s)}

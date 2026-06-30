@@ -253,7 +253,7 @@ export default function AdminSupportPoolScreen() {
               onPress={() => setAssignTarget(item)}
               activeOpacity={0.85}
             >
-              <UserPlus color="#fff" size={16} />
+              <UserPlus color="#000000" size={16} />
               <Text style={styles.assignBtnText}>{item.assigned_admin_id ? "Reassign" : "Assign"}</Text>
             </TouchableOpacity>
           </View>
@@ -304,7 +304,7 @@ export default function AdminSupportPoolScreen() {
               onPress={() => setStatusFilter(f.key)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.filterChipText, { color: active ? "#fff" : tint }]}>{f.label}</Text>
+              <Text style={[styles.filterChipText, { color: active ? "#000000" : tint }]}>{f.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -400,7 +400,7 @@ export default function AdminSupportPoolScreen() {
                 activeOpacity={0.8}
               >
                 <View style={[styles.agentAvatar, { backgroundColor: Colors.accent }]}>
-                  <UserCheck color="#fff" size={18} />
+                  <UserCheck color="#000000" size={18} />
                 </View>
                 <Text style={[styles.agentName, { color: Colors.text }]}>Assign to me ({myName})</Text>
               </TouchableOpacity>
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 10,
   },
-  assignBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" as const },
+  assignBtnText: { color: "#000000", fontSize: 13, fontWeight: "700" as const },
   reopenBtn: {
     flex: 1,
     flexDirection: "row" as const,

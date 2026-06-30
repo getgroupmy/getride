@@ -442,8 +442,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
               {name}
             </Text>
             <View style={[styles.gatePill, { backgroundColor: Colors.accent }]}>
-              <DoorOpen color={Colors.secondary} size={11} />
-              <Text style={[styles.gateText, { color: Colors.secondary }]}>{gates}</Text>
+              <DoorOpen color={Colors.onAccent} size={11} />
+              <Text style={[styles.gateText, { color: Colors.onAccent }]}>{gates}</Text>
             </View>
           </View>
           <View style={styles.badgeRow}>
@@ -573,7 +573,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="mgp-add-manual"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -651,8 +651,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                 style={[styles.cta, { backgroundColor: Colors.accent }]}
                 testID="mgp-empty-add"
               >
-                <Plus color={Colors.secondary} size={16} />
-                <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add manually</Text>
+                <Plus color={Colors.onAccent} size={16} />
+                <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add manually</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -765,8 +765,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="mgp-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Place"}
                 </Text>
               </TouchableOpacity>

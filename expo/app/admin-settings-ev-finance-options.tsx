@@ -300,7 +300,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-finance-options-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -329,8 +329,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="ev-finance-options-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add Option</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Option</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -383,8 +383,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       {title}
                     </Text>
                     <View style={[styles.priorityPill, { backgroundColor: Colors.accent }]}>
-                      <ListOrdered color={Colors.secondary} size={10} />
-                      <Text style={[styles.priorityText, { color: Colors.secondary }]}>
+                      <ListOrdered color={Colors.onAccent} size={10} />
+                      <Text style={[styles.priorityText, { color: Colors.onAccent }]}>
                         {String(e.values.displayPriority ?? "-")}
                       </Text>
                     </View>
@@ -472,7 +472,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                           <Text
                             style={[
                               styles.pillText,
-                              { color: active ? Colors.secondary : Colors.text },
+                              { color: active ? Colors.onAccent : Colors.text },
                             ]}
                           >
                             {t}
@@ -526,7 +526,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                           <Text
                             style={[
                               styles.pillText,
-                              { color: active ? Colors.secondary : Colors.text },
+                              { color: active ? Colors.onAccent : Colors.text },
                             ]}
                           >
                             {m}
@@ -608,7 +608,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                           <Text
                             style={[
                               styles.pillText,
-                              { color: active ? Colors.secondary : Colors.text },
+                              { color: active ? Colors.onAccent : Colors.text },
                             ]}
                           >
                             {u}
@@ -661,8 +661,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-finance-options-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Option"}
                 </Text>
               </TouchableOpacity>

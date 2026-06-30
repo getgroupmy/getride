@@ -445,7 +445,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="inv-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -474,8 +474,8 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="inv-empty-add"
             >
-              <Plus color={Colors.secondary} size={16} />
-              <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add Unit</Text>
+              <Plus color={Colors.onAccent} size={16} />
+              <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Unit</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -627,8 +627,8 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="inv-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Unit"}
                 </Text>
               </TouchableOpacity>

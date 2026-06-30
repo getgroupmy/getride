@@ -166,7 +166,7 @@ export default function AdminSettingsPaymentTypeScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="payment-type-add"
         >
-          <Plus color={Colors.secondary} size={22} />
+          <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -341,8 +341,8 @@ export default function AdminSettingsPaymentTypeScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="payment-type-save"
               >
-                <Save color={Colors.secondary} size={18} />
-                <Text style={[styles.submitText, { color: Colors.secondary }]}>
+                <Save color={Colors.onAccent} size={18} />
+                <Text style={[styles.submitText, { color: Colors.onAccent }]}>
                   {editing ? "Save changes" : "Add Payment Type"}
                 </Text>
               </TouchableOpacity>

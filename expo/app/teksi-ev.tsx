@@ -2042,11 +2042,11 @@ export default function TeksiEvScreen() {
               testID="ev-extract"
             >
               {extracting ? (
-                <ActivityIndicator color={Colors.secondary} />
+                <ActivityIndicator color={Colors.onAccent} />
               ) : (
-                <Sparkle color={Colors.secondary} size={16} />
+                <Sparkle color={Colors.onAccent} size={16} />
               )}
-              <Text style={[styles.primaryBtnText, { color: Colors.secondary }]}>
+              <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>
                 {extracting ? "Extracting details…" : "Auto-detect details"}
               </Text>
             </TouchableOpacity>
@@ -2326,7 +2326,7 @@ export default function TeksiEvScreen() {
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="ev-agent-code-apply"
               >
-                <Text style={[styles.modalBtnText, { color: Colors.secondary }]}>Apply</Text>
+                <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Apply</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2374,7 +2374,7 @@ export default function TeksiEvScreen() {
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="ev-edit-save"
               >
-                <Text style={[styles.modalBtnText, { color: Colors.secondary }]}>Save</Text>
+                <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>

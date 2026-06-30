@@ -236,7 +236,7 @@ export default function AdminSettingsPushNotificationScreen() {
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
             testID="push-notification-add"
           >
-            <Plus color={Colors.secondary} size={22} />
+            <Plus color={Colors.onAccent} size={22} />
           </TouchableOpacity>
         ) : (
           <View style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]} />
@@ -289,8 +289,8 @@ export default function AdminSettingsPushNotificationScreen() {
                 style={[styles.cta, { backgroundColor: Colors.accent }]}
                 testID="push-notification-empty-add"
               >
-                <Plus color={Colors.secondary} size={16} />
-                <Text style={[styles.ctaText, { color: Colors.secondary }]}>Add Notification</Text>
+                <Plus color={Colors.onAccent} size={16} />
+                <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Notification</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -330,9 +330,9 @@ export default function AdminSettingsPushNotificationScreen() {
                       testID={`push-notification-send-${entry.id}`}
                     >
                       {sendingId === entry.id ? (
-                        <ActivityIndicator color={Colors.secondary} size="small" />
+                        <ActivityIndicator color={Colors.onAccent} size="small" />
                       ) : (
-                        <Send color={Colors.secondary} size={15} />
+                        <Send color={Colors.onAccent} size={15} />
                       )}
                     </TouchableOpacity>
                     <View style={styles.rowActionsBottom}>
@@ -437,7 +437,7 @@ export default function AdminSettingsPushNotificationScreen() {
                           <Text
                             style={[
                               styles.segmentText,
-                              { color: active ? Colors.secondary : Colors.text },
+                              { color: active ? Colors.onAccent : Colors.text },
                             ]}
                           >
                             {a.label}
@@ -463,8 +463,8 @@ export default function AdminSettingsPushNotificationScreen() {
                   style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                   testID="push-notification-send-now"
                 >
-                  <Send color={Colors.secondary} size={18} />
-                  <Text style={[styles.submitText, { color: Colors.secondary }]}>Send now</Text>
+                  <Send color={Colors.onAccent} size={18} />
+                  <Text style={[styles.submitText, { color: Colors.onAccent }]}>Send now</Text>
                 </TouchableOpacity>
               </View>
             </View>
