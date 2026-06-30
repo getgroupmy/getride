@@ -3432,10 +3432,8 @@ export default function RideConfirmScreen() {
       color: colors.onAccent,
     },
     keepFareButton: {
-      backgroundColor: colors.background,
+      backgroundColor: "#323335",
       borderRadius: 12,
-      borderWidth: 1,
-      borderColor: "#E5E5E5",
       paddingVertical: 16,
       alignItems: "center" as const,
       justifyContent: "center" as const,
@@ -3444,7 +3442,7 @@ export default function RideConfirmScreen() {
     keepFareText: {
       fontSize: 16,
       fontWeight: "600" as const,
-      color: colors.text,
+      color: "#FFFFFF",
     },
     fareRaisedToast: {
       position: "absolute" as const,
@@ -3585,7 +3583,7 @@ export default function RideConfirmScreen() {
       marginBottom: 16,
     },
     wantToCancelButton: {
-      backgroundColor: "#F3F4F6",
+      backgroundColor: "#323335",
       borderRadius: 12,
       paddingVertical: 16,
       alignItems: "center" as const,
@@ -3594,7 +3592,7 @@ export default function RideConfirmScreen() {
     wantToCancelText: {
       fontSize: 16,
       fontWeight: "500" as const,
-      color: colors.text,
+      color: "#FFFFFF",
     },
     promoCodeSheetOverlay: {
       position: "absolute" as const,
