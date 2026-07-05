@@ -1112,14 +1112,31 @@ create table if not exists public.ride_requests (
 
   -- Why the ride was cancelled (0054): free-text/preset reason chosen by the
   -- rider (or driver) when cancelling.
-  cancel_reason text
+  cancel_reason text,
+
+  -- Live location sharing (0055): continuously updated GPS fixes published by
+  -- the partner and the passenger during an active ride.
+  partner_live_lat     double precision,
+  partner_live_lng     double precision,
+  partner_live_heading double precision,
+  partner_live_at      timestamptz,
+  user_live_lat        double precision,
+  user_live_lng        double precision,
+  user_live_at         timestamptz
 );
 
--- Idempotent upgrade for databases created before 0053/0054.
+-- Idempotent upgrade for databases created before 0053/0054/0055.
 alter table public.ride_requests
   add column if not exists cancel_requested_at timestamptz,
   add column if not exists cancel_requested_by text,
-  add column if not exists cancel_reason text;
+  add column if not exists cancel_reason text,
+  add column if not exists partner_live_lat     double precision,
+  add column if not exists partner_live_lng     double precision,
+  add column if not exists partner_live_heading double precision,
+  add column if not exists partner_live_at      timestamptz,
+  add column if not exists user_live_lat        double precision,
+  add column if not exists user_live_lng        double precision,
+  add column if not exists user_live_at         timestamptz;
 
 create index if not exists ride_requests_status_idx       on public.ride_requests(status);
 create index if not exists ride_requests_rider_idx        on public.ride_requests(rider_id);

@@ -55,7 +55,7 @@ const SECTIONS: MockSection[] = [
         key: "riderTripSimEnabled",
         label: "Simulated driver movement",
         description:
-          "Animated car on the map plus automatic phase changes (arriving \u2192 arrived \u2192 on trip \u2192 completed). When off, the screen follows the real ride status updated by the partner",
+          "Animated car on the map plus automatic phase changes (arriving \u2192 arrived \u2192 on trip \u2192 completed). When off, the car follows the partner's real live GPS position and the real ride status",
         screen: "Ride Tracking",
         icon: Route,
       },
@@ -76,7 +76,7 @@ const SECTIONS: MockSection[] = [
         key: "partnerDriveSimEnabled",
         label: "Simulated driving & auto-arrival",
         description:
-          "Animated car along the route and automatic arrival at pickup/destination. When off, the partner advances the trip manually with the action button",
+          "Animated car along the route and automatic arrival at pickup/destination. When off, the car follows the device's real GPS (shared live with the passenger) and the partner advances the trip manually",
         screen: "Ride Running",
         icon: Car,
       },

@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import * as Location from "expo-location";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import {
   Navigation,
@@ -58,6 +59,7 @@ import {
   cancelRideRequest,
   declineRideCancellation,
   fetchRideRequest,
+  publishLiveLocation,
 } from "@/utils/rideRequestsStore";
 
 const { width, height } = Dimensions.get("window");
@@ -194,6 +196,9 @@ export default function RideRunningScreen() {
   const userCancelledAnim = useRef(new Animated.Value(0)).current;
   const rideExitedRef = useRef<boolean>(false);
   const [showNavMenu, setShowNavMenu] = useState<boolean>(false);
+  // Passenger's live position (published by the rider app) — shown while
+  // heading to the pickup so the driver can see where the passenger is.
+  const [userLivePos, setUserLivePos] = useState<Coord | null>(null);
   const [showRecalcSheet, setShowRecalcSheet] = useState<boolean>(false);
   const [isRecalculating, setIsRecalculating] = useState<boolean>(false);
   const [recalcResult, setRecalcResult] = useState<RecalcResult | null>(null);
@@ -317,6 +322,59 @@ export default function RideRunningScreen() {
     const t = setInterval(() => setElapsedSec((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, [arrived]);
+
+  // Real GPS mode: when the driving simulation is off, the car marker follows
+  // the device's actual position instead of an animated route playback.
+  useEffect(() => {
+    if (driveSimEnabled || Platform.OS === "web") return;
+    let sub: Location.LocationSubscription | null = null;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted" || cancelled) {
+          console.log("[ride-running] location permission not granted for live tracking");
+          return;
+        }
+        sub = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 2000,
+            distanceInterval: 5,
+          },
+          (pos) => {
+            const coord: Coord = {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+            };
+            setDriverPos(coord);
+            if (typeof pos.coords.heading === "number" && pos.coords.heading >= 0) {
+              setHeading(pos.coords.heading);
+            }
+          }
+        );
+        console.log("[ride-running] real GPS tracking started");
+      } catch (e) {
+        console.log("[ride-running] live GPS watch failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
+  }, [driveSimEnabled]);
+
+  // Share the driver's live position with the passenger (throttled ~3s).
+  // Works in both modes: with the simulation on, the simulated car position is
+  // published so the rider's map mirrors it; with it off, the real GPS is shared.
+  const lastLivePublishRef = useRef<number>(0);
+  useEffect(() => {
+    if (!rideRequestId || rideExitedRef.current) return;
+    const now = Date.now();
+    if (now - lastLivePublishRef.current < 3000) return;
+    lastLivePublishRef.current = now;
+    void publishLiveLocation(rideRequestId, "partner", driverPos.latitude, driverPos.longitude, heading);
+  }, [rideRequestId, driverPos, heading]);
 
   const CENTER_OFFSET_LAT = 0;
 
@@ -614,8 +672,11 @@ export default function RideRunningScreen() {
   // Handles a remote update of the ride request: pop the user-cancelled popup
   // when the passenger cancels before pickup, or the approval modal when they
   // request a cancellation mid-trip. Shared by realtime + polling fallback.
-  const handleRideRequestUpdate = useCallback((row: { status: string; cancel_requested_at: string | null; cancel_reason: string | null }) => {
+  const handleRideRequestUpdate = useCallback((row: { status: string; cancel_requested_at: string | null; cancel_reason: string | null; user_live_lat?: number | null; user_live_lng?: number | null }) => {
     if (rideExitedRef.current) return;
+    if (typeof row.user_live_lat === "number" && typeof row.user_live_lng === "number") {
+      setUserLivePos({ latitude: row.user_live_lat, longitude: row.user_live_lng });
+    }
     if (row.status === "cancelled") {
       rideExitedRef.current = true;
       console.log("[ride-running] ride request cancelled by passenger", rideRequestId);
@@ -1168,6 +1229,11 @@ export default function RideRunningScreen() {
                   <MapPin color={Colors.background} size={18} />
                 </View>
               </Marker>
+              {phase === "toPickup" && userLivePos && (
+                <Marker coordinate={userLivePos} anchor={{ x: 0.5, y: 0.5 }}>
+                  <View style={[styles.userLiveDot, { borderColor: Colors.background }]} />
+                </Marker>
+              )}
               <Marker coordinate={driverPos} anchor={{ x: 0.5, y: 0.5 }}>
                 <View style={styles.carWrap}>
                   <Animated.View
@@ -2433,6 +2499,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+  },
+  userLiveDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#2563EB",
+    borderWidth: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
   },
   carWrap: { width: 60, height: 60, justifyContent: "center", alignItems: "center" },
   pulseRing: {

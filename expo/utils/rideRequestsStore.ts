@@ -73,6 +73,15 @@ export interface RideRequest {
   user_drop_lat: number | null;
   user_drop_lng: number | null;
 
+  // Live location sharing (continuously updated during an active ride)
+  partner_live_lat: number | null;
+  partner_live_lng: number | null;
+  partner_live_heading: number | null;
+  partner_live_at: string | null;
+  user_live_lat: number | null;
+  user_live_lng: number | null;
+  user_live_at: string | null;
+
   // Trip OTP
   otp: string | null;
 
@@ -762,6 +771,55 @@ export async function recordPartnerCheckpoint(
     return true;
   } catch (e) {
     console.log("[rideRequests] checkpoint update error", checkpoint, e);
+    return false;
+  }
+}
+
+// Once the DB reports the live-location columns are missing (migration 0055
+// not applied yet), stop retrying so we don't spam failed updates.
+let liveLocationColumnsMissing = false;
+
+/**
+ * Publishes a live GPS fix onto the ride request row so the other party can
+ * follow it in realtime: the partner app publishes the driver's position
+ * (with heading), the passenger app publishes the rider's position.
+ * Best-effort — never throws, and disables itself when the live-location
+ * columns don't exist in the live DB yet.
+ */
+export async function publishLiveLocation(
+  id: string,
+  role: "partner" | "user",
+  lat: number,
+  lng: number,
+  heading?: number | null
+): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase || !id) return false;
+  if (liveLocationColumnsMissing) return false;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  const patch: Record<string, unknown> = {
+    [`${role}_live_lat`]: lat,
+    [`${role}_live_lng`]: lng,
+    [`${role}_live_at`]: new Date().toISOString(),
+  };
+  if (role === "partner" && typeof heading === "number" && Number.isFinite(heading)) {
+    patch.partner_live_heading = heading;
+  }
+  try {
+    const { error } = await supabase.from(TABLE).update(patch).eq("id", id);
+    if (error) {
+      if (missingColumnFromError(error.message)) {
+        liveLocationColumnsMissing = true;
+        console.log(
+          "[rideRequests] live-location columns missing in DB — apply migration 0055 to enable live tracking"
+        );
+        return false;
+      }
+      console.log("[rideRequests] live location publish failed", error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log("[rideRequests] live location publish error", e);
     return false;
   }
 }

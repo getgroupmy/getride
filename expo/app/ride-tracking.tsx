@@ -17,6 +17,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import * as Haptics from "expo-haptics";
+import * as Location from "expo-location";
 import {
   Phone,
   MessageCircle,
@@ -46,6 +47,8 @@ import {
   updateRideRequestStatus,
   requestRideCancellation,
   subscribeToRideRequest,
+  fetchRideRequest,
+  publishLiveLocation,
 } from "@/utils/rideRequestsStore";
 import { AppAlertModal } from "@/components/AppAlertModal";
 
@@ -207,6 +210,11 @@ export default function RideTrackingScreen() {
         setCancelPending(false);
         setShowCancelDeclined(true);
       }
+      // Simulation off: follow the partner's real live GPS position so the
+      // car marker mirrors the driver's actual movement.
+      if (!tripSimEnabledRef.current && row.partner_live_lat != null && row.partner_live_lng != null) {
+        setDriverPos({ latitude: row.partner_live_lat, longitude: row.partner_live_lng });
+      }
       // Simulation off: mirror the real status the partner writes to the request.
       if (!tripSimEnabledRef.current) {
         const current = phaseRef.current;
@@ -224,6 +232,58 @@ export default function RideTrackingScreen() {
     });
     return unsub;
   }, [requestId, router]);
+
+  // Polling fallback for live tracking: realtime events can be missed
+  // (backgrounded app, dropped socket), so while the simulation is off the
+  // partner's live position is re-fetched every few seconds.
+  useEffect(() => {
+    if (!requestId || tripSimEnabled) return;
+    const interval = setInterval(() => {
+      void fetchRideRequest(requestId)
+        .then((row) => {
+          if (row && row.partner_live_lat != null && row.partner_live_lng != null) {
+            setDriverPos({ latitude: row.partner_live_lat, longitude: row.partner_live_lng });
+          }
+        })
+        .catch((e) => {
+          console.log("[ride-tracking] live position poll failed", e);
+        });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [requestId, tripSimEnabled]);
+
+  // Share the passenger's live GPS with the partner (throttled) so the driver
+  // can see where the rider is while heading to the pickup.
+  useEffect(() => {
+    if (!requestId || Platform.OS === "web") return;
+    let sub: Location.LocationSubscription | null = null;
+    let cancelled = false;
+    let lastPublish = 0;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted" || cancelled) {
+          console.log("[ride-tracking] location permission not granted for live sharing");
+          return;
+        }
+        sub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, timeInterval: 4000, distanceInterval: 10 },
+          (pos) => {
+            const now = Date.now();
+            if (now - lastPublish < 4000) return;
+            lastPublish = now;
+            void publishLiveLocation(requestId, "user", pos.coords.latitude, pos.coords.longitude);
+          }
+        );
+      } catch (e) {
+        console.log("[ride-tracking] live GPS share failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      sub?.remove();
+    };
+  }, [requestId]);
 
   // Keep the ride request row in sync with the trip lifecycle so a finished
   // trip never lingers as "ongoing" and blocks the rider's next request.
