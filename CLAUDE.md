@@ -58,7 +58,7 @@ Providers are layered in `_layout.tsx` in this order (outermost first):
 QueryClientProvider → LocationProvider → AuthProvider → ThemeProvider →
 AdminDataProvider → AdminAccessProvider → DisplaySettingsProvider →
 BrandingProvider → SessionTrackingProvider → EmergencyContactsProvider →
-VoiceProtectionProvider → PushNotificationProvider
+VoiceProtectionProvider → PushNotificationProvider → IpAccessProvider
 ```
 
 Each context is created with `@nkzw/create-context-hook`, which produces a `[Provider, useX]` pair. Import from the context file directly (e.g. `import { useAuth } from "@/contexts/AuthContext"`).
@@ -77,7 +77,7 @@ Each context is created with `@nkzw/create-context-hook`, which produces a `[Pro
 
 - **PushNotificationContext** (`contexts/PushNotificationContext.tsx`) — registers the device's Expo push token (via `utils/pushNotifications.ts`) and persists it to the `push_tokens` table. Broadcasts are sent from the admin "Push Notification" screen, which invokes the `send-push` Supabase edge function (see Database below). Audiences: `all`, `partners`, or `users` (`drivers` is a legacy alias for `partners`).
 
-- Other feature contexts: **BrandingContext** (app name/logo/colors from `app_branding`), **DisplaySettingsContext** (admin UI prefs), **SessionTrackingContext** (records user sessions to `user_sessions`), **EmergencyContactsContext** (rider SOS contacts), **VoiceProtectionContext** (in-ride audio recording/protection), **LocationContext** (foreground location + permissions).
+- Other feature contexts: **BrandingContext** (app name/logo/colors from `app_branding`), **DisplaySettingsContext** (admin UI prefs), **SessionTrackingContext** (records user sessions to `user_sessions`, including public IP/ISP details resolved via the `ip-lookup` edge function), **EmergencyContactsContext** (rider SOS contacts), **VoiceProtectionContext** (in-ride audio recording/protection), **LocationContext** (foreground location + permissions), **IpAccessContext** (evaluates the device's public IP against the admin-managed whitelist/blacklist in `ip_access_rules` — whitelisted admins skip the PIN, blacklisted devices are blocked at login).
 
 Most non-admin domain state is kept in lightweight `utils/*Store.ts` modules (e.g. `supportStore.ts`, `vehicleStore.ts`, `partnerOnboardingStore.ts`) rather than React contexts — these are plain async functions wrapping Supabase/AsyncStorage.
 
@@ -87,6 +87,10 @@ Most non-admin domain state is kept in lightweight `utils/*Store.ts` modules (e.
 - All data-access functions for the admin panel live in `utils/adminSync.ts` — thin wrappers around `supabase.from(...).select/upsert/delete`.
 - `uuidv4()` is exported from `utils/supabase.ts` for generating client-side primary keys before inserts.
 - Always call `isSupabaseConfigured` / `getSupabaseOrThrow()` before using the client in new code.
+
+### Ride Dispatch
+
+Real ride matching goes through the `ride_requests` table via `utils/rideRequestsStore.ts` (no context — plain async functions plus Supabase realtime subscriptions). A rider inserts an `open` request; online partners subscribe to open requests in realtime, accept one (claiming it), and progress it through `accepted` → `arrived` → `on_trip` → `completed` (or `cancelled`/`expired`). The rider watches their own request row for status changes. A database trigger (migration `0051`, using `pg_net` + Supabase Vault secrets `project_url`/`service_role_key`) fires the `send-push` edge function to notify the partner audience whenever a new open request is inserted.
 
 ### Maps
 
@@ -102,13 +106,13 @@ Files with a `.web.ts` / `.web.tsx` suffix are automatically used by Metro/Expo 
 
 ## Database
 
-The full, consolidated schema lives in `supabase/schema.sql` (idempotent — safe to re-run). Key tables: `profiles`, `partners`, `vehicles`, `partner_documents`, `settings_entries`, `app_settings`, `rides`, `support_tickets`/`support_messages`/`support_calls`, `push_tokens`, `push_notifications`, plus geo tables (`countries`/`states`/`cities`/`suburbs`/`airport_areas`).
+The full, consolidated schema lives in `supabase/schema.sql` (idempotent — safe to re-run). Key tables: `profiles`, `partners`, `vehicles`, `partner_documents`, `settings_entries`, `app_settings`, `rides`, `ride_requests`, `support_tickets`/`support_messages`/`support_calls`, `push_tokens`, `push_notifications`, `ip_access_rules`, plus geo tables (`countries`/`states`/`cities`/`suburbs`/`airport_areas`).
 
 `supabase/migrations/` holds the numbered incremental migration history (`0001_…` onward). `schema.sql` is the canonical full snapshot; the migrations are the historical deltas that produced it. When adding tables/columns, update `schema.sql` and add a new numbered migration.
 
-`supabase/functions/` holds Deno edge functions. The only one today is `send-push`, which fans a notification out to registered Expo push tokens using the service-role key and logs to `push_notifications`. Deploy with `supabase functions deploy send-push --no-verify-jwt`.
+`supabase/functions/` holds Deno edge functions. There are two: `send-push` fans a notification out to registered Expo push tokens using the service-role key and logs to `push_notifications`; `ip-lookup` resolves the caller's public IP and ISP/geolocation (the mobile client can only see its LAN IP). Deploy with `supabase functions deploy <name> --no-verify-jwt`.
 
-RLS is enabled by default. User-facing writes require `auth.uid()` to match the row owner. Admin/back-office writes require the `service_role` key.
+RLS is enabled by default, but many tables intentionally carry permissive/public write policies so the anon client can write directly (e.g. `ride_requests`, `app_settings`, `settings_entries`). Owner-scoped tables (like `profiles`) require `auth.uid()` to match the row; admin/back-office writes otherwise use the `service_role` key.
 
 To bootstrap a new Supabase project (`setup.sh` applies `schema.sql` + `seed.sql`, and deploys edge functions if the Supabase CLI is on PATH):
 ```bash
