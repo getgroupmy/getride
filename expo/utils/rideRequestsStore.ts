@@ -755,6 +755,16 @@ export async function updateRideRequestStatus(
   }
 }
 
+/**
+ * Extracts the offending column name from a PostgREST "missing column"
+ * error (e.g. the live DB hasn't had the latest migration applied yet).
+ * Returns null when the error is unrelated to a missing column.
+ */
+function missingColumnFromError(message: string): string | null {
+  const match = /Could not find the '([^']+)' column/.exec(message);
+  return match ? match[1] : null;
+}
+
 /** Marks an open/accepted request cancelled (passenger cancels). */
 export async function cancelRideRequest(id: string, reason?: string): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase || !id) return false;
@@ -764,12 +774,21 @@ export async function cancelRideRequest(id: string, reason?: string): Promise<bo
   };
   if (reason && reason.trim().length > 0) patch.cancel_reason = reason.trim();
   try {
-    const { error } = await supabase.from(TABLE).update(patch).eq("id", id);
-    if (error) {
+    // Retry without any column the live DB doesn't have yet (unapplied
+    // migration) so the cancellation itself still goes through.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.from(TABLE).update(patch).eq("id", id);
+      if (!error) return true;
+      const missing = missingColumnFromError(error.message);
+      if (missing && missing in patch && missing !== "status") {
+        console.log(`[rideRequests] cancel: column '${missing}' missing in DB, retrying without it`);
+        delete patch[missing];
+        continue;
+      }
       console.log("[rideRequests] cancel failed", error.message);
       return false;
     }
-    return true;
+    return false;
   } catch (e) {
     console.log("[rideRequests] cancel error", e);
     return false;
@@ -793,16 +812,32 @@ export async function requestRideCancellation(
   };
   if (reason && reason.trim().length > 0) patch.cancel_reason = reason.trim();
   try {
-    const { error } = await supabase
-      .from(TABLE)
-      .update(patch)
-      .eq("id", id)
-      .in("status", ["accepted", "arrived", "on_trip"]);
-    if (error) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase
+        .from(TABLE)
+        .update(patch)
+        .eq("id", id)
+        .in("status", ["accepted", "arrived", "on_trip"]);
+      if (!error) return true;
+      const missing = missingColumnFromError(error.message);
+      if (missing === "cancel_reason") {
+        console.log("[rideRequests] request cancellation: 'cancel_reason' missing in DB, retrying without it");
+        delete patch.cancel_reason;
+        continue;
+      }
+      if (missing === "cancel_requested_at" || missing === "cancel_requested_by") {
+        // The approval columns don't exist in the live DB (migration not
+        // applied), so driver approval can't work — cancel directly instead
+        // of leaving the rider stuck waiting forever.
+        console.log(
+          `[rideRequests] request cancellation: '${missing}' missing in DB, falling back to direct cancel`
+        );
+        return cancelRideRequest(id, reason);
+      }
       console.log("[rideRequests] request cancellation failed", error.message);
       return false;
     }
-    return true;
+    return false;
   } catch (e) {
     console.log("[rideRequests] request cancellation error", e);
     return false;
@@ -818,6 +853,8 @@ export async function declineRideCancellation(id: string): Promise<boolean> {
       .update({ cancel_requested_at: null, cancel_requested_by: null })
       .eq("id", id);
     if (error) {
+      // Columns missing in the live DB → there is nothing to clear anyway.
+      if (missingColumnFromError(error.message)) return true;
       console.log("[rideRequests] decline cancellation failed", error.message);
       return false;
     }
