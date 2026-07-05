@@ -1317,6 +1317,10 @@ export default function RideRunningScreen() {
             {
               backgroundColor: Colors.background,
               bottom: insets.bottom + 360,
+              transform: [
+                { translateX: displaySettings.prRecenterHorizontal },
+                { translateY: displaySettings.prRecenterVertical },
+              ],
             },
           ]}
         >

@@ -51,6 +51,11 @@ export const RIDE_CONFIRM_OFFSET_MIN = -300 as const;
 export const RIDE_CONFIRM_OFFSET_MAX = 300 as const;
 export const RIDE_CONFIRM_OFFSET_STEP = 5 as const;
 
+/** Shared range for ride-tracking (user & partner) recenter button offsets. */
+export const RIDE_TRACKING_OFFSET_MIN = -300 as const;
+export const RIDE_TRACKING_OFFSET_MAX = 300 as const;
+export const RIDE_TRACKING_OFFSET_STEP = 5 as const;
+
 /** Side menu identifiers — used by admin display settings to customize MenuSideSheet & PartnerSideSheet. */
 export type SideMenuKey = "user" | "partner";
 
@@ -471,6 +476,14 @@ export interface DisplaySettings {
   rcAddressVertical: number;
   /** Ride-confirm address box horizontal offset (px). Negative moves left, positive moves right. */
   rcAddressHorizontal: number;
+  /** User ride-tracking recenter button vertical offset (px). Negative moves up, positive moves down. */
+  rtRecenterVertical: number;
+  /** User ride-tracking recenter button horizontal offset (px). Negative moves left, positive moves right. */
+  rtRecenterHorizontal: number;
+  /** Partner ride screen recenter button vertical offset (px). Negative moves up, positive moves down. */
+  prRecenterVertical: number;
+  /** Partner ride screen recenter button horizontal offset (px). Negative moves left, positive moves right. */
+  prRecenterHorizontal: number;
   /** Vehicle service entry IDs hidden from the home vehicle type bar. */
   hiddenVehicleServiceIds: string[];
   /** Show available vehicle icons/markers on the map. */
@@ -525,6 +538,10 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   rcDisclaimerHorizontal: 0,
   rcAddressVertical: 0,
   rcAddressHorizontal: 0,
+  rtRecenterVertical: 0,
+  rtRecenterHorizontal: 0,
+  prRecenterVertical: 0,
+  prRecenterHorizontal: 0,
   hiddenVehicleServiceIds: [],
   showVehicleMarkers: false,
   vehicleBarOrder: [],
@@ -723,7 +740,7 @@ export const [DisplaySettingsProvider, useDisplaySettings] = createContextHook((
   );
 
   const setNumeric = useCallback(
-    (key: "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset" | "rcBackVertical" | "rcBackHorizontal" | "rcRecenterVertical" | "rcRecenterHorizontal" | "rcDisclaimerVertical" | "rcDisclaimerHorizontal" | "rcAddressVertical" | "rcAddressHorizontal", value: number, min: number, max: number) => {
+    (key: "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset" | "rcBackVertical" | "rcBackHorizontal" | "rcRecenterVertical" | "rcRecenterHorizontal" | "rcDisclaimerVertical" | "rcDisclaimerHorizontal" | "rcAddressVertical" | "rcAddressHorizontal" | "rtRecenterVertical" | "rtRecenterHorizontal" | "prRecenterVertical" | "prRecenterHorizontal", value: number, min: number, max: number) => {
       const clamped = Math.max(min, Math.min(max, Math.round(value)));
       setSettings((prev) => {
         const next = { ...prev, [key]: clamped } as DisplaySettings;

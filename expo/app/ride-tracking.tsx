@@ -633,7 +633,17 @@ export default function RideTrackingScreen() {
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleRecenter}
-          style={[styles.recenterBtn, { backgroundColor: Colors.background, bottom: 360 + insets.bottom }]}
+          style={[
+            styles.recenterBtn,
+            {
+              backgroundColor: Colors.background,
+              bottom: 360 + insets.bottom,
+              transform: [
+                { translateX: displaySettings.rtRecenterHorizontal },
+                { translateY: displaySettings.rtRecenterVertical },
+              ],
+            },
+          ]}
         >
           <Crosshair color={Colors.accent} size={22} />
         </TouchableOpacity>

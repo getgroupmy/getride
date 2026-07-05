@@ -91,6 +91,9 @@ import {
   DISCOUNT_BAR_HEIGHT_OFFSET_MAX,
   DISCOUNT_BAR_HEIGHT_OFFSET_STEP,
   RIDE_CONFIRM_OFFSET_MIN,
+  RIDE_TRACKING_OFFSET_MIN,
+  RIDE_TRACKING_OFFSET_MAX,
+  RIDE_TRACKING_OFFSET_STEP,
   RIDE_CONFIRM_OFFSET_MAX,
   RIDE_CONFIRM_OFFSET_STEP,
   DEFAULT_USER_MENU_ITEMS,
@@ -209,7 +212,7 @@ export default function AdminSettingsDisplayScreen() {
     return found ? found.label : path;
   };
 
-  type LayoutKey = "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset" | "rcBackVertical" | "rcBackHorizontal" | "rcRecenterVertical" | "rcRecenterHorizontal" | "rcDisclaimerVertical" | "rcDisclaimerHorizontal" | "rcAddressVertical" | "rcAddressHorizontal";
+  type LayoutKey = "recenterButtonBottom" | "mapHeightOffset" | "dropPinTopOffset" | "dropPinHorizontalOffset" | "addressBarTopOffset" | "discountBarHeightOffset" | "rcBackVertical" | "rcBackHorizontal" | "rcRecenterVertical" | "rcRecenterHorizontal" | "rcDisclaimerVertical" | "rcDisclaimerHorizontal" | "rcAddressVertical" | "rcAddressHorizontal" | "rtRecenterVertical" | "rtRecenterHorizontal" | "prRecenterVertical" | "prRecenterHorizontal";
   const layoutItems: { key: LayoutKey; label: string; description: string; min: number; max: number; step: number; unit: string }[] = [
     {
       key: "recenterButtonBottom",
@@ -341,6 +344,45 @@ export default function AdminSettingsDisplayScreen() {
       unit: "px",
     },
   ];
+  const rideTrackingItems: { key: LayoutKey; label: string; description: string; min: number; max: number; step: number; unit: string }[] = [
+    {
+      key: "rtRecenterVertical",
+      label: "User: recenter height",
+      description: "Vertical offset of the recenter button on the user ride-tracking map (negative = up, positive = down)",
+      min: RIDE_TRACKING_OFFSET_MIN,
+      max: RIDE_TRACKING_OFFSET_MAX,
+      step: RIDE_TRACKING_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "rtRecenterHorizontal",
+      label: "User: recenter left/right",
+      description: "Horizontal offset of the recenter button on the user ride-tracking map (negative = left, positive = right)",
+      min: RIDE_TRACKING_OFFSET_MIN,
+      max: RIDE_TRACKING_OFFSET_MAX,
+      step: RIDE_TRACKING_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "prRecenterVertical",
+      label: "Partner: recenter height",
+      description: "Vertical offset of the recenter button on the partner ride map (negative = up, positive = down)",
+      min: RIDE_TRACKING_OFFSET_MIN,
+      max: RIDE_TRACKING_OFFSET_MAX,
+      step: RIDE_TRACKING_OFFSET_STEP,
+      unit: "px",
+    },
+    {
+      key: "prRecenterHorizontal",
+      label: "Partner: recenter left/right",
+      description: "Horizontal offset of the recenter button on the partner ride map (negative = left, positive = right)",
+      min: RIDE_TRACKING_OFFSET_MIN,
+      max: RIDE_TRACKING_OFFSET_MAX,
+      step: RIDE_TRACKING_OFFSET_STEP,
+      unit: "px",
+    },
+  ];
+
   const { getEntries } = useAdminData();
   const serviceEntries = getEntries("service-settings");
   const vehicleServiceEntries = getEntries("vehicle-services");
@@ -649,6 +691,65 @@ export default function AdminSettingsDisplayScreen() {
 
         <View style={[styles.list, { marginBottom: 4, marginTop: 12 }]}>
           {rideConfirmItems.map((item) => {
+            const value = settings[item.key] as number;
+            const atMin = value <= item.min;
+            const atMax = value >= item.max;
+            return (
+              <View
+                key={item.key}
+                style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+                testID={`display-row-${item.key}`}
+              >
+                <View style={styles.rowInfo}>
+                  <Text style={[styles.rowLabel, { color: Colors.text }]}>{item.label}</Text>
+                  <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>{item.description}</Text>
+                </View>
+                <View style={styles.stepper}>
+                  <TouchableOpacity
+                    onPress={() => setNumeric(item.key, value - item.step, item.min, item.max)}
+                    disabled={atMin}
+                    style={[
+                      styles.stepBtn,
+                      {
+                        backgroundColor: Colors.background,
+                        borderColor: Colors.border,
+                        opacity: atMin ? 0.4 : 1,
+                      },
+                    ]}
+                    testID={`display-${item.key}-minus`}
+                  >
+                    <Minus color={Colors.text} size={16} />
+                  </TouchableOpacity>
+                  <Text style={[styles.stepValueWide, { color: Colors.text }]} testID={`display-${item.key}-value`}>
+                    {value}
+                    <Text style={[styles.stepUnit, { color: Colors.textSecondary }]}>{item.unit}</Text>
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setNumeric(item.key, value + item.step, item.min, item.max)}
+                    disabled={atMax}
+                    style={[
+                      styles.stepBtn,
+                      {
+                        backgroundColor: Colors.background,
+                        borderColor: Colors.border,
+                        opacity: atMax ? 0.4 : 1,
+                      },
+                    ]}
+                    testID={`display-${item.key}-plus`}
+                  >
+                    <Plus color={Colors.text} size={16} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>
+          Ride Tracking Layout
+        </Text>
+        <View style={[styles.list, { marginBottom: 4 }]}>
+          {rideTrackingItems.map((item) => {
             const value = settings[item.key] as number;
             const atMin = value <= item.min;
             const atMax = value >= item.max;
