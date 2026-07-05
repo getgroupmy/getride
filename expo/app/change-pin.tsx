@@ -37,7 +37,7 @@ const EMPTY: string[] = ["", "", "", "", "", ""];
 export default function ChangePinScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { authState, verifyPin, registerUser } = useAuth();
+  const { authState, verifyPinRemote, registerUser } = useAuth();
 
   const [step, setStep] = useState<Step>("verify");
   const [currentPin, setCurrentPin] = useState<string[]>(EMPTY);
@@ -92,11 +92,12 @@ export default function ChangePinScreen() {
     if (next.every((d) => d !== "")) {
       const code = next.join("");
       if (step === "verify") {
-        setTimeout(() => {
-          if (verifyPin(authState.phoneNumber ?? "", code)) {
+        setTimeout(async () => {
+          const res = await verifyPinRemote(authState.phoneNumber ?? "", code);
+          if (res.ok) {
             setStep("create");
           } else {
-            setError("Incorrect PIN. Please try again.");
+            setError(res.error ?? "Incorrect PIN. Please try again.");
             shake();
             setCurrentPin(EMPTY);
             inputRefs.current[0]?.focus();
