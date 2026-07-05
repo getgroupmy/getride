@@ -104,6 +104,11 @@ export interface RideRequest {
   started_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
+
+  // Driver-approved cancellation: set when the passenger asks to cancel an
+  // already-started trip; cleared if the driver declines.
+  cancel_requested_at: string | null;
+  cancel_requested_by: string | null;
 }
 
 export interface CreateRideRequestInput {
@@ -751,6 +756,55 @@ export async function updateRideRequestStatus(
 /** Marks an open/accepted request cancelled (passenger cancels). */
 export async function cancelRideRequest(id: string): Promise<boolean> {
   return updateRideRequestStatus(id, "cancelled");
+}
+
+/**
+ * Passenger asks to cancel a trip that has already started. Stamps
+ * `cancel_requested_at` so the driver's screen can pop a confirmation; the
+ * ride is only cancelled once the driver accepts. Returns true on success.
+ */
+export async function requestRideCancellation(
+  id: string,
+  requestedBy: string = "rider"
+): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase || !id) return false;
+  try {
+    const { error } = await supabase
+      .from(TABLE)
+      .update({
+        cancel_requested_at: new Date().toISOString(),
+        cancel_requested_by: requestedBy,
+      })
+      .eq("id", id)
+      .in("status", ["accepted", "arrived", "on_trip"]);
+    if (error) {
+      console.log("[rideRequests] request cancellation failed", error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log("[rideRequests] request cancellation error", e);
+    return false;
+  }
+}
+
+/** Driver declines the passenger's cancellation request — the trip continues. */
+export async function declineRideCancellation(id: string): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase || !id) return false;
+  try {
+    const { error } = await supabase
+      .from(TABLE)
+      .update({ cancel_requested_at: null, cancel_requested_by: null })
+      .eq("id", id);
+    if (error) {
+      console.log("[rideRequests] decline cancellation failed", error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log("[rideRequests] decline cancellation error", e);
+    return false;
+  }
 }
 
 /** Marks the trip completed. */

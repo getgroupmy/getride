@@ -49,7 +49,14 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useVoiceProtection } from "@/contexts/VoiceProtectionContext";
 import { MapView, Marker, Polyline, calculateRoute, reverseGeocode, calculateFare, type TariffType } from "@/utils/maps";
-import { updateRideRequestStatus, completeRideRequest, recordPartnerCheckpoint } from "@/utils/rideRequestsStore";
+import {
+  updateRideRequestStatus,
+  completeRideRequest,
+  recordPartnerCheckpoint,
+  subscribeToRideRequest,
+  cancelRideRequest,
+  declineRideCancellation,
+} from "@/utils/rideRequestsStore";
 
 const { width, height } = Dimensions.get("window");
 
@@ -172,6 +179,10 @@ export default function RideRunningScreen() {
   const [cancelReason, setCancelReason] = useState<string | null>(null);
   const [cancelOtherText, setCancelOtherText] = useState<string>("");
   const cancelModalAnim = useRef(new Animated.Value(0)).current;
+  // Passenger asked to cancel an already-started trip — driver must approve.
+  const [showRiderCancelModal, setShowRiderCancelModal] = useState<boolean>(false);
+  const riderCancelAnim = useRef(new Animated.Value(0)).current;
+  const rideExitedRef = useRef<boolean>(false);
   const [showNavMenu, setShowNavMenu] = useState<boolean>(false);
   const [showRecalcSheet, setShowRecalcSheet] = useState<boolean>(false);
   const [isRecalculating, setIsRecalculating] = useState<boolean>(false);
@@ -569,6 +580,81 @@ export default function RideRunningScreen() {
     if (!rideRequestId) return;
     void updateRideRequestStatus(rideRequestId, phase === "toPickup" ? "arrived" : "on_trip");
   }, [rideRequestId, phase]);
+
+  /** Leaves the active ride back to the e-hailing queue screen. */
+  const leaveToPartnerScreen = useCallback(() => {
+    const target = "/partner-ehailing" as any;
+    try {
+      if (typeof (router as any).dismissTo === "function") {
+        (router as any).dismissTo(target);
+        return;
+      }
+    } catch (e) {
+      console.log("[ride-running] dismissTo unavailable", e);
+    }
+    try {
+      router.navigate(target);
+    } catch (e) {
+      console.log("[ride-running] navigate failed, replacing", e);
+      router.replace(target);
+    }
+  }, [router]);
+
+  // Watch the live ride request: pop the approval modal when the passenger
+  // requests a cancellation mid-trip, and leave the screen if the ride gets
+  // cancelled (e.g. passenger cancelled before pickup).
+  useEffect(() => {
+    if (!rideRequestId) return;
+    const unsub = subscribeToRideRequest(rideRequestId, (row) => {
+      if (rideExitedRef.current) return;
+      if (row.status === "cancelled") {
+        rideExitedRef.current = true;
+        console.log("[ride-running] ride request cancelled, leaving", rideRequestId);
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        }
+        setShowRiderCancelModal(false);
+        Alert.alert("Ride cancelled", "This ride has been cancelled.");
+        leaveToPartnerScreen();
+        return;
+      }
+      const ongoing = row.status === "accepted" || row.status === "arrived" || row.status === "on_trip";
+      if (row.cancel_requested_at && ongoing) {
+        console.log("[ride-running] passenger requested cancellation", rideRequestId);
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        }
+        setShowRiderCancelModal(true);
+        Animated.spring(riderCancelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }).start();
+      }
+    });
+    return unsub;
+  }, [rideRequestId, leaveToPartnerScreen, riderCancelAnim]);
+
+  const closeRiderCancelModal = useCallback((cb?: () => void) => {
+    Animated.timing(riderCancelAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      setShowRiderCancelModal(false);
+      if (cb) cb();
+    });
+  }, [riderCancelAnim]);
+
+  const handleAcceptRiderCancel = useCallback(() => {
+    if (!rideRequestId) return;
+    rideExitedRef.current = true;
+    console.log("[ride-running] driver accepted passenger cancellation", rideRequestId);
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    }
+    void cancelRideRequest(rideRequestId);
+    closeRiderCancelModal(() => leaveToPartnerScreen());
+  }, [rideRequestId, closeRiderCancelModal, leaveToPartnerScreen]);
+
+  const handleDeclineRiderCancel = useCallback(() => {
+    if (!rideRequestId) return;
+    console.log("[ride-running] driver declined passenger cancellation", rideRequestId);
+    void declineRideCancellation(rideRequestId);
+    closeRiderCancelModal();
+  }, [rideRequestId, closeRiderCancelModal]);
 
   // Capture the partner's live lat-lng when they reach the pickup (once).
   const arriveCheckpointRecorded = useRef<boolean>(false);
@@ -1423,6 +1509,68 @@ export default function RideRunningScreen() {
               >
                 <Power color="#FFFFFF" size={18} />
                 <Text style={styles.endModalConfirmText}>End ride</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showRiderCancelModal}
+        transparent
+        animationType="none"
+        onRequestClose={() => {}}
+      >
+        <View style={styles.modalBackdrop}>
+          <Animated.View
+            style={[
+              styles.endModalCard,
+              {
+                backgroundColor: Colors.background,
+                opacity: riderCancelAnim,
+                transform: [
+                  {
+                    translateY: riderCancelAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [60, 0],
+                    }),
+                  },
+                  {
+                    scale: riderCancelAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.92, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={[styles.warnIconWrap, { backgroundColor: Colors.error + "1A" }]}>
+              <XCircle color={Colors.error} size={32} />
+            </View>
+            <Text style={[styles.endModalTitle, { color: Colors.text }]}>Passenger wants to cancel</Text>
+            <Text style={[styles.endModalBody, { color: Colors.textSecondary }]}>
+              The passenger has requested to cancel this ride. Accept to end the ride now, or decline to
+              continue the trip.
+            </Text>
+
+            <View style={styles.endModalActions}>
+              <TouchableOpacity
+                testID="rider-cancel-decline"
+                style={[styles.endModalBtn, styles.endModalGhost, { borderColor: Colors.gray[300] }]}
+                activeOpacity={0.85}
+                onPress={handleDeclineRiderCancel}
+              >
+                <Text style={[styles.endModalGhostText, { color: Colors.text }]}>Decline</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="rider-cancel-accept"
+                style={[styles.endModalBtn, { backgroundColor: Colors.error }]}
+                activeOpacity={0.9}
+                onPress={handleAcceptRiderCancel}
+              >
+                <XCircle color="#FFFFFF" size={18} />
+                <Text style={styles.endModalConfirmText}>Accept cancel</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>

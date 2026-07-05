@@ -1103,8 +1103,18 @@ create table if not exists public.ride_requests (
   arrived_at    timestamptz,
   started_at    timestamptz,
   completed_at  timestamptz,
-  cancelled_at  timestamptz
+  cancelled_at  timestamptz,
+
+  -- Driver-approved cancellation (0053): set when the passenger asks to cancel
+  -- an already-started trip; cleared if the driver declines.
+  cancel_requested_at timestamptz,
+  cancel_requested_by text
 );
+
+-- Idempotent upgrade for databases created before 0053.
+alter table public.ride_requests
+  add column if not exists cancel_requested_at timestamptz,
+  add column if not exists cancel_requested_by text;
 
 create index if not exists ride_requests_status_idx       on public.ride_requests(status);
 create index if not exists ride_requests_rider_idx        on public.ride_requests(rider_id);

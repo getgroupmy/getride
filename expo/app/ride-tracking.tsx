@@ -40,7 +40,10 @@ import {
   cancelRideRequest,
   completeRideRequest,
   updateRideRequestStatus,
+  requestRideCancellation,
+  subscribeToRideRequest,
 } from "@/utils/rideRequestsStore";
+import { AppAlertModal } from "@/components/AppAlertModal";
 
 const { width, height } = Dimensions.get("window");
 
@@ -145,6 +148,11 @@ export default function RideTrackingScreen() {
   const [heading, setHeading] = useState<number>(0);
   const [followDriver, setFollowDriver] = useState<boolean>(true);
   const [showCancel, setShowCancel] = useState<boolean>(false);
+  // True while the passenger's cancellation is waiting for driver approval
+  // (only used once the trip has started — the driver must accept the cancel).
+  const [cancelPending, setCancelPending] = useState<boolean>(false);
+  const [showCancelDeclined, setShowCancelDeclined] = useState<boolean>(false);
+  const cancelPendingRef = useRef<boolean>(false);
 
   const phaseRef = useRef<Phase>("arriving");
   const prevPosRef = useRef<Coord | null>(null);
@@ -159,6 +167,33 @@ export default function RideTrackingScreen() {
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
+
+  useEffect(() => {
+    cancelPendingRef.current = cancelPending;
+  }, [cancelPending]);
+
+  // Watch the live request row. If the driver approves a cancellation the
+  // status flips to "cancelled" (leave the screen); if they decline, the
+  // cancel_requested_at stamp is cleared and the trip continues.
+  useEffect(() => {
+    if (!requestId) return;
+    const unsub = subscribeToRideRequest(requestId, (row) => {
+      if (row.status === "cancelled") {
+        console.log("[ride-tracking] ride cancelled", requestId);
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        }
+        router.replace("/" as any);
+        return;
+      }
+      if (cancelPendingRef.current && !row.cancel_requested_at) {
+        console.log("[ride-tracking] driver declined cancellation", requestId);
+        setCancelPending(false);
+        setShowCancelDeclined(true);
+      }
+    });
+    return unsub;
+  }, [requestId, router]);
 
   // Keep the ride request row in sync with the trip lifecycle so a finished
   // trip never lingers as "ongoing" and blocks the rider's next request.
@@ -334,6 +369,7 @@ export default function RideTrackingScreen() {
   }, []);
 
   const openCancel = useCallback(() => {
+    if (cancelPendingRef.current) return;
     setShowCancel(true);
     Animated.spring(cancelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }).start();
   }, [cancelAnim]);
@@ -352,12 +388,21 @@ export default function RideTrackingScreen() {
 
   const confirmCancel = useCallback(() => {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    // Once the trip has started the driver must approve the cancellation:
+    // stamp the request and wait instead of cancelling straight away.
+    if (requestId && phase === "onTrip") {
+      console.log("[ride-tracking] requesting driver-approved cancellation", requestId);
+      setCancelPending(true);
+      void requestRideCancellation(requestId, "rider");
+      closeCancel();
+      return;
+    }
     if (requestId) {
       console.log("[ride-tracking] cancelling request", requestId);
       void cancelRideRequest(requestId);
     }
     closeCancel(() => router.replace("/" as any));
-  }, [closeCancel, router, requestId]);
+  }, [closeCancel, router, requestId, phase]);
 
   const remainingCoords = useMemo<Coord[]>(() => {
     if (routeCoords.length === 0) return [];
@@ -384,8 +429,9 @@ export default function RideTrackingScreen() {
           ? "On the way to destination"
           : "You've arrived";
 
-  const subStatus =
-    phase === "arriving"
+  const subStatus = cancelPending
+    ? "Waiting for driver to approve cancellation…"
+    : phase === "arriving"
       ? etaMin <= 0
         ? "Arriving now"
         : `Arriving in ${etaMin} min`
@@ -731,7 +777,9 @@ export default function RideTrackingScreen() {
             </View>
             <Text style={[styles.cancelTitle, { color: Colors.text }]}>Cancel this ride?</Text>
             <Text style={[styles.cancelBody, { color: Colors.textSecondary }]}>
-              Your driver is already on the way. Frequent cancellations may affect your account.
+              {phase === "onTrip" && requestId
+                ? "Your trip has already started, so the driver must approve the cancellation. We’ll send them your request now."
+                : "Your driver is already on the way. Frequent cancellations may affect your account."}
             </Text>
             <View style={styles.cancelActions}>
               <TouchableOpacity
@@ -746,12 +794,21 @@ export default function RideTrackingScreen() {
                 onPress={confirmCancel}
                 style={[styles.cancelConfirm, { backgroundColor: Colors.error }]}
               >
-                <Text style={styles.cancelConfirmText}>Cancel ride</Text>
+                <Text style={styles.cancelConfirmText}>
+                  {phase === "onTrip" && requestId ? "Request cancel" : "Cancel ride"}
+                </Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
       </Modal>
+
+      <AppAlertModal
+        visible={showCancelDeclined}
+        title="Cancellation declined"
+        message="Your driver declined the cancellation request, so the ride will continue."
+        onClose={() => setShowCancelDeclined(false)}
+      />
     </View>
   );
 }
