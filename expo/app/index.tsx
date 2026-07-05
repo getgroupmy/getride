@@ -27,7 +27,7 @@ import MenuSideSheet from "@/components/MenuSideSheet";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchOngoingRequestForRider } from "@/utils/rideRequestsStore";
+import { fetchOngoingRequestForRider, fetchOngoingRequestForPartner } from "@/utils/rideRequestsStore";
 import { buildRestoreTarget } from "@/utils/ongoingRequestRestore";
 
 // Set once per app session so a cold launch restores an ongoing ride exactly
@@ -160,12 +160,29 @@ export default function HomeScreen() {
     (async () => {
       try {
         const ongoing = await fetchOngoingRequestForRider(authState.userId);
-        if (cancelled || !ongoing) return;
-        const target = buildRestoreTarget(ongoing);
-        if (target) {
-          console.log("[index] restoring ongoing request", ongoing.id, ongoing.status);
-          router.replace(target as any);
+        if (cancelled) return;
+        if (ongoing) {
+          const target = buildRestoreTarget(ongoing);
+          if (target) {
+            console.log("[index] restoring ongoing request", ongoing.id, ongoing.status);
+            router.replace(target as any);
+            return;
+          }
         }
+        // No rider-side ride — check whether this user, as a partner, has an
+        // ongoing trip. If so, land on the partner screen with the active ride
+        // resumed on top, so back returns to the partner screen.
+        const partnerOngoing = await fetchOngoingRequestForPartner(authState.userId);
+        if (cancelled || !partnerOngoing) return;
+        console.log(
+          "[index] restoring partner ongoing ride",
+          partnerOngoing.id,
+          partnerOngoing.status
+        );
+        router.replace({
+          pathname: "/partner-ehailing",
+          params: { resumeRequestId: partnerOngoing.id },
+        } as any);
       } catch (e) {
         console.log("[index] restore ongoing failed", e);
       }

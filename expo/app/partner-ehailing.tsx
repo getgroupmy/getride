@@ -14,7 +14,7 @@ import {
   Keyboard,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   ArrowLeft,
   Menu,
@@ -66,8 +66,10 @@ import {
   subscribeToOpenRequests,
   acceptRideRequest,
   submitRideOffer,
+  fetchRideRequest,
   type RideRequest as DbRideRequest,
 } from "@/utils/rideRequestsStore";
+import { buildPartnerRestoreTarget } from "@/utils/ongoingRequestRestore";
 import PartnerSideSheet from "@/components/PartnerSideSheet";
 import HeatmapOverlay from "@/components/HeatmapOverlay";
 import { runWithMappingRotation } from "@/utils/mappingClient";
@@ -174,6 +176,7 @@ function generateRandomRequest(driverLat: number, driverLng: number): RideReques
 
 export default function DriverEhailingScreen() {
   const router = useRouter();
+  const searchParams = useLocalSearchParams<{ resumeRequestId?: string }>();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<any>(null);
   const { location: currentLocation, refreshLocation } = useLocation();
@@ -241,6 +244,44 @@ export default function DriverEhailingScreen() {
   useEffect(() => {
     offerVisibleRef.current = offerVisible;
   }, [offerVisible]);
+
+  // Resume an ongoing trip after an app restart: when the home screen detects
+  // this partner still has an accepted/arrived/on_trip ride, it lands here with
+  // `resumeRequestId`. Verify the ride is still ongoing and belongs to this
+  // partner, then push ride-running on top so back returns to this screen.
+  const resumeHandledRef = useRef<boolean>(false);
+  useEffect(() => {
+    const resumeId =
+      typeof searchParams.resumeRequestId === "string" && searchParams.resumeRequestId.length > 0
+        ? searchParams.resumeRequestId
+        : null;
+    if (!resumeId || resumeHandledRef.current) return;
+    if (!authState.userId) return;
+    resumeHandledRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const row = await fetchRideRequest(resumeId);
+        if (cancelled || !row) return;
+        if (row.partner_id !== authState.userId) {
+          console.log("[partner-ehailing] resume skipped - ride belongs to another partner", resumeId);
+          return;
+        }
+        const target = buildPartnerRestoreTarget(row);
+        if (!target) {
+          console.log("[partner-ehailing] resume skipped - ride no longer ongoing", resumeId, row.status);
+          return;
+        }
+        console.log("[partner-ehailing] resuming ongoing ride", row.id, row.status);
+        router.push(target as any);
+      } catch (e) {
+        console.log("[partner-ehailing] resume ongoing failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams.resumeRequestId, authState.userId, router]);
 
   useEffect(() => {
     if (!heatmapVisible) return;

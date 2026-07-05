@@ -67,3 +67,67 @@ export function buildRestoreTarget(req: RideRequest): RestoreTarget | null {
 
   return null;
 }
+
+/**
+ * Maps a partner's ongoing trip to the ride-running screen so a cold launch
+ * drops the driver back into their active ride:
+ * - accepted / arrived → resume heading to the pickup
+ * - on_trip            → resume heading to the destination
+ * Returns null for any non-restorable status.
+ */
+export function buildPartnerRestoreTarget(req: RideRequest): RestoreTarget | null {
+  if (
+    req.status !== "accepted" &&
+    req.status !== "arrived" &&
+    req.status !== "on_trip"
+  ) {
+    return null;
+  }
+
+  // Best-known driver position: where they accepted, falling back to the
+  // pickup point so the toPickup phase always has valid coordinates.
+  const driverLat = req.partner_accept_lat ?? req.pickup_lat;
+  const driverLng = req.partner_accept_lng ?? req.pickup_lng;
+
+  let distanceToPickupKm = 0.5;
+  if (
+    driverLat !== null &&
+    driverLng !== null &&
+    req.pickup_lat !== null &&
+    req.pickup_lng !== null
+  ) {
+    const dx = (req.pickup_lat - driverLat) * 111;
+    const dy =
+      (req.pickup_lng - driverLng) *
+      111 *
+      Math.cos((req.pickup_lat * Math.PI) / 180);
+    distanceToPickupKm = Math.max(
+      0.1,
+      Math.round(Math.sqrt(dx * dx + dy * dy) * 10) / 10
+    );
+  }
+
+  return {
+    pathname: "/ride-running",
+    params: {
+      driverMode: "eHailing",
+      requestId: req.id,
+      dropName: req.drop_name ?? "Destination",
+      dropAddress: req.drop_address ?? "",
+      dropLat: asStr(req.drop_lat),
+      dropLng: asStr(req.drop_lng),
+      pickupLat: asStr(req.pickup_lat),
+      pickupLng: asStr(req.pickup_lng),
+      pickupName: req.pickup_name ?? "Pickup",
+      pickupAddress: req.pickup_address ?? "",
+      fare: asStr(req.offered_fare ?? req.fare, "0"),
+      distance: asStr(req.distance_km, "1"),
+      eta: asStr(req.duration_min, "5"),
+      passengerName: req.rider_name ?? "Passenger",
+      driverLat: asStr(driverLat),
+      driverLng: asStr(driverLng),
+      distanceToPickup: String(distanceToPickupKm),
+      initialPhase: req.status === "on_trip" ? "toDestination" : "toPickup",
+    },
+  };
+}

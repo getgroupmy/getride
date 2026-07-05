@@ -205,6 +205,13 @@ const ONGOING_STATUSES: RideRequestStatus[] = [
   "on_trip",
 ];
 
+/** Statuses that count as an active/ongoing trip for a partner (driver). */
+const PARTNER_ONGOING_STATUSES: RideRequestStatus[] = [
+  "accepted",
+  "arrived",
+  "on_trip",
+];
+
 /** Device / location / identity metadata captured at request-creation time. */
 export interface RequestMetadata {
   deviceOs: string | null;
@@ -520,6 +527,34 @@ export async function fetchOngoingRequestForRider(
     return (data?.[0] as RideRequest) ?? null;
   } catch (e) {
     console.log("[rideRequests] fetchOngoing error", e);
+    return null;
+  }
+}
+
+/**
+ * Returns the partner's current ongoing trip (accepted / arrived / on_trip),
+ * or null if they have none. Used on app restart to restore the driver back
+ * into their active ride instead of dropping them on the home screen.
+ */
+export async function fetchOngoingRequestForPartner(
+  partnerId?: string | null
+): Promise<RideRequest | null> {
+  if (!isSupabaseConfigured || !supabase || !partnerId) return null;
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select("*")
+      .eq("partner_id", partnerId)
+      .in("status", PARTNER_ONGOING_STATUSES)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error) {
+      console.log("[rideRequests] fetchOngoingForPartner failed", error.message);
+      return null;
+    }
+    return (data?.[0] as RideRequest) ?? null;
+  } catch (e) {
+    console.log("[rideRequests] fetchOngoingForPartner error", e);
     return null;
   }
 }
