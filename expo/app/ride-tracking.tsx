@@ -36,6 +36,11 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { MapView, Marker, Polyline, calculateRoute } from "@/utils/maps";
+import {
+  cancelRideRequest,
+  completeRideRequest,
+  updateRideRequestStatus,
+} from "@/utils/rideRequestsStore";
 
 const { width, height } = Dimensions.get("window");
 
@@ -96,6 +101,7 @@ export default function RideTrackingScreen() {
   const destLat = params.destLat ? parseFloat(params.destLat as string) : 3.1569;
   const destLng = params.destLng ? parseFloat(params.destLng as string) : 101.7123;
 
+  const requestId = (params.requestId as string) || "";
   const driverName = (params.driverName as string) || "Your driver";
   const driverPhoto = (params.driverPhoto as string) || "";
   const driverRating = (params.driverRating as string) || "5.0";
@@ -153,6 +159,20 @@ export default function RideTrackingScreen() {
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
+
+  // Keep the ride request row in sync with the trip lifecycle so a finished
+  // trip never lingers as "ongoing" and blocks the rider's next request.
+  useEffect(() => {
+    if (!requestId) return;
+    if (phase === "arrived") {
+      void updateRideRequestStatus(requestId, "arrived");
+    } else if (phase === "onTrip") {
+      void updateRideRequestStatus(requestId, "on_trip");
+    } else if (phase === "completed") {
+      console.log("[ride-tracking] marking request completed", requestId);
+      void completeRideRequest(requestId);
+    }
+  }, [phase, requestId]);
 
   // Entrance + driver pulse
   useEffect(() => {
@@ -332,8 +352,12 @@ export default function RideTrackingScreen() {
 
   const confirmCancel = useCallback(() => {
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    if (requestId) {
+      console.log("[ride-tracking] cancelling request", requestId);
+      void cancelRideRequest(requestId);
+    }
     closeCancel(() => router.replace("/" as any));
-  }, [closeCancel, router]);
+  }, [closeCancel, router, requestId]);
 
   const remainingCoords = useMemo<Coord[]>(() => {
     if (routeCoords.length === 0) return [];
