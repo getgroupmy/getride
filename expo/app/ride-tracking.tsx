@@ -38,6 +38,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
+import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { MapView, Marker, Polyline, calculateRoute } from "@/utils/maps";
 import {
   cancelRideRequest,
@@ -159,6 +160,12 @@ export default function RideTrackingScreen() {
   const [showCancelDeclined, setShowCancelDeclined] = useState<boolean>(false);
   const cancelPendingRef = useRef<boolean>(false);
 
+  // Admin "Mock / Simulation" switch: when off, the car is not animated and
+  // phases follow the real ride request status written by the partner.
+  const { settings: displaySettings } = useDisplaySettings();
+  const tripSimEnabled = displaySettings.riderTripSimEnabled;
+  const tripSimEnabledRef = useRef<boolean>(tripSimEnabled);
+
   const phaseRef = useRef<Phase>("arriving");
   const prevPosRef = useRef<Coord | null>(null);
   const didFitRef = useRef<boolean>(false);
@@ -176,6 +183,10 @@ export default function RideTrackingScreen() {
   useEffect(() => {
     cancelPendingRef.current = cancelPending;
   }, [cancelPending]);
+
+  useEffect(() => {
+    tripSimEnabledRef.current = tripSimEnabled;
+  }, [tripSimEnabled]);
 
   // Watch the live request row. If the driver approves a cancellation the
   // status flips to "cancelled" (leave the screen); if they decline, the
@@ -196,6 +207,20 @@ export default function RideTrackingScreen() {
         setCancelPending(false);
         setShowCancelDeclined(true);
       }
+      // Simulation off: mirror the real status the partner writes to the request.
+      if (!tripSimEnabledRef.current) {
+        const current = phaseRef.current;
+        if (row.status === "arrived" && current === "arriving") {
+          console.log("[ride-tracking] real status -> arrived");
+          setPhase("arrived");
+        } else if (row.status === "on_trip" && current !== "onTrip" && current !== "completed") {
+          console.log("[ride-tracking] real status -> on trip");
+          setPhase("onTrip");
+        } else if (row.status === "completed" && current !== "completed") {
+          console.log("[ride-tracking] real status -> completed");
+          setPhase("completed");
+        }
+      }
     });
     return unsub;
   }, [requestId, router]);
@@ -204,6 +229,9 @@ export default function RideTrackingScreen() {
   // trip never lingers as "ongoing" and blocks the rider's next request.
   useEffect(() => {
     if (!requestId) return;
+    // Simulation off: the partner is the source of truth for lifecycle
+    // statuses, so the rider must not write them back.
+    if (!tripSimEnabled) return;
     if (phase === "arrived") {
       void updateRideRequestStatus(requestId, "arrived");
     } else if (phase === "onTrip") {
@@ -212,7 +240,7 @@ export default function RideTrackingScreen() {
       console.log("[ride-tracking] marking request completed", requestId);
       void completeRideRequest(requestId);
     }
-  }, [phase, requestId]);
+  }, [phase, requestId, tripSimEnabled]);
 
   // Entrance + driver pulse
   useEffect(() => {
@@ -266,8 +294,9 @@ export default function RideTrackingScreen() {
     };
   }, [phase, driverStart, pickupCoord, destCoord]);
 
-  // Animate the driver marker along the active route.
+  // Animate the driver marker along the active route (simulation only).
   useEffect(() => {
+    if (!tripSimEnabled) return;
     if (routeCoords.length < 2) return;
     if (phase === "arrived" || phase === "completed") return;
 
@@ -309,7 +338,7 @@ export default function RideTrackingScreen() {
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeCoords, phase]);
+  }, [routeCoords, phase, tripSimEnabled]);
 
   // Heading for the car marker.
   useEffect(() => {

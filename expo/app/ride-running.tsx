@@ -47,6 +47,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
+import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useVoiceProtection } from "@/contexts/VoiceProtectionContext";
 import { MapView, Marker, Polyline, calculateRoute, reverseGeocode, calculateFare, type TariffType } from "@/utils/maps";
 import {
@@ -99,6 +100,10 @@ export default function RideRunningScreen() {
   const Colors = useColors();
   const { colorScheme } = useTheme();
   const { location, currency } = useLocation();
+  const { settings: displaySettings } = useDisplaySettings();
+  // Admin "Mock / Simulation" switch: when off, the car is not auto-animated
+  // and the driver advances the trip manually with the action button.
+  const driveSimEnabled = displaySettings.partnerDriveSimEnabled;
   const { startTripRecording, stopTripRecording, isRecording } = useVoiceProtection();
   const recDotAnim = useRef(new Animated.Value(1)).current;
   const insets = useSafeAreaInsets();
@@ -268,6 +273,7 @@ export default function RideRunningScreen() {
   useEffect(() => {
     if (routeCoords.length === 0) return;
     if (arrived) return;
+    if (!driveSimEnabled) return;
     const total = Math.max(1, routeCoords.length - 1);
     const tickMs = 800;
     const totalMs =
@@ -304,7 +310,7 @@ export default function RideRunningScreen() {
     }, tickMs);
 
     return () => clearInterval(interval);
-  }, [routeCoords, segEta, segDistance, arrived, driverMode, phase]);
+  }, [routeCoords, segEta, segDistance, arrived, driverMode, phase, driveSimEnabled]);
 
   useEffect(() => {
     if (arrived) return;
@@ -911,8 +917,8 @@ export default function RideRunningScreen() {
         return;
       }
       const meters = distanceMeters(driverPos, { latitude: pickupLatParam, longitude: pickupLngParam });
-      console.log("[ride-running] driver distance to pickup", meters);
-      if (meters <= 100) {
+      console.log("[ride-running] driver distance to pickup", meters, "simEnabled", driveSimEnabled);
+      if (meters <= 100 || !driveSimEnabled) {
         if (Platform.OS !== "web") {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         }
@@ -942,6 +948,20 @@ export default function RideRunningScreen() {
         tension: 80,
         friction: 11,
       }).start();
+      return;
+    }
+    if (!driveSimEnabled) {
+      // Simulation off: the driver confirms reaching the destination manually.
+      console.log("[ride-running] simulation off — manual arrival at destination");
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
+      setArrived(true);
+      setDriverPos({ latitude: dropLat, longitude: dropLng });
+      setProgress(Math.max(0, routeCoords.length - 1));
+      setRemainingMin(0);
+      setRemainingKm(0);
+      setTraveledKm(segDistance);
       return;
     }
     openEndModal();
@@ -1386,7 +1406,9 @@ export default function RideRunningScreen() {
                       : Colors.warning ?? Colors.accent
                     : arrived
                       ? Colors.success
-                      : Colors.error,
+                      : driveSimEnabled
+                        ? Colors.error
+                        : Colors.success,
               },
             ]}
           >
@@ -1401,10 +1423,14 @@ export default function RideRunningScreen() {
                   ? pickupArrivedConfirmed
                     ? "Start ride"
                     : "Arrived"
-                  : "Driving to pickup…"
+                  : driveSimEnabled
+                    ? "Driving to pickup…"
+                    : "Arrived at pickup"
                 : arrived
                   ? "Complete ride"
-                  : "End ride"}
+                  : driveSimEnabled
+                    ? "End ride"
+                    : "Arrived at destination"}
             </Text>
           </TouchableOpacity>
         </Animated.View>

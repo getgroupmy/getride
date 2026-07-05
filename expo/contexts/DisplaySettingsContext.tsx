@@ -276,6 +276,7 @@ export const ALL_APP_ROUTES: string[] = [
   "/admin-documents-vehicles",
   "/admin-settings",
   "/admin-settings-display",
+  "/admin-settings-mock",
   "/admin-settings-site",
   "/admin-settings-splash",
   "/admin-settings-app-icon",
@@ -426,6 +427,10 @@ export interface DisplaySettings {
   userMockEnabled: boolean;
   /** When false, the partner (driver) side stops generating demo/mock incoming ride requests. */
   partnerMockEnabled: boolean;
+  /** When false, the passenger ride-tracking screen stops simulating driver car movement and auto phase progress (arriving → arrived → on trip → completed); it follows the real ride status instead. */
+  riderTripSimEnabled: boolean;
+  /** When false, the partner ride screen stops simulating car movement and auto-arrival; the driver progresses the trip manually. */
+  partnerDriveSimEnabled: boolean;
   /** Show AI-estimated toll booth count row in ride-confirm */
   showAiTollBooths: boolean;
   /** Show AI-estimated toll charges row in ride-confirm */
@@ -498,6 +503,8 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   registrationEnabled: true,
   userMockEnabled: true,
   partnerMockEnabled: true,
+  riderTripSimEnabled: true,
+  partnerDriveSimEnabled: true,
   showAiTollBooths: true,
   showAiTollCharges: true,
   recentLocationsCount: 4,
