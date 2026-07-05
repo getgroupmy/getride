@@ -56,6 +56,7 @@ import {
   subscribeToRideRequest,
   cancelRideRequest,
   declineRideCancellation,
+  fetchRideRequest,
 } from "@/utils/rideRequestsStore";
 
 const { width, height } = Dimensions.get("window");
@@ -182,6 +183,10 @@ export default function RideRunningScreen() {
   // Passenger asked to cancel an already-started trip — driver must approve.
   const [showRiderCancelModal, setShowRiderCancelModal] = useState<boolean>(false);
   const riderCancelAnim = useRef(new Animated.Value(0)).current;
+  // Passenger cancelled before pickup — inform the driver, then leave.
+  const [showUserCancelledModal, setShowUserCancelledModal] = useState<boolean>(false);
+  const [userCancelReason, setUserCancelReason] = useState<string | null>(null);
+  const userCancelledAnim = useRef(new Animated.Value(0)).current;
   const rideExitedRef = useRef<boolean>(false);
   const [showNavMenu, setShowNavMenu] = useState<boolean>(false);
   const [showRecalcSheet, setShowRecalcSheet] = useState<boolean>(false);
@@ -600,36 +605,65 @@ export default function RideRunningScreen() {
     }
   }, [router]);
 
-  // Watch the live ride request: pop the approval modal when the passenger
-  // requests a cancellation mid-trip, and leave the screen if the ride gets
-  // cancelled (e.g. passenger cancelled before pickup).
+  // Handles a remote update of the ride request: pop the user-cancelled popup
+  // when the passenger cancels before pickup, or the approval modal when they
+  // request a cancellation mid-trip. Shared by realtime + polling fallback.
+  const handleRideRequestUpdate = useCallback((row: { status: string; cancel_requested_at: string | null; cancel_reason: string | null }) => {
+    if (rideExitedRef.current) return;
+    if (row.status === "cancelled") {
+      rideExitedRef.current = true;
+      console.log("[ride-running] ride request cancelled by passenger", rideRequestId);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      }
+      setShowRiderCancelModal(false);
+      setUserCancelReason(row.cancel_reason ?? null);
+      setShowUserCancelledModal(true);
+      Animated.spring(userCancelledAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }).start();
+      return;
+    }
+    const ongoing = row.status === "accepted" || row.status === "arrived" || row.status === "on_trip";
+    if (row.cancel_requested_at && ongoing) {
+      console.log("[ride-running] passenger requested cancellation", rideRequestId);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      }
+      setShowRiderCancelModal(true);
+      Animated.spring(riderCancelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }).start();
+    }
+  }, [rideRequestId, riderCancelAnim, userCancelledAnim]);
+
+  // Watch the live ride request via realtime.
   useEffect(() => {
     if (!rideRequestId) return;
     const unsub = subscribeToRideRequest(rideRequestId, (row) => {
-      if (rideExitedRef.current) return;
-      if (row.status === "cancelled") {
-        rideExitedRef.current = true;
-        console.log("[ride-running] ride request cancelled, leaving", rideRequestId);
-        if (Platform.OS !== "web") {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-        }
-        setShowRiderCancelModal(false);
-        Alert.alert("Ride cancelled", "This ride has been cancelled.");
-        leaveToPartnerScreen();
-        return;
-      }
-      const ongoing = row.status === "accepted" || row.status === "arrived" || row.status === "on_trip";
-      if (row.cancel_requested_at && ongoing) {
-        console.log("[ride-running] passenger requested cancellation", rideRequestId);
-        if (Platform.OS !== "web") {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-        }
-        setShowRiderCancelModal(true);
-        Animated.spring(riderCancelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }).start();
-      }
+      handleRideRequestUpdate(row);
     });
     return unsub;
-  }, [rideRequestId, leaveToPartnerScreen, riderCancelAnim]);
+  }, [rideRequestId, handleRideRequestUpdate]);
+
+  // Polling fallback: realtime events can be missed (backgrounded app, dropped
+  // socket), so re-check the request every few seconds until the ride exits.
+  useEffect(() => {
+    if (!rideRequestId) return;
+    const interval = setInterval(() => {
+      if (rideExitedRef.current) return;
+      void fetchRideRequest(rideRequestId).then((row) => {
+        if (row) handleRideRequestUpdate(row);
+      }).catch((e) => {
+        console.log("[ride-running] poll ride request failed", e);
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [rideRequestId, handleRideRequestUpdate]);
+
+  const handleUserCancelledDismiss = useCallback(() => {
+    console.log("[ride-running] driver acknowledged passenger cancellation");
+    Animated.timing(userCancelledAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      setShowUserCancelledModal(false);
+      leaveToPartnerScreen();
+    });
+  }, [userCancelledAnim, leaveToPartnerScreen]);
 
   const closeRiderCancelModal = useCallback((cb?: () => void) => {
     Animated.timing(riderCancelAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
@@ -1571,6 +1605,59 @@ export default function RideRunningScreen() {
               >
                 <XCircle color="#FFFFFF" size={18} />
                 <Text style={styles.endModalConfirmText}>Accept cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showUserCancelledModal}
+        transparent
+        animationType="none"
+        onRequestClose={handleUserCancelledDismiss}
+      >
+        <View style={styles.modalBackdrop}>
+          <Animated.View
+            style={[
+              styles.endModalCard,
+              {
+                backgroundColor: Colors.background,
+                opacity: userCancelledAnim,
+                transform: [
+                  {
+                    translateY: userCancelledAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [60, 0],
+                    }),
+                  },
+                  {
+                    scale: userCancelledAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.92, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={[styles.warnIconWrap, { backgroundColor: Colors.error + "1A" }]}>
+              <XCircle color={Colors.error} size={32} />
+            </View>
+            <Text style={[styles.endModalTitle, { color: Colors.text }]}>Passenger cancelled</Text>
+            <Text style={[styles.endModalBody, { color: Colors.textSecondary }]}>
+              The passenger has cancelled this ride request. The ride has been cancelled.
+              {userCancelReason ? `\n\nReason: ${userCancelReason}` : ""}
+            </Text>
+
+            <View style={styles.endModalActions}>
+              <TouchableOpacity
+                testID="user-cancelled-ok"
+                style={[styles.endModalBtn, { backgroundColor: Colors.error }]}
+                activeOpacity={0.9}
+                onPress={handleUserCancelledDismiss}
+              >
+                <Text style={styles.endModalConfirmText}>OK</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
