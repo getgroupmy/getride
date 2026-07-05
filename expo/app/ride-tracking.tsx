@@ -447,7 +447,13 @@ export default function RideTrackingScreen() {
         </View>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => router.replace("/" as any)}
+          onPress={() => {
+            if (phase === "completed") {
+              router.replace("/" as any);
+            } else {
+              openCancel();
+            }
+          }}
           style={[styles.closeBtn, { backgroundColor: Colors.background }]}
         >
           <X color={Colors.text} size={22} />
