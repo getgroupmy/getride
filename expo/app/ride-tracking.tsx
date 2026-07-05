@@ -11,6 +11,8 @@ import {
   Linking,
   Modal,
   ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
@@ -31,6 +33,7 @@ import {
   Car,
   XCircle,
   ShieldAlert,
+  Check,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -148,6 +151,8 @@ export default function RideTrackingScreen() {
   const [heading, setHeading] = useState<number>(0);
   const [followDriver, setFollowDriver] = useState<boolean>(true);
   const [showCancel, setShowCancel] = useState<boolean>(false);
+  const [cancelReason, setCancelReason] = useState<string>("");
+  const [cancelOtherText, setCancelOtherText] = useState<string>("");
   // True while the passenger's cancellation is waiting for driver approval
   // (only used once the trip has started — the driver must accept the cancel).
   const [cancelPending, setCancelPending] = useState<boolean>(false);
@@ -370,6 +375,8 @@ export default function RideTrackingScreen() {
 
   const openCancel = useCallback(() => {
     if (cancelPendingRef.current) return;
+    setCancelReason("");
+    setCancelOtherText("");
     setShowCancel(true);
     Animated.spring(cancelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }).start();
   }, [cancelAnim]);
@@ -387,22 +394,24 @@ export default function RideTrackingScreen() {
   }, []);
 
   const confirmCancel = useCallback(() => {
+    const reason = cancelReason === "other" ? cancelOtherText.trim() : cancelReason;
+    if (!reason) return;
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     // Once the trip has started the driver must approve the cancellation:
     // stamp the request and wait instead of cancelling straight away.
     if (requestId && phase === "onTrip") {
-      console.log("[ride-tracking] requesting driver-approved cancellation", requestId);
+      console.log("[ride-tracking] requesting driver-approved cancellation", requestId, reason);
       setCancelPending(true);
-      void requestRideCancellation(requestId, "rider");
+      void requestRideCancellation(requestId, "rider", reason);
       closeCancel();
       return;
     }
     if (requestId) {
-      console.log("[ride-tracking] cancelling request", requestId);
-      void cancelRideRequest(requestId);
+      console.log("[ride-tracking] cancelling request", requestId, reason);
+      void cancelRideRequest(requestId, reason);
     }
     closeCancel(() => router.replace("/" as any));
-  }, [closeCancel, router, requestId, phase]);
+  }, [closeCancel, router, requestId, phase, cancelReason, cancelOtherText]);
 
   const remainingCoords = useMemo<Coord[]>(() => {
     if (routeCoords.length === 0) return [];
@@ -758,7 +767,10 @@ export default function RideTrackingScreen() {
 
       {/* Cancel modal */}
       <Modal visible={showCancel} transparent animationType="none" onRequestClose={() => closeCancel()}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalBackdrop}
+        >
           <Animated.View
             style={[
               styles.cancelCard,
@@ -778,9 +790,73 @@ export default function RideTrackingScreen() {
             <Text style={[styles.cancelTitle, { color: Colors.text }]}>Cancel this ride?</Text>
             <Text style={[styles.cancelBody, { color: Colors.textSecondary }]}>
               {phase === "onTrip" && requestId
-                ? "Your trip has already started, so the driver must approve the cancellation. We’ll send them your request now."
-                : "Your driver is already on the way. Frequent cancellations may affect your account."}
+                ? "Your trip has already started, so the driver must approve the cancellation. Let us know why you’re cancelling."
+                : "Your driver is already on the way. Let us know why you’re cancelling."}
             </Text>
+
+            <View style={styles.cancelReasonList}>
+              {[
+                { id: "driver_too_long", label: "Driver taking too long" },
+                { id: "driver_not_moving", label: "Driver isn’t moving" },
+                { id: "changed_plans", label: "Changed my plans" },
+                { id: "booked_by_mistake", label: "Booked by mistake" },
+                { id: "driver_asked_cancel", label: "Driver asked me to cancel" },
+                { id: "other", label: "Other" },
+              ].map((opt) => {
+                const isSelected = cancelReason === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    testID={`rider-cancel-reason-${opt.id}`}
+                    activeOpacity={0.85}
+                    onPress={() => {
+                      setCancelReason(opt.id);
+                      if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+                    }}
+                    style={[
+                      styles.cancelReasonRow,
+                      {
+                        borderColor: isSelected ? Colors.error : Colors.gray[200],
+                        backgroundColor: isSelected ? Colors.error + "10" : "transparent",
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.cancelReasonLabel, { color: Colors.text }]}>{opt.label}</Text>
+                    <View
+                      style={[
+                        styles.cancelReasonRadio,
+                        {
+                          borderColor: isSelected ? Colors.error : Colors.gray[300],
+                          backgroundColor: isSelected ? Colors.error : "transparent",
+                        },
+                      ]}
+                    >
+                      {isSelected && <Check color="#FFFFFF" size={14} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {cancelReason === "other" && (
+              <View
+                style={[
+                  styles.cancelOtherWrap,
+                  { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] },
+                ]}
+              >
+                <TextInput
+                  testID="rider-cancel-reason-other-input"
+                  value={cancelOtherText}
+                  onChangeText={setCancelOtherText}
+                  placeholder="Type your reason"
+                  placeholderTextColor={Colors.textSecondary}
+                  style={[styles.cancelOtherInput, { color: Colors.text }]}
+                  autoFocus
+                />
+              </View>
+            )}
+
             <View style={styles.cancelActions}>
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -790,9 +866,19 @@ export default function RideTrackingScreen() {
                 <Text style={[styles.cancelGhostText, { color: Colors.text }]}>Keep ride</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                testID="rider-cancel-confirm"
                 activeOpacity={0.85}
                 onPress={confirmCancel}
-                style={[styles.cancelConfirm, { backgroundColor: Colors.error }]}
+                disabled={!cancelReason || (cancelReason === "other" && !cancelOtherText.trim())}
+                style={[
+                  styles.cancelConfirm,
+                  {
+                    backgroundColor:
+                      !cancelReason || (cancelReason === "other" && !cancelOtherText.trim())
+                        ? Colors.gray[300]
+                        : Colors.error,
+                  },
+                ]}
               >
                 <Text style={styles.cancelConfirmText}>
                   {phase === "onTrip" && requestId ? "Request cancel" : "Cancel ride"}
@@ -800,7 +886,7 @@ export default function RideTrackingScreen() {
               </TouchableOpacity>
             </View>
           </Animated.View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <AppAlertModal
@@ -1034,6 +1120,32 @@ const styles = StyleSheet.create({
   warnWrap: { width: 60, height: 60, borderRadius: 30, justifyContent: "center", alignItems: "center", marginBottom: 16 },
   cancelTitle: { fontSize: 19, fontWeight: "800", marginBottom: 8, textAlign: "center" },
   cancelBody: { fontSize: 14, lineHeight: 20, textAlign: "center", marginBottom: 22 },
+  cancelReasonList: { width: "100%", gap: 8, marginBottom: 14 },
+  cancelReasonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  cancelReasonLabel: { fontSize: 14, fontWeight: "600" },
+  cancelReasonRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelOtherWrap: {
+    width: "100%",
+    borderWidth: 1,
+    borderRadius: 14,
+    marginBottom: 14,
+  },
+  cancelOtherInput: { fontSize: 14, paddingVertical: 12, paddingHorizontal: 14 },
   cancelActions: { flexDirection: "row", gap: 12, width: "100%" },
   cancelGhost: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center" },
   cancelGhostText: { fontSize: 15, fontWeight: "700" },

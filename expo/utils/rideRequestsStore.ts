@@ -109,6 +109,8 @@ export interface RideRequest {
   // already-started trip; cleared if the driver declines.
   cancel_requested_at: string | null;
   cancel_requested_by: string | null;
+  // Reason chosen by the rider (or driver) when cancelling.
+  cancel_reason: string | null;
 }
 
 export interface CreateRideRequestInput {
@@ -754,8 +756,24 @@ export async function updateRideRequestStatus(
 }
 
 /** Marks an open/accepted request cancelled (passenger cancels). */
-export async function cancelRideRequest(id: string): Promise<boolean> {
-  return updateRideRequestStatus(id, "cancelled");
+export async function cancelRideRequest(id: string, reason?: string): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase || !id) return false;
+  const patch: Record<string, unknown> = {
+    status: "cancelled",
+    cancelled_at: new Date().toISOString(),
+  };
+  if (reason && reason.trim().length > 0) patch.cancel_reason = reason.trim();
+  try {
+    const { error } = await supabase.from(TABLE).update(patch).eq("id", id);
+    if (error) {
+      console.log("[rideRequests] cancel failed", error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.log("[rideRequests] cancel error", e);
+    return false;
+  }
 }
 
 /**
@@ -765,16 +783,19 @@ export async function cancelRideRequest(id: string): Promise<boolean> {
  */
 export async function requestRideCancellation(
   id: string,
-  requestedBy: string = "rider"
+  requestedBy: string = "rider",
+  reason?: string
 ): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase || !id) return false;
+  const patch: Record<string, unknown> = {
+    cancel_requested_at: new Date().toISOString(),
+    cancel_requested_by: requestedBy,
+  };
+  if (reason && reason.trim().length > 0) patch.cancel_reason = reason.trim();
   try {
     const { error } = await supabase
       .from(TABLE)
-      .update({
-        cancel_requested_at: new Date().toISOString(),
-        cancel_requested_by: requestedBy,
-      })
+      .update(patch)
       .eq("id", id)
       .in("status", ["accepted", "arrived", "on_trip"]);
     if (error) {
