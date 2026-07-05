@@ -123,7 +123,7 @@ export SUPABASE_DB_URL="postgres://postgres:PASSWORD@db.REF.supabase.co:5432/pos
 ./supabase/setup.sh --no-functions # skip edge-function deploy
 ```
 
-The `pin` and `login_pin` columns on `profiles` both store the user's 6-digit sign-in PIN. `login_pin` is the canonical column; `pin` is the legacy alias. Both must be kept in sync — see `registerUser` in `AuthContext.tsx` for the resilience logic that handles schema-cache lag. PIN verification for login goes through the `verify_pin_for_login` RPC (migration `0045`).
+The user's 6-digit sign-in PIN is stored as a bcrypt hash in `profiles.pin_hash` (migration `0052`) — never in plaintext. The legacy `pin` and `login_pin` columns still exist as *write-only* compatibility inputs: a `BEFORE INSERT OR UPDATE` trigger (`hash_profile_pin`) hashes anything written to them and nulls the plaintext. The client sets/changes the PIN via the `set_login_pin` RPC and clears it via `clear_login_pin` (both `auth.uid()`-scoped); see `registerUser` in `AuthContext.tsx`, which falls back to the legacy column write on pre-`0052` databases. PIN verification for login goes through the `verify_pin_for_login` RPC, which is rate limited: 5 consecutive wrong attempts lock verification for 15 minutes and the RPC raises `PIN_LOCKED:<seconds-remaining>` while locked (parsed client-side by `parsePinLockSeconds` in `AuthContext.tsx`).
 
 ## Conventions
 

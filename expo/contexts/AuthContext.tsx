@@ -81,6 +81,7 @@ export interface ProfileRecord {
   referral_code?: string | null;
   pin?: string | null;
   login_pin?: string | null;
+  pin_hash?: string | null;
   status?: string | null;
   documents_ok?: boolean | null;
   total_rides?: number | null;
@@ -93,6 +94,10 @@ export interface ProfileRecord {
 
 /** Columns mirrored from public.profiles into the AsyncStorage cache. */
 const PROFILE_COLUMNS =
+  "id, display_id, name, phone, email, ic, address, profile_image, avatar_url, id_image, nationality, gender, birth_date, referral_code, pin, login_pin, pin_hash, status, documents_ok, total_rides, joined_at, created_at, updated_at";
+
+/** Fallback column list for databases that pre-date migration 0052 (no pin_hash). */
+const LEGACY_PROFILE_COLUMNS =
   "id, display_id, name, phone, email, ic, address, profile_image, avatar_url, id_image, nationality, gender, birth_date, referral_code, pin, login_pin, status, documents_ok, total_rides, joined_at, created_at, updated_at";
 
 interface AuthState {
@@ -102,11 +107,19 @@ interface AuthState {
   profileName?: string | null;
   profileAvatar?: string | null;
   /**
-   * Server-synced sign-in PIN, mirrored from public.profiles.pin. Cached
-   * in-memory so the PIN status (set/unset) is consistent across devices.
-   * Never persisted to AsyncStorage.
+   * The plaintext PIN as last entered/set by the user in this session.
+   * The server only stores a bcrypt hash (profiles.pin_hash), so this is
+   * populated when the user types their PIN (registerUser / signInWithPin),
+   * not from the server. In-memory only — never persisted to AsyncStorage.
    */
   profilePin?: string | null;
+  /**
+   * Whether the server has a sign-in PIN on record for this user (derived
+   * from profiles.pin_hash / legacy pin columns on refreshProfile). Keeps
+   * hasPinSet consistent across devices without exposing the PIN itself.
+   * null = unknown (profile not fetched yet).
+   */
+  profileHasPin?: boolean | null;
   /**
    * True only when the current session is backed by a real Supabase auth
    * session (i.e. supabase.auth.getSession() returned a session). When false,
@@ -152,6 +165,43 @@ function derivePinPassword(pin: string): string {
   return `teksi-pin-v1-${pin}`;
 }
 
+/**
+ * Parse the 'PIN_LOCKED:<seconds>' error raised by verify_pin_for_login when
+ * too many wrong attempts have locked PIN verification. Returns the remaining
+ * lock time in seconds, or null if the message is not a lockout error.
+ */
+function parsePinLockSeconds(message: string | undefined | null): number | null {
+  const m = /PIN_LOCKED:?(\d+)?/.exec(message ?? "");
+  if (!m) return null;
+  const secs = m[1] ? parseInt(m[1], 10) : NaN;
+  return Number.isFinite(secs) ? secs : 15 * 60;
+}
+
+function pinLockMessage(seconds: number): string {
+  const mins = Math.max(1, Math.ceil(seconds / 60));
+  return `Too many incorrect attempts. Try again in ${mins} minute${mins === 1 ? "" : "s"}.`;
+}
+
+/**
+ * Look up the plaintext PIN cached on this device for a phone number (legacy
+ * registered-users store). The server no longer stores plaintext PINs, so
+ * this local cache is the only recovery source for auth-password re-sync.
+ */
+async function getLocalPinForPhone(phone: string): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(REGISTERED_USERS_KEY);
+    if (!raw) return null;
+    const users = JSON.parse(raw) as RegisteredUser[];
+    const target = normalizeE164(phone);
+    if (!target) return null;
+    const hit = users.find((u) => normalizeE164(u.phoneNumber) === target);
+    return hit?.pin && hit.pin.length > 0 ? hit.pin : null;
+  } catch (e) {
+    console.log("[auth] getLocalPinForPhone failed", e);
+    return null;
+  }
+}
+
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
@@ -194,7 +244,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           userId: session.user.id,
           profileName: same ? prev.profileName ?? null : prev.profileName ?? null,
           profileAvatar: same ? prev.profileAvatar ?? null : prev.profileAvatar ?? null,
-          profilePin: same ? prev.profilePin ?? null : null,
+          // Keep the in-memory PIN when the user is unchanged OR when this is
+          // the session minted by the PIN login that just cached it
+          // (prev.userId is still null at that point).
+          profilePin: same || prev.userId == null ? prev.profilePin ?? null : null,
+          profileHasPin: same || prev.userId == null ? prev.profileHasPin ?? null : null,
           isSupabaseSession: true,
         };
         AsyncStorage.setItem(
@@ -211,6 +265,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         profileName: null,
         profileAvatar: null,
         profilePin: null,
+        profileHasPin: null,
         isSupabaseSession: false,
       };
       setAuthState(next);
@@ -434,12 +489,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     const normalized = (phoneNumber ?? "").replace(/[\s\-\(\)]/g, "").trim();
     if (!normalized) return false;
     const authPhone = (authState.phoneNumber ?? "").replace(/[\s\-\(\)]/g, "").trim();
-    if (
-      authState.isSupabaseSession &&
-      authPhone === normalized &&
-      !!authState.profilePin
-    ) {
-      return true;
+    if (authState.isSupabaseSession && authPhone === normalized) {
+      if (authState.profilePin) return true;
+      // Server-derived PIN presence (profiles.pin_hash) — authoritative when known.
+      if (authState.profileHasPin != null) return authState.profileHasPin;
     }
     if (isTestAccountNumber(phoneNumber)) return true;
     return registeredUsers.some(
@@ -466,6 +519,46 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       (u) => u.phoneNumber.replace(/\s/g, "") === normalized
     );
     return user?.pin === pin;
+  };
+
+  /**
+   * Server-side PIN check via the rate-limited verify_pin_for_login RPC.
+   * The server stores only a bcrypt hash (migration 0052), so the local
+   * synchronous verifyPin can't confirm the PIN on a fresh device — use this
+   * for verification prompts (e.g. change-pin). Falls back to verifyPin when
+   * the RPC is unavailable (offline / pre-0052 database / test account).
+   */
+  const verifyPinRemote = async (
+    phoneNumber: string,
+    pin: string
+  ): Promise<{ ok: boolean; locked?: boolean; error?: string }> => {
+    if (supaEnabled && supabase && !isTestAccountNumber(phoneNumber)) {
+      try {
+        const phone = normalizeE164(phoneNumber);
+        const { data: verifiedId, error: rpcErr } = await supabase.rpc(
+          "verify_pin_for_login",
+          { p_phone: phone, p_pin: pin }
+        );
+        if (!rpcErr) {
+          if (verifiedId) {
+            // Cache the confirmed PIN in memory for the rest of the session.
+            setAuthState((prev) => ({ ...prev, profilePin: pin, profileHasPin: true }));
+            return { ok: true };
+          }
+          return { ok: false, error: "Incorrect PIN. Please try again." };
+        }
+        const lockSeconds = parsePinLockSeconds(rpcErr.message);
+        if (lockSeconds != null) {
+          return { ok: false, locked: true, error: pinLockMessage(lockSeconds) };
+        }
+        console.log("[auth] verifyPinRemote RPC error — falling back to local check:", rpcErr.message);
+      } catch (e) {
+        console.log("[auth] verifyPinRemote threw — falling back to local check", e);
+      }
+    }
+    return verifyPin(phoneNumber, pin)
+      ? { ok: true }
+      : { ok: false, error: "Incorrect PIN. Please try again." };
   };
 
   const registerUser = async (
@@ -502,8 +595,90 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             console.log("[auth] registerUser getUser threw", e);
           }
           if (uid) {
-            // Mirror to both legacy `pin` and the new `login_pin` column so the
-            // PIN is accessible from other devices for profile access.
+            // Sync the deterministic auth password derived from the PIN so
+            // the PIN-only login screen can mint a real session via
+            // signInWithPassword. Requires an active session here (we have
+            // one — registerUser runs after OTP verify / while signed in).
+            const syncAuthPasswordForPin = async () => {
+              try {
+                const { error: pwErr } = await supabase!.auth.updateUser({
+                  password: derivePinPassword(pin),
+                });
+                if (pwErr) {
+                  // 422 "same_password" means the Auth password is already
+                  // set to derivePinPassword(pin) — treat as a successful
+                  // sync rather than a real error.
+                  if (/same.?password|different.*password/i.test(pwErr.message)) {
+                    console.log("[auth] registerUser auth password already in sync (same_password)");
+                    AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
+                  } else {
+                    console.log("[auth] registerUser sync auth password error", pwErr.message, "— retrying in 800 ms");
+                    await new Promise((r) => setTimeout(r, 800));
+                    try {
+                      const { error: pwErr2 } = await supabase!.auth.updateUser({
+                        password: derivePinPassword(pin),
+                      });
+                      if (!pwErr2 || /same.?password|different.*password/i.test(pwErr2.message ?? "")) {
+                        console.log("[auth] registerUser auth password synced on retry");
+                        AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
+                      } else {
+                        console.log("[auth] registerUser sync auth password retry failed", pwErr2.message);
+                        AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
+                      }
+                    } catch (e2) {
+                      console.log("[auth] registerUser updateUser retry threw", e2);
+                      AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
+                    }
+                  }
+                } else {
+                  console.log("[auth] registerUser auth password synced for pin login");
+                  AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
+                }
+              } catch (e) {
+                console.log("[auth] registerUser updateUser password threw", e);
+                AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
+              }
+            };
+            const commitPinState = () => {
+              setAuthState((prev) => {
+                const next: AuthState = { ...prev, profilePin: pin, profileHasPin: true, userId: uid };
+                AsyncStorage.setItem(AUTH_KEY, JSON.stringify({ ...next, profilePin: null })).catch(() => {});
+                return next;
+              });
+            };
+
+            // Preferred path: set_login_pin RPC (migration 0052). The server
+            // stores only a bcrypt hash, so the plaintext PIN never lands in
+            // the profiles row.
+            let rpcSaved = false;
+            try {
+              const { data: rpcOk, error: rpcErr } = await supabase.rpc("set_login_pin", { p_pin: pin });
+              if (!rpcErr && rpcOk === true) {
+                rpcSaved = true;
+                loginPinSaved = true;
+                console.log("[auth] registerUser PIN saved via set_login_pin RPC");
+              } else if (rpcErr) {
+                console.log("[auth] registerUser set_login_pin RPC failed — falling back to legacy column write:", rpcErr.message);
+              }
+            } catch (e) {
+              console.log("[auth] registerUser set_login_pin RPC threw", e);
+            }
+
+            if (rpcSaved) {
+              if (firstName && firstName.trim()) {
+                const { error: nameErr } = await supabase
+                  .from("profiles")
+                  .update({ name: firstName.trim() })
+                  .eq("id", uid);
+                if (nameErr) console.log("[auth] registerUser name update error", nameErr.message);
+              }
+              await syncAuthPasswordForPin();
+              commitPinState();
+            } else {
+            // Legacy fallback (pre-0052 databases): write the PIN to the
+            // pin/login_pin columns directly. On migrated databases a BEFORE
+            // trigger hashes these server-side, so plaintext still never
+            // persists.
             const update: { pin: string; login_pin: string; name?: string } = {
               pin,
               login_pin: pin,
@@ -583,57 +758,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
               if (insertErr) {
                 console.log("[auth] registerUser insert pin error", insertErr.message);
               } else {
-                setAuthState((prev) => {
-                  const next: AuthState = { ...prev, profilePin: pin, userId: uid };
-                  AsyncStorage.setItem(AUTH_KEY, JSON.stringify({ ...next, profilePin: null })).catch(() => {});
-                  return next;
-                });
+                commitPinState();
               }
             } else {
               console.log("[auth] registerUser pin saved", { id: updated.id, hasPin: !!updated.pin, hasLoginPin: !!updated.login_pin });
               if (updated.login_pin === pin) loginPinSaved = true;
-              // Mirror the PIN as the user's Supabase auth password so the
-              // PIN-only login screen can mint a real session via
-              // signInWithPassword. Requires an active session here (we have
-              // one — registerUser runs after OTP verify / while signed in).
-              try {
-                const { error: pwErr } = await supabase.auth.updateUser({
-                  password: derivePinPassword(pin),
-                });
-                if (pwErr) {
-                  // 422 "same_password" means the Auth password is already
-                  // set to derivePinPassword(pin) — treat as a successful
-                  // sync rather than a real error.
-                  if (/same.?password|different.*password/i.test(pwErr.message)) {
-                    console.log("[auth] registerUser auth password already in sync (same_password)");
-                    AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
-                  } else {
-                    console.log("[auth] registerUser sync auth password error", pwErr.message, "— retrying in 800 ms");
-                    await new Promise((r) => setTimeout(r, 800));
-                    try {
-                      const { error: pwErr2 } = await supabase.auth.updateUser({
-                        password: derivePinPassword(pin),
-                      });
-                      if (!pwErr2 || /same.?password|different.*password/i.test(pwErr2.message ?? "")) {
-                        console.log("[auth] registerUser auth password synced on retry");
-                        AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
-                      } else {
-                        console.log("[auth] registerUser sync auth password retry failed", pwErr2.message);
-                        AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
-                      }
-                    } catch (e2) {
-                      console.log("[auth] registerUser updateUser retry threw", e2);
-                      AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
-                    }
-                  }
-                } else {
-                  console.log("[auth] registerUser auth password synced for pin login");
-                  AsyncStorage.removeItem(AUTH_PASSWORD_RESYNC_KEY).catch(() => {});
-                }
-              } catch (e) {
-                console.log("[auth] registerUser updateUser password threw", e);
-                AsyncStorage.setItem(AUTH_PASSWORD_RESYNC_KEY, "true").catch(() => {});
-              }
+              await syncAuthPasswordForPin();
               // Self-healing: if the combined update succeeded but the
               // returned row shows `login_pin` is still null (e.g. PostgREST
               // schema cache hadn't picked up the new column at the time of
@@ -654,12 +784,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                   if (forced?.login_pin === pin) loginPinSaved = true;
                 }
               }
-              setAuthState((prev) => {
-                const next: AuthState = { ...prev, profilePin: pin, userId: uid };
-                AsyncStorage.setItem(AUTH_KEY, JSON.stringify({ ...next, profilePin: null })).catch(() => {});
-                return next;
-              });
+              commitPinState();
             }
+            } // end legacy fallback
           } else {
             console.log("[auth] registerUser skipped server pin save — no supabase user id");
           }
@@ -920,7 +1047,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
               .select("login_pin, pin")
               .eq("id", userId)
               .maybeSingle();
-            const savedPin = pinRow?.login_pin || pinRow?.pin;
+            // The server stores only a bcrypt hash since migration 0052, so
+            // recover the plaintext from this device's local cache when the
+            // legacy columns are empty.
+            const savedPin =
+              pinRow?.login_pin || pinRow?.pin || (await getLocalPinForPhone(phone));
             if (savedPin) {
               const { error: pwErr } = await supabase.auth.updateUser({
                 password: derivePinPassword(savedPin),
@@ -1040,14 +1171,22 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     let serverOk = false;
     if (supaEnabled && supabase && authState.isSupabaseSession && userId) {
       try {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ pin: null, login_pin: null })
-          .eq("id", userId);
-        if (error) {
-          console.log("[auth] forgotPin server clear error", error.message);
-        } else {
+        // Preferred path: clear_login_pin RPC (migration 0052) also clears
+        // the bcrypt hash and the failed-attempt counters.
+        const { error: rpcErr } = await supabase.rpc("clear_login_pin");
+        if (!rpcErr) {
           serverOk = true;
+        } else {
+          console.log("[auth] forgotPin clear_login_pin RPC failed — falling back to column clear:", rpcErr.message);
+          const { error } = await supabase
+            .from("profiles")
+            .update({ pin: null, login_pin: null })
+            .eq("id", userId);
+          if (error) {
+            console.log("[auth] forgotPin server clear error", error.message);
+          } else {
+            serverOk = true;
+          }
         }
       } catch (e) {
         console.log("[auth] forgotPin threw", e);
@@ -1065,7 +1204,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       console.log("[auth] forgotPin local clear error", e);
     }
     setAuthState((prev) => {
-      const next: AuthState = { ...prev, profilePin: null };
+      const next: AuthState = { ...prev, profilePin: null, profileHasPin: false };
       AsyncStorage.setItem(
         AUTH_KEY,
         JSON.stringify({ ...next, profilePin: null })
@@ -1087,11 +1226,22 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     // endpoint to refresh the cached row when RLS allows it. If the read is
     // blocked we just keep the existing cache.
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("profiles")
         .select(PROFILE_COLUMNS)
         .eq("id", userId)
         .maybeSingle();
+      // Databases that pre-date migration 0052 have no pin_hash column —
+      // retry with the legacy column list so the refresh still works.
+      if (error && /pin_hash/i.test(error.message)) {
+        const retry = await supabase
+          .from("profiles")
+          .select(LEGACY_PROFILE_COLUMNS)
+          .eq("id", userId)
+          .maybeSingle();
+        data = retry.data as unknown as typeof data;
+        error = retry.error;
+      }
       if (error) {
         console.log("[auth] refreshProfile fetch error", error.message);
         return;
@@ -1103,8 +1253,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       };
       setProfile(record);
       // Persist the full row to AsyncStorage minus the PIN columns (kept in memory only).
-      const { pin: _pin, login_pin: _login_pin, ...persisted } = record;
-      void _pin; void _login_pin;
+      const { pin: _pin, login_pin: _login_pin, pin_hash: _pin_hash, ...persisted } = record;
+      void _pin; void _login_pin; void _pin_hash;
       AsyncStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(persisted)).catch(
         () => {}
       );
@@ -1114,8 +1264,11 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           profileName: record.name ?? prev.profileName ?? null,
           profileAvatar:
             record.avatar_url ?? record.profile_image ?? prev.profileAvatar ?? null,
-          // Prefer login_pin (canonical) over legacy pin column.
+          // Legacy plaintext columns (pre-0052 databases) still mirror the
+          // PIN; on hashed databases keep whatever the user typed this session.
           profilePin: record.login_pin ?? record.pin ?? prev.profilePin ?? null,
+          // Server-derived "a PIN exists" flag — works with hash-only rows.
+          profileHasPin: !!(record.pin_hash || record.login_pin || record.pin),
         };
         AsyncStorage.setItem(
           AUTH_KEY,
@@ -1146,21 +1299,29 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("login_pin, pin")
+          .select("login_pin, pin, phone")
           .eq("id", userId)
           .maybeSingle();
         if (error || !data) {
           console.log("[auth] resyncAuthPassword: profile fetch failed", error?.message);
           return false;
         }
-        const existingPin = data.login_pin || data.pin;
+        // Legacy plaintext columns first (pre-0052 databases); on hashed
+        // databases the server can't return the PIN, so fall back to this
+        // device's local cache.
+        let existingPin = data.login_pin || data.pin;
         if (!existingPin) {
-          console.log("[auth] resyncAuthPassword: no PIN in profile");
+          const phone = data.phone || authState.phoneNumber || "";
+          existingPin = phone ? await getLocalPinForPhone(phone) : null;
+        }
+        if (!existingPin) {
+          console.log("[auth] resyncAuthPassword: no recoverable PIN (server stores a hash and no local cache) — caller should route to pin-setup");
           return false;
         }
+        const pinToSync: string = existingPin;
         const tryUpdate = async (): Promise<boolean> => {
           const { error: pwErr } = await supabase!.auth.updateUser({
-            password: derivePinPassword(existingPin),
+            password: derivePinPassword(pinToSync),
           });
           if (!pwErr || /same.?password|different.*password/i.test(pwErr.message)) {
             console.log("[auth] resyncAuthPassword: auth password synced from profile PIN");
@@ -1177,7 +1338,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return false;
       }
     },
-    [supaEnabled]
+    [supaEnabled, authState.phoneNumber]
   );
 
   /**
@@ -1202,6 +1363,19 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       }
       const phone = normalizeE164(phoneNumber);
       if (!phone) return { ok: false, error: "Invalid phone number" };
+      // Keep the verified PIN in memory (never persisted) so hasPinSet /
+      // verifyPin / change-pin work for the rest of the session — the server
+      // only stores a bcrypt hash and can't echo the PIN back.
+      const cacheVerifiedPin = () => {
+        setAuthState((prev) => {
+          const next: AuthState = { ...prev, profilePin: pin, profileHasPin: true };
+          AsyncStorage.setItem(
+            AUTH_KEY,
+            JSON.stringify({ ...next, profilePin: null })
+          ).catch(() => {});
+          return next;
+        });
+      };
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
           phone,
@@ -1229,6 +1403,14 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 profilePinMatched = true;
                 console.log("[auth] signInWithPin: verify_pin_for_login confirmed PIN matches profile");
               } else if (rpcErr) {
+                // Too many wrong attempts — the server has locked PIN
+                // verification. Surface the lockout instead of falling back
+                // to local checks.
+                const lockSeconds = parsePinLockSeconds(rpcErr.message);
+                if (lockSeconds != null) {
+                  console.log("[auth] signInWithPin: PIN verification locked for", lockSeconds, "s");
+                  return { ok: false, error: pinLockMessage(lockSeconds) };
+                }
                 console.log("[auth] signInWithPin: verify_pin_for_login error", rpcErr.message);
               }
             } catch (e) {
@@ -1274,7 +1456,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                       phone,
                       password: derivePinPassword(pin),
                     });
-                    if (!retry.error && retry.data.session) return { ok: true };
+                    if (!retry.error && retry.data.session) {
+                      cacheVerifiedPin();
+                      return { ok: true };
+                    }
                     console.log("[auth] signInWithPin: retry after re-sync failed", retry.error?.message);
                   } else if (/same.?password|different.*password/i.test(pwErr.message)) {
                     // 422 same_password: Auth password is already derivePinPassword(pin).
@@ -1284,7 +1469,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                       phone,
                       password: derivePinPassword(pin),
                     });
-                    if (!retry.error && retry.data.session) return { ok: true };
+                    if (!retry.error && retry.data.session) {
+                      cacheVerifiedPin();
+                      return { ok: true };
+                    }
                     console.log("[auth] signInWithPin: retry with correct password still failed", retry.error?.message);
                   } else {
                     console.log("[auth] signInWithPin: password re-sync failed", pwErr.message);
@@ -1303,6 +1491,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           }
           return { ok: false, error: msg };
         }
+        cacheVerifiedPin();
         return { ok: true };
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Sign in failed";
@@ -1338,6 +1527,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     isUserRegistered,
     hasPinSet,
     verifyPin,
+    /** Async server-backed PIN check (rate limited). Prefer over verifyPin. */
+    verifyPinRemote,
     registerUser,
     // supabase phone-OTP flow
     sendOtp,
