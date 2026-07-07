@@ -257,6 +257,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     "teksi-ev": Zap,
     "dashboard": LayoutDashboard,
     "earnings": Wallet,
+    "wallet": Wallet,
     "trip-history": Clock,
     "vehicle": Car,
     "documents": FileText,
@@ -273,6 +274,10 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     },
     "dashboard": () => onClose(),
     "earnings": () => handleNavigate("Earnings"),
+    "wallet": () => {
+      onClose();
+      setTimeout(() => router.push("/wallet?mode=partner" as any), 200);
+    },
     "trip-history": () => handleNavigate("Trip history"),
     "vehicle": () => handleNavigate("Vehicle"),
     "documents": () => {

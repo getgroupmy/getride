@@ -14,7 +14,7 @@ import {
   Keyboard,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import {
   ArrowLeft,
   Menu,
@@ -59,6 +59,7 @@ import { checkPartnerModeDocuments, summarizeDocIssues } from "@/utils/partnerMo
 import { Alert } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminData } from "@/contexts/AdminDataContext";
+import { fetchWalletBalances } from "@/utils/walletStore";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useIpAccess } from "@/contexts/IpAccessContext";
 import {
@@ -187,7 +188,7 @@ export default function DriverEhailingScreen() {
   const driverLng = currentLocation?.coords?.longitude ?? 101.6869;
 
   const [isOnline, setIsOnline] = useState<boolean>(false);
-  const [creditBalance] = useState<number>(125.50);
+  const [creditBalance, setCreditBalance] = useState<number>(0);
   const [cashBalance] = useState<number>(48.20);
   const [driverModeVisible, setDriverModeVisible] = useState<boolean>(false);
   const [partnerModeOptions, setPartnerModeOptions] = useState<PartnerModeOption[]>([]);
@@ -201,6 +202,25 @@ export default function DriverEhailingScreen() {
     setPartnerModeOptions(opts);
     setDriverModeVisible(true);
   }, [authState.userId, getEntries]);
+
+  // Live GET.credit balance from the wallet store (refreshes on focus).
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        if (!authState.userId) return;
+        try {
+          const b = await fetchWalletBalances(authState.userId);
+          if (!cancelled) setCreditBalance(b.getCredit);
+        } catch (e) {
+          console.log("[partner-ehailing] wallet balance load failed", e);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [authState.userId])
+  );
   const [sideSheetVisible, setSideSheetVisible] = useState<boolean>(false);
   const [request, setRequest] = useState<RideRequest | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number>(REQUEST_TIMEOUT_SECONDS);
@@ -1208,13 +1228,14 @@ export default function DriverEhailingScreen() {
           <View style={[styles.walletGapSpacer, { pointerEvents: "none" }]} />
 
           <View style={styles.walletStack}>
-            <View
+            <TouchableOpacity
               style={[
                 styles.walletPill,
                 {
                   backgroundColor: isLightMode ? "#fff" : "rgba(0,0,0,0.7)",
                 },
               ]}
+              onPress={() => router.push("/wallet?mode=partner" as any)}
               testID="partner-ehailing-wallet-credit"
             >
               <View style={styles.walletTopRow}>
@@ -1224,7 +1245,7 @@ export default function DriverEhailingScreen() {
                 <Text style={[styles.walletLabel, { color: Colors.subtext }]}>Credit</Text>
               </View>
               <Text style={[styles.walletValue, { color: Colors.text }]}>RM {creditBalance.toFixed(2)}</Text>
-            </View>
+            </TouchableOpacity>
             <View
               style={[
                 styles.walletPill,

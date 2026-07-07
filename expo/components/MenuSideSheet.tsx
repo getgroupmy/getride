@@ -332,6 +332,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
     "city": Car,
     "request-history": Clock,
     "freight": Truck,
+    "wallet": Wallet,
     "notifications": Bell,
     "safety": Shield,
     "settings": Settings,
@@ -348,6 +349,10 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
     "city": goHome,
     "request-history": goHome,
     "freight": goHome,
+    "wallet": () => {
+      onClose();
+      setTimeout(() => router.push("/wallet" as any), 150);
+    },
     "notifications": goHome,
     "safety": () => {
       onClose();

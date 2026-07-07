@@ -14,7 +14,7 @@ import {
   Dimensions,
   Alert,
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import {
   ArrowLeft,
   Menu,
@@ -73,6 +73,7 @@ import {
 import VehicleSelectModal from "@/components/VehicleSelectModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminData } from "@/contexts/AdminDataContext";
+import { fetchWalletBalances } from "@/utils/walletStore";
 import PartnerSideSheet from "@/components/PartnerSideSheet";
 import HeatmapOverlay from "@/components/HeatmapOverlay";
 import { useAirportAreas, applyAirportAreaFilter, AirportArea } from "@/utils/airportAreas";
@@ -141,8 +142,27 @@ export default function DriverTeksiScreen() {
   const [isIdle, setIsIdle] = useState<boolean>(true);
   const [heatmapVisible, setHeatmapVisible] = useState<boolean>(false);
   const [trafficVisible, setTrafficVisible] = useState<boolean>(false);
-  const [creditBalance] = useState<number>(125.50);
+  const [creditBalance, setCreditBalance] = useState<number>(0);
   const [cashBalance] = useState<number>(48.20);
+
+  // Live GET.credit balance from the wallet store (refreshes on focus).
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        if (!authState.userId) return;
+        try {
+          const b = await fetchWalletBalances(authState.userId);
+          if (!cancelled) setCreditBalance(b.getCredit);
+        } catch (e) {
+          console.log("[partner-teksi] wallet balance load failed", e);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [authState.userId])
+  );
   const [startConfirmVisible, setStartConfirmVisible] = useState<boolean>(false);
   const startConfirmAnim = useRef(new Animated.Value(0)).current;
   const [statusModalVisible, setStatusModalVisible] = useState<boolean>(false);
@@ -1560,13 +1580,14 @@ export default function DriverTeksiScreen() {
           <View style={[styles.walletGapSpacer, { pointerEvents: "none" }]} />
 
           <View style={styles.walletStack}>
-            <View
+            <TouchableOpacity
               style={[
                 styles.walletPill,
                 {
                   backgroundColor: isLightMode ? "#fff" : "rgba(0,0,0,0.7)",
                 },
               ]}
+              onPress={() => router.push("/wallet?mode=partner" as any)}
               testID="partner-teksi-wallet-credit"
             >
               <View style={styles.walletTopRow}>
@@ -1576,7 +1597,7 @@ export default function DriverTeksiScreen() {
                 <Text style={[styles.walletLabel, { color: Colors.subtext }]}>Credit</Text>
               </View>
               <Text style={[styles.walletValue, { color: Colors.text }]}>RM {creditBalance.toFixed(2)}</Text>
-            </View>
+            </TouchableOpacity>
             <View
               style={[
                 styles.walletPill,
