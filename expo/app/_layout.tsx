@@ -178,6 +178,7 @@ function RootLayoutNav() {
       <Stack.Screen name="admin-settings-service" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-display" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-mock" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="admin-settings-commission" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-vehicle-make-model" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-partner-type" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-required-documents" options={{ animation: "slide_from_right", gestureEnabled: false }} />

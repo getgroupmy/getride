@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
+import { resolveCommissionRateForRide, DEFAULT_COMMISSION_RATE } from "@/utils/commissionStore";
 
 /**
  * Wallet store — two wallets per account:
@@ -46,8 +47,12 @@ const LOCAL_BALANCES_KEY = (userId: string) => `wallet:balances:${userId}`;
 const LOCAL_TX_KEY = (userId: string) => `wallet:transactions:${userId}`;
 const COMMISSION_GUARD_KEY = (rideKey: string) => `wallet:commission:${rideKey}`;
 
-/** Platform commission rate auto-deducted from GET.credit per completed trip. */
-export const RIDE_COMMISSION_RATE = 0.15;
+/**
+ * Fallback platform commission rate. The effective rate is resolved per ride
+ * from Admin → Settings → Commission Rates (user → suburb → city → state →
+ * country → master), falling back to this default.
+ */
+export const RIDE_COMMISSION_RATE = DEFAULT_COMMISSION_RATE;
 
 interface LocalWalletState {
   getWallet: number;
@@ -340,6 +345,10 @@ export interface CommissionChargeResult {
   alreadyCharged?: boolean;
   /** Commission amount deducted (or that would be deducted). */
   amount?: number;
+  /** Effective rate used for the deduction. */
+  rate?: number;
+  /** Where the rate came from, e.g. "City: Kuala Lumpur" or "Master rate (admin)". */
+  rateLabel?: string;
   error?: string;
 }
 
@@ -349,6 +358,10 @@ export interface CommissionChargeResult {
  * `ride_requests.commission_charged_at`, and a device-local guard covers the
  * AsyncStorage fallback (and repeated calls before the schema is applied).
  * GET.credit is allowed to go negative — the partner owes the difference.
+ *
+ * The rate is resolved from Admin → Settings → Commission Rates unless an
+ * explicit `rate` is passed: user override → suburb → city → state → country
+ * → master → 15% default.
  */
 export async function chargeRideCommission(input: {
   partnerId: string;
@@ -359,23 +372,33 @@ export async function chargeRideCommission(input: {
   rate?: number;
 }): Promise<CommissionChargeResult> {
   const { partnerId, fareTotal, rideRequestId, bookingNo } = input;
-  const rate = input.rate ?? RIDE_COMMISSION_RATE;
   if (!partnerId) return { ok: false, error: "Missing partner id." };
   if (!(fareTotal > 0)) return { ok: false, error: "Invalid fare." };
-  if (!(rate > 0 && rate < 1)) return { ok: false, error: "Invalid commission rate." };
+
+  let rate = input.rate ?? 0;
+  let rateLabel: string | undefined;
+  if (!(input.rate !== undefined && input.rate > 0 && input.rate < 1)) {
+    const resolved = await resolveCommissionRateForRide({ partnerId, rideRequestId });
+    rate = resolved.rate;
+    rateLabel = resolved.label;
+  }
+  if (!(rate >= 0 && rate < 1)) return { ok: false, error: "Invalid commission rate." };
 
   const rideKey = rideRequestId ?? bookingNo ?? null;
   if (!rideKey) return { ok: false, error: "Missing ride reference." };
 
   const amount = round2(fareTotal * rate);
-  if (!(amount > 0)) return { ok: true, amount: 0 };
+  if (!(amount > 0)) {
+    console.log("[wallet] commission rate resolved to 0 — nothing to charge", { rideKey, rateLabel });
+    return { ok: true, amount: 0, rate, rateLabel };
+  }
 
   // Client-side idempotency guard (the RPC is also idempotent per ride row).
   try {
     const done = await AsyncStorage.getItem(COMMISSION_GUARD_KEY(rideKey));
     if (done) {
       console.log("[wallet] commission already charged for ride", rideKey);
-      return { ok: true, alreadyCharged: true, amount };
+      return { ok: true, alreadyCharged: true, amount, rate, rateLabel };
     }
   } catch (e) {
     console.log("[wallet] commission guard read failed", e);
@@ -399,12 +422,12 @@ export async function chargeRideCommission(input: {
       });
       if (error) throw error;
       await markCharged();
-      console.log("[wallet] ride commission charged (supabase)", { rideRequestId, amount, rate });
-      return { ok: true, amount };
+      console.log("[wallet] ride commission charged (supabase)", { rideRequestId, amount, rate, rateLabel });
+      return { ok: true, amount, rate, rateLabel };
     } catch (e) {
       if (!isMissingSchemaError(e)) {
         console.log("[wallet] commission rpc failed", e);
-        return { ok: false, error: "Commission charge failed.", amount };
+        return { ok: false, error: "Commission charge failed.", amount, rate, rateLabel };
       }
       console.log("[wallet] commission falling back to local wallet");
     }
@@ -426,8 +449,8 @@ export async function chargeRideCommission(input: {
     },
   ]);
   await markCharged();
-  console.log("[wallet] ride commission charged (local)", { rideKey, amount, rate });
-  return { ok: true, amount };
+  console.log("[wallet] ride commission charged (local)", { rideKey, amount, rate, rateLabel });
+  return { ok: true, amount, rate, rateLabel };
 }
 
 function round2(n: number): number {

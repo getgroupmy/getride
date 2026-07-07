@@ -57,6 +57,7 @@ import {
   BrainCircuit,
   Bot,
   FlaskConical,
+  Percent,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
@@ -121,6 +122,7 @@ export default function AdminSettingsScreen() {
           { id: "payment-type", label: "Payment Type", description: "Available payment methods", icon: CreditCard, tone: "accent" },
           { id: "payment-gateway", label: "Payment Gateway", description: "Stripe, Fiuu, PayPal & more", icon: Wallet, tone: "success" },
           { id: "driver-incentive", label: "Partner Incentive", description: "Bonus & incentive rules", icon: TrendingUp, tone: "success" },
+          { id: "commission-rates", label: "Commission Rates", description: "Master rate + country/state/city/suburb & user overrides", icon: Percent, tone: "success" },
           { id: "leaderboard", label: "Leaderboard", description: "Top partner rankings", icon: Trophy, tone: "warning" },
           { id: "rides", label: "Rides", description: "Ride configuration", icon: Route, tone: "neutral" },
           { id: "fare-ai", label: "Fare AI Provider", description: "Choose Gemini, Grok or ChatGPT for fare calc", icon: BrainCircuit, tone: "accent" },
@@ -204,6 +206,7 @@ export default function AdminSettingsScreen() {
     "payment-type": "/admin-settings-payment-type",
     "payment-gateway": "/admin-settings-payment-gateway",
     "driver-incentive": "/admin-settings-driver-incentive",
+    "commission-rates": "/admin-settings-commission",
     leaderboard: "/admin-settings-leaderboard",
     rides: "/admin-settings-rides",
     "fare-ai": "/admin-settings-fare-ai",
