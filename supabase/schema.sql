@@ -1122,7 +1122,13 @@ create table if not exists public.ride_requests (
   partner_live_at      timestamptz,
   user_live_lat        double precision,
   user_live_lng        double precision,
-  user_live_at         timestamptz
+  user_live_at         timestamptz,
+
+  -- Ride commission (0057): platform commission auto-deducted from the
+  -- partner's GET.credit wallet when the trip completes.
+  commission_rate       numeric(6,4),
+  commission_amount     numeric(12,2),
+  commission_charged_at timestamptz
 );
 
 -- Idempotent upgrade for databases created before 0053/0054/0055.
@@ -1136,7 +1142,10 @@ alter table public.ride_requests
   add column if not exists partner_live_at      timestamptz,
   add column if not exists user_live_lat        double precision,
   add column if not exists user_live_lng        double precision,
-  add column if not exists user_live_at         timestamptz;
+  add column if not exists user_live_at         timestamptz,
+  add column if not exists commission_rate       numeric(6,4),
+  add column if not exists commission_amount     numeric(12,2),
+  add column if not exists commission_charged_at timestamptz;
 
 create index if not exists ride_requests_status_idx       on public.ride_requests(status);
 create index if not exists ride_requests_rider_idx        on public.ride_requests(rider_id);
@@ -1209,7 +1218,7 @@ grant select, insert, update, delete on public.ip_access_rules to anon, authenti
 
 -- ============================================================================
 -- Wallets — GET.wallet (master) + GET.credit (partner credit)
--- (migrations/0056_wallets.sql, folded in)
+-- (migrations/0056_wallets.sql + 0057_ride_commission.sql, folded in)
 -- ----------------------------------------------------------------------------
 -- GET.wallet : master wallet, used by the account in both user & partner mode.
 -- GET.credit : partner-only wallet used to pay for in-app services and
@@ -1219,12 +1228,20 @@ create table if not exists public.wallets (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null,
   wallet_type text not null check (wallet_type in ('get_wallet','get_credit')),
-  balance numeric(12,2) not null default 0 check (balance >= 0),
+  balance numeric(12,2) not null default 0,
   currency text not null default 'RM',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (user_id, wallet_type)
+  unique (user_id, wallet_type),
+  -- GET.credit may go negative (commission owed); GET.wallet stays >= 0.
+  constraint wallets_balance_check check (wallet_type = 'get_credit' or balance >= 0)
 );
+
+-- Idempotent upgrade for databases created before 0057 (old check forced all
+-- wallet balances to be non-negative).
+alter table public.wallets drop constraint if exists wallets_balance_check;
+alter table public.wallets add constraint wallets_balance_check
+  check (wallet_type = 'get_credit' or balance >= 0);
 
 create index if not exists wallets_user_idx on public.wallets(user_id);
 
@@ -1364,3 +1381,77 @@ $$;
 
 grant execute on function public.wallet_topup(uuid, numeric, text) to anon, authenticated;
 grant execute on function public.wallet_recharge_credit(uuid, numeric) to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- Atomic, idempotent ride-commission charge (0057): deducts the platform
+-- commission from the partner's GET.credit when a trip completes. Locks the
+-- ride row; if it was already charged, returns without deducting again.
+-- ----------------------------------------------------------------------------
+create or replace function public.wallet_charge_ride_commission(
+  p_ride uuid,
+  p_partner uuid,
+  p_fare numeric,
+  p_rate numeric default 0.15
+)
+returns public.wallets
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r public.ride_requests;
+  w public.wallets;
+  v_amount numeric(12,2);
+begin
+  if p_partner is null then
+    raise exception 'invalid_partner';
+  end if;
+  if p_fare is null or p_fare <= 0 then
+    raise exception 'invalid_fare';
+  end if;
+  if p_rate is null or p_rate <= 0 or p_rate >= 1 then
+    raise exception 'invalid_rate';
+  end if;
+
+  select * into r from public.ride_requests where id = p_ride for update;
+  if not found then
+    raise exception 'ride_not_found';
+  end if;
+
+  -- Already charged: idempotent no-op.
+  if r.commission_charged_at is not null then
+    select * into w from public.wallets
+     where user_id = p_partner and wallet_type = 'get_credit';
+    return w;
+  end if;
+
+  v_amount := round(p_fare * p_rate, 2);
+
+  insert into public.wallets (user_id, wallet_type, balance)
+  values (p_partner, 'get_credit', 0)
+  on conflict (user_id, wallet_type) do nothing;
+
+  update public.wallets
+     set balance = balance - v_amount, updated_at = now()
+   where user_id = p_partner and wallet_type = 'get_credit'
+  returning * into w;
+
+  insert into public.wallet_transactions
+    (user_id, wallet_type, kind, amount, balance_after, note)
+  values
+    (p_partner, 'get_credit', 'commission', -v_amount, w.balance,
+     'Ride commission ' || round(p_rate * 100, 1) || '% of ' ||
+     coalesce(r.currency, 'RM') || ' ' || round(p_fare, 2));
+
+  update public.ride_requests
+     set commission_rate = p_rate,
+         commission_amount = v_amount,
+         commission_charged_at = now()
+   where id = p_ride;
+
+  return w;
+end;
+$$;
+
+grant execute on function public.wallet_charge_ride_commission(uuid, uuid, numeric, numeric)
+  to anon, authenticated;

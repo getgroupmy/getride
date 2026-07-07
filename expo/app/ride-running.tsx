@@ -50,6 +50,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useVoiceProtection } from "@/contexts/VoiceProtectionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { chargeRideCommission } from "@/utils/walletStore";
 import { MapView, Marker, Polyline, calculateRoute, reverseGeocode, calculateFare, type TariffType } from "@/utils/maps";
 import {
   updateRideRequestStatus,
@@ -107,6 +109,8 @@ export default function RideRunningScreen() {
   // and the driver advances the trip manually with the action button.
   const driveSimEnabled = displaySettings.partnerDriveSimEnabled;
   const { startTripRecording, stopTripRecording, isRecording } = useVoiceProtection();
+  const { authState } = useAuth();
+  const partnerUserId = authState.userId ?? null;
   const recDotAnim = useRef(new Animated.Value(1)).current;
   const insets = useSafeAreaInsets();
   const mapRef = useRef<any>(null);
@@ -793,6 +797,15 @@ export default function RideRunningScreen() {
       parsedExtras,
     });
     const total = baseFare + parsedTolls + parsedExtras;
+    if (partnerUserId) {
+      // Auto-deduct the platform commission from the partner's GET.credit.
+      void chargeRideCommission({
+        partnerId: partnerUserId,
+        fareTotal: total,
+        rideRequestId,
+        bookingNo,
+      });
+    }
     router.replace({
       pathname: "/ride-detail" as any,
       params: {
@@ -820,7 +833,7 @@ export default function RideRunningScreen() {
         tariff,
       },
     });
-  }, [elapsedSec, fareParam, traveledKm, router, bookingNo, pickupName, pickupAddress, dropName, dropAddress, startLat, startLng, dropLat, dropLng, distanceParam, parsedTolls, parsedExtras, extrasNote, driverMode, tariff]);
+  }, [elapsedSec, fareParam, traveledKm, router, bookingNo, pickupName, pickupAddress, dropName, dropAddress, startLat, startLng, dropLat, dropLng, distanceParam, parsedTolls, parsedExtras, extrasNote, driverMode, tariff, partnerUserId, rideRequestId]);
 
   const finalizeEndedEarlyRide = useCallback((paymentMethod: string) => {
     const result = recalcResult;
@@ -839,6 +852,15 @@ export default function RideRunningScreen() {
       parsedExtras,
     });
     const total = baseFare + parsedTolls + parsedExtras;
+    if (partnerUserId) {
+      // Trip was still ridden — commission applies to the recalculated total.
+      void chargeRideCommission({
+        partnerId: partnerUserId,
+        fareTotal: total,
+        rideRequestId,
+        bookingNo,
+      });
+    }
     router.replace({
       pathname: "/ride-detail" as any,
       params: {
@@ -866,7 +888,7 @@ export default function RideRunningScreen() {
         tariff,
       },
     });
-  }, [recalcResult, elapsedSec, traveledKm, router, bookingNo, fareParam, pickupName, pickupAddress, dropName, dropAddress, startLat, startLng, dropLat, dropLng, distanceParam, parsedTolls, parsedExtras, extrasNote, driverMode, tariff]);
+  }, [recalcResult, elapsedSec, traveledKm, router, bookingNo, fareParam, pickupName, pickupAddress, dropName, dropAddress, startLat, startLng, dropLat, dropLng, distanceParam, parsedTolls, parsedExtras, extrasNote, driverMode, tariff, partnerUserId, rideRequestId]);
 
   const handleSelectPayment = useCallback((method: string) => {
     console.log("[ride-running] payment method selected", method);

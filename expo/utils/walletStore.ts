@@ -44,6 +44,10 @@ export interface WalletActionResult {
 
 const LOCAL_BALANCES_KEY = (userId: string) => `wallet:balances:${userId}`;
 const LOCAL_TX_KEY = (userId: string) => `wallet:transactions:${userId}`;
+const COMMISSION_GUARD_KEY = (rideKey: string) => `wallet:commission:${rideKey}`;
+
+/** Platform commission rate auto-deducted from GET.credit per completed trip. */
+export const RIDE_COMMISSION_RATE = 0.15;
 
 interface LocalWalletState {
   getWallet: number;
@@ -328,6 +332,102 @@ export async function rechargeCredit(
     ok: true,
     balances: { getWallet: next.getWallet, getCredit: next.getCredit, currency: "RM", source: "local" },
   };
+}
+
+export interface CommissionChargeResult {
+  ok: boolean;
+  /** True when this ride's commission had already been charged earlier. */
+  alreadyCharged?: boolean;
+  /** Commission amount deducted (or that would be deducted). */
+  amount?: number;
+  error?: string;
+}
+
+/**
+ * Auto-deducts the platform commission for a completed trip from the
+ * partner's GET.credit wallet. Idempotent per ride: the DB function anchors on
+ * `ride_requests.commission_charged_at`, and a device-local guard covers the
+ * AsyncStorage fallback (and repeated calls before the schema is applied).
+ * GET.credit is allowed to go negative — the partner owes the difference.
+ */
+export async function chargeRideCommission(input: {
+  partnerId: string;
+  /** Final trip total (base fare + tolls + extras). */
+  fareTotal: number;
+  rideRequestId?: string | null;
+  bookingNo?: string | null;
+  rate?: number;
+}): Promise<CommissionChargeResult> {
+  const { partnerId, fareTotal, rideRequestId, bookingNo } = input;
+  const rate = input.rate ?? RIDE_COMMISSION_RATE;
+  if (!partnerId) return { ok: false, error: "Missing partner id." };
+  if (!(fareTotal > 0)) return { ok: false, error: "Invalid fare." };
+  if (!(rate > 0 && rate < 1)) return { ok: false, error: "Invalid commission rate." };
+
+  const rideKey = rideRequestId ?? bookingNo ?? null;
+  if (!rideKey) return { ok: false, error: "Missing ride reference." };
+
+  const amount = round2(fareTotal * rate);
+  if (!(amount > 0)) return { ok: true, amount: 0 };
+
+  // Client-side idempotency guard (the RPC is also idempotent per ride row).
+  try {
+    const done = await AsyncStorage.getItem(COMMISSION_GUARD_KEY(rideKey));
+    if (done) {
+      console.log("[wallet] commission already charged for ride", rideKey);
+      return { ok: true, alreadyCharged: true, amount };
+    }
+  } catch (e) {
+    console.log("[wallet] commission guard read failed", e);
+  }
+
+  const markCharged = async () => {
+    try {
+      await AsyncStorage.setItem(COMMISSION_GUARD_KEY(rideKey), new Date().toISOString());
+    } catch (e) {
+      console.log("[wallet] commission guard write failed", e);
+    }
+  };
+
+  if (isSupabaseConfigured && supabase && rideRequestId) {
+    try {
+      const { error } = await supabase.rpc("wallet_charge_ride_commission", {
+        p_ride: rideRequestId,
+        p_partner: partnerId,
+        p_fare: fareTotal,
+        p_rate: rate,
+      });
+      if (error) throw error;
+      await markCharged();
+      console.log("[wallet] ride commission charged (supabase)", { rideRequestId, amount, rate });
+      return { ok: true, amount };
+    } catch (e) {
+      if (!isMissingSchemaError(e)) {
+        console.log("[wallet] commission rpc failed", e);
+        return { ok: false, error: "Commission charge failed.", amount };
+      }
+      console.log("[wallet] commission falling back to local wallet");
+    }
+  }
+
+  // Local fallback — deduct from the device-local GET.credit (may go negative).
+  const local = await readLocalBalances(partnerId);
+  const next: LocalWalletState = { ...local, getCredit: round2(local.getCredit - amount) };
+  await writeLocalBalances(partnerId, next);
+  const ratePct = Math.round(rate * 1000) / 10;
+  await appendLocalTransactions(partnerId, [
+    {
+      walletType: "get_credit",
+      kind: "commission",
+      amount: -amount,
+      balanceAfter: next.getCredit,
+      method: null,
+      note: `Ride commission ${ratePct}% of RM ${fareTotal.toFixed(2)}${bookingNo ? ` — #${bookingNo}` : ""}`,
+    },
+  ]);
+  await markCharged();
+  console.log("[wallet] ride commission charged (local)", { rideKey, amount, rate });
+  return { ok: true, amount };
 }
 
 function round2(n: number): number {
