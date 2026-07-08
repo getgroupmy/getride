@@ -447,16 +447,10 @@ export default function WalletScreen() {
                 <WalletIcon color="#FFFFFF" size={18} />
                 <Text style={styles.masterCardName}>GET.wallet</Text>
               </View>
-              <View style={styles.masterBadge}>
-                <Text style={styles.masterBadgeText}>MASTER</Text>
-              </View>
             </View>
             <Text style={styles.masterBalanceLabel}>Available balance</Text>
             <Text style={styles.masterBalance} testID="wallet-master-balance">
               RM {(balances?.getWallet ?? 0).toFixed(2)}
-            </Text>
-            <Text style={styles.masterHint}>
-              Usable in both user and partner mode
             </Text>
             <View style={styles.cardActions}>
               <TouchableOpacity
@@ -467,16 +461,6 @@ export default function WalletScreen() {
                 <Plus color={Colors.accent} size={16} />
                 <Text style={[styles.masterActionText, { color: Colors.accent }]}>Top Up</Text>
               </TouchableOpacity>
-              {isPartnerMode ? (
-                <TouchableOpacity
-                  style={styles.masterActionBtnGhost}
-                  onPress={openRecharge}
-                  testID="wallet-recharge-shortcut"
-                >
-                  <ArrowRightLeft color="#FFFFFF" size={16} />
-                  <Text style={styles.masterActionGhostText}>Move to GET.credit</Text>
-                </TouchableOpacity>
-              ) : null}
             </View>
           </View>
 
@@ -496,9 +480,6 @@ export default function WalletScreen() {
                 <View style={styles.cardTitleRow}>
                   <CreditCard color="#F59E0B" size={18} />
                   <Text style={[styles.creditCardName, { color: Colors.text }]}>GET.credit</Text>
-                </View>
-                <View style={[styles.partnerBadge, { backgroundColor: "#F59E0B22" }]}>
-                  <Text style={styles.partnerBadgeText}>PARTNER</Text>
                 </View>
               </View>
               <Text style={[styles.creditBalance, { color: Colors.text }]} testID="wallet-credit-balance">
@@ -698,18 +679,6 @@ const styles = StyleSheet.create({
     fontWeight: "800" as const,
     color: "#FFFFFF",
   },
-  masterBadge: {
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  masterBadgeText: {
-    fontSize: 10,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-    letterSpacing: 1,
-  },
   masterBalanceLabel: {
     fontSize: 12,
     color: "rgba(255,255,255,0.85)",
@@ -720,15 +689,10 @@ const styles = StyleSheet.create({
     fontWeight: "800" as const,
     color: "#FFFFFF",
   },
-  masterHint: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 4,
-    marginBottom: 16,
-  },
   cardActions: {
     flexDirection: "row",
     gap: 10,
+    marginTop: 16,
   },
   masterActionBtn: {
     flexDirection: "row",
@@ -743,21 +707,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700" as const,
   },
-  masterActionBtnGhost: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.6)",
-  },
-  masterActionGhostText: {
-    fontSize: 13,
-    fontWeight: "700" as const,
-    color: "#FFFFFF",
-  },
   creditCard: {
     borderRadius: 20,
     padding: 20,
@@ -767,17 +716,6 @@ const styles = StyleSheet.create({
   creditCardName: {
     fontSize: 17,
     fontWeight: "800" as const,
-  },
-  partnerBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  partnerBadgeText: {
-    fontSize: 10,
-    fontWeight: "800" as const,
-    color: "#F59E0B",
-    letterSpacing: 1,
   },
   creditBalance: {
     fontSize: 28,
