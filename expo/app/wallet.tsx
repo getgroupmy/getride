@@ -319,6 +319,11 @@ export default function WalletScreen() {
                 {isTopUp ? "Top up GET.wallet" : "Recharge GET.credit"}
               </Text>
             </View>
+            {isTopUp ? (
+              <Text style={[styles.modalBalance, { color: Colors.text }]} testID="wallet-topup-current-balance">
+                Current balance · RM {(balances?.getWallet ?? 0).toFixed(2)}
+              </Text>
+            ) : null}
             <Text style={[styles.modalSub, { color: Colors.textSecondary }]}>
               {isTopUp
                 ? "Add funds to your master wallet."
@@ -1060,6 +1065,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700" as const,
     flex: 1,
+  },
+  modalBalance: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    marginBottom: 2,
   },
   modalSub: {
     fontSize: 13,
