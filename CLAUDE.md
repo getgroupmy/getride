@@ -90,7 +90,28 @@ Most non-admin domain state is kept in lightweight `utils/*Store.ts` modules (e.
 
 ### Ride Dispatch
 
-Real ride matching goes through the `ride_requests` table via `utils/rideRequestsStore.ts` (no context — plain async functions plus Supabase realtime subscriptions). A rider inserts an `open` request; online partners subscribe to open requests in realtime, accept one (claiming it), and progress it through `accepted` → `arrived` → `on_trip` → `completed` (or `cancelled`/`expired`). The rider watches their own request row for status changes. A database trigger (migration `0051`, using `pg_net` + Supabase Vault secrets `project_url`/`service_role_key`) fires the `send-push` edge function to notify the partner audience whenever a new open request is inserted.
+Real ride matching goes through the `ride_requests` table via `utils/rideRequestsStore.ts` (no context — plain async functions plus Supabase realtime subscriptions). A rider inserts an `open` request; online partners subscribe to open requests in realtime, accept one (claiming it), and progress it through `accepted` → `arrived` → `on_trip` → `completed` (or `cancelled`/`expired`; open requests expire after 7 minutes, `REQUEST_EXPIRY_MS`). The rider watches their own request row for status changes. A database trigger (migration `0051`, using `pg_net` + Supabase Vault secrets `project_url`/`service_role_key`) fires the `send-push` edge function to notify the partner audience whenever a new open request is inserted.
+
+Additional dispatch behaviors, all riding on `ride_requests` columns:
+
+- **Fare offers/bidding**: partners can counter-offer via `submitRideOffer`; riders can raise the fare on an open request via `raiseRideRequestFare`.
+- **Cancellation**: before the trip starts the rider cancels directly (`cancelRideRequest`, storing `cancel_reason`). Once `on_trip`, tapping X only *requests* cancellation (`cancel_requested_at`/`cancel_requested_by`, migration `0053`) — the driver sees a popup and accepts (→ `cancelled`) or declines (timestamp cleared).
+- **Live location**: during an active ride both sides publish their real GPS position onto the request row (`publishLiveLocation` → `partner_live_*` / `user_live_*` columns, migration `0055`) and each side moves the other's map marker from realtime row updates.
+- **Restore after restart**: on cold launch the rider is returned to their in-progress screen via `fetchOngoingRequestForRider` + `utils/ongoingRequestRestore.ts` (`buildRestoreTarget` maps status → `/ride-tracking` or `/ride-confirm`); the partner side uses `fetchOngoingRequestForPartner` to return to `/ride-running`.
+- **Commission**: when a partner completes a trip, `ride-running.tsx` calls `chargeRideCommission` (see Wallets below).
+
+### Wallets & Commission
+
+Each account has two wallets (`utils/walletStore.ts`, tables `wallets`/`wallet_transactions` from migration `0056`, rider-facing screen `app/wallet.tsx`):
+
+- **GET.wallet** (`get_wallet`) — master wallet, used in both user and partner mode, topped up via payment methods. Must stay non-negative.
+- **GET.credit** (`get_credit`) — partner-only wallet that pays for in-app services and ride commissions; recharged by transferring from GET.wallet. May go negative (commission owed).
+
+On trip completion the platform commission is deducted from GET.credit through the `wallet_charge_ride_commission` RPC (migration `0057`) — atomic and idempotent (the charge is stamped on the ride row via `commission_charged_at`, so it can never apply twice).
+
+Commission *rates* are configurable from Admin → Settings → Commission Rates (`app/admin-settings-commission.tsx`, `utils/commissionStore.ts`, table `commission_rates` from migration `0058`): one master platform default plus overrides resolved in priority order user → suburb → city → state → country → master → hardcoded 15% (`DEFAULT_COMMISSION_RATE`).
+
+Both stores degrade gracefully: if the wallet/commission tables aren't in the live database yet, they fall back to device-local AsyncStorage copies and report `source: "local"` so callers can surface a notice.
 
 ### Maps
 
@@ -106,7 +127,7 @@ Files with a `.web.ts` / `.web.tsx` suffix are automatically used by Metro/Expo 
 
 ## Database
 
-The full, consolidated schema lives in `supabase/schema.sql` (idempotent — safe to re-run). Key tables: `profiles`, `partners`, `vehicles`, `partner_documents`, `settings_entries`, `app_settings`, `rides`, `ride_requests`, `support_tickets`/`support_messages`/`support_calls`, `push_tokens`, `push_notifications`, `ip_access_rules`, plus geo tables (`countries`/`states`/`cities`/`suburbs`/`airport_areas`).
+The full, consolidated schema lives in `supabase/schema.sql` (idempotent — safe to re-run). Key tables: `profiles`, `partners`, `vehicles`, `partner_documents`, `settings_entries`, `app_settings`, `rides`, `ride_requests`, `wallets`/`wallet_transactions`, `commission_rates`, `support_tickets`/`support_messages`/`support_calls`, `push_tokens`, `push_notifications`, `ip_access_rules`, plus geo tables (`countries`/`states`/`cities`/`suburbs`/`airport_areas`).
 
 `supabase/migrations/` holds the numbered incremental migration history (`0001_…` onward). `schema.sql` is the canonical full snapshot; the migrations are the historical deltas that produced it. When adding tables/columns, update `schema.sql` and add a new numbered migration.
 
@@ -133,3 +154,5 @@ The user's 6-digit sign-in PIN is stored as a bcrypt hash in `profiles.pin_hash`
 - **Partner vs Driver**: The codebase uses "partner" throughout. `DriverRecord` and `DriverStatus` are deprecated aliases for `PartnerRecord` and `PartnerStatus` in `AdminDataContext.tsx`.
 - **Diagnostics**: `/auth-diagnostics` is a hidden screen (reachable from the connection error modal) for debugging Supabase connectivity and OTP delivery. It is intentionally not shown in normal navigation.
 - **Admin access guard**: Screens under the admin panel check `useAdminAccess()` from `AdminAccessContext`. Sub-admin permissions are stored in settings entries.
+- **Graceful schema degradation**: newer `utils/*Store.ts` modules (wallets, commission rates) fall back to AsyncStorage when their tables/columns are missing from the live database, and `rideRequestsStore` retries writes without columns the DB reports as missing. Follow this pattern when adding features that depend on new migrations — the app must keep working against older databases.
+- **Mock/test features**: `app/admin-settings-mock.tsx` exposes toggles (mock users/partners on the map, rider trip simulation, partner drive simulation) persisted via `DisplaySettingsContext`. Gate any demo/simulation behavior behind these flags rather than hardcoding it.
