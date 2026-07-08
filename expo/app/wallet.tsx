@@ -11,7 +11,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import {
@@ -25,6 +27,7 @@ import {
   Landmark,
   Banknote,
   Info,
+  CircleDollarSign,
   ReceiptText,
   ScanLine,
   QrCode,
@@ -87,11 +90,7 @@ function ReloadDollarIcon({ color, size }: { color: string; size: number }) {
 
 const QUICK_AMOUNTS: number[] = [10, 20, 50, 100];
 
-const TOPUP_METHODS: { id: string; label: string }[] = [
-  { id: "card", label: "Card" },
-  { id: "fpx", label: "Online Banking (FPX)" },
-  { id: "ewallet", label: "E-Wallet" },
-];
+const TOPUP_QUICK_AMOUNTS: number[] = [5, 10, 20, 50, 100, 200];
 
 type TxFilter = "all" | WalletType;
 
@@ -301,33 +300,145 @@ export default function WalletScreen() {
           style={styles.modalOverlay}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
+          {isTopUp ? (
+            <View style={styles.topUpCard}>
+              <ScrollView
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.topUpTitleRow}>
+                  <View style={[styles.modalIconBubble, { backgroundColor: Colors.accent + "22" }]}>
+                    <Plus color={Colors.accent} size={20} />
+                  </View>
+                  <Text style={styles.topUpTitle}>Top up GET.wallet</Text>
+                </View>
+
+                <LinearGradient
+                  colors={["#C316E8", "#8A3BF2", "#5B5BF7"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0.6 }}
+                  style={styles.topUpBanner}
+                >
+                  <Text style={styles.topUpBannerLabel} testID="wallet-topup-current-balance">
+                    Current Balance:{" "}
+                    <Text style={styles.topUpBannerAmount}>
+                      RM{(balances?.getWallet ?? 0).toFixed(2)}
+                    </Text>
+                  </Text>
+                  <View style={styles.topUpPoweredWrap}>
+                    <Text style={styles.topUpPoweredBy}>Powered By</Text>
+                    <Image
+                      source={require("@/assets/images/mcash-logo-white.png")}
+                      style={styles.topUpMcashLogo}
+                      resizeMode="contain"
+                    />
+                  </View>
+                </LinearGradient>
+
+                <View style={styles.topUpBody}>
+                  <Text style={styles.topUpHeading}>Reload Amount</Text>
+                  <Text style={styles.topUpSub}>Please enter required details.</Text>
+
+                  <View style={styles.topUpAmountCard}>
+                    <CircleDollarSign color="#8A16E8" size={42} strokeWidth={1.8} />
+                    <View style={styles.topUpAmountFields}>
+                      <Text style={styles.topUpAmountLabel}>Amount (RM)*</Text>
+                      <TextInput
+                        style={styles.topUpAmountInput}
+                        value={amountText}
+                        onChangeText={setAmountText}
+                        keyboardType="decimal-pad"
+                        placeholder="Minimum Amount: RM1"
+                        placeholderTextColor="#B4B4BC"
+                        testID="wallet-amount-input"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.topUpOrRow}>
+                    <View style={styles.topUpOrLine} />
+                    <Text style={styles.topUpOrText}>or</Text>
+                    <View style={styles.topUpOrLine} />
+                  </View>
+
+                  <Text style={styles.topUpHeading}>Reload Amount</Text>
+                  <Text style={styles.topUpSub}>Select a quick reload amount to top-up instantly.</Text>
+
+                  <View style={styles.topUpQuickGrid}>
+                    {TOPUP_QUICK_AMOUNTS.map((q) => {
+                      const selected = parsedAmount === q && amountText.trim() !== "";
+                      return (
+                        <TouchableOpacity
+                          key={q}
+                          style={[
+                            styles.topUpQuickPill,
+                            selected && styles.topUpQuickPillSelected,
+                          ]}
+                          onPress={() => setAmountText(String(q))}
+                          testID={`wallet-quick-${q}`}
+                        >
+                          <Text
+                            style={[
+                              styles.topUpQuickPillText,
+                              selected && styles.topUpQuickPillTextSelected,
+                            ]}
+                          >
+                            RM{q}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {actionError ? (
+                    <Text style={[styles.errorText, { color: Colors.danger }]}>{actionError}</Text>
+                  ) : null}
+
+                  <View style={[styles.demoNote, { backgroundColor: "#F59E0B15" }]}>
+                    <Info color="#F59E0B" size={14} />
+                    <Text style={[styles.demoNoteText, { color: "#6B6B70" }]}>
+                      Demo top-up — no real payment is charged yet.
+                    </Text>
+                  </View>
+
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalBtn, styles.topUpCancelBtn]}
+                      onPress={() => setTopUpVisible(false)}
+                      disabled={submitting}
+                    >
+                      <Text style={[styles.modalBtnText, { color: "#3A3A3C" }]}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.modalBtn,
+                        { backgroundColor: Colors.accent, opacity: submitting ? 0.6 : 1 },
+                      ]}
+                      onPress={handleTopUp}
+                      disabled={submitting}
+                      testID="wallet-topup-confirm"
+                    >
+                      {submitting ? (
+                        <ActivityIndicator color={Colors.onAccent} size="small" />
+                      ) : (
+                        <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Top up</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          ) : (
           <View style={[styles.modalCard, { backgroundColor: Colors.background }]}>
             <View style={styles.modalHeader}>
-              <View
-                style={[
-                  styles.modalIconBubble,
-                  { backgroundColor: (isTopUp ? Colors.accent : "#F59E0B") + "22" },
-                ]}
-              >
-                {isTopUp ? (
-                  <Plus color={Colors.accent} size={20} />
-                ) : (
-                  <ArrowRightLeft color="#F59E0B" size={20} />
-                )}
+              <View style={[styles.modalIconBubble, { backgroundColor: "#F59E0B22" }]}>
+                <ArrowRightLeft color="#F59E0B" size={20} />
               </View>
-              <Text style={[styles.modalTitle, { color: Colors.text }]}>
-                {isTopUp ? "Top up GET.wallet" : "Recharge GET.credit"}
-              </Text>
+              <Text style={[styles.modalTitle, { color: Colors.text }]}>Recharge GET.credit</Text>
             </View>
-            {isTopUp ? (
-              <Text style={[styles.modalBalance, { color: Colors.text }]} testID="wallet-topup-current-balance">
-                Current balance · RM {(balances?.getWallet ?? 0).toFixed(2)}
-              </Text>
-            ) : null}
             <Text style={[styles.modalSub, { color: Colors.textSecondary }]}>
-              {isTopUp
-                ? "Add funds to your master wallet."
-                : `Transfer from GET.wallet · available RM ${(balances?.getWallet ?? 0).toFixed(2)}`}
+              {`Transfer from GET.wallet · available RM ${(balances?.getWallet ?? 0).toFixed(2)}`}
             </Text>
 
             <View style={styles.quickRow}>
@@ -372,55 +483,14 @@ export default function WalletScreen() {
               />
             </View>
 
-            {isTopUp ? (
-              <View style={styles.methodRow}>
-                {TOPUP_METHODS.map((m) => {
-                  const selected = methodId === m.id;
-                  return (
-                    <TouchableOpacity
-                      key={m.id}
-                      style={[
-                        styles.methodChip,
-                        {
-                          borderColor: selected ? Colors.accent : Colors.border,
-                          backgroundColor: selected ? Colors.accent + "18" : "transparent",
-                        },
-                      ]}
-                      onPress={() => setMethodId(m.id)}
-                      testID={`wallet-method-${m.id}`}
-                    >
-                      <Text
-                        style={[
-                          styles.methodChipText,
-                          { color: selected ? Colors.accent : Colors.text },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {m.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ) : null}
-
             {actionError ? (
               <Text style={[styles.errorText, { color: Colors.danger }]}>{actionError}</Text>
-            ) : null}
-
-            {isTopUp ? (
-              <View style={[styles.demoNote, { backgroundColor: Colors.warning + "15" }]}>
-                <Info color={Colors.warning} size={14} />
-                <Text style={[styles.demoNoteText, { color: Colors.textSecondary }]}>
-                  Demo top-up — no real payment is charged yet.
-                </Text>
-              </View>
             ) : null}
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalBtn, { borderColor: Colors.border, borderWidth: 1 }]}
-                onPress={() => (isTopUp ? setTopUpVisible(false) : setRechargeVisible(false))}
+                onPress={() => setRechargeVisible(false)}
                 disabled={submitting}
               >
                 <Text style={[styles.modalBtnText, { color: Colors.text }]}>Cancel</Text>
@@ -430,20 +500,19 @@ export default function WalletScreen() {
                   styles.modalBtn,
                   { backgroundColor: Colors.accent, opacity: submitting ? 0.6 : 1 },
                 ]}
-                onPress={isTopUp ? handleTopUp : handleRecharge}
+                onPress={handleRecharge}
                 disabled={submitting}
-                testID={isTopUp ? "wallet-topup-confirm" : "wallet-recharge-confirm"}
+                testID="wallet-recharge-confirm"
               >
                 {submitting ? (
                   <ActivityIndicator color={Colors.onAccent} size="small" />
                 ) : (
-                  <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>
-                    {isTopUp ? "Top up" : "Recharge"}
-                  </Text>
+                  <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Recharge</Text>
                 )}
               </TouchableOpacity>
             </View>
           </View>
+          )}
         </KeyboardAvoidingView>
       </Modal>
     );
@@ -1158,5 +1227,151 @@ const styles = StyleSheet.create({
   modalBtnText: {
     fontSize: 15,
     fontWeight: "700" as const,
+  },
+  topUpCard: {
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden" as const,
+    maxHeight: "92%" as const,
+  },
+  topUpTitleRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    backgroundColor: "#FFFFFF",
+  },
+  topUpTitle: {
+    fontSize: 17,
+    fontWeight: "700" as const,
+    color: "#1C1C1E",
+    flex: 1,
+  },
+  topUpBanner: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  topUpBannerLabel: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: "#FFFFFF",
+    flexShrink: 1,
+  },
+  topUpBannerAmount: {
+    fontSize: 17,
+    fontWeight: "800" as const,
+    color: "#FFFFFF",
+  },
+  topUpPoweredWrap: {
+    alignItems: "center" as const,
+  },
+  topUpPoweredBy: {
+    fontSize: 10,
+    fontWeight: "600" as const,
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  topUpMcashLogo: {
+    width: 74,
+    height: 20,
+  },
+  topUpBody: {
+    backgroundColor: "#F4F4F6",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+  },
+  topUpHeading: {
+    fontSize: 18,
+    fontWeight: "800" as const,
+    color: "#3A3A3C",
+    marginBottom: 2,
+  },
+  topUpSub: {
+    fontSize: 13,
+    color: "#6B6B70",
+    marginBottom: 12,
+  },
+  topUpAmountCard: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E7E7EB",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+  },
+  topUpAmountFields: {
+    flex: 1,
+  },
+  topUpAmountLabel: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: "#3A3A3C",
+    marginBottom: 2,
+  },
+  topUpAmountInput: {
+    fontSize: 17,
+    fontWeight: "600" as const,
+    color: "#1C1C1E",
+    paddingVertical: 4,
+    padding: 0,
+  },
+  topUpOrRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    marginBottom: 14,
+  },
+  topUpOrLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#D9D9DE",
+  },
+  topUpOrText: {
+    fontSize: 13,
+    color: "#9A9AA0",
+  },
+  topUpQuickGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 10,
+    marginBottom: 14,
+  },
+  topUpQuickPill: {
+    flexBasis: "30%" as const,
+    flexGrow: 1,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#ECECEF",
+    borderRadius: 999,
+    paddingVertical: 12,
+    alignItems: "center" as const,
+  },
+  topUpQuickPillSelected: {
+    borderColor: "#8A16E8",
+    backgroundColor: "#8A16E812",
+  },
+  topUpQuickPillText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: "#3A3A3C",
+  },
+  topUpQuickPillTextSelected: {
+    color: "#8A16E8",
+    fontWeight: "700" as const,
+  },
+  topUpCancelBtn: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E3E3E8",
   },
 });
