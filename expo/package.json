@@ -6,7 +6,8 @@
     "start": "bunx rork start -p 18j1hsrd9328tctucaf2f",
     "start-web": "bunx rork start -p 18j1hsrd9328tctucaf2f --web",
     "start-web-dev": "DEBUG=expo* bunx rork start -p 18j1hsrd9328tctucaf2f --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -66,9 +67,12 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/jest": "^29",
     "@types/react": "~19.1.10",
     "eslint": "^9.31.0",
     "eslint-config-expo": "~10.0.0",
+    "jest": "~29.7.0",
+    "jest-expo": "~54.0.0",
     "typescript": "~5.9.2"
   },
   "private": true
