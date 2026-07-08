@@ -26,6 +26,10 @@ import {
   Banknote,
   Info,
   ReceiptText,
+  ScanLine,
+  QrCode,
+  Eye,
+  EyeOff,
 } from "lucide-react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
@@ -118,6 +122,8 @@ export default function WalletScreen() {
 
   const [topUpVisible, setTopUpVisible] = useState<boolean>(false);
   const [rechargeVisible, setRechargeVisible] = useState<boolean>(false);
+  const [duitNowVisible, setDuitNowVisible] = useState<boolean>(false);
+  const [balanceHidden, setBalanceHidden] = useState<boolean>(false);
   const [amountText, setAmountText] = useState<string>("");
   const [methodId, setMethodId] = useState<string>("card");
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -489,21 +495,82 @@ export default function WalletScreen() {
                 <Text style={styles.masterCardName}>GET.wallet</Text>
               </View>
             </View>
-            <Text style={styles.masterBalanceLabel}>Available balance</Text>
-            <Text style={styles.masterBalance} testID="wallet-master-balance">
-              RM {(balances?.getWallet ?? 0).toFixed(2)}
-            </Text>
-            <View style={styles.cardActions}>
-              <TouchableOpacity
-                style={styles.masterActionBtn}
-                onPress={openTopUp}
-                testID="wallet-topup-open"
-              >
-                <ReloadDollarIcon color="#FFFFFF" size={20} />
-                <Text style={styles.masterActionText}>RELOAD</Text>
-              </TouchableOpacity>
+            <View style={styles.masterBodyRow}>
+              <View style={styles.masterBalanceCol}>
+                <View style={styles.masterBalanceRow}>
+                  <Text style={styles.masterBalance} testID="wallet-master-balance">
+                    {balanceHidden ? "RM ••••" : `RM ${(balances?.getWallet ?? 0).toFixed(2)}`}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setBalanceHidden((v) => !v)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    testID="wallet-balance-toggle"
+                  >
+                    {balanceHidden ? (
+                      <EyeOff color="rgba(255,255,255,0.9)" size={18} />
+                    ) : (
+                      <Eye color="rgba(255,255,255,0.9)" size={18} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.masterBalanceLabel}>Wallet Balance</Text>
+              </View>
+              <View style={styles.masterActionsCol}>
+                <View style={styles.sendReceiveRow}>
+                  <TouchableOpacity
+                    style={styles.whitePillBtn}
+                    onPress={() => setDuitNowVisible(true)}
+                    testID="wallet-send"
+                  >
+                    <ScanLine color="#3F3F46" size={16} />
+                    <Text style={styles.whitePillText}>SEND</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.whitePillBtn}
+                    onPress={() => setDuitNowVisible(true)}
+                    testID="wallet-receive"
+                  >
+                    <QrCode color="#3F3F46" size={16} />
+                    <Text style={styles.whitePillText}>RECEIVE</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                  style={styles.masterActionBtn}
+                  onPress={openTopUp}
+                  testID="wallet-topup-open"
+                >
+                  <ReloadDollarIcon color="#FFFFFF" size={20} />
+                  <Text style={styles.masterActionText}>RELOAD</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
+
+          <Modal
+            visible={duitNowVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setDuitNowVisible(false)}
+          >
+            <View style={styles.duitNowOverlay}>
+              <View style={[styles.duitNowCard, { backgroundColor: Colors.card }]}>
+                <View style={[styles.duitNowIconWrap, { backgroundColor: Colors.accent + "18" }]}>
+                  <QrCode color={Colors.accent} size={28} />
+                </View>
+                <Text style={[styles.duitNowTitle, { color: Colors.text }]}>DuitNow Coming Soon</Text>
+                <Text style={[styles.duitNowMessage, { color: Colors.textSecondary }]}>
+                  Send & receive with DuitNow will be available in an upcoming update.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.duitNowBtn, { backgroundColor: Colors.accent }]}
+                  onPress={() => setDuitNowVisible(false)}
+                  testID="wallet-duitnow-close"
+                >
+                  <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>OK</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
           {/* GET.credit — partner only */}
           {isPartnerMode ? (
@@ -721,19 +788,51 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   masterBalanceLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: "rgba(255,255,255,0.85)",
-    marginBottom: 2,
+    marginTop: 2,
   },
   masterBalance: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: "800" as const,
     color: "#FFFFFF",
   },
-  cardActions: {
+  masterBodyRow: {
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  masterBalanceCol: {
+    flexShrink: 1,
+  },
+  masterBalanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  masterActionsCol: {
     gap: 10,
-    marginTop: 16,
+  },
+  sendReceiveRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  whitePillBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#F4F1F8",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  whitePillText: {
+    fontSize: 13,
+    fontWeight: "800" as const,
+    letterSpacing: 0.5,
+    color: "#3F3F46",
   },
   masterActionBtn: {
     flexDirection: "row",
@@ -744,6 +843,49 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 22,
     paddingVertical: 12,
+  },
+  duitNowOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  duitNowCard: {
+    width: "100%",
+    maxWidth: 320,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+  },
+  duitNowIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  duitNowTitle: {
+    fontSize: 17,
+    fontWeight: "800" as const,
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  duitNowMessage: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+    marginBottom: 18,
+  },
+  duitNowBtn: {
+    borderRadius: 999,
+    paddingHorizontal: 36,
+    paddingVertical: 11,
+  },
+  duitNowBtnText: {
+    fontSize: 14,
+    fontWeight: "800" as const,
   },
   masterActionText: {
     fontSize: 14,
