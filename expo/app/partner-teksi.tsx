@@ -50,6 +50,7 @@ import {
   XCircle,
   AlertCircle,
   FileText,
+  CreditCard,
 } from "lucide-react-native";
 import { Modal } from "react-native";
 import * as Location from "expo-location";
@@ -143,7 +144,7 @@ export default function DriverTeksiScreen() {
   const [heatmapVisible, setHeatmapVisible] = useState<boolean>(false);
   const [trafficVisible, setTrafficVisible] = useState<boolean>(false);
   const [creditBalance, setCreditBalance] = useState<number>(0);
-  const [cashBalance] = useState<number>(48.20);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   // Live GET.credit balance from the wallet store (refreshes on focus).
   useFocusEffect(
@@ -153,7 +154,10 @@ export default function DriverTeksiScreen() {
         if (!authState.userId) return;
         try {
           const b = await fetchWalletBalances(authState.userId);
-          if (!cancelled) setCreditBalance(b.getCredit);
+          if (!cancelled) {
+            setCreditBalance(b.getCredit);
+            setWalletBalance(b.getWallet);
+          }
         } catch (e) {
           console.log("[partner-teksi] wallet balance load failed", e);
         }
@@ -1587,34 +1591,35 @@ export default function DriverTeksiScreen() {
                   backgroundColor: isLightMode ? "#fff" : "rgba(0,0,0,0.7)",
                 },
               ]}
-              onPress={() => router.push("/wallet?mode=partner" as any)}
+              onPress={() => router.push("/wallet?mode=partner&focus=credit" as any)}
               testID="partner-teksi-wallet-credit"
             >
               <View style={styles.walletTopRow}>
-                <View style={[styles.walletIconBubble, { backgroundColor: Colors.accent + "22" }]}>
-                  <Wallet color={Colors.accent} size={12} />
+                <View style={[styles.walletIconBubble, { backgroundColor: "#F59E0B22" }]}>
+                  <CreditCard color="#F59E0B" size={12} />
                 </View>
-                <Text style={[styles.walletLabel, { color: Colors.subtext }]}>Credit</Text>
+                <Text style={[styles.walletLabel, { color: Colors.subtext }]} numberOfLines={1}>GET.credit</Text>
               </View>
               <Text style={[styles.walletValue, { color: Colors.text }]}>RM {creditBalance.toFixed(2)}</Text>
             </TouchableOpacity>
-            <View
+            <TouchableOpacity
               style={[
                 styles.walletPill,
                 {
                   backgroundColor: isLightMode ? "#fff" : "rgba(0,0,0,0.7)",
                 },
               ]}
+              onPress={() => router.push("/wallet?mode=partner&focus=wallet" as any)}
               testID="partner-teksi-wallet-cash"
             >
               <View style={styles.walletTopRow}>
-                <View style={[styles.walletIconBubble, { backgroundColor: "#22C55E22" }]}>
-                  <Banknote color="#22C55E" size={12} />
+                <View style={[styles.walletIconBubble, { backgroundColor: Colors.accent + "22" }]}>
+                  <Wallet color={Colors.accent} size={12} />
                 </View>
-                <Text style={[styles.walletLabel, { color: Colors.subtext }]}>Cash</Text>
+                <Text style={[styles.walletLabel, { color: Colors.subtext }]} numberOfLines={1}>GET.wallet</Text>
               </View>
-              <Text style={[styles.walletValue, { color: Colors.text }]}>RM {cashBalance.toFixed(2)}</Text>
-            </View>
+              <Text style={[styles.walletValue, { color: Colors.text }]}>RM {walletBalance.toFixed(2)}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </SafeAreaView>

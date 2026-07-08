@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -59,9 +59,15 @@ export default function WalletScreen() {
   const router = useRouter();
   const Colors = useColors();
   const { authState } = useAuth();
-  const params = useLocalSearchParams<{ mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; focus?: string }>();
   const isPartnerMode = params.mode === "partner";
+  const focusTarget = params.focus === "credit" || params.focus === "wallet" ? params.focus : undefined;
   const userId = authState.userId ?? "";
+
+  const scrollRef = useRef<ScrollView | null>(null);
+  const creditCardY = useRef<number>(0);
+  const didAutoScroll = useRef<boolean>(false);
+  const [highlighted, setHighlighted] = useState<"credit" | "wallet" | null>(null);
 
   const [balances, setBalances] = useState<WalletBalances | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -101,6 +107,24 @@ export default function WalletScreen() {
       loadAll();
     }, [loadAll])
   );
+
+  useEffect(() => {
+    if (loading || !focusTarget || didAutoScroll.current) return;
+    didAutoScroll.current = true;
+    setHighlighted(focusTarget);
+    const scrollTimer = setTimeout(() => {
+      if (focusTarget === "credit" && creditCardY.current > 0) {
+        scrollRef.current?.scrollTo({ y: Math.max(creditCardY.current - 12, 0), animated: true });
+      } else {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      }
+    }, 250);
+    const highlightTimer = setTimeout(() => setHighlighted(null), 2200);
+    return () => {
+      clearTimeout(scrollTimer);
+      clearTimeout(highlightTimer);
+    };
+  }, [loading, focusTarget]);
 
   useEffect(() => {
     if (!successNote) return;
@@ -387,6 +411,7 @@ export default function WalletScreen() {
         </View>
       ) : (
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -410,7 +435,13 @@ export default function WalletScreen() {
           ) : null}
 
           {/* GET.wallet — master */}
-          <View style={[styles.masterCard, { backgroundColor: Colors.accent }]}>
+          <View
+            style={[
+              styles.masterCard,
+              { backgroundColor: Colors.accent },
+              highlighted === "wallet" ? styles.focusHighlight : null,
+            ]}
+          >
             <View style={styles.cardTopRow}>
               <View style={styles.cardTitleRow}>
                 <WalletIcon color="#FFFFFF" size={18} />
@@ -455,7 +486,11 @@ export default function WalletScreen() {
               style={[
                 styles.creditCard,
                 { backgroundColor: Colors.card, borderColor: Colors.border },
+                highlighted === "credit" ? styles.focusHighlight : null,
               ]}
+              onLayout={(e) => {
+                creditCardY.current = e.nativeEvent.layout.y;
+              }}
             >
               <View style={styles.cardTopRow}>
                 <View style={styles.cardTitleRow}>
@@ -637,6 +672,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 14,
+  },
+  focusHighlight: {
+    borderWidth: 2,
+    borderColor: "#F59E0B",
+    shadowColor: "#F59E0B",
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   cardTopRow: {
     flexDirection: "row",
