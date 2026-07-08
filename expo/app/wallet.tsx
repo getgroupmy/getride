@@ -315,7 +315,7 @@ export default function WalletScreen() {
                 </View>
 
                 <LinearGradient
-                  colors={["#C316E8", "#8A3BF2", "#5B5BF7"]}
+                  colors={[Colors.accent, "#2691c4", Colors.accentDark]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0.6 }}
                   style={styles.topUpBanner}
@@ -341,7 +341,7 @@ export default function WalletScreen() {
                   <Text style={styles.topUpSub}>Please enter required details.</Text>
 
                   <View style={styles.topUpAmountCard}>
-                    <CircleDollarSign color="#8A16E8" size={42} strokeWidth={1.8} />
+                    <CircleDollarSign color={Colors.accent} size={42} strokeWidth={1.8} />
                     <View style={styles.topUpAmountFields}>
                       <Text style={styles.topUpAmountLabel}>Amount (RM)*</Text>
                       <TextInput
