@@ -8,6 +8,7 @@ import {
   SUPABASE_URL_RESOLVED,
   SUPABASE_ANON_KEY_RESOLVED,
 } from "@/utils/supabase";
+import { parsePinLockSeconds, pinLockMessage } from "@/utils/pinLock";
 
 const AUTH_KEY = "@app_auth_state";
 const REGISTERED_USERS_KEY = "@registered_users";
@@ -163,23 +164,6 @@ function normalizeE164(input: string): string {
  */
 function derivePinPassword(pin: string): string {
   return `teksi-pin-v1-${pin}`;
-}
-
-/**
- * Parse the 'PIN_LOCKED:<seconds>' error raised by verify_pin_for_login when
- * too many wrong attempts have locked PIN verification. Returns the remaining
- * lock time in seconds, or null if the message is not a lockout error.
- */
-function parsePinLockSeconds(message: string | undefined | null): number | null {
-  const m = /PIN_LOCKED:?(\d+)?/.exec(message ?? "");
-  if (!m) return null;
-  const secs = m[1] ? parseInt(m[1], 10) : NaN;
-  return Number.isFinite(secs) ? secs : 15 * 60;
-}
-
-function pinLockMessage(seconds: number): string {
-  const mins = Math.max(1, Math.ceil(seconds / 60));
-  return `Too many incorrect attempts. Try again in ${mins} minute${mins === 1 ? "" : "s"}.`;
 }
 
 /**

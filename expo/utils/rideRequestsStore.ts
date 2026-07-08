@@ -853,7 +853,7 @@ export async function updateRideRequestStatus(
  * error (e.g. the live DB hasn't had the latest migration applied yet).
  * Returns null when the error is unrelated to a missing column.
  */
-function missingColumnFromError(message: string): string | null {
+export function missingColumnFromError(message: string): string | null {
   const match = /Could not find the '([^']+)' column/.exec(message);
   return match ? match[1] : null;
 }

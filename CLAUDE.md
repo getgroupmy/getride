@@ -31,9 +31,15 @@ bun run start-web-dev
 
 # Lint
 bun run lint
+
+# Run tests (Jest via jest-expo)
+bun run test
+
+# Run a single test file
+bun run test utils/__tests__/fare.test.ts
 ```
 
-There is no test suite — the project has no test runner configured.
+Tests live in `expo/utils/__tests__/*.test.ts` and cover the pure logic layer (fare calculation, commission resolution, wallet accounting, ride-request schema degradation, restore-target mapping, PIN lockout parsing, IP access evaluation, API-key rotation). Config is in `expo/jest.config.js`; `expo/jest.setup.js` mocks AsyncStorage (official in-memory mock), `react-native-maps`, and `expo-location`. `expo/test-utils/supabaseMock.ts` provides a chainable, queue-based mock of the Supabase client — tests `jest.mock("@/utils/supabase")` and swap in `createSupabaseMock().client`, queueing per-query results and asserting on the recorded chains. Only `*.test.ts` files are picked up as suites, so shared helpers can live alongside them. There are no component/screen tests yet — new domain logic in `utils/` should ship with a colocated test.
 
 To clear the Metro cache when things break:
 ```bash
@@ -144,7 +150,7 @@ export SUPABASE_DB_URL="postgres://postgres:PASSWORD@db.REF.supabase.co:5432/pos
 ./supabase/setup.sh --no-functions # skip edge-function deploy
 ```
 
-The user's 6-digit sign-in PIN is stored as a bcrypt hash in `profiles.pin_hash` (migration `0052`) — never in plaintext. The legacy `pin` and `login_pin` columns still exist as *write-only* compatibility inputs: a `BEFORE INSERT OR UPDATE` trigger (`hash_profile_pin`) hashes anything written to them and nulls the plaintext. The client sets/changes the PIN via the `set_login_pin` RPC and clears it via `clear_login_pin` (both `auth.uid()`-scoped); see `registerUser` in `AuthContext.tsx`, which falls back to the legacy column write on pre-`0052` databases. PIN verification for login goes through the `verify_pin_for_login` RPC, which is rate limited: 5 consecutive wrong attempts lock verification for 15 minutes and the RPC raises `PIN_LOCKED:<seconds-remaining>` while locked (parsed client-side by `parsePinLockSeconds` in `AuthContext.tsx`).
+The user's 6-digit sign-in PIN is stored as a bcrypt hash in `profiles.pin_hash` (migration `0052`) — never in plaintext. The legacy `pin` and `login_pin` columns still exist as *write-only* compatibility inputs: a `BEFORE INSERT OR UPDATE` trigger (`hash_profile_pin`) hashes anything written to them and nulls the plaintext. The client sets/changes the PIN via the `set_login_pin` RPC and clears it via `clear_login_pin` (both `auth.uid()`-scoped); see `registerUser` in `AuthContext.tsx`, which falls back to the legacy column write on pre-`0052` databases. PIN verification for login goes through the `verify_pin_for_login` RPC, which is rate limited: 5 consecutive wrong attempts lock verification for 15 minutes and the RPC raises `PIN_LOCKED:<seconds-remaining>` while locked (parsed client-side by `parsePinLockSeconds` in `utils/pinLock.ts`).
 
 ## Conventions
 
