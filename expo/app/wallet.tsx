@@ -35,6 +35,7 @@ import {
   QrCode,
   Eye,
   EyeOff,
+  X,
 } from "lucide-react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
@@ -227,7 +228,7 @@ export default function WalletScreen() {
     const res = await topUpWallet(userId, parsedAmount, methodId);
     setSubmitting(false);
     if (!res.ok) {
-      setActionError(res.error ?? "Top up failed.");
+      setActionError(res.error ?? "Reload failed.");
       return;
     }
     if (res.balances) setBalances(res.balances);
@@ -320,7 +321,7 @@ export default function WalletScreen() {
                   <View style={[styles.modalIconBubble, { backgroundColor: Colors.accent + "22" }]}>
                     <Plus color={Colors.accent} size={20} />
                   </View>
-                  <Text style={styles.topUpTitle}>Top up GET.wallet</Text>
+                  <Text style={styles.topUpTitle}>Reload GET.wallet</Text>
                 </View>
 
                 <LinearGradient
@@ -364,6 +365,16 @@ export default function WalletScreen() {
                         testID="wallet-amount-input"
                       />
                     </View>
+                    {amountText.trim() !== "" ? (
+                      <TouchableOpacity
+                        style={[styles.amountClearBtn, { backgroundColor: Colors.accent }]}
+                        onPress={() => setAmountText("")}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        testID="wallet-amount-clear"
+                      >
+                        <X color="#FFFFFF" size={14} strokeWidth={3} />
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
 
                   <View style={styles.topUpOrRow}>
@@ -373,7 +384,7 @@ export default function WalletScreen() {
                   </View>
 
                   <Text style={styles.topUpHeading}>Reload Amount</Text>
-                  <Text style={styles.topUpSub}>Select a quick reload amount to top-up instantly.</Text>
+                  <Text style={styles.topUpSub}>Select a quick reload amount to reload instantly.</Text>
 
                   <View style={styles.topUpQuickGrid}>
                     {TOPUP_QUICK_AMOUNTS.map((q) => {
@@ -532,7 +543,7 @@ export default function WalletScreen() {
                   <View style={[styles.demoNote, { backgroundColor: "#F59E0B15" }]}>
                     <Info color="#F59E0B" size={14} />
                     <Text style={[styles.demoNoteText, { color: "#6B6B70" }]}>
-                      Demo top-up — no real payment is charged yet.
+                      Demo reload — no real payment is charged yet.
                     </Text>
                   </View>
 
@@ -559,7 +570,7 @@ export default function WalletScreen() {
                       {submitting ? (
                         <ActivityIndicator color={Colors.onAccent} size="small" />
                       ) : (
-                        <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Top up</Text>
+                        <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Reload</Text>
                       )}
                     </TouchableOpacity>
                   </View>
@@ -1462,6 +1473,13 @@ const styles = StyleSheet.create({
     color: "#1C1C1E",
     paddingVertical: 4,
     padding: 0,
+  },
+  amountClearBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   },
   topUpOrRow: {
     flexDirection: "row" as const,
