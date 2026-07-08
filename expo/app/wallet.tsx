@@ -522,16 +522,30 @@ export default function WalletScreen() {
                     onPress={() => setDuitNowVisible(true)}
                     testID="wallet-send"
                   >
-                    <ScanLine color="#3F3F46" size={16} />
-                    <Text style={styles.whitePillText}>SEND</Text>
+                    <ScanLine color="#3F3F46" size={13} />
+                    <Text
+                      style={styles.whitePillText}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.7}
+                    >
+                      SEND
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.whitePillBtn}
                     onPress={() => setDuitNowVisible(true)}
                     testID="wallet-receive"
                   >
-                    <QrCode color="#3F3F46" size={16} />
-                    <Text style={styles.whitePillText}>RECEIVE</Text>
+                    <QrCode color="#3F3F46" size={13} />
+                    <Text
+                      style={styles.whitePillText}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.7}
+                    >
+                      RECEIVE
+                    </Text>
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity
@@ -539,8 +553,15 @@ export default function WalletScreen() {
                   onPress={openTopUp}
                   testID="wallet-topup-open"
                 >
-                  <ReloadDollarIcon color="#FFFFFF" size={20} />
-                  <Text style={styles.masterActionText}>RELOAD</Text>
+                  <ReloadDollarIcon color="#FFFFFF" size={15} />
+                  <Text
+                    style={styles.masterActionText}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    RELOAD
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -812,37 +833,45 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   masterActionsCol: {
-    gap: 10,
+    gap: 8,
+    flexShrink: 1,
+    alignItems: "flex-end",
   },
   sendReceiveRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
+    flexShrink: 1,
   },
   whitePillBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 4,
     backgroundColor: "#F4F1F8",
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    flexShrink: 1,
+    minWidth: 0,
   },
   whitePillText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "800" as const,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     color: "#3F3F46",
+    flexShrink: 1,
   },
   masterActionBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 6,
     backgroundColor: "rgba(0, 0, 0, 0.28)",
     borderRadius: 999,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    alignSelf: "stretch",
+    minWidth: 0,
   },
   duitNowOverlay: {
     flex: 1,
@@ -888,10 +917,11 @@ const styles = StyleSheet.create({
     fontWeight: "800" as const,
   },
   masterActionText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "800" as const,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     color: "#FFFFFF",
+    flexShrink: 1,
   },
   creditCard: {
     borderRadius: 20,
