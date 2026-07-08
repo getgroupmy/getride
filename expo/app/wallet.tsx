@@ -499,7 +499,8 @@ export default function WalletScreen() {
               <View style={styles.masterBalanceCol}>
                 <View style={styles.masterBalanceRow}>
                   <Text style={styles.masterBalance} testID="wallet-master-balance">
-                    {balanceHidden ? "RM ••••" : `RM ${(balances?.getWallet ?? 0).toFixed(2)}`}
+                    <Text style={styles.masterBalanceCurrency}>RM </Text>
+                    {balanceHidden ? "••••" : (balances?.getWallet ?? 0).toFixed(2)}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setBalanceHidden((v) => !v)}
@@ -814,9 +815,14 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   masterBalance: {
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: "800" as const,
     color: "#FFFFFF",
+  },
+  masterBalanceCurrency: {
+    fontSize: 13,
+    fontWeight: "400" as const,
+    color: "rgba(255,255,255,0.9)",
   },
   masterBodyRow: {
     flexDirection: "row",
