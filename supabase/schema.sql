@@ -1305,6 +1305,68 @@ exception
   when duplicate_object then null;
 end$$;
 
+-- ----------------------------------------------------------------------------
+-- Ledger sync (0060): every wallet_transactions row drives wallets.balance.
+-- INSERT applies the signed amount (creating the wallet row when missing) and
+-- stamps balance_after; UPDATE/DELETE re-adjust. The wallets UPDATE fires the
+-- realtime publication, so balances update live in the app no matter where a
+-- transaction row came from (RPC, admin tools, SQL editor, integrations).
+-- The wallet RPCs below only insert ledger rows — this trigger is the single
+-- writer of wallets.balance.
+-- ----------------------------------------------------------------------------
+create or replace function public.wallet_apply_transaction()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_balance numeric(12,2);
+begin
+  if tg_op = 'INSERT' then
+    insert into public.wallets (user_id, wallet_type, balance)
+    values (new.user_id, new.wallet_type, 0)
+    on conflict (user_id, wallet_type) do nothing;
+
+    update public.wallets
+       set balance = balance + new.amount, updated_at = now()
+     where user_id = new.user_id and wallet_type = new.wallet_type
+    returning balance into v_balance;
+
+    new.balance_after := v_balance;
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE' then
+    update public.wallets
+       set balance = balance - old.amount, updated_at = now()
+     where user_id = old.user_id and wallet_type = old.wallet_type;
+
+    insert into public.wallets (user_id, wallet_type, balance)
+    values (new.user_id, new.wallet_type, 0)
+    on conflict (user_id, wallet_type) do nothing;
+
+    update public.wallets
+       set balance = balance + new.amount, updated_at = now()
+     where user_id = new.user_id and wallet_type = new.wallet_type
+    returning balance into v_balance;
+
+    new.balance_after := v_balance;
+    return new;
+  end if;
+
+  update public.wallets
+     set balance = balance - old.amount, updated_at = now()
+   where user_id = old.user_id and wallet_type = old.wallet_type;
+  return old;
+end;
+$$;
+
+drop trigger if exists trg_wallet_tx_apply on public.wallet_transactions;
+create trigger trg_wallet_tx_apply
+  before insert or update or delete on public.wallet_transactions
+  for each row execute function public.wallet_apply_transaction();
+
 create or replace function public.wallet_topup(
   p_user uuid,
   p_amount numeric,
@@ -1325,20 +1387,14 @@ begin
     raise exception 'invalid_amount';
   end if;
 
-  insert into public.wallets (user_id, wallet_type, balance)
-  values (p_user, 'get_wallet', 0)
-  on conflict (user_id, wallet_type) do nothing;
-
-  update public.wallets
-     set balance = balance + p_amount, updated_at = now()
-   where user_id = p_user and wallet_type = 'get_wallet'
-  returning * into w;
-
+  -- Ledger-driven: the trg_wallet_tx_apply trigger moves the balance.
   insert into public.wallet_transactions
-    (user_id, wallet_type, kind, amount, balance_after, method, note)
+    (user_id, wallet_type, kind, amount, method, note)
   values
-    (p_user, 'get_wallet', 'topup', p_amount, w.balance, p_method, 'Top up GET.wallet');
+    (p_user, 'get_wallet', 'topup', p_amount, p_method, 'Top up GET.wallet');
 
+  select * into w from public.wallets
+   where user_id = p_user and wallet_type = 'get_wallet';
   return w;
 end;
 $$;
@@ -1376,21 +1432,17 @@ begin
     raise exception 'insufficient_balance';
   end if;
 
-  update public.wallets
-     set balance = balance - p_amount, updated_at = now()
-   where id = w_master.id
-  returning * into w_master;
-
-  update public.wallets
-     set balance = balance + p_amount, updated_at = now()
-   where user_id = p_user and wallet_type = 'get_credit'
-  returning * into w_credit;
-
+  -- Ledger-driven: the trg_wallet_tx_apply trigger moves both balances.
   insert into public.wallet_transactions
-    (user_id, wallet_type, kind, amount, balance_after, note)
+    (user_id, wallet_type, kind, amount, note)
   values
-    (p_user, 'get_wallet', 'recharge_out', -p_amount, w_master.balance, 'Recharge GET.credit'),
-    (p_user, 'get_credit', 'recharge_in',   p_amount, w_credit.balance, 'Recharged from GET.wallet');
+    (p_user, 'get_wallet', 'recharge_out', -p_amount, 'Recharge GET.credit'),
+    (p_user, 'get_credit', 'recharge_in',   p_amount, 'Recharged from GET.wallet');
+
+  select * into w_master from public.wallets
+   where user_id = p_user and wallet_type = 'get_wallet';
+  select * into w_credit from public.wallets
+   where user_id = p_user and wallet_type = 'get_credit';
 
   return next w_master;
   return next w_credit;
@@ -1582,19 +1634,11 @@ begin
 
   v_amount := round(p_fare * v_rate, 2);
 
-  insert into public.wallets (user_id, wallet_type, balance)
-  values (p_partner, 'get_credit', 0)
-  on conflict (user_id, wallet_type) do nothing;
-
-  update public.wallets
-     set balance = balance - v_amount, updated_at = now()
-   where user_id = p_partner and wallet_type = 'get_credit'
-  returning * into w;
-
+  -- Ledger-driven: the trg_wallet_tx_apply trigger moves the balance.
   insert into public.wallet_transactions
-    (user_id, wallet_type, kind, amount, balance_after, note)
+    (user_id, wallet_type, kind, amount, note)
   values
-    (p_partner, 'get_credit', 'commission', -v_amount, w.balance,
+    (p_partner, 'get_credit', 'commission', -v_amount,
      'Ride commission ' || round(v_rate * 100, 1) || '% of ' ||
      coalesce(r.currency, 'RM') || ' ' || round(p_fare, 2));
 
@@ -1604,6 +1648,8 @@ begin
          commission_charged_at = now()
    where id = p_ride;
 
+  select * into w from public.wallets
+   where user_id = p_partner and wallet_type = 'get_credit';
   return w;
 end;
 $$;
