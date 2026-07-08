@@ -28,6 +28,8 @@ import {
   Banknote,
   Info,
   CircleDollarSign,
+  ChevronRight,
+  Smartphone,
   ReceiptText,
   ScanLine,
   QrCode,
@@ -125,7 +127,8 @@ export default function WalletScreen() {
   const [duitNowVisible, setDuitNowVisible] = useState<boolean>(false);
   const [balanceHidden, setBalanceHidden] = useState<boolean>(false);
   const [amountText, setAmountText] = useState<string>("");
-  const [methodId, setMethodId] = useState<string>("card");
+  const [methodId, setMethodId] = useState<string>("");
+  const [topUpStep, setTopUpStep] = useState<"amount" | "method">("amount");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
@@ -198,7 +201,8 @@ export default function WalletScreen() {
   const openTopUp = () => {
     setAmountText("");
     setActionError("");
-    setMethodId("card");
+    setMethodId("");
+    setTopUpStep("amount");
     setTopUpVisible(true);
   };
 
@@ -213,6 +217,10 @@ export default function WalletScreen() {
     setActionError("");
     if (!(parsedAmount > 0)) {
       setActionError("Enter an amount greater than 0.");
+      return;
+    }
+    if (!methodId) {
+      setActionError("Select a reload method.");
       return;
     }
     setSubmitting(true);
@@ -288,6 +296,7 @@ export default function WalletScreen() {
     kind: "topup" | "recharge"
   ) => {
     const isTopUp = kind === "topup";
+    const canGoNext = parsedAmount > 0 && amountText.trim() !== "";
     return (
       <Modal
         visible={isTopUp ? topUpVisible : rechargeVisible}
@@ -336,6 +345,7 @@ export default function WalletScreen() {
                   </View>
                 </LinearGradient>
 
+                {topUpStep === "amount" ? (
                 <View style={styles.topUpBody}>
                   <Text style={styles.topUpHeading}>Reload Amount</Text>
                   <Text style={styles.topUpSub}>Please enter required details.</Text>
@@ -395,6 +405,130 @@ export default function WalletScreen() {
                     <Text style={[styles.errorText, { color: Colors.danger }]}>{actionError}</Text>
                   ) : null}
 
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalBtn, styles.topUpCancelBtn]}
+                      onPress={() => setTopUpVisible(false)}
+                      disabled={submitting}
+                    >
+                      <Text style={[styles.modalBtnText, { color: "#3A3A3C" }]}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.modalBtn,
+                        { backgroundColor: Colors.accent, opacity: canGoNext ? 1 : 0.4 },
+                      ]}
+                      onPress={() => {
+                        setActionError("");
+                        setTopUpStep("method");
+                      }}
+                      disabled={!canGoNext}
+                      testID="wallet-topup-next"
+                    >
+                      <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Next</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                ) : (
+                <View style={styles.topUpBody}>
+                  <View style={styles.reloadDetailsRow}>
+                    <Text style={styles.topUpHeading}>Reload Details</Text>
+                    <TouchableOpacity
+                      style={styles.changeAmountBtn}
+                      onPress={() => setTopUpStep("amount")}
+                      testID="wallet-topup-change-amount"
+                    >
+                      <Text style={[styles.changeAmountText, { color: Colors.accent }]}>
+                        Change Amount
+                      </Text>
+                      <ChevronRight color={Colors.accent} size={18} strokeWidth={2.6} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.reloadAmountRow}>
+                    <Text style={styles.reloadAmountLabel}>Reload Amount</Text>
+                    <Text
+                      style={[styles.reloadAmountValue, { color: Colors.success }]}
+                      testID="wallet-topup-reload-amount"
+                    >
+                      RM{parsedAmount.toFixed(2)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.reloadDivider} />
+
+                  <Text style={[styles.topUpHeading, { marginBottom: 12 }]}>
+                    Select Reload Method
+                  </Text>
+
+                  <View style={styles.methodGroup}>
+                    <TouchableOpacity
+                      style={styles.methodCard}
+                      onPress={() => {
+                        setMethodId("fpx");
+                        setActionError("");
+                      }}
+                      testID="wallet-method-fpx"
+                    >
+                      <View
+                        style={[
+                          styles.methodRadio,
+                          methodId === "fpx" && { borderColor: Colors.accent },
+                        ]}
+                      >
+                        {methodId === "fpx" ? (
+                          <View
+                            style={[styles.methodRadioDot, { backgroundColor: Colors.accent }]}
+                          />
+                        ) : null}
+                      </View>
+                      <Smartphone color={Colors.accent} size={30} strokeWidth={1.8} />
+                      <Text style={styles.methodLabel}>Online Banking</Text>
+                      <Text style={styles.fpxBadge}>FPX</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.methodCard}
+                      onPress={() => {
+                        setMethodId("card");
+                        setActionError("");
+                      }}
+                      testID="wallet-method-card"
+                    >
+                      <View
+                        style={[
+                          styles.methodRadio,
+                          methodId === "card" && { borderColor: Colors.accent },
+                        ]}
+                      >
+                        {methodId === "card" ? (
+                          <View
+                            style={[styles.methodRadioDot, { backgroundColor: Colors.accent }]}
+                          />
+                        ) : null}
+                      </View>
+                      <CreditCard color={Colors.accent} size={30} strokeWidth={1.8} />
+                      <Text style={styles.methodLabel}>Cards</Text>
+                      <View style={styles.cardBadges}>
+                        <View style={styles.mcCircles}>
+                          <View style={[styles.mcCircle, { backgroundColor: "#EB001B" }]} />
+                          <View
+                            style={[
+                              styles.mcCircle,
+                              styles.mcCircleRight,
+                              { backgroundColor: "#F79E1B" },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.visaBadge}>VISA</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+
+                  {actionError ? (
+                    <Text style={[styles.errorText, { color: Colors.danger }]}>{actionError}</Text>
+                  ) : null}
+
                   <View style={[styles.demoNote, { backgroundColor: "#F59E0B15" }]}>
                     <Info color="#F59E0B" size={14} />
                     <Text style={[styles.demoNoteText, { color: "#6B6B70" }]}>
@@ -413,10 +547,13 @@ export default function WalletScreen() {
                     <TouchableOpacity
                       style={[
                         styles.modalBtn,
-                        { backgroundColor: Colors.accent, opacity: submitting ? 0.6 : 1 },
+                        {
+                          backgroundColor: Colors.accent,
+                          opacity: submitting ? 0.6 : methodId ? 1 : 0.4,
+                        },
                       ]}
                       onPress={handleTopUp}
-                      disabled={submitting}
+                      disabled={submitting || !methodId}
                       testID="wallet-topup-confirm"
                     >
                       {submitting ? (
@@ -427,6 +564,7 @@ export default function WalletScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
+                )}
               </ScrollView>
             </View>
           ) : (
@@ -1373,5 +1511,102 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E3E3E8",
+  },
+  reloadDetailsRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginBottom: 12,
+  },
+  changeAmountBtn: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 2,
+  },
+  changeAmountText: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+  },
+  reloadAmountRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginBottom: 14,
+  },
+  reloadAmountLabel: {
+    fontSize: 15,
+    color: "#6B6B70",
+  },
+  reloadAmountValue: {
+    fontSize: 18,
+    fontWeight: "800" as const,
+  },
+  reloadDivider: {
+    height: 1,
+    backgroundColor: "#D9D9DE",
+    marginBottom: 16,
+  },
+  methodGroup: {
+    gap: 10,
+    marginBottom: 14,
+  },
+  methodCard: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 18,
+  },
+  methodRadio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#C5C5CC",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  methodRadioDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  methodLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: "#1C1C1E",
+  },
+  fpxBadge: {
+    fontSize: 15,
+    fontWeight: "800" as const,
+    fontStyle: "italic" as const,
+    color: "#1A2E6E",
+  },
+  cardBadges: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+  },
+  mcCircles: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+  },
+  mcCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    opacity: 0.9,
+  },
+  mcCircleRight: {
+    marginLeft: -7,
+  },
+  visaBadge: {
+    fontSize: 14,
+    fontWeight: "800" as const,
+    fontStyle: "italic" as const,
+    color: "#1A1F71",
   },
 });
