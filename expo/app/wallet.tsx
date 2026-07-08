@@ -126,6 +126,7 @@ export default function WalletScreen() {
   const [topUpVisible, setTopUpVisible] = useState<boolean>(false);
   const [rechargeVisible, setRechargeVisible] = useState<boolean>(false);
   const [duitNowVisible, setDuitNowVisible] = useState<boolean>(false);
+  const [transferVisible, setTransferVisible] = useState<boolean>(false);
   const [balanceHidden, setBalanceHidden] = useState<boolean>(false);
   const [amountText, setAmountText] = useState<string>("");
   const [methodId, setMethodId] = useState<string>("");
@@ -793,6 +794,21 @@ export default function WalletScreen() {
                     RELOAD
                   </Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.transferPillBtn}
+                  onPress={() => setTransferVisible(true)}
+                  testID="wallet-transfer-open"
+                >
+                  <ArrowRightLeft color="#27272A" size={15} />
+                  <Text
+                    style={styles.transferPillText}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    TRANSFER
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -818,6 +834,32 @@ export default function WalletScreen() {
                   testID="wallet-duitnow-close"
                 >
                   <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>OK</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal
+            visible={transferVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setTransferVisible(false)}
+          >
+            <View style={styles.duitNowOverlay}>
+              <View style={[styles.duitNowCard, { backgroundColor: Colors.card }]}>
+                <View style={[styles.duitNowIconWrap, { backgroundColor: Colors.accent + "18" }]}>
+                  <ArrowRightLeft color={Colors.accent} size={28} />
+                </View>
+                <Text style={[styles.duitNowTitle, { color: Colors.text }]}>Coming Soon</Text>
+                <Text style={[styles.duitNowMessage, { color: Colors.textSecondary }]}>
+                  We&apos;re working on this feature and it will be available soon.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.duitNowBtn, { backgroundColor: Colors.accent }]}
+                  onPress={() => setTransferVisible(false)}
+                  testID="wallet-transfer-close"
+                >
+                  <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>Got It</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1107,6 +1149,25 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignSelf: "stretch",
     minWidth: 0,
+  },
+  transferPillBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    alignSelf: "stretch",
+    minWidth: 0,
+  },
+  transferPillText: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    letterSpacing: 0.8,
+    color: "#27272A",
+    flexShrink: 1,
   },
   duitNowOverlay: {
     flex: 1,
