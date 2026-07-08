@@ -1287,6 +1287,24 @@ create policy "wallet_transactions insert" on public.wallet_transactions for ins
 grant select, insert, update on public.wallets to anon, authenticated;
 grant select, insert on public.wallet_transactions to anon, authenticated;
 
+-- Realtime: live wallet balance updates (migrations/0059_wallets_realtime.sql)
+alter table public.wallets replica identity full;
+alter table public.wallet_transactions replica identity full;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.wallets;
+exception
+  when duplicate_object then null;
+end$$;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.wallet_transactions;
+exception
+  when duplicate_object then null;
+end$$;
+
 create or replace function public.wallet_topup(
   p_user uuid,
   p_amount numeric,

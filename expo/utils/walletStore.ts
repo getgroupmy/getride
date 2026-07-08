@@ -176,6 +176,59 @@ export async function fetchWalletBalances(userId: string): Promise<WalletBalance
   return { getWallet: local.getWallet, getCredit: local.getCredit, currency: "RM", source: "local" };
 }
 
+/**
+ * Subscribe to realtime wallet changes for a user. Fires `onChange` whenever
+ * the user's wallet balances or transactions change in the database, so the
+ * UI can refetch and stay live. Returns an unsubscribe function.
+ *
+ * No-ops (returns a dummy unsubscribe) when Supabase isn't configured — the
+ * device-local wallet has no external writers, so polling isn't needed.
+ */
+export function subscribeWalletRealtime(userId: string, onChange: () => void): () => void {
+  if (!isSupabaseConfigured || !supabase || !userId) return () => {};
+
+  // Debounce: a top-up/commission writes both a wallet row and a transaction
+  // row, which arrive as separate events — coalesce them into one refetch.
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const notify = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      onChange();
+    }, 250);
+  };
+
+  try {
+    const channel = supabase
+      .channel(`wallet-live-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "wallets", filter: `user_id=eq.${userId}` },
+        notify
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "wallet_transactions", filter: `user_id=eq.${userId}` },
+        notify
+      )
+      .subscribe((status) => {
+        console.log("[wallet] realtime channel status", status);
+      });
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      try {
+        supabase?.removeChannel(channel);
+      } catch (e) {
+        console.log("[wallet] realtime unsubscribe failed", e);
+      }
+    };
+  } catch (e) {
+    console.log("[wallet] realtime subscribe failed", e);
+    return () => {};
+  }
+}
+
 /** Fetch latest transactions, newest first. Optionally filter by wallet. */
 export async function fetchWalletTransactions(
   userId: string,

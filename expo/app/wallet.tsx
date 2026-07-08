@@ -37,6 +37,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchWalletBalances,
   fetchWalletTransactions,
+  subscribeWalletRealtime,
   topUpWallet,
   rechargeCredit,
   type WalletBalances,
@@ -152,7 +153,12 @@ export default function WalletScreen() {
   useFocusEffect(
     useCallback(() => {
       loadAll();
-    }, [loadAll])
+      // Live updates: refetch whenever this user's wallet rows change in the
+      // database. When Supabase isn't reachable/configured this is a no-op and
+      // the screen keeps using the device-local wallet.
+      const unsubscribe = subscribeWalletRealtime(userId, loadAll);
+      return unsubscribe;
+    }, [loadAll, userId])
   );
 
   useEffect(() => {
