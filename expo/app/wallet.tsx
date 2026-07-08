@@ -134,18 +134,23 @@ export default function WalletScreen() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
-  const [actionsWidth, setActionsWidth] = useState<number>(0);
+  const [bodyRowWidth, setBodyRowWidth] = useState<number>(0);
 
   /**
    * Shared scale for all wallet-card pills (SEND/RECEIVE/RELOAD/TRANSFER).
-   * Derived from the measured actions-column width so every pill shrinks
-   * together instead of only the pill whose text overflows.
+   * Pills stay at normal size while the balance is masked; when revealed,
+   * the scale is derived from the space left after the balance text so all
+   * pills shrink together only when a large value needs the room.
    */
   const pillScale = useMemo<number>(() => {
+    if (balanceHidden || bodyRowWidth <= 0) return 1;
+    const balanceStr = (balances?.getWallet ?? 0).toFixed(2);
+    // Estimated balance width: "RM " prefix + digits at 24pt bold + eye icon + gaps
+    const estBalanceWidth = 22 + balanceStr.length * 14.5 + 8 + 18;
     const baseWidth = 174;
-    if (actionsWidth <= 0) return 1;
-    return Math.max(0.7, Math.min(1, actionsWidth / baseWidth));
-  }, [actionsWidth]);
+    const available = bodyRowWidth - estBalanceWidth - 12;
+    return Math.max(0.7, Math.min(1, available / baseWidth));
+  }, [balanceHidden, balances?.getWallet, bodyRowWidth]);
 
   const loadAll = useCallback(async () => {
     if (!userId) {
@@ -737,10 +742,19 @@ export default function WalletScreen() {
                 <Text style={styles.masterCardName}>GET.wallet</Text>
               </View>
             </View>
-            <View style={styles.masterBodyRow}>
+            <View
+              style={styles.masterBodyRow}
+              onLayout={(e) => setBodyRowWidth(e.nativeEvent.layout.width)}
+            >
               <View style={styles.masterBalanceCol}>
                 <View style={styles.masterBalanceRow}>
-                  <Text style={styles.masterBalance} testID="wallet-master-balance">
+                  <Text
+                    style={styles.masterBalance}
+                    testID="wallet-master-balance"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.55}
+                  >
                     <Text style={styles.masterBalanceCurrency}>RM </Text>
                     {balanceHidden ? "****" : (balances?.getWallet ?? 0).toFixed(2)}
                   </Text>
@@ -758,10 +772,7 @@ export default function WalletScreen() {
                 </View>
                 <Text style={styles.masterBalanceLabel}>Wallet Balance</Text>
               </View>
-              <View
-                style={styles.masterActionsCol}
-                onLayout={(e) => setActionsWidth(e.nativeEvent.layout.width)}
-              >
+              <View style={styles.masterActionsCol}>
                 <View style={styles.sendReceiveRow}>
                   <TouchableOpacity
                     style={styles.whitePillBtn}
