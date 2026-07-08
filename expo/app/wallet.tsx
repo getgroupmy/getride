@@ -27,6 +27,7 @@ import {
   Info,
   ReceiptText,
 } from "lucide-react-native";
+import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -38,6 +39,46 @@ import {
   type WalletTransaction,
   type WalletType,
 } from "@/utils/walletStore";
+
+/**
+ * Dollar-in-circle with an incoming arrow — matches the "RELOAD" reference icon.
+ */
+function ReloadDollarIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15.9 16.6 A7.5 7.5 0 1 1 15.9 7.4"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M22.5 12 H15"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M18 8.8 L14.8 12 L18 15.2"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <SvgText
+        x={10}
+        y={15.4}
+        fontSize={9.5}
+        fontWeight="800"
+        fill={color}
+        textAnchor="middle"
+      >
+        $
+      </SvgText>
+    </Svg>
+  );
+}
 
 const QUICK_AMOUNTS: number[] = [10, 20, 50, 100];
 
@@ -458,8 +499,8 @@ export default function WalletScreen() {
                 onPress={openTopUp}
                 testID="wallet-topup-open"
               >
-                <Plus color={Colors.accent} size={16} />
-                <Text style={[styles.masterActionText, { color: Colors.accent }]}>Top Up</Text>
+                <ReloadDollarIcon color="#FFFFFF" size={20} />
+                <Text style={styles.masterActionText}>RELOAD</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -697,15 +738,18 @@ const styles = StyleSheet.create({
   masterActionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "rgba(0, 0, 0, 0.28)",
+    borderRadius: 999,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
   },
   masterActionText: {
     fontSize: 14,
-    fontWeight: "700" as const,
+    fontWeight: "800" as const,
+    letterSpacing: 1,
+    color: "#FFFFFF",
   },
   creditCard: {
     borderRadius: 20,
