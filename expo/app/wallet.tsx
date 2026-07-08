@@ -134,6 +134,18 @@ export default function WalletScreen() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
+  const [actionsWidth, setActionsWidth] = useState<number>(0);
+
+  /**
+   * Shared scale for all wallet-card pills (SEND/RECEIVE/RELOAD/TRANSFER).
+   * Derived from the measured actions-column width so every pill shrinks
+   * together instead of only the pill whose text overflows.
+   */
+  const pillScale = useMemo<number>(() => {
+    const baseWidth = 174;
+    if (actionsWidth <= 0) return 1;
+    return Math.max(0.7, Math.min(1, actionsWidth / baseWidth));
+  }, [actionsWidth]);
 
   const loadAll = useCallback(async () => {
     if (!userId) {
@@ -746,19 +758,20 @@ export default function WalletScreen() {
                 </View>
                 <Text style={styles.masterBalanceLabel}>Wallet Balance</Text>
               </View>
-              <View style={styles.masterActionsCol}>
+              <View
+                style={styles.masterActionsCol}
+                onLayout={(e) => setActionsWidth(e.nativeEvent.layout.width)}
+              >
                 <View style={styles.sendReceiveRow}>
                   <TouchableOpacity
                     style={styles.whitePillBtn}
                     onPress={() => setDuitNowVisible(true)}
                     testID="wallet-send"
                   >
-                    <ScanLine color="#3F3F46" size={13} />
+                    <ScanLine color="#3F3F46" size={13 * pillScale} />
                     <Text
-                      style={styles.whitePillText}
+                      style={[styles.whitePillText, { fontSize: 11 * pillScale }]}
                       numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.7}
                     >
                       SEND
                     </Text>
@@ -768,12 +781,10 @@ export default function WalletScreen() {
                     onPress={() => setDuitNowVisible(true)}
                     testID="wallet-receive"
                   >
-                    <QrCode color="#3F3F46" size={13} />
+                    <QrCode color="#3F3F46" size={13 * pillScale} />
                     <Text
-                      style={styles.whitePillText}
+                      style={[styles.whitePillText, { fontSize: 11 * pillScale }]}
                       numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.7}
                     >
                       RECEIVE
                     </Text>
@@ -784,12 +795,10 @@ export default function WalletScreen() {
                   onPress={openTopUp}
                   testID="wallet-topup-open"
                 >
-                  <ReloadDollarIcon color="#FFFFFF" size={15} />
+                  <ReloadDollarIcon color="#FFFFFF" size={15 * pillScale} />
                   <Text
-                    style={styles.masterActionText}
+                    style={[styles.masterActionText, { fontSize: 12 * pillScale }]}
                     numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
                   >
                     RELOAD
                   </Text>
@@ -799,12 +808,10 @@ export default function WalletScreen() {
                   onPress={() => setTransferVisible(true)}
                   testID="wallet-transfer-open"
                 >
-                  <ArrowRightLeft color="#27272A" size={15} />
+                  <ArrowRightLeft color="#27272A" size={15 * pillScale} />
                   <Text
-                    style={styles.transferPillText}
+                    style={[styles.transferPillText, { fontSize: 12 * pillScale }]}
                     numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
                   >
                     TRANSFER
                   </Text>
@@ -1118,6 +1125,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 6,
     flexShrink: 1,
+    alignSelf: "stretch",
   },
   whitePillBtn: {
     flexDirection: "row",
@@ -1128,7 +1136,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    flexShrink: 1,
+    flex: 1,
     minWidth: 0,
   },
   whitePillText: {
