@@ -127,7 +127,7 @@ export default function WalletScreen() {
   const [rechargeVisible, setRechargeVisible] = useState<boolean>(false);
   const [duitNowVisible, setDuitNowVisible] = useState<boolean>(false);
   const [transferVisible, setTransferVisible] = useState<boolean>(false);
-  const [balanceHidden, setBalanceHidden] = useState<boolean>(false);
+  const [balanceHidden, setBalanceHidden] = useState<boolean>(true);
   const [amountText, setAmountText] = useState<string>("");
   const [methodId, setMethodId] = useState<string>("");
   const [topUpStep, setTopUpStep] = useState<"amount" | "method">("amount");
@@ -742,7 +742,7 @@ export default function WalletScreen() {
                 <View style={styles.masterBalanceRow}>
                   <Text style={styles.masterBalance} testID="wallet-master-balance">
                     <Text style={styles.masterBalanceCurrency}>RM </Text>
-                    {balanceHidden ? "••••" : (balances?.getWallet ?? 0).toFixed(2)}
+                    {balanceHidden ? "****" : (balances?.getWallet ?? 0).toFixed(2)}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setBalanceHidden((v) => !v)}
