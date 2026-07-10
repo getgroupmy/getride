@@ -22,15 +22,10 @@ import {
   CreditCard,
   Plus,
   ArrowRightLeft,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Landmark,
-  Banknote,
   Info,
   CircleDollarSign,
   ChevronRight,
   Smartphone,
-  ReceiptText,
   ScanLine,
   QrCode,
   Eye,
@@ -50,9 +45,10 @@ import {
   type WalletTransaction,
   type WalletType,
 } from "@/utils/walletStore";
+import { formatActivityDate, formatUpdatedStamp, walletTxMeta } from "@/utils/walletDisplay";
 
 /**
- * Dollar-in-circle with an incoming arrow — matches the "RELOAD" reference icon.
+ * Dollar-in-circle with an incoming arrow — matches the "Reload" reference icon.
  */
 function ReloadDollarIcon({ color, size }: { color: string; size: number }) {
   return (
@@ -99,7 +95,7 @@ type TxFilter = "all" | WalletType;
 
 /**
  * Wallet screen for both user and partner mode.
- * - GET.wallet (master): always shown, top-up supported.
+ * - GET.wallet (master): always shown, reload supported.
  * - GET.credit (partner-only): shown when opened with mode=partner; recharged
  *   by transferring from GET.wallet.
  */
@@ -122,11 +118,12 @@ export default function WalletScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const [topUpVisible, setTopUpVisible] = useState<boolean>(false);
   const [rechargeVisible, setRechargeVisible] = useState<boolean>(false);
   const [duitNowVisible, setDuitNowVisible] = useState<boolean>(false);
-  const [transferVisible, setTransferVisible] = useState<boolean>(false);
+  const [comingSoonVisible, setComingSoonVisible] = useState<boolean>(false);
   const [balanceHidden, setBalanceHidden] = useState<boolean>(true);
   const [amountText, setAmountText] = useState<string>("");
   const [methodId, setMethodId] = useState<string>("");
@@ -134,23 +131,6 @@ export default function WalletScreen() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
-  const [bodyRowWidth, setBodyRowWidth] = useState<number>(0);
-
-  /**
-   * Shared scale for all wallet-card pills (SEND/RECEIVE/RELOAD/TRANSFER).
-   * Pills stay at normal size while the balance is masked; when revealed,
-   * the scale is derived from the space left after the balance text so all
-   * pills shrink together only when a large value needs the room.
-   */
-  const pillScale = useMemo<number>(() => {
-    if (balanceHidden || bodyRowWidth <= 0) return 1;
-    const balanceStr = (balances?.getWallet ?? 0).toFixed(2);
-    // Estimated balance width: "RM " prefix + digits at 24pt bold + eye icon + gaps
-    const estBalanceWidth = 22 + balanceStr.length * 14.5 + 8 + 18;
-    const baseWidth = 174;
-    const available = bodyRowWidth - estBalanceWidth - 12;
-    return Math.max(0.7, Math.min(1, available / baseWidth));
-  }, [balanceHidden, balances?.getWallet, bodyRowWidth]);
 
   const loadAll = useCallback(async () => {
     if (!userId) {
@@ -164,6 +144,7 @@ export default function WalletScreen() {
       ]);
       setBalances(b);
       setTransactions(t.transactions);
+      setLastUpdated(new Date());
     } catch (e) {
       console.log("[wallet-screen] load failed", e);
     } finally {
@@ -284,31 +265,14 @@ export default function WalletScreen() {
     return transactions.filter((t) => t.walletType === txFilter);
   }, [transactions, txFilter]);
 
-  const txMeta = (tx: WalletTransaction): { label: string; Icon: typeof Plus; color: string } => {
-    switch (tx.kind) {
-      case "topup":
-        return { label: "Top up", Icon: Plus, color: Colors.success };
-      case "recharge_in":
-        return { label: "Recharge received", Icon: ArrowDownLeft, color: Colors.success };
-      case "recharge_out":
-        return { label: "Recharge to GET.credit", Icon: ArrowRightLeft, color: Colors.warning };
-      case "payment":
-        return { label: "Payment", Icon: ArrowUpRight, color: Colors.danger };
-      case "commission":
-        return { label: "Commission", Icon: Landmark, color: Colors.danger };
-      case "refund":
-        return { label: "Refund", Icon: ArrowDownLeft, color: Colors.success };
-      default:
-        return { label: tx.note ?? "Adjustment", Icon: Banknote, color: Colors.textSecondary };
-    }
-  };
+  const recentTx = useMemo(() => filteredTx.slice(0, 5), [filteredTx]);
 
-  const formatDate = (iso: string): string => {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
-      " · " +
-      d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const openHistory = () => {
+    router.push(
+      isPartnerMode
+        ? { pathname: "/wallet-history", params: { mode: "partner" } }
+        : { pathname: "/wallet-history" }
+    );
   };
 
   const amountModal = (
@@ -686,328 +650,353 @@ export default function WalletScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={["top"]}>
-      <View style={[styles.header, { borderBottomColor: Colors.border }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors.accent }]} edges={["top"]}>
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => router.back()}
           testID="wallet-back"
         >
-          <ArrowLeft color={Colors.text} size={24} />
+          <ArrowLeft color="#FFFFFF" size={24} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: Colors.text }]}>Wallet</Text>
+        <Text style={styles.headerTitle}>Wallet</Text>
         <View style={styles.backBtn} />
       </View>
 
       {loading ? (
-        <View style={styles.loadingWrap}>
+        <View style={[styles.loadingWrap, { backgroundColor: "#F4F5F7" }]}>
           <ActivityIndicator color={Colors.accent} size="large" />
         </View>
       ) : (
         <ScrollView
           ref={scrollRef}
+          style={styles.scrollArea}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
           }
         >
-          {successNote ? (
-            <View style={[styles.successBanner, { backgroundColor: Colors.success + "18" }]}>
-              <Text style={[styles.successBannerText, { color: Colors.success }]}>{successNote}</Text>
-            </View>
-          ) : null}
-
-          {balances?.source === "local" ? (
-            <View style={[styles.localBanner, { backgroundColor: Colors.warning + "15" }]}>
-              <Info color={Colors.warning} size={15} />
-              <Text style={[styles.localBannerText, { color: Colors.textSecondary }]}>
-                Wallet tables not found in the database — running on this device only. Apply
-                migration 0056 to sync balances.
-              </Text>
-            </View>
-          ) : null}
-
-          {/* GET.wallet — master */}
-          <View
-            style={[
-              styles.masterCard,
-              { backgroundColor: Colors.accent },
-              highlighted === "wallet" ? styles.focusHighlight : null,
-            ]}
+          {/* Blue gradient backdrop with decorative circles + balance card */}
+          <LinearGradient
+            colors={[Colors.accent, "#2691c4", Colors.accentDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroBackdrop}
           >
-            <View style={styles.cardTopRow}>
-              <View style={styles.cardTitleRow}>
-                <WalletIcon color="#FFFFFF" size={18} />
-                <Text style={styles.masterCardName}>GET.wallet</Text>
-              </View>
-            </View>
+            <View style={styles.heroCircleLarge} />
+            <View style={styles.heroCircleSmall} />
+            <View style={styles.heroCircleTiny} />
+
             <View
-              style={styles.masterBodyRow}
-              onLayout={(e) => setBodyRowWidth(e.nativeEvent.layout.width)}
+              style={[
+                styles.balanceCard,
+                highlighted === "wallet" ? styles.focusHighlight : null,
+              ]}
             >
-              <View style={styles.masterBalanceCol}>
-                <View style={styles.masterBalanceRow}>
-                  <Text
-                    style={styles.masterBalance}
-                    testID="wallet-master-balance"
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.55}
-                  >
-                    <Text style={styles.masterBalanceCurrency}>RM </Text>
-                    {balanceHidden ? "****" : (balances?.getWallet ?? 0).toFixed(2)}
-                  </Text>
+              <View style={styles.balanceCardTop}>
+                <View style={styles.balanceLabelRow}>
+                  <Text style={styles.balanceLabel}>WALLET BALANCE</Text>
                   <TouchableOpacity
                     onPress={() => setBalanceHidden((v) => !v)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     testID="wallet-balance-toggle"
                   >
                     {balanceHidden ? (
-                      <EyeOff color="rgba(255,255,255,0.9)" size={18} />
+                      <EyeOff color="#3F3F46" size={20} />
                     ) : (
-                      <Eye color="rgba(255,255,255,0.9)" size={18} />
+                      <Eye color="#3F3F46" size={20} />
                     )}
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.masterBalanceLabel}>Wallet Balance</Text>
+                <Text
+                  style={styles.balanceValue}
+                  testID="wallet-master-balance"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                >
+                  <Text style={styles.balanceCurrency}>RM </Text>
+                  {balanceHidden ? "****" : (balances?.getWallet ?? 0).toFixed(2)}
+                </Text>
+                {lastUpdated ? (
+                  <Text style={styles.balanceUpdated} testID="wallet-updated-at">
+                    Updated • {formatUpdatedStamp(lastUpdated)}
+                  </Text>
+                ) : null}
+                <View style={styles.balanceDivider} />
               </View>
-              <View style={styles.masterActionsCol}>
-                <View style={styles.sendReceiveRow}>
-                  <TouchableOpacity
-                    style={styles.whitePillBtn}
-                    onPress={() => setDuitNowVisible(true)}
-                    testID="wallet-send"
-                  >
-                    <ScanLine color="#3F3F46" size={13 * pillScale} />
-                    <Text
-                      style={[styles.whitePillText, { fontSize: 11 * pillScale }]}
-                      numberOfLines={1}
-                    >
-                      SEND
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.whitePillBtn}
-                    onPress={() => setDuitNowVisible(true)}
-                    testID="wallet-receive"
-                  >
-                    <QrCode color="#3F3F46" size={13 * pillScale} />
-                    <Text
-                      style={[styles.whitePillText, { fontSize: 11 * pillScale }]}
-                      numberOfLines={1}
-                    >
-                      RECEIVE
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+
+              <View style={styles.pillRow}>
                 <TouchableOpacity
-                  style={styles.masterActionBtn}
+                  style={styles.pillWrap}
                   onPress={openTopUp}
+                  activeOpacity={0.85}
                   testID="wallet-topup-open"
                 >
-                  <ReloadDollarIcon color="#FFFFFF" size={15 * pillScale} />
-                  <Text
-                    style={[styles.masterActionText, { fontSize: 12 * pillScale }]}
-                    numberOfLines={1}
+                  <LinearGradient
+                    colors={[Colors.accent, Colors.accentDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.pillInner}
                   >
-                    RELOAD
-                  </Text>
+                    <ReloadDollarIcon color="#FFFFFF" size={15} />
+                    <Text style={[styles.pillText, styles.pillTextOnAccent]} numberOfLines={1}>
+                      Reload
+                    </Text>
+                  </LinearGradient>
                 </TouchableOpacity>
+
                 <TouchableOpacity
-                  style={styles.transferPillBtn}
-                  onPress={() => setTransferVisible(true)}
+                  style={styles.pillWrap}
+                  onPress={() => setComingSoonVisible(true)}
+                  activeOpacity={0.85}
+                  testID="wallet-scan"
+                >
+                  <View style={[styles.pillInner, styles.pillWhite]}>
+                    <ScanLine color="#27272A" size={15} />
+                    <Text style={styles.pillText} numberOfLines={1}>
+                      Scan
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.pillWrap}
+                  onPress={() => setDuitNowVisible(true)}
+                  activeOpacity={0.85}
+                  testID="wallet-receive"
+                >
+                  <View style={[styles.pillInner, styles.pillWhite]}>
+                    <QrCode color="#27272A" size={15} />
+                    <Text style={styles.pillText} numberOfLines={1}>
+                      Receive
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.pillWrap}
+                  onPress={() => setComingSoonVisible(true)}
+                  activeOpacity={0.85}
                   testID="wallet-transfer-open"
                 >
-                  <ArrowRightLeft color="#27272A" size={15 * pillScale} />
-                  <Text
-                    style={[styles.transferPillText, { fontSize: 12 * pillScale }]}
-                    numberOfLines={1}
-                  >
-                    TRANSFER
-                  </Text>
+                  <View style={[styles.pillInner, styles.pillWhite]}>
+                    <ArrowRightLeft color="#27272A" size={15} />
+                    <Text style={styles.pillText} numberOfLines={1}>
+                      Transfer
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </LinearGradient>
 
-          <Modal
-            visible={duitNowVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setDuitNowVisible(false)}
-          >
-            <View style={styles.duitNowOverlay}>
-              <View style={[styles.duitNowCard, { backgroundColor: Colors.card }]}>
-                <View style={[styles.duitNowIconWrap, { backgroundColor: Colors.accent + "18" }]}>
-                  <QrCode color={Colors.accent} size={28} />
-                </View>
-                <Text style={[styles.duitNowTitle, { color: Colors.text }]}>DuitNow Coming Soon</Text>
-                <Text style={[styles.duitNowMessage, { color: Colors.textSecondary }]}>
-                  Send & receive with DuitNow will be available in an upcoming update.
+          <View style={styles.bodyContent}>
+            {successNote ? (
+              <View style={[styles.successBanner, { backgroundColor: Colors.success + "18" }]}>
+                <Text style={[styles.successBannerText, { color: Colors.success }]}>{successNote}</Text>
+              </View>
+            ) : null}
+
+            {balances?.source === "local" ? (
+              <View style={[styles.localBanner, { backgroundColor: Colors.warning + "15" }]}>
+                <Info color={Colors.warning} size={15} />
+                <Text style={[styles.localBannerText, { color: "#6B7280" }]}>
+                  Wallet tables not found in the database — running on this device only. Apply
+                  migration 0056 to sync balances.
                 </Text>
-                <TouchableOpacity
-                  style={[styles.duitNowBtn, { backgroundColor: Colors.accent }]}
-                  onPress={() => setDuitNowVisible(false)}
-                  testID="wallet-duitnow-close"
-                >
-                  <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>OK</Text>
-                </TouchableOpacity>
               </View>
-            </View>
-          </Modal>
+            ) : null}
 
-          <Modal
-            visible={transferVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setTransferVisible(false)}
-          >
-            <View style={styles.duitNowOverlay}>
-              <View style={[styles.duitNowCard, { backgroundColor: Colors.card }]}>
-                <View style={[styles.duitNowIconWrap, { backgroundColor: Colors.accent + "18" }]}>
-                  <ArrowRightLeft color={Colors.accent} size={28} />
-                </View>
-                <Text style={[styles.duitNowTitle, { color: Colors.text }]}>Coming Soon</Text>
-                <Text style={[styles.duitNowMessage, { color: Colors.textSecondary }]}>
-                  We&apos;re working on this feature and it will be available soon.
-                </Text>
-                <TouchableOpacity
-                  style={[styles.duitNowBtn, { backgroundColor: Colors.accent }]}
-                  onPress={() => setTransferVisible(false)}
-                  testID="wallet-transfer-close"
-                >
-                  <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>Got It</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-
-          {/* GET.credit — partner only */}
-          {isPartnerMode ? (
-            <View
-              style={[
-                styles.creditCard,
-                { backgroundColor: Colors.card, borderColor: Colors.border },
-                highlighted === "credit" ? styles.focusHighlight : null,
-              ]}
-              onLayout={(e) => {
-                creditCardY.current = e.nativeEvent.layout.y;
-              }}
-            >
-              <View style={styles.cardTopRow}>
-                <View style={styles.cardTitleRow}>
-                  <CreditCard color="#F59E0B" size={18} />
-                  <Text style={[styles.creditCardName, { color: Colors.text }]}>GET.credit</Text>
-                </View>
-              </View>
-              <Text style={[styles.creditBalance, { color: Colors.text }]} testID="wallet-credit-balance">
-                RM {(balances?.getCredit ?? 0).toFixed(2)}
-              </Text>
-              <Text style={[styles.creditHint, { color: Colors.textSecondary }]}>
-                Pays for in-app services & commissions. Recharge from GET.wallet.
-              </Text>
-              <TouchableOpacity
-                style={[styles.rechargeBtn, { backgroundColor: "#F59E0B" }]}
-                onPress={openRecharge}
-                testID="wallet-recharge-open"
+            {/* GET.credit — partner only */}
+            {isPartnerMode ? (
+              <View
+                style={[
+                  styles.creditCard,
+                  highlighted === "credit" ? styles.focusHighlight : null,
+                ]}
+                onLayout={(e) => {
+                  creditCardY.current = e.nativeEvent.layout.y;
+                }}
               >
-                <ArrowRightLeft color="#000000" size={16} />
-                <Text style={styles.rechargeBtnText}>Recharge from GET.wallet</Text>
+                <View style={styles.cardTopRow}>
+                  <View style={styles.cardTitleRow}>
+                    <CreditCard color="#F59E0B" size={18} />
+                    <Text style={styles.creditCardName}>GET.credit</Text>
+                  </View>
+                </View>
+                <Text style={styles.creditBalance} testID="wallet-credit-balance">
+                  RM {(balances?.getCredit ?? 0).toFixed(2)}
+                </Text>
+                <Text style={styles.creditHint}>
+                  Pays for in-app services & commissions. Recharge from GET.wallet.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.rechargeBtn, { backgroundColor: "#F59E0B" }]}
+                  onPress={openRecharge}
+                  testID="wallet-recharge-open"
+                >
+                  <ArrowRightLeft color="#000000" size={16} />
+                  <Text style={styles.rechargeBtnText}>Recharge from GET.wallet</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {/* Recent Activity */}
+            <View style={styles.activityHeaderRow}>
+              <Text style={styles.activityTitle}>Recent Activity</Text>
+              <TouchableOpacity
+                style={styles.viewAllBtn}
+                onPress={openHistory}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                testID="wallet-view-all"
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+                <ChevronRight color="#27272A" size={18} strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
-          ) : null}
 
-          {/* Transactions */}
-          <View style={styles.txHeaderRow}>
-            <View style={styles.cardTitleRow}>
-              <ReceiptText color={Colors.textSecondary} size={16} />
-              <Text style={[styles.txHeaderTitle, { color: Colors.text }]}>Transactions</Text>
-            </View>
-          </View>
-
-          {isPartnerMode ? (
-            <View style={styles.filterRow}>
-              {(
-                [
-                  { id: "all" as TxFilter, label: "All" },
-                  { id: "get_wallet" as TxFilter, label: "GET.wallet" },
-                  { id: "get_credit" as TxFilter, label: "GET.credit" },
-                ]
-              ).map((f) => {
-                const selected = txFilter === f.id;
-                return (
-                  <TouchableOpacity
-                    key={f.id}
-                    style={[
-                      styles.filterChip,
-                      {
-                        backgroundColor: selected ? Colors.accent : "transparent",
-                        borderColor: selected ? Colors.accent : Colors.border,
-                      },
-                    ]}
-                    onPress={() => setTxFilter(f.id)}
-                    testID={`wallet-filter-${f.id}`}
-                  >
-                    <Text
+            {isPartnerMode ? (
+              <View style={styles.filterRow}>
+                {(
+                  [
+                    { id: "all" as TxFilter, label: "All" },
+                    { id: "get_wallet" as TxFilter, label: "GET.wallet" },
+                    { id: "get_credit" as TxFilter, label: "GET.credit" },
+                  ]
+                ).map((f) => {
+                  const selected = txFilter === f.id;
+                  return (
+                    <TouchableOpacity
+                      key={f.id}
                       style={[
-                        styles.filterChipText,
-                        { color: selected ? Colors.onAccent : Colors.textSecondary },
+                        styles.filterChip,
+                        {
+                          backgroundColor: selected ? Colors.accent : "#FFFFFF",
+                          borderColor: selected ? Colors.accent : "#E5E7EB",
+                        },
                       ]}
+                      onPress={() => setTxFilter(f.id)}
+                      testID={`wallet-filter-${f.id}`}
                     >
-                      {f.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ) : null}
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          { color: selected ? Colors.onAccent : "#6B7280" },
+                        ]}
+                      >
+                        {f.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
 
-          {filteredTx.length === 0 ? (
-            <View style={styles.emptyWrap}>
-              <WalletIcon color={Colors.textSecondary} size={32} />
-              <Text style={[styles.emptyTitle, { color: Colors.text }]}>No transactions yet</Text>
-              <Text style={[styles.emptySub, { color: Colors.textSecondary }]}>
-                Top up your GET.wallet to get started.
-              </Text>
-            </View>
-          ) : (
-            filteredTx.map((tx) => {
-              const meta = txMeta(tx);
-              const positive = tx.amount >= 0;
-              return (
-                <View
-                  key={tx.id}
-                  style={[styles.txRow, { borderBottomColor: Colors.border }]}
-                  testID={`wallet-tx-${tx.id}`}
-                >
-                  <View style={[styles.txIconBubble, { backgroundColor: meta.color + "1A" }]}>
-                    <meta.Icon color={meta.color} size={16} />
-                  </View>
-                  <View style={styles.txInfo}>
-                    <Text style={[styles.txLabel, { color: Colors.text }]} numberOfLines={1}>
-                      {meta.label}
-                    </Text>
-                    <Text style={[styles.txSub, { color: Colors.textSecondary }]} numberOfLines={1}>
-                      {(tx.walletType === "get_wallet" ? "GET.wallet" : "GET.credit") +
-                        " · " +
-                        formatDate(tx.createdAt)}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.txAmount,
-                      { color: positive ? Colors.success : Colors.text },
-                    ]}
-                  >
-                    {(positive ? "+" : "-") + "RM " + Math.abs(tx.amount).toFixed(2)}
-                  </Text>
-                </View>
-              );
-            })
-          )}
+            {recentTx.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <WalletIcon color="#9CA3AF" size={32} />
+                <Text style={styles.emptyTitle}>No activity yet</Text>
+                <Text style={styles.emptySub}>Reload your GET.wallet to get started.</Text>
+              </View>
+            ) : (
+              <View style={styles.activityCard}>
+                {recentTx.map((tx, idx) => {
+                  const meta = walletTxMeta(tx, Colors);
+                  const positive = tx.amount >= 0;
+                  return (
+                    <View
+                      key={tx.id}
+                      style={[
+                        styles.activityRow,
+                        idx < recentTx.length - 1 ? styles.activityRowDivider : null,
+                      ]}
+                      testID={`wallet-tx-${tx.id}`}
+                    >
+                      <View style={styles.activityInfo}>
+                        <Text style={styles.activityLabel} numberOfLines={1}>
+                          {meta.label}
+                        </Text>
+                        <View style={styles.activityMetaRow}>
+                          <Text style={styles.activityDate} numberOfLines={1}>
+                            {formatActivityDate(tx.createdAt)}
+                          </Text>
+                          <View style={styles.statusBadge}>
+                            <Text style={styles.statusBadgeText}>COMPLETED</Text>
+                          </View>
+                        </View>
+                      </View>
+                      <Text
+                        style={[
+                          styles.activityAmount,
+                          { color: positive ? "#16A34A" : "#DC2626" },
+                        ]}
+                      >
+                        {positive
+                          ? `+ RM${Math.abs(tx.amount).toFixed(2)}`
+                          : `-RM${Math.abs(tx.amount).toFixed(2)}`}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
         </ScrollView>
       )}
+
+      <Modal
+        visible={duitNowVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDuitNowVisible(false)}
+      >
+        <View style={styles.duitNowOverlay}>
+          <View style={[styles.duitNowCard, { backgroundColor: Colors.card }]}>
+            <View style={[styles.duitNowIconWrap, { backgroundColor: Colors.accent + "18" }]}>
+              <QrCode color={Colors.accent} size={28} />
+            </View>
+            <Text style={[styles.duitNowTitle, { color: Colors.text }]}>DuitNow Coming Soon</Text>
+            <Text style={[styles.duitNowMessage, { color: Colors.textSecondary }]}>
+              Send & receive with DuitNow will be available in an upcoming update.
+            </Text>
+            <TouchableOpacity
+              style={[styles.duitNowBtn, { backgroundColor: Colors.accent }]}
+              onPress={() => setDuitNowVisible(false)}
+              testID="wallet-duitnow-close"
+            >
+              <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={comingSoonVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setComingSoonVisible(false)}
+      >
+        <View style={styles.duitNowOverlay}>
+          <View style={[styles.duitNowCard, { backgroundColor: Colors.card }]}>
+            <View style={[styles.duitNowIconWrap, { backgroundColor: Colors.accent + "18" }]}>
+              <ArrowRightLeft color={Colors.accent} size={28} />
+            </View>
+            <Text style={[styles.duitNowTitle, { color: Colors.text }]}>Coming Soon</Text>
+            <Text style={[styles.duitNowMessage, { color: Colors.textSecondary }]}>
+              We&apos;re working on this feature and it will be available soon.
+            </Text>
+            <TouchableOpacity
+              style={[styles.duitNowBtn, { backgroundColor: Colors.accent }]}
+              onPress={() => setComingSoonVisible(false)}
+              testID="wallet-transfer-close"
+            >
+              <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {amountModal("topup")}
       {amountModal("recharge")}
@@ -1022,8 +1011,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
+    paddingVertical: 4,
   },
   backBtn: {
     width: 44,
@@ -1034,15 +1022,154 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700" as const,
+    color: "#FFFFFF",
   },
   loadingWrap: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
+  scrollArea: {
+    flex: 1,
+    backgroundColor: "#F4F5F7",
+  },
   scrollContent: {
-    padding: 16,
     paddingBottom: 40,
+  },
+  heroBackdrop: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: "hidden" as const,
+  },
+  heroCircleLarge: {
+    position: "absolute" as const,
+    top: -40,
+    right: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  heroCircleSmall: {
+    position: "absolute" as const,
+    bottom: -20,
+    right: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(255,255,255,0.10)",
+  },
+  heroCircleTiny: {
+    position: "absolute" as const,
+    top: 30,
+    left: -18,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.10)",
+  },
+  balanceCard: {
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden" as const,
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  balanceCardTop: {
+    backgroundColor: "#EFF7FC",
+    paddingHorizontal: 18,
+    paddingTop: 16,
+  },
+  balanceLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  balanceLabel: {
+    fontSize: 13,
+    fontWeight: "800" as const,
+    letterSpacing: 1.6,
+    color: "#3F3F46",
+  },
+  balanceValue: {
+    fontSize: 40,
+    fontWeight: "800" as const,
+    color: "#3F3F46",
+  },
+  balanceCurrency: {
+    fontSize: 22,
+    fontWeight: "600" as const,
+    color: "#6B7280",
+  },
+  balanceUpdated: {
+    fontSize: 13,
+    color: "#8E8E93",
+    marginTop: 4,
+  },
+  balanceDivider: {
+    height: 1,
+    backgroundColor: "#D9E4EC",
+    marginTop: 14,
+  },
+  pillRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    backgroundColor: "#FFFFFF",
+  },
+  pillWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  pillInner: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 5,
+    borderRadius: 999,
+    paddingVertical: 11,
+    paddingHorizontal: 4,
+    minWidth: 0,
+  },
+  pillWhite: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#ECECEF",
+    shadowColor: "#000000",
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  pillText: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: "#27272A",
+    flexShrink: 1,
+  },
+  pillTextOnAccent: {
+    color: "#FFFFFF",
+  },
+  focusHighlight: {
+    borderWidth: 2,
+    borderColor: "#F59E0B",
+    shadowColor: "#F59E0B",
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  bodyContent: {
+    paddingHorizontal: 16,
+    paddingTop: 18,
   },
   successBanner: {
     borderRadius: 12,
@@ -1068,20 +1195,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  masterCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 14,
-  },
-  focusHighlight: {
-    borderWidth: 2,
-    borderColor: "#F59E0B",
-    shadowColor: "#F59E0B",
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
   cardTopRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1093,102 +1206,153 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  masterCardName: {
+  creditCard: {
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    marginBottom: 18,
+  },
+  creditCardName: {
     fontSize: 17,
     fontWeight: "800" as const,
-    color: "#FFFFFF",
+    color: "#111827",
   },
-  masterBalanceLabel: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 2,
-  },
-  masterBalance: {
-    fontSize: 24,
+  creditBalance: {
+    fontSize: 28,
     fontWeight: "800" as const,
-    color: "#FFFFFF",
+    color: "#111827",
   },
-  masterBalanceCurrency: {
-    fontSize: 13,
-    fontWeight: "400" as const,
-    color: "rgba(255,255,255,0.9)",
+  creditHint: {
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 14,
+    lineHeight: 17,
+    color: "#6B7280",
   },
-  masterBodyRow: {
+  rechargeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  rechargeBtnText: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: "#000000",
+  },
+  activityHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    marginBottom: 12,
+    marginTop: 2,
   },
-  masterBalanceCol: {
-    flexShrink: 1,
+  activityTitle: {
+    fontSize: 21,
+    fontWeight: "800" as const,
+    color: "#27272A",
   },
-  masterBalanceRow: {
+  viewAllBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 2,
   },
-  masterActionsCol: {
-    gap: 8,
-    flexShrink: 1,
-    alignItems: "flex-end",
+  viewAllText: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+    color: "#27272A",
   },
-  sendReceiveRow: {
+  filterRow: {
     flexDirection: "row",
-    gap: 6,
-    flexShrink: 1,
-    alignSelf: "stretch",
+    gap: 8,
+    marginBottom: 12,
   },
-  whitePillBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    backgroundColor: "#F4F1F8",
+  filterChip: {
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: "auto",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+  },
+  emptyCard: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: "#111827",
+  },
+  emptySub: {
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  activityCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    overflow: "hidden" as const,
+    shadowColor: "#000000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  activityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  activityRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F1F4",
+  },
+  activityInfo: {
+    flex: 1,
     minWidth: 0,
   },
-  whitePillText: {
-    fontSize: 11,
+  activityLabel: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+    color: "#1C1C1E",
+    marginBottom: 4,
+  },
+  activityMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  activityDate: {
+    fontSize: 13,
+    color: "#8E8E93",
+    flexShrink: 1,
+  },
+  statusBadge: {
+    backgroundColor: "#EEF1F6",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  statusBadgeText: {
+    fontSize: 10,
     fontWeight: "800" as const,
     letterSpacing: 0.4,
-    color: "#3F3F46",
-    flexShrink: 1,
+    color: "#3A4157",
   },
-  masterActionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "rgba(0, 0, 0, 0.28)",
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    alignSelf: "stretch",
-    minWidth: 0,
-  },
-  transferPillBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    alignSelf: "stretch",
-    minWidth: 0,
-  },
-  transferPillText: {
-    fontSize: 12,
+  activityAmount: {
+    fontSize: 15,
     fontWeight: "800" as const,
-    letterSpacing: 0.8,
-    color: "#27272A",
-    flexShrink: 1,
   },
   duitNowOverlay: {
     flex: 1,
@@ -1233,111 +1397,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800" as const,
   },
-  masterActionText: {
-    fontSize: 12,
-    fontWeight: "800" as const,
-    letterSpacing: 0.8,
-    color: "#FFFFFF",
-    flexShrink: 1,
-  },
-  creditCard: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    marginBottom: 18,
-  },
-  creditCardName: {
-    fontSize: 17,
-    fontWeight: "800" as const,
-  },
-  creditBalance: {
-    fontSize: 28,
-    fontWeight: "800" as const,
-  },
-  creditHint: {
-    fontSize: 12,
-    marginTop: 4,
-    marginBottom: 14,
-    lineHeight: 17,
-  },
-  rechargeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 12,
-    paddingVertical: 12,
-  },
-  rechargeBtnText: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: "#000000",
-  },
-  txHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-    marginTop: 2,
-  },
-  txHeaderTitle: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-  },
-  filterRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  filterChip: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderWidth: 1,
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: "600" as const,
-  },
-  emptyWrap: {
-    alignItems: "center",
-    paddingVertical: 40,
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-  },
-  emptySub: {
-    fontSize: 13,
-  },
-  txRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    gap: 12,
-  },
-  txIconBubble: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  txInfo: { flex: 1 },
-  txLabel: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-  },
-  txSub: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  txAmount: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
@@ -1365,11 +1424,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700" as const,
     flex: 1,
-  },
-  modalBalance: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    marginBottom: 2,
   },
   modalSub: {
     fontSize: 13,
@@ -1409,23 +1463,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700" as const,
     paddingVertical: 12,
-  },
-  methodRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  methodChip: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    paddingVertical: 9,
-    paddingHorizontal: 6,
-    alignItems: "center",
-  },
-  methodChipText: {
-    fontSize: 11,
-    fontWeight: "700" as const,
   },
   errorText: {
     fontSize: 13,
@@ -1595,8 +1632,8 @@ const styles = StyleSheet.create({
     alignItems: "center" as const,
   },
   topUpQuickPillSelected: {
-    borderColor: "#8A16E8",
-    backgroundColor: "#8A16E812",
+    borderColor: "#2dabe2",
+    backgroundColor: "#2dabe212",
   },
   topUpQuickPillText: {
     fontSize: 14,
@@ -1604,7 +1641,7 @@ const styles = StyleSheet.create({
     color: "#3A3A3C",
   },
   topUpQuickPillTextSelected: {
-    color: "#8A16E8",
+    color: "#2dabe2",
     fontWeight: "700" as const,
   },
   topUpCancelBtn: {

@@ -233,6 +233,7 @@ function RootLayoutNav() {
       <Stack.Screen name="teksi-ev" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="profile" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="wallet" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="wallet-history" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="edit-profile" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="auth-diagnostics" options={{ animation: "slide_from_right", gestureEnabled: true, presentation: "modal" }} />
       <Stack.Screen name="support" options={{ animation: "slide_from_right", gestureEnabled: false }} />
