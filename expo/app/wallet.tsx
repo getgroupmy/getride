@@ -128,6 +128,7 @@ export default function WalletScreen() {
   const [amountText, setAmountText] = useState<string>("");
   const [methodId, setMethodId] = useState<string>("");
   const [topUpStep, setTopUpStep] = useState<"amount" | "method">("amount");
+  const [pillRowWidth, setPillRowWidth] = useState<number>(0);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
@@ -266,6 +267,26 @@ export default function WalletScreen() {
   }, [transactions, txFilter]);
 
   const recentTx = useMemo(() => filteredTx.slice(0, 5), [filteredTx]);
+
+  // Shared pill sizing: every pill gets the same font/icon size, scaled down
+  // together just enough for the longest label ("Transfer") to fit in full.
+  const pillSizing = useMemo(() => {
+    const baseFont = 12;
+    const baseIcon = 15;
+    if (pillRowWidth <= 0) return { font: baseFont, icon: baseIcon, gap: 5 };
+    const pillWidth = (pillRowWidth - 8 * 3) / 4;
+    // icon + gap + text(8 chars × ~0.58×font for 700 weight) + inner padding
+    const neededAtBase = baseIcon + 5 + 8 * 0.58 * baseFont + 10;
+    if (pillWidth >= neededAtBase) return { font: baseFont, icon: baseIcon, gap: 5 };
+    const scale = Math.max(pillWidth / neededAtBase, 0.62);
+    return {
+      font: Math.floor(baseFont * scale * 10) / 10,
+      icon: Math.round(baseIcon * scale),
+      gap: Math.max(Math.round(5 * scale), 2),
+    };
+  }, [pillRowWidth]);
+
+  const pillTextSized = { fontSize: pillSizing.font };
 
   const openHistory = () => {
     router.push(
@@ -733,7 +754,10 @@ export default function WalletScreen() {
                 <View style={styles.balanceDivider} />
               </View>
 
-              <View style={styles.pillRow}>
+              <View
+                style={styles.pillRow}
+                onLayout={(e) => setPillRowWidth(e.nativeEvent.layout.width - 14 * 2)}
+              >
                 <TouchableOpacity
                   style={styles.pillWrap}
                   onPress={openTopUp}
@@ -744,10 +768,13 @@ export default function WalletScreen() {
                     colors={[Colors.accent, Colors.accentDark]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.pillInner}
+                    style={[styles.pillInner, { gap: pillSizing.gap }]}
                   >
-                    <ReloadDollarIcon color="#FFFFFF" size={15} />
-                    <Text style={[styles.pillText, styles.pillTextOnAccent]} numberOfLines={1}>
+                    <ReloadDollarIcon color="#FFFFFF" size={pillSizing.icon} />
+                    <Text
+                      style={[styles.pillText, styles.pillTextOnAccent, pillTextSized]}
+                      numberOfLines={1}
+                    >
                       Reload
                     </Text>
                   </LinearGradient>
@@ -759,9 +786,9 @@ export default function WalletScreen() {
                   activeOpacity={0.85}
                   testID="wallet-scan"
                 >
-                  <View style={[styles.pillInner, styles.pillWhite]}>
-                    <ScanLine color="#27272A" size={15} />
-                    <Text style={styles.pillText} numberOfLines={1}>
+                  <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
+                    <ScanLine color="#27272A" size={pillSizing.icon} />
+                    <Text style={[styles.pillText, pillTextSized]} numberOfLines={1}>
                       Scan
                     </Text>
                   </View>
@@ -773,9 +800,9 @@ export default function WalletScreen() {
                   activeOpacity={0.85}
                   testID="wallet-receive"
                 >
-                  <View style={[styles.pillInner, styles.pillWhite]}>
-                    <QrCode color="#27272A" size={15} />
-                    <Text style={styles.pillText} numberOfLines={1}>
+                  <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
+                    <QrCode color="#27272A" size={pillSizing.icon} />
+                    <Text style={[styles.pillText, pillTextSized]} numberOfLines={1}>
                       Receive
                     </Text>
                   </View>
@@ -787,9 +814,9 @@ export default function WalletScreen() {
                   activeOpacity={0.85}
                   testID="wallet-transfer-open"
                 >
-                  <View style={[styles.pillInner, styles.pillWhite]}>
-                    <ArrowRightLeft color="#27272A" size={15} />
-                    <Text style={styles.pillText} numberOfLines={1}>
+                  <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
+                    <ArrowRightLeft color="#27272A" size={pillSizing.icon} />
+                    <Text style={[styles.pillText, pillTextSized]} numberOfLines={1}>
                       Transfer
                     </Text>
                   </View>
@@ -1144,10 +1171,9 @@ const styles = StyleSheet.create({
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "center" as const,
-    gap: 5,
     borderRadius: 999,
     paddingVertical: 11,
-    paddingHorizontal: 4,
+    paddingHorizontal: 3,
     minWidth: 0,
   },
   pillWhite: {
