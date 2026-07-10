@@ -651,6 +651,18 @@ export default function WalletScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.accent }]} edges={["top"]}>
+      {/* Full-height blue gradient backdrop — the light content sheet sits on top */}
+      <LinearGradient
+        colors={[Colors.accent, "#2691c4", Colors.accentDark]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      >
+        <View style={styles.heroCircleLarge} />
+        <View style={styles.heroCircleSmall} />
+        <View style={styles.heroCircleTiny} />
+      </LinearGradient>
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -664,8 +676,8 @@ export default function WalletScreen() {
       </View>
 
       {loading ? (
-        <View style={[styles.loadingWrap, { backgroundColor: "#F4F5F7" }]}>
-          <ActivityIndicator color={Colors.accent} size="large" />
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color="#FFFFFF" size="large" />
         </View>
       ) : (
         <ScrollView
@@ -677,21 +689,9 @@ export default function WalletScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
           }
         >
-          {/* Blue gradient backdrop with decorative circles + balance card.
-              The gradient ends halfway through the pill row so the card hangs
-              over its bottom edge, matching the reference design. */}
+          {/* Balance card floats over the boundary between the blue backdrop
+              and the light content sheet below. */}
           <View style={styles.heroWrap}>
-            <LinearGradient
-              colors={[Colors.accent, "#2691c4", Colors.accentDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroBackdrop}
-            >
-              <View style={styles.heroCircleLarge} />
-              <View style={styles.heroCircleSmall} />
-              <View style={styles.heroCircleTiny} />
-            </LinearGradient>
-
             <View
               style={[
                 styles.balanceCard,
@@ -1035,24 +1035,15 @@ const styles = StyleSheet.create({
   },
   scrollArea: {
     flex: 1,
-    backgroundColor: "#F4F5F7",
   },
   scrollContent: {
-    paddingBottom: 40,
+    flexGrow: 1,
   },
   heroWrap: {
     paddingHorizontal: 16,
     paddingTop: 8,
-  },
-  heroBackdrop: {
-    position: "absolute" as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 34,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    overflow: "hidden" as const,
+    marginBottom: -34,
+    zIndex: 2,
   },
   heroCircleLarge: {
     position: "absolute" as const,
@@ -1065,7 +1056,7 @@ const styles = StyleSheet.create({
   },
   heroCircleSmall: {
     position: "absolute" as const,
-    bottom: -20,
+    top: 190,
     right: 40,
     width: 70,
     height: 70,
@@ -1178,8 +1169,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   bodyContent: {
+    flexGrow: 1,
+    backgroundColor: "#F4F5F7",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingHorizontal: 16,
-    paddingTop: 18,
+    paddingTop: 52,
+    paddingBottom: 40,
   },
   successBanner: {
     borderRadius: 12,
