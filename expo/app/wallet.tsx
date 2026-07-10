@@ -677,16 +677,20 @@ export default function WalletScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
           }
         >
-          {/* Blue gradient backdrop with decorative circles + balance card */}
-          <LinearGradient
-            colors={[Colors.accent, "#2691c4", Colors.accentDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroBackdrop}
-          >
-            <View style={styles.heroCircleLarge} />
-            <View style={styles.heroCircleSmall} />
-            <View style={styles.heroCircleTiny} />
+          {/* Blue gradient backdrop with decorative circles + balance card.
+              The gradient ends halfway through the pill row so the card hangs
+              over its bottom edge, matching the reference design. */}
+          <View style={styles.heroWrap}>
+            <LinearGradient
+              colors={[Colors.accent, "#2691c4", Colors.accentDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroBackdrop}
+            >
+              <View style={styles.heroCircleLarge} />
+              <View style={styles.heroCircleSmall} />
+              <View style={styles.heroCircleTiny} />
+            </LinearGradient>
 
             <View
               style={[
@@ -790,7 +794,7 @@ export default function WalletScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           <View style={styles.bodyContent}>
             {successNote ? (
@@ -1036,10 +1040,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  heroBackdrop: {
+  heroWrap: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 24,
+  },
+  heroBackdrop: {
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 34,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
     overflow: "hidden" as const,
