@@ -1,13 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  RefreshControl,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -21,6 +18,7 @@ import {
   type WalletType,
 } from "@/utils/walletStore";
 import { formatActivityDate, walletTxMeta } from "@/utils/walletDisplay";
+import PullDownScrollView from "@/components/PullDownScrollView";
 
 type TxFilter = "all" | WalletType;
 
@@ -39,14 +37,7 @@ export default function WalletHistoryScreen() {
 
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
-  // Pull-down (refresh) is allowed, but pushing up past the bottom is blocked:
-  // bounces is flipped natively mid-gesture (setNativeProps) the moment the
-  // offset leaves the top, so upward over-scroll is cut off with no kickback.
-  const scrollRef = useRef<ScrollView | null>(null);
-  const contentHeightRef = useRef<number>(0);
-  const scrollLayoutHeightRef = useRef<number>(0);
 
   const loadAll = useCallback(async () => {
     if (!userId) {
@@ -72,9 +63,7 @@ export default function WalletHistoryScreen() {
   );
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
     await loadAll();
-    setRefreshing(false);
   }, [loadAll]);
 
   const filteredTx = useMemo(() => {
@@ -101,37 +90,11 @@ export default function WalletHistoryScreen() {
           <ActivityIndicator color={Colors.accent} size="large" />
         </View>
       ) : (
-        <ScrollView
-          ref={scrollRef}
+        <PullDownScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          overScrollMode="never"
-          onContentSizeChange={(_w, h) => {
-            contentHeightRef.current = h;
-          }}
-          onLayout={(e) => {
-            scrollLayoutHeightRef.current = e.nativeEvent.layout.height;
-          }}
-          alwaysBounceVertical={false}
-          onScroll={(e) => {
-            const y = e.nativeEvent.contentOffset.y;
-            const maxOffset = Math.max(
-              0,
-              contentHeightRef.current - scrollLayoutHeightRef.current
-            );
-            // Bounce is only allowed at the very top (needed for
-            // pull-to-refresh); everywhere else the bottom edge is a hard stop.
-            if (Platform.OS === "ios") {
-              scrollRef.current?.setNativeProps({ bounces: y <= 0 });
-            }
-            if (y > maxOffset) {
-              scrollRef.current?.scrollTo({ y: maxOffset, animated: false });
-            }
-          }}
-          scrollEventThrottle={1}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
-          }
+          onPullRefresh={onRefresh}
+          spinnerColor={Colors.accent}
         >
           {isPartnerMode ? (
             <View style={styles.filterRow}>
@@ -223,7 +186,7 @@ export default function WalletHistoryScreen() {
               })}
             </View>
           )}
-        </ScrollView>
+        </PullDownScrollView>
       )}
     </SafeAreaView>
   );

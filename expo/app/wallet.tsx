@@ -7,7 +7,6 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  RefreshControl,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -36,6 +35,7 @@ import {
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
+import PullDownScrollView from "@/components/PullDownScrollView";
 import {
   fetchWalletBalances,
   fetchWalletTransactions,
@@ -118,7 +118,6 @@ export default function WalletScreen() {
   const [balances, setBalances] = useState<WalletBalances | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -131,11 +130,6 @@ export default function WalletScreen() {
   const [methodId, setMethodId] = useState<string>("");
   const [topUpStep, setTopUpStep] = useState<"amount" | "method">("amount");
   const [pillRowWidth, setPillRowWidth] = useState<number>(0);
-  // Pull-down (refresh) is allowed, but pushing up past the bottom is blocked:
-  // bounces is flipped natively mid-gesture (setNativeProps) the moment the
-  // offset leaves the top, so upward over-scroll is cut off with no kickback.
-  const contentHeightRef = useRef<number>(0);
-  const scrollLayoutHeightRef = useRef<number>(0);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
@@ -196,9 +190,7 @@ export default function WalletScreen() {
   }, [successNote]);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
     await loadAll();
-    setRefreshing(false);
   }, [loadAll]);
 
   const parsedAmount = useMemo(() => {
@@ -726,38 +718,13 @@ export default function WalletScreen() {
           <ActivityIndicator color="#FFFFFF" size="large" />
         </View>
       ) : (
-        <ScrollView
+        <PullDownScrollView
           ref={scrollRef}
           style={styles.scrollArea}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          overScrollMode="never"
-          onContentSizeChange={(_w, h) => {
-            contentHeightRef.current = h;
-          }}
-          onLayout={(e) => {
-            scrollLayoutHeightRef.current = e.nativeEvent.layout.height;
-          }}
-          alwaysBounceVertical={false}
-          onScroll={(e) => {
-            const y = e.nativeEvent.contentOffset.y;
-            const maxOffset = Math.max(
-              0,
-              contentHeightRef.current - scrollLayoutHeightRef.current
-            );
-            // Bounce is only allowed at the very top (needed for
-            // pull-to-refresh); everywhere else the bottom edge is a hard stop.
-            if (Platform.OS === "ios") {
-              scrollRef.current?.setNativeProps({ bounces: y <= 0 });
-            }
-            if (y > maxOffset) {
-              scrollRef.current?.scrollTo({ y: maxOffset, animated: false });
-            }
-          }}
-          scrollEventThrottle={1}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
-          }
+          onPullRefresh={onRefresh}
+          spinnerColor="#FFFFFF"
         >
           {/* Balance card floats over the boundary between the blue backdrop
               and the light content sheet below. */}
@@ -1026,7 +993,7 @@ export default function WalletScreen() {
               </View>
             )}
           </View>
-        </ScrollView>
+        </PullDownScrollView>
       )}
 
       <Modal
