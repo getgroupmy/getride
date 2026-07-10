@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -40,8 +40,11 @@ export default function WalletHistoryScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
-  // Allow the top rubber-band (pull-to-refresh) but block pushing up past the bottom.
-  const [bounceEnabled, setBounceEnabled] = useState<boolean>(true);
+  // Pull-down (refresh) is allowed, but pushing up past the bottom is clamped
+  // every frame so the content can never over-scroll upward.
+  const scrollRef = useRef<ScrollView | null>(null);
+  const contentHeightRef = useRef<number>(0);
+  const scrollLayoutHeightRef = useRef<number>(0);
 
   const loadAll = useCallback(async () => {
     if (!userId) {
@@ -97,13 +100,25 @@ export default function WalletHistoryScreen() {
         </View>
       ) : (
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          bounces={bounceEnabled}
           overScrollMode="never"
+          onContentSizeChange={(_w, h) => {
+            contentHeightRef.current = h;
+          }}
+          onLayout={(e) => {
+            scrollLayoutHeightRef.current = e.nativeEvent.layout.height;
+          }}
           onScroll={(e) => {
             const y = e.nativeEvent.contentOffset.y;
-            setBounceEnabled(y <= 1);
+            const maxOffset = Math.max(
+              0,
+              contentHeightRef.current - scrollLayoutHeightRef.current
+            );
+            if (y > maxOffset) {
+              scrollRef.current?.scrollTo({ y: maxOffset, animated: false });
+            }
           }}
           scrollEventThrottle={16}
           refreshControl={

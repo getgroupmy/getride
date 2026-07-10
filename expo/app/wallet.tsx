@@ -131,9 +131,10 @@ export default function WalletScreen() {
   const [methodId, setMethodId] = useState<string>("");
   const [topUpStep, setTopUpStep] = useState<"amount" | "method">("amount");
   const [pillRowWidth, setPillRowWidth] = useState<number>(0);
-  // Allow the top rubber-band (pull-to-refresh) but block pushing the content
-  // up past the bottom: bounces is only enabled while at the very top.
-  const [bounceEnabled, setBounceEnabled] = useState<boolean>(true);
+  // Pull-down (refresh) is allowed, but pushing up past the bottom is clamped
+  // every frame so the content can never over-scroll upward.
+  const contentHeightRef = useRef<number>(0);
+  const scrollLayoutHeightRef = useRef<number>(0);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
@@ -729,11 +730,22 @@ export default function WalletScreen() {
           style={styles.scrollArea}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          bounces={bounceEnabled}
           overScrollMode="never"
+          onContentSizeChange={(_w, h) => {
+            contentHeightRef.current = h;
+          }}
+          onLayout={(e) => {
+            scrollLayoutHeightRef.current = e.nativeEvent.layout.height;
+          }}
           onScroll={(e) => {
             const y = e.nativeEvent.contentOffset.y;
-            setBounceEnabled(y <= 1);
+            const maxOffset = Math.max(
+              0,
+              contentHeightRef.current - scrollLayoutHeightRef.current
+            );
+            if (y > maxOffset) {
+              scrollRef.current?.scrollTo({ y: maxOffset, animated: false });
+            }
           }}
           scrollEventThrottle={16}
           refreshControl={
