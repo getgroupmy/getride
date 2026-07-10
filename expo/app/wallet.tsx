@@ -651,7 +651,8 @@ export default function WalletScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.accent }]} edges={["top"]}>
-      {/* Full-height blue gradient backdrop — the light content sheet sits on top */}
+      {/* Blue gradient backdrop on top, light backdrop below — so the bottom
+          edge/overscroll shows the light sheet colour, not blue */}
       <LinearGradient
         colors={[Colors.accent, "#2691c4", Colors.accentDark]}
         start={{ x: 0, y: 0 }}
@@ -662,6 +663,7 @@ export default function WalletScreen() {
         <View style={styles.heroCircleSmall} />
         <View style={styles.heroCircleTiny} />
       </LinearGradient>
+      <View style={styles.bottomBackdrop} />
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -1044,6 +1046,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     marginBottom: -34,
     zIndex: 2,
+  },
+  bottomBackdrop: {
+    position: "absolute" as const,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "45%" as const,
+    backgroundColor: "#F4F5F7",
   },
   heroCircleLarge: {
     position: "absolute" as const,
