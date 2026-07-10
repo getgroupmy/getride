@@ -7,6 +7,7 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -40,8 +41,9 @@ export default function WalletHistoryScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
-  // Pull-down (refresh) is allowed, but pushing up past the bottom is clamped
-  // every frame so the content can never over-scroll upward.
+  // Pull-down (refresh) is allowed, but pushing up past the bottom is blocked:
+  // bounces is flipped natively mid-gesture (setNativeProps) the moment the
+  // offset leaves the top, so upward over-scroll is cut off with no kickback.
   const scrollRef = useRef<ScrollView | null>(null);
   const contentHeightRef = useRef<number>(0);
   const scrollLayoutHeightRef = useRef<number>(0);
@@ -110,17 +112,23 @@ export default function WalletHistoryScreen() {
           onLayout={(e) => {
             scrollLayoutHeightRef.current = e.nativeEvent.layout.height;
           }}
+          alwaysBounceVertical={false}
           onScroll={(e) => {
             const y = e.nativeEvent.contentOffset.y;
             const maxOffset = Math.max(
               0,
               contentHeightRef.current - scrollLayoutHeightRef.current
             );
+            // Bounce is only allowed at the very top (needed for
+            // pull-to-refresh); everywhere else the bottom edge is a hard stop.
+            if (Platform.OS === "ios") {
+              scrollRef.current?.setNativeProps({ bounces: y <= 0 });
+            }
             if (y > maxOffset) {
               scrollRef.current?.scrollTo({ y: maxOffset, animated: false });
             }
           }}
-          scrollEventThrottle={16}
+          scrollEventThrottle={1}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
           }
