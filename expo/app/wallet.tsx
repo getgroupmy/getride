@@ -709,16 +709,24 @@ export default function WalletScreen() {
                   )}
                 </TouchableOpacity>
               </View>
-              <Text
-                style={styles.balanceValue}
-                testID="wallet-master-balance"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.5}
-              >
-                <Text style={styles.balanceCurrency}>RM </Text>
-                {balanceHidden ? "****" : (balances?.getWallet ?? 0).toFixed(2)}
-              </Text>
+              <View style={styles.balanceValueRow}>
+                <Text style={styles.balanceCurrency}>RM</Text>
+                {balanceHidden ? (
+                  <Text style={styles.balanceMask} testID="wallet-master-balance">
+                    ****
+                  </Text>
+                ) : (
+                  <Text
+                    style={styles.balanceValue}
+                    testID="wallet-master-balance"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.5}
+                  >
+                    {(balances?.getWallet ?? 0).toFixed(2)}
+                  </Text>
+                )}
+              </View>
               {lastUpdated ? (
                 <Text style={styles.balanceUpdated} testID="wallet-updated-at">
                   Updated • {formatUpdatedStamp(lastUpdated)}
@@ -1037,7 +1045,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 44,
+    bottom: 68,
     overflow: "hidden" as const,
   },
   heroCircleLarge: {
@@ -1093,10 +1101,23 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     color: "#3A3A3C",
   },
+  balanceValueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+  },
   balanceValue: {
     fontSize: 44,
     fontWeight: "800" as const,
     color: "#3A3A3C",
+    flexShrink: 1,
+  },
+  balanceMask: {
+    fontSize: 40,
+    fontWeight: "800" as const,
+    color: "#3A3A3C",
+    letterSpacing: 2,
+    transform: [{ translateY: 9 }],
   },
   balanceCurrency: {
     fontSize: 22,
@@ -1115,11 +1136,11 @@ const styles = StyleSheet.create({
   },
   pillTray: {
     marginHorizontal: 12,
-    marginTop: -26,
+    marginTop: -30,
     backgroundColor: "#FFFFFF",
     borderRadius: 28,
-    paddingTop: 38,
-    paddingBottom: 12,
+    paddingTop: 40,
+    paddingBottom: 14,
     paddingHorizontal: 10,
     zIndex: 1,
     shadowColor: "#000000",
