@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  useWindowDimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -102,6 +103,7 @@ type TxFilter = "all" | WalletType;
 export default function WalletScreen() {
   const router = useRouter();
   const Colors = useColors();
+  const { height: windowHeight } = useWindowDimensions();
   const { authState } = useAuth();
   const params = useLocalSearchParams<{ mode?: string; focus?: string }>();
   const isPartnerMode = params.mode === "partner";
@@ -266,7 +268,23 @@ export default function WalletScreen() {
     return transactions.filter((t) => t.walletType === txFilter);
   }, [transactions, txFilter]);
 
-  const recentTx = useMemo(() => filteredTx.slice(0, 5), [filteredTx]);
+  // Show as many recent transactions as fit on screen without scrolling:
+  // subtract the fixed chrome (header, balance card, section heading, partner
+  // extras) from the window height and divide by the activity row height.
+  const maxRecent = useMemo(() => {
+    const headerH = 52;
+    const heroH = 236;
+    const sheetTopPad = 52;
+    const activityHeaderH = 46;
+    const bottomPad = 40;
+    const partnerExtras = isPartnerMode ? 224 : 0;
+    const rowH = 74;
+    const available =
+      windowHeight - headerH - heroH - sheetTopPad - activityHeaderH - bottomPad - partnerExtras;
+    return Math.min(Math.max(Math.floor(available / rowH), 3), 12);
+  }, [windowHeight, isPartnerMode]);
+
+  const recentTx = useMemo(() => filteredTx.slice(0, maxRecent), [filteredTx, maxRecent]);
 
   // Shared pill sizing: every pill gets the same font/icon size, scaled down
   // together just enough for the longest label ("Transfer") to fit in full.
@@ -723,7 +741,10 @@ export default function WalletScreen() {
             >
               <View style={styles.balanceCardTop}>
                 <View style={styles.balanceLabelRow}>
-                  <Text style={styles.balanceLabel}>WALLET BALANCE</Text>
+                  <View style={styles.balanceTitleRow}>
+                    <WalletIcon color={Colors.accent} size={18} />
+                    <Text style={styles.balanceLabel}>GET.wallet Balance</Text>
+                  </View>
                   <TouchableOpacity
                     onPress={() => setBalanceHidden((v) => !v)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -1130,10 +1151,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 8,
   },
+  balanceTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   balanceLabel: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "800" as const,
-    letterSpacing: 1.6,
+    letterSpacing: 0.2,
     color: "#3F3F46",
   },
   balanceValue: {
