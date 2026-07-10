@@ -145,17 +145,14 @@ export default function WalletHistoryScreen() {
               <Text style={styles.emptySub}>Reload your GET.wallet to get started.</Text>
             </View>
           ) : (
-            <View style={styles.activityCard}>
-              {filteredTx.map((tx, idx) => {
+            <View>
+              {filteredTx.map((tx) => {
                 const meta = walletTxMeta(tx, Colors);
                 const positive = tx.amount >= 0;
                 return (
                   <View
                     key={tx.id}
-                    style={[
-                      styles.activityRow,
-                      idx < filteredTx.length - 1 ? styles.activityRowDivider : null,
-                    ]}
+                    style={styles.activityCard}
                     testID={`wallet-history-tx-${tx.id}`}
                   >
                     <View style={styles.activityInfo}>
@@ -229,7 +226,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   scrollContent: {
-    padding: 16,
+    padding: 12,
     paddingBottom: 40,
   },
   filterRow: {
@@ -264,35 +261,29 @@ const styles = StyleSheet.create({
     color: "#6B7280",
   },
   activityCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    overflow: "hidden" as const,
-    shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  activityRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  activityRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F1F4",
+    paddingVertical: 18,
+    marginBottom: 10,
+    shadowColor: "#000000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   activityInfo: {
     flex: 1,
     minWidth: 0,
   },
   activityLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700" as const,
-    color: "#1C1C1E",
-    marginBottom: 4,
+    color: "#26262A",
+    marginBottom: 6,
   },
   activityMetaRow: {
     flexDirection: "row",
@@ -300,21 +291,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activityDate: {
-    fontSize: 13,
-    color: "#8E8E93",
+    fontSize: 14,
+    color: "#96969C",
     flexShrink: 1,
   },
   statusBadge: {
-    backgroundColor: "#EEF1F6",
+    backgroundColor: "#E8EBF3",
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
   },
   statusBadgeText: {
     fontSize: 10,
-    fontWeight: "800" as const,
-    letterSpacing: 0.4,
-    color: "#3A4157",
+    fontWeight: "700" as const,
+    letterSpacing: 0.5,
+    color: "#454F68",
   },
   activityWallet: {
     fontSize: 12,
@@ -322,7 +313,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   activityAmount: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800" as const,
   },
 });

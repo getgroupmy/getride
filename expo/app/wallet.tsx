@@ -650,7 +650,7 @@ export default function WalletScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Colors.accent }]} edges={["top"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: "#55BEEC" }]} edges={["top"]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -659,7 +659,6 @@ export default function WalletScreen() {
         >
           <ArrowLeft color="#FFFFFF" size={24} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Wallet</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -677,16 +676,18 @@ export default function WalletScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
           }
         >
-          {/* Blue gradient backdrop with decorative circles + balance card */}
-          <LinearGradient
-            colors={[Colors.accent, "#2691c4", Colors.accentDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroBackdrop}
-          >
-            <View style={styles.heroCircleLarge} />
-            <View style={styles.heroCircleSmall} />
-            <View style={styles.heroCircleTiny} />
+          {/* Gradient backdrop with layered balance card + pill tray */}
+          <View style={styles.heroSection}>
+            <LinearGradient
+              colors={["#55BEEC", Colors.accent, Colors.accentDark]}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
+              style={styles.heroBackdrop}
+            >
+              <View style={styles.heroCircleLarge} />
+              <View style={styles.heroCircleSmall} />
+              <View style={styles.heroCircleTiny} />
+            </LinearGradient>
 
             <View
               style={[
@@ -694,39 +695,39 @@ export default function WalletScreen() {
                 highlighted === "wallet" ? styles.focusHighlight : null,
               ]}
             >
-              <View style={styles.balanceCardTop}>
-                <View style={styles.balanceLabelRow}>
-                  <Text style={styles.balanceLabel}>WALLET BALANCE</Text>
-                  <TouchableOpacity
-                    onPress={() => setBalanceHidden((v) => !v)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    testID="wallet-balance-toggle"
-                  >
-                    {balanceHidden ? (
-                      <EyeOff color="#3F3F46" size={20} />
-                    ) : (
-                      <Eye color="#3F3F46" size={20} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-                <Text
-                  style={styles.balanceValue}
-                  testID="wallet-master-balance"
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.5}
+              <View style={styles.balanceLabelRow}>
+                <Text style={styles.balanceLabel}>WALLET BALANCE</Text>
+                <TouchableOpacity
+                  onPress={() => setBalanceHidden((v) => !v)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  testID="wallet-balance-toggle"
                 >
-                  <Text style={styles.balanceCurrency}>RM </Text>
-                  {balanceHidden ? "****" : (balances?.getWallet ?? 0).toFixed(2)}
-                </Text>
-                {lastUpdated ? (
-                  <Text style={styles.balanceUpdated} testID="wallet-updated-at">
-                    Updated • {formatUpdatedStamp(lastUpdated)}
-                  </Text>
-                ) : null}
-                <View style={styles.balanceDivider} />
+                  {balanceHidden ? (
+                    <EyeOff color="#3A3A3C" size={22} />
+                  ) : (
+                    <Eye color="#3A3A3C" size={22} />
+                  )}
+                </TouchableOpacity>
               </View>
+              <Text
+                style={styles.balanceValue}
+                testID="wallet-master-balance"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                <Text style={styles.balanceCurrency}>RM </Text>
+                {balanceHidden ? "****" : (balances?.getWallet ?? 0).toFixed(2)}
+              </Text>
+              {lastUpdated ? (
+                <Text style={styles.balanceUpdated} testID="wallet-updated-at">
+                  Updated • {formatUpdatedStamp(lastUpdated)}
+                </Text>
+              ) : null}
+              <View style={styles.balanceDivider} />
+            </View>
 
+            <View style={styles.pillTray}>
               <View style={styles.pillRow}>
                 <TouchableOpacity
                   style={styles.pillWrap}
@@ -740,7 +741,7 @@ export default function WalletScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.pillInner}
                   >
-                    <ReloadDollarIcon color="#FFFFFF" size={15} />
+                    <ReloadDollarIcon color="#FFFFFF" size={17} />
                     <Text style={[styles.pillText, styles.pillTextOnAccent]} numberOfLines={1}>
                       Reload
                     </Text>
@@ -754,7 +755,7 @@ export default function WalletScreen() {
                   testID="wallet-scan"
                 >
                   <View style={[styles.pillInner, styles.pillWhite]}>
-                    <ScanLine color="#27272A" size={15} />
+                    <ScanLine color="#27272A" size={17} />
                     <Text style={styles.pillText} numberOfLines={1}>
                       Scan
                     </Text>
@@ -768,7 +769,7 @@ export default function WalletScreen() {
                   testID="wallet-receive"
                 >
                   <View style={[styles.pillInner, styles.pillWhite]}>
-                    <QrCode color="#27272A" size={15} />
+                    <QrCode color="#27272A" size={17} />
                     <Text style={styles.pillText} numberOfLines={1}>
                       Receive
                     </Text>
@@ -782,7 +783,7 @@ export default function WalletScreen() {
                   testID="wallet-transfer-open"
                 >
                   <View style={[styles.pillInner, styles.pillWhite]}>
-                    <ArrowRightLeft color="#27272A" size={15} />
+                    <ArrowRightLeft color="#27272A" size={17} />
                     <Text style={styles.pillText} numberOfLines={1}>
                       Transfer
                     </Text>
@@ -790,7 +791,7 @@ export default function WalletScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </LinearGradient>
+          </View>
 
           <View style={styles.bodyContent}>
             {successNote ? (
@@ -901,17 +902,14 @@ export default function WalletScreen() {
                 <Text style={styles.emptySub}>Reload your GET.wallet to get started.</Text>
               </View>
             ) : (
-              <View style={styles.activityCard}>
-                {recentTx.map((tx, idx) => {
+              <View>
+                {recentTx.map((tx) => {
                   const meta = walletTxMeta(tx, Colors);
                   const positive = tx.amount >= 0;
                   return (
                     <View
                       key={tx.id}
-                      style={[
-                        styles.activityRow,
-                        idx < recentTx.length - 1 ? styles.activityRowDivider : null,
-                      ]}
+                      style={styles.activityCard}
                       testID={`wallet-tx-${tx.id}`}
                     >
                       <View style={styles.activityInfo}>
@@ -1019,11 +1017,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    color: "#FFFFFF",
-  },
   loadingWrap: {
     flex: 1,
     alignItems: "center",
@@ -1031,99 +1024,113 @@ const styles = StyleSheet.create({
   },
   scrollArea: {
     flex: 1,
-    backgroundColor: "#F4F5F7",
+    backgroundColor: "#F2F3F5",
   },
   scrollContent: {
     paddingBottom: 40,
   },
+  heroSection: {
+    paddingTop: 30,
+  },
   heroBackdrop: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 44,
     overflow: "hidden" as const,
   },
   heroCircleLarge: {
     position: "absolute" as const,
-    top: -40,
-    right: -50,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    top: 36,
+    right: -34,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
   heroCircleSmall: {
     position: "absolute" as const,
-    bottom: -20,
-    right: 40,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    bottom: 26,
+    right: 26,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
   heroCircleTiny: {
     position: "absolute" as const,
-    top: 30,
-    left: -18,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    top: 140,
+    right: 74,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
   balanceCard: {
+    marginHorizontal: 20,
     borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden" as const,
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
-  },
-  balanceCardTop: {
-    backgroundColor: "#EFF7FC",
-    paddingHorizontal: 18,
-    paddingTop: 16,
+    backgroundColor: "#F0F5FB",
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 20,
+    zIndex: 2,
+    shadowColor: "#0B3550",
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
   balanceLabelRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   balanceLabel: {
-    fontSize: 13,
-    fontWeight: "800" as const,
-    letterSpacing: 1.6,
-    color: "#3F3F46",
+    fontSize: 15,
+    fontWeight: "700" as const,
+    letterSpacing: 1.2,
+    color: "#3A3A3C",
   },
   balanceValue: {
-    fontSize: 40,
+    fontSize: 44,
     fontWeight: "800" as const,
-    color: "#3F3F46",
+    color: "#3A3A3C",
   },
   balanceCurrency: {
     fontSize: 22,
     fontWeight: "600" as const,
-    color: "#6B7280",
+    color: "#8A8A8E",
   },
   balanceUpdated: {
-    fontSize: 13,
-    color: "#8E8E93",
-    marginTop: 4,
+    fontSize: 14,
+    color: "#98989E",
+    marginTop: 6,
   },
   balanceDivider: {
     height: 1,
-    backgroundColor: "#D9E4EC",
-    marginTop: 14,
+    backgroundColor: "#DDE3EE",
+    marginTop: 16,
+  },
+  pillTray: {
+    marginHorizontal: 12,
+    marginTop: -26,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
+    paddingTop: 38,
+    paddingBottom: 12,
+    paddingHorizontal: 10,
+    zIndex: 1,
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   pillRow: {
     flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    backgroundColor: "#FFFFFF",
+    gap: 7,
   },
   pillWrap: {
     flex: 1,
@@ -1133,24 +1140,24 @@ const styles = StyleSheet.create({
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "center" as const,
-    gap: 5,
+    gap: 6,
     borderRadius: 999,
-    paddingVertical: 11,
+    paddingVertical: 13,
     paddingHorizontal: 4,
     minWidth: 0,
   },
   pillWhite: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#ECECEF",
+    borderColor: "#EEEEF1",
     shadowColor: "#000000",
     shadowOpacity: 0.06,
-    shadowRadius: 4,
+    shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   pillText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "700" as const,
     color: "#27272A",
     flexShrink: 1,
@@ -1168,8 +1175,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   bodyContent: {
-    paddingHorizontal: 16,
-    paddingTop: 18,
+    paddingHorizontal: 12,
+    paddingTop: 22,
   },
   successBanner: {
     borderRadius: 12,
@@ -1248,13 +1255,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 6,
     marginBottom: 12,
-    marginTop: 2,
   },
   activityTitle: {
-    fontSize: 21,
-    fontWeight: "800" as const,
-    color: "#27272A",
+    fontSize: 22,
+    fontWeight: "700" as const,
+    color: "#2A2A2E",
   },
   viewAllBtn: {
     flexDirection: "row",
@@ -1262,9 +1269,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   viewAllText: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: "#27272A",
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: "#2A2A2E",
   },
   filterRow: {
     flexDirection: "row",
@@ -1298,35 +1305,29 @@ const styles = StyleSheet.create({
     color: "#6B7280",
   },
   activityCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    overflow: "hidden" as const,
-    shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  activityRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  activityRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F1F4",
+    paddingVertical: 18,
+    marginBottom: 10,
+    shadowColor: "#000000",
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   activityInfo: {
     flex: 1,
     minWidth: 0,
   },
   activityLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700" as const,
-    color: "#1C1C1E",
-    marginBottom: 4,
+    color: "#26262A",
+    marginBottom: 6,
   },
   activityMetaRow: {
     flexDirection: "row",
@@ -1334,24 +1335,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   activityDate: {
-    fontSize: 13,
-    color: "#8E8E93",
+    fontSize: 14,
+    color: "#96969C",
     flexShrink: 1,
   },
   statusBadge: {
-    backgroundColor: "#EEF1F6",
+    backgroundColor: "#E8EBF3",
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
   },
   statusBadgeText: {
     fontSize: 10,
-    fontWeight: "800" as const,
-    letterSpacing: 0.4,
-    color: "#3A4157",
+    fontWeight: "700" as const,
+    letterSpacing: 0.5,
+    color: "#454F68",
   },
   activityAmount: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800" as const,
   },
   duitNowOverlay: {
