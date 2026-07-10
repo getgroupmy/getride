@@ -131,6 +131,9 @@ export default function WalletScreen() {
   const [methodId, setMethodId] = useState<string>("");
   const [topUpStep, setTopUpStep] = useState<"amount" | "method">("amount");
   const [pillRowWidth, setPillRowWidth] = useState<number>(0);
+  // Allow the top rubber-band (pull-to-refresh) but block pushing the content
+  // up past the bottom: bounces is only enabled while at the very top.
+  const [bounceEnabled, setBounceEnabled] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
@@ -726,6 +729,13 @@ export default function WalletScreen() {
           style={styles.scrollArea}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          bounces={bounceEnabled}
+          overScrollMode="never"
+          onScroll={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+            setBounceEnabled(y <= 1);
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
           }

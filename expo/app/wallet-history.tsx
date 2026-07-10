@@ -40,6 +40,8 @@ export default function WalletHistoryScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
+  // Allow the top rubber-band (pull-to-refresh) but block pushing up past the bottom.
+  const [bounceEnabled, setBounceEnabled] = useState<boolean>(true);
 
   const loadAll = useCallback(async () => {
     if (!userId) {
@@ -97,6 +99,13 @@ export default function WalletHistoryScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          bounces={bounceEnabled}
+          overScrollMode="never"
+          onScroll={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+            setBounceEnabled(y <= 1);
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />
           }
