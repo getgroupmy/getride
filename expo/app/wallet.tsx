@@ -130,6 +130,9 @@ export default function WalletScreen() {
   const [methodId, setMethodId] = useState<string>("");
   const [topUpStep, setTopUpStep] = useState<"amount" | "method">("amount");
   const [pillRowWidth, setPillRowWidth] = useState<number>(0);
+  const [viewportH, setViewportH] = useState<number>(0);
+  const [bodyY, setBodyY] = useState<number>(0);
+  const [listY, setListY] = useState<number>(0);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
@@ -265,21 +268,27 @@ export default function WalletScreen() {
     return transactions.filter((t) => t.walletType === txFilter);
   }, [transactions, txFilter]);
 
-  // Show as many recent transactions as fit on screen without scrolling:
-  // subtract the fixed chrome (header, balance card, section heading, partner
-  // extras) from the window height and divide by the activity row height.
+  // Show as many recent transactions as fit on screen without scrolling.
+  // Preferred: real measurements — the scroll viewport height minus the
+  // measured top of the activity list (works for both user and partner mode,
+  // where the GET.credit card + filter chips push the list further down).
+  // Fallback until the first layout pass: an estimate from the window height.
   const maxRecent = useMemo(() => {
+    const rowH = 74;
+    const bottomPad = 40; // bodyContent paddingBottom
+    if (viewportH > 0 && bodyY > 0 && listY > 0) {
+      const available = viewportH - (bodyY + listY) - bottomPad;
+      return Math.min(Math.max(Math.floor(available / rowH), 2), 12);
+    }
     const headerH = 52;
     const heroH = 236;
     const sheetTopPad = 52;
     const activityHeaderH = 46;
-    const bottomPad = 40;
-    const partnerExtras = isPartnerMode ? 224 : 0;
-    const rowH = 74;
+    const partnerExtras = isPartnerMode ? 300 : 0;
     const available =
       windowHeight - headerH - heroH - sheetTopPad - activityHeaderH - bottomPad - partnerExtras;
-    return Math.min(Math.max(Math.floor(available / rowH), 3), 12);
-  }, [windowHeight, isPartnerMode]);
+    return Math.min(Math.max(Math.floor(available / rowH), 2), 12);
+  }, [viewportH, bodyY, listY, windowHeight, isPartnerMode]);
 
   const recentTx = useMemo(() => filteredTx.slice(0, maxRecent), [filteredTx, maxRecent]);
 
@@ -725,6 +734,7 @@ export default function WalletScreen() {
           showsVerticalScrollIndicator={false}
           onPullRefresh={onRefresh}
           spinnerColor="#FFFFFF"
+          onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
         >
           {/* Balance card floats over the boundary between the blue backdrop
               and the light content sheet below. */}
@@ -842,7 +852,10 @@ export default function WalletScreen() {
             </View>
           </View>
 
-          <View style={styles.bodyContent}>
+          <View
+            style={styles.bodyContent}
+            onLayout={(e) => setBodyY(e.nativeEvent.layout.y)}
+          >
             {successNote ? (
               <View style={[styles.successBanner, { backgroundColor: Colors.success + "18" }]}>
                 <Text style={[styles.successBannerText, { color: Colors.success }]}>{successNote}</Text>
@@ -945,13 +958,19 @@ export default function WalletScreen() {
             ) : null}
 
             {recentTx.length === 0 ? (
-              <View style={styles.emptyCard}>
+              <View
+                style={styles.emptyCard}
+                onLayout={(e) => setListY(e.nativeEvent.layout.y)}
+              >
                 <WalletIcon color="#9CA3AF" size={32} />
                 <Text style={styles.emptyTitle}>No activity yet</Text>
                 <Text style={styles.emptySub}>Reload your GET.wallet to get started.</Text>
               </View>
             ) : (
-              <View style={styles.activityCard}>
+              <View
+                style={styles.activityCard}
+                onLayout={(e) => setListY(e.nativeEvent.layout.y)}
+              >
                 {recentTx.map((tx, idx) => {
                   const meta = walletTxMeta(tx, Colors);
                   const positive = tx.amount >= 0;
