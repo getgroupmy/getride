@@ -234,8 +234,18 @@ export default function WalletScanScreen() {
     }
   }, [permission, requestPermission]);
 
+  /**
+   * Cents-style amount entry: every typed digit shifts in from the right,
+   * e.g. typing 5 → 0.05, 55 → 0.55, 550 → 5.50 (like most e-wallets).
+   */
+  const handleAmountChange = useCallback((text: string) => {
+    const digits = text.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
+    setAmountText(digits.length > 0 ? (Number(digits) / 100).toFixed(2) : "");
+    setPayError("");
+  }, []);
+
   const parsedAmount = useMemo(() => {
-    const n = Number(amountText.replace(/[^0-9.]/g, ""));
+    const n = Number(amountText);
     return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
   }, [amountText]);
 
@@ -493,13 +503,10 @@ export default function WalletScanScreen() {
                   <TextInput
                     style={styles.payAmountInput}
                     value={amountText}
-                    onChangeText={(t) => {
-                      setAmountText(t);
-                      setPayError("");
-                    }}
+                    onChangeText={handleAmountChange}
                     placeholder="0.00"
                     placeholderTextColor="#C3C9CF"
-                    keyboardType="decimal-pad"
+                    keyboardType="number-pad"
                     autoFocus
                     testID="wallet-scan-pay-amount"
                   />
