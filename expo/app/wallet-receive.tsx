@@ -73,7 +73,7 @@ function DuitNowFrame({
   qr: { path: string; modules: number } | null;
   size: number;
 }) {
-  const bandFont = Math.max(13, Math.round(size * 0.058));
+  const bandFont = Math.min(18, Math.max(11, Math.round(size * 0.052)));
   return (
     <View style={[frameStyles.outer, { width: size }]}>
       <View style={frameStyles.inner}>
@@ -90,7 +90,14 @@ function DuitNowFrame({
           <View style={{ width: size - 60, height: size - 60 }} />
         )}
       </View>
-      <Text style={[frameStyles.band, { fontSize: bandFont }]}>MALAYSIA NATIONAL QR</Text>
+      <Text
+        style={[frameStyles.band, { fontSize: bandFont }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.5}
+      >
+        MALAYSIA NATIONAL QR
+      </Text>
     </View>
   );
 }
@@ -115,6 +122,8 @@ const frameStyles = StyleSheet.create({
     letterSpacing: 1.5,
     marginTop: 12,
     marginBottom: 2,
+    textAlign: "center" as const,
+    alignSelf: "stretch" as const,
   },
 });
 
