@@ -11,8 +11,10 @@ import {
   Platform,
   Linking,
   useWindowDimensions,
+  Animated,
+  PanResponder,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import * as Haptics from "expo-haptics";
@@ -25,9 +27,10 @@ import {
   QrCode,
   Camera as CameraIcon,
   CheckCircle2,
-  ScanLine,
+  ArrowLeft,
+  ChevronsRight,
 } from "lucide-react-native";
-import Svg, { Path } from "react-native-svg";
+import Svg, { Path, Circle, Ellipse } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import WalletBalanceBar from "@/components/WalletBalanceBar";
@@ -46,7 +49,136 @@ function DuitNowMark({ size }: { size: number }) {
   );
 }
 
-const PAY_QUICK_AMOUNTS: number[] = [10, 20, 50, 100];
+const SLIDE_THUMB = 58;
+const SLIDE_PAD = 7;
+
+/** Decorative swoosh + gold coins for the pay page, bottom-right corner. */
+function PayCoinsDecor({ accent }: { accent: string }) {
+  return (
+    <Svg width={240} height={300} viewBox="0 0 240 300" pointerEvents="none">
+      <Path d="M240 0 C160 95 145 180 240 300 L240 0 Z" fill={accent} opacity={0.14} />
+      <Path d="M240 45 C185 125 175 195 240 290 L240 45 Z" fill={accent} opacity={0.18} />
+      <Circle cx={166} cy={190} r={32} fill="#F6BA30" stroke="#DE9B12" strokeWidth={6} />
+      <Circle cx={166} cy={190} r={17} fill="none" stroke="#DE9B12" strokeWidth={3} opacity={0.6} />
+      <Ellipse cx={106} cy={152} rx={16} ry={11} fill="#F6BA30" stroke="#DE9B12" strokeWidth={3} />
+      <Ellipse cx={210} cy={132} rx={14} ry={10} fill="#F6BA30" stroke="#DE9B12" strokeWidth={3} />
+      <Ellipse cx={130} cy={242} rx={13} ry={9} fill="#F6BA30" stroke="#DE9B12" strokeWidth={3} />
+      <Ellipse cx={218} cy={252} rx={15} ry={10} fill="#F6BA30" stroke="#DE9B12" strokeWidth={3} />
+      <Circle cx={92} cy={200} r={3} fill="#FFFFFF" />
+      <Circle cx={202} cy={172} r={3} fill="#FFFFFF" />
+      <Circle cx={148} cy={128} r={2.5} fill="#F6BA30" />
+      <Circle cx={90} cy={252} r={2.5} fill="#F6BA30" />
+    </Svg>
+  );
+}
+
+/**
+ * Slide-to-pay button — drag the chevron thumb across the track to confirm.
+ * Grey and locked while the amount is invalid; shows a spinner while paying.
+ */
+function SlideToPayButton({
+  enabled,
+  paying,
+  onComplete,
+  testID,
+}: {
+  enabled: boolean;
+  paying: boolean;
+  onComplete: () => void;
+  testID?: string;
+}) {
+  const Colors = useColors();
+  const [trackW, setTrackW] = useState<number>(0);
+  const dragX = useRef(new Animated.Value(0)).current;
+  const maxDrag = Math.max(trackW - SLIDE_THUMB - SLIDE_PAD * 2, 1);
+
+  const enabledRef = useRef<boolean>(false);
+  enabledRef.current = enabled && !paying;
+  const maxDragRef = useRef<number>(1);
+  maxDragRef.current = maxDrag;
+  const completeRef = useRef<() => void>(onComplete);
+  completeRef.current = onComplete;
+  const firedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!paying) {
+      firedRef.current = false;
+      Animated.spring(dragX, { toValue: 0, friction: 6, useNativeDriver: true }).start();
+    }
+  }, [paying, dragX]);
+
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => enabledRef.current,
+        onMoveShouldSetPanResponder: (_e, g) => enabledRef.current && Math.abs(g.dx) > 2,
+        onPanResponderMove: (_e, g) => {
+          dragX.setValue(Math.min(Math.max(g.dx, 0), maxDragRef.current));
+        },
+        onPanResponderRelease: (_e, g) => {
+          if (g.dx >= maxDragRef.current * 0.7 && !firedRef.current) {
+            firedRef.current = true;
+            Animated.timing(dragX, {
+              toValue: maxDragRef.current,
+              duration: 110,
+              useNativeDriver: true,
+            }).start(() => {
+              if (Platform.OS !== "web") {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+              }
+              completeRef.current();
+            });
+          } else {
+            Animated.spring(dragX, { toValue: 0, friction: 6, useNativeDriver: true }).start();
+          }
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(dragX, { toValue: 0, friction: 6, useNativeDriver: true }).start();
+        },
+      }),
+    [dragX]
+  );
+
+  const labelOpacity = dragX.interpolate({
+    inputRange: [0, Math.max(maxDrag * 0.8, 1)],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  return (
+    <View
+      style={[styles.slideTrack, { backgroundColor: enabled ? Colors.accent : "#C3C8CE" }]}
+      onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
+      testID={testID}
+    >
+      {paying ? (
+        <ActivityIndicator color="#FFFFFF" style={styles.slideCenter} />
+      ) : (
+        <Animated.Text
+          style={[
+            styles.slideLabel,
+            { opacity: labelOpacity, color: enabled ? "#FFFFFF" : "#EDEFF2" },
+          ]}
+        >
+          Pay
+        </Animated.Text>
+      )}
+      <Animated.View
+        style={[
+          styles.slideThumb,
+          {
+            backgroundColor: enabled ? "#FFFFFF" : "#E7E9EC",
+            transform: [{ translateX: dragX }],
+          },
+        ]}
+        {...pan.panHandlers}
+        testID={testID ? `${testID}-thumb` : undefined}
+      >
+        <ChevronsRight color={enabled ? Colors.accentDark : "#858D96"} size={26} />
+      </Animated.View>
+    </View>
+  );
+}
 
 /**
  * GET.wallet Scan screen — camera QR scanner styled after the reference:
@@ -57,6 +189,7 @@ const PAY_QUICK_AMOUNTS: number[] = [10, 20, 50, 100];
 export default function WalletScanScreen() {
   const router = useRouter();
   const Colors = useColors();
+  const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPartnerMode = params.mode === "partner";
@@ -269,138 +402,118 @@ export default function WalletScanScreen() {
         testID="wallet-scan-balance"
       />
 
-      {/* Pay sheet — appears after a QR is scanned */}
-      <Modal
-        visible={payVisible}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={closePaySheet}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View style={styles.payCard}>
-            {paidAmount !== null ? (
-              <View style={styles.successWrap}>
-                <CheckCircle2 color={Colors.success} size={56} />
-                <Text style={styles.successTitle}>Payment Successful</Text>
-                <Text style={styles.successAmount}>RM {paidAmount.toFixed(2)}</Text>
-                <Text style={styles.successNote} numberOfLines={1}>
-                  {scannedLabel}
-                </Text>
-                <TouchableOpacity
-                  style={styles.payBtnWrap}
-                  onPress={() => {
-                    closePaySheet();
-                    router.back();
-                  }}
-                  activeOpacity={0.9}
-                  testID="wallet-scan-pay-done"
-                >
-                  <LinearGradient
-                    colors={[Colors.accent, Colors.accentDark]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.payBtn}
-                  >
-                    <Text style={styles.payBtnText}>Done</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                <View style={styles.payHeaderRow}>
-                  <View style={[styles.payIconBubble, { backgroundColor: Colors.accent + "22" }]}>
-                    <ScanLine color={Colors.accent} size={20} />
-                  </View>
-                  <Text style={styles.payTitle}>Pay with GET.wallet</Text>
-                  <TouchableOpacity
-                    onPress={closePaySheet}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    testID="wallet-scan-pay-close"
-                  >
-                    <X color="#6B7280" size={22} />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.payToBox}>
-                  <Text style={styles.payToLabel}>Paying to</Text>
-                  <Text style={styles.payToValue} numberOfLines={2}>
+      {/* Pay page — full screen, appears after a valid QR is scanned */}
+      {payVisible ? (
+        <View style={[StyleSheet.absoluteFill, styles.payPage]} testID="wallet-scan-pay-page">
+          <SafeAreaView style={styles.payPageSafe} edges={["top"]}>
+            <KeyboardAvoidingView
+              style={styles.payPageSafe}
+              behavior={Platform.OS === "ios" ? "padding" : undefined}
+            >
+              {paidAmount !== null ? (
+                <View style={styles.successPage}>
+                  <CheckCircle2 color={Colors.success} size={64} />
+                  <Text style={styles.successTitle}>Payment Successful</Text>
+                  <Text style={styles.successAmount}>RM {paidAmount.toFixed(2)}</Text>
+                  <Text style={styles.successNote} numberOfLines={2}>
                     {scannedLabel}
                   </Text>
+                  <TouchableOpacity
+                    style={styles.successDoneWrap}
+                    onPress={() => {
+                      closePaySheet();
+                      router.back();
+                    }}
+                    activeOpacity={0.9}
+                    testID="wallet-scan-pay-done"
+                  >
+                    <LinearGradient
+                      colors={[Colors.accent, Colors.accentDark]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.payBtn}
+                    >
+                      <Text style={styles.payBtnText}>Done</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
+              ) : (
+                <>
+                  <View style={styles.payPageHeader}>
+                    <TouchableOpacity
+                      style={styles.payBackBtn}
+                      onPress={closePaySheet}
+                      testID="wallet-scan-pay-close"
+                    >
+                      <ArrowLeft color="#111827" size={26} />
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={styles.amountRow}>
-                  <Text style={styles.amountPrefix}>RM</Text>
+                  <Text style={styles.payMerchant} numberOfLines={2}>
+                    {scannedLabel.toUpperCase()}
+                  </Text>
+
+                  <Text style={styles.payAmountLabel}>Pay (RM)</Text>
                   <TextInput
-                    style={styles.amountInput}
+                    style={styles.payAmountInput}
                     value={amountText}
-                    onChangeText={setAmountText}
-                    placeholder="0"
-                    placeholderTextColor="#D1D5DB"
+                    onChangeText={(t) => {
+                      setAmountText(t);
+                      setPayError("");
+                    }}
+                    placeholder="0.00"
+                    placeholderTextColor="#C3C9CF"
                     keyboardType="decimal-pad"
                     autoFocus
                     testID="wallet-scan-pay-amount"
                   />
-                </View>
-
-                <View style={styles.quickRow}>
-                  {PAY_QUICK_AMOUNTS.map((q) => (
-                    <TouchableOpacity
-                      key={q}
-                      style={[styles.quickChip, { borderColor: Colors.accent + "55" }]}
-                      onPress={() => setAmountText(String(q))}
-                      testID={`wallet-scan-quick-${q}`}
-                    >
-                      <Text style={[styles.quickChipText, { color: Colors.accent }]}>{q}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={styles.payBalanceLine}>
-                  Wallet balance: RM{(balances?.getWallet ?? 0).toFixed(2)}
-                </Text>
-
-                {payError ? <Text style={[styles.payErrorText, { color: Colors.danger }]}>{payError}</Text> : null}
-
-                <TouchableOpacity
-                  style={styles.payBtnWrap}
-                  onPress={handlePay}
-                  disabled={paying || !(parsedAmount > 0)}
-                  activeOpacity={0.9}
-                  testID="wallet-scan-pay-submit"
-                >
-                  <LinearGradient
-                    colors={
-                      parsedAmount > 0
-                        ? [Colors.accent, Colors.accentDark]
-                        : ["#E5E7EB", "#E5E7EB"]
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.payBtn}
-                  >
-                    {paying ? (
-                      <ActivityIndicator color="#FFFFFF" />
+                  {parsedAmount > 0 ? (
+                    payError ? (
+                      <Text style={[styles.payHint, { color: Colors.danger }]}>{payError}</Text>
                     ) : (
-                      <Text
+                      <Text style={styles.payHint}> </Text>
+                    )
+                  ) : (
+                    <Text style={[styles.payHint, { color: "#F0654A" }]}>
+                      Enter an amount more than 0.00
+                    </Text>
+                  )}
+
+                  <View style={styles.payDecorArea} pointerEvents="none">
+                    <PayCoinsDecor accent={Colors.accent} />
+                  </View>
+
+                  <View
+                    style={[styles.payBottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}
+                  >
+                    <View style={styles.payBalanceRow}>
+                      <View
                         style={[
-                          styles.payBtnText,
-                          parsedAmount > 0 ? null : { color: "#9CA3AF" },
+                          styles.payBalanceAvatar,
+                          { backgroundColor: Colors.accent + "22" },
                         ]}
                       >
-                        Pay
+                        <Text style={[styles.payBalanceAvatarText, { color: Colors.accent }]}>
+                          G
+                        </Text>
+                      </View>
+                      <Text style={styles.payBalanceText}>
+                        Wallet Balance {"\u2022"} RM{(balances?.getWallet ?? 0).toFixed(2)}
                       </Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+                    </View>
+                    <SlideToPayButton
+                      enabled={parsedAmount > 0}
+                      paying={paying}
+                      onComplete={handlePay}
+                      testID="wallet-scan-pay-slide"
+                    />
+                  </View>
+                </>
+              )}
+            </KeyboardAvoidingView>
+          </SafeAreaView>
+        </View>
+      ) : null}
 
       {/* How to pay help sheet */}
       <Modal
@@ -578,94 +691,119 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 24,
   },
-  payCard: {
-    width: "100%" as const,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    padding: 20,
+  payPage: {
+    backgroundColor: "#EAF6FC",
   },
-  payHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 14,
-  },
-  payIconBubble: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  payTitle: {
+  payPageSafe: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: "800" as const,
-    color: "#111827",
   },
-  payToBox: {
-    backgroundColor: "#F4F5F7",
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
+  payPageHeader: {
+    paddingHorizontal: 12,
+    paddingTop: 6,
   },
-  payToLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 3,
-  },
-  payToValue: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: "#111827",
-  },
-  amountRow: {
-    flexDirection: "row",
+  payBackBtn: {
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    marginBottom: 14,
   },
-  amountPrefix: {
-    fontSize: 22,
+  payMerchant: {
+    fontSize: 20,
     fontWeight: "800" as const,
     color: "#111827",
-  },
-  amountInput: {
-    fontSize: 40,
-    fontWeight: "800" as const,
-    color: "#111827",
-    minWidth: 90,
     textAlign: "center" as const,
-    padding: 0,
+    paddingHorizontal: 32,
+    marginTop: 22,
   },
-  quickRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 10,
-    marginBottom: 14,
+  payAmountLabel: {
+    fontSize: 19,
+    color: "#9AA1A9",
+    textAlign: "center" as const,
+    marginTop: 34,
   },
-  quickChip: {
-    borderWidth: 1.5,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
+  payAmountInput: {
+    fontSize: 52,
+    fontWeight: "600" as const,
+    color: "#111827",
+    textAlign: "center" as const,
+    paddingVertical: 4,
+    paddingHorizontal: 24,
   },
-  quickChipText: {
+  payHint: {
     fontSize: 15,
-    fontWeight: "800" as const,
-  },
-  payBalanceLine: {
-    fontSize: 13,
-    color: "#6B7280",
-    textAlign: "center" as const,
-    marginBottom: 10,
-  },
-  payErrorText: {
-    fontSize: 13,
     fontWeight: "600" as const,
     textAlign: "center" as const,
-    marginBottom: 10,
+    marginTop: 4,
+    minHeight: 20,
+    color: "#9AA1A9",
+  },
+  payDecorArea: {
+    flex: 1,
+    alignItems: "flex-end",
+    justifyContent: "flex-end",
+  },
+  payBottomBar: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
+  },
+  payBalanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    marginBottom: 16,
+  },
+  payBalanceAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  payBalanceAvatarText: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+  },
+  payBalanceText: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: "#111827",
+  },
+  slideTrack: {
+    height: SLIDE_THUMB + SLIDE_PAD * 2,
+    borderRadius: (SLIDE_THUMB + SLIDE_PAD * 2) / 2,
+    justifyContent: "center",
+    marginHorizontal: 8,
+  },
+  slideCenter: {
+    alignSelf: "center" as const,
+  },
+  slideLabel: {
+    fontSize: 18,
+    fontWeight: "700" as const,
+    textAlign: "center" as const,
+  },
+  slideThumb: {
+    position: "absolute" as const,
+    left: SLIDE_PAD,
+    width: SLIDE_THUMB,
+    height: SLIDE_THUMB,
+    borderRadius: SLIDE_THUMB / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   payBtnWrap: {
     marginTop: 4,
@@ -681,10 +819,12 @@ const styles = StyleSheet.create({
     fontWeight: "800" as const,
     color: "#FFFFFF",
   },
-  successWrap: {
+  successPage: {
+    flex: 1,
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
-    paddingVertical: 8,
+    paddingHorizontal: 24,
   },
   successTitle: {
     fontSize: 18,
@@ -701,6 +841,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
     marginBottom: 10,
+    textAlign: "center" as const,
+  },
+  successDoneWrap: {
+    alignSelf: "stretch" as const,
+    marginTop: 12,
   },
   helpCard: {
     width: "100%" as const,
