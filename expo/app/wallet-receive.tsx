@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, Copy, Check, Wallet, X } from "lucide-react-native";
+import { ChevronLeft, Copy, Check, Wallet, X, AlertCircle } from "lucide-react-native";
 import QRCodeLib from "qrcode";
 import Svg, { Path, Rect } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
@@ -148,6 +148,8 @@ export default function WalletReceiveScreen() {
   const [copied, setCopied] = useState<boolean>(false);
   const [downloading, setDownloading] = useState<boolean>(false);
   const [bodyHeight, setBodyHeight] = useState<number>(0);
+  const [expiredVisible, setExpiredVisible] = useState<boolean>(false);
+  const [qrNonce, setQrNonce] = useState<number>(0);
   const { width: windowWidth } = useWindowDimensions();
   const posterRef = useRef<View>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -174,7 +176,7 @@ export default function WalletReceiveScreen() {
     return Math.max(190, Math.min(320, maxByWidth, byHeight));
   }, [bodyHeight, windowWidth]);
 
-  /** Countdown for a specific-amount QR — reverts to the open QR at zero. */
+  /** Countdown for a specific-amount QR — shows the expired popup at zero. */
   useEffect(() => {
     if (amount == null) return;
     setSecondsLeft(AMOUNT_TTL_SECONDS);
@@ -182,14 +184,17 @@ export default function WalletReceiveScreen() {
       setSecondsLeft((s) => {
         if (s <= 1) {
           clearInterval(iv);
-          setAmount(null);
+          setExpiredVisible(true);
+          if (Platform.OS !== "web") {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          }
           return 0;
         }
         return s - 1;
       });
     }, 1000);
     return () => clearInterval(iv);
-  }, [amount]);
+  }, [amount, qrNonce]);
 
   useEffect(() => {
     return () => {
@@ -235,6 +240,21 @@ export default function WalletReceiveScreen() {
   }, []);
 
   const cancelAmount = useCallback(() => {
+    setAmount(null);
+  }, []);
+
+  /** Regenerate a fresh 60s QR with the same amount after expiry. */
+  const regenerateQr = useCallback(() => {
+    setExpiredVisible(false);
+    setQrNonce((n) => n + 1);
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  }, []);
+
+  /** Dismiss the expired popup and go back to the open (no-amount) QR. */
+  const dismissExpired = useCallback(() => {
+    setExpiredVisible(false);
     setAmount(null);
   }, []);
 
@@ -411,6 +431,44 @@ export default function WalletReceiveScreen() {
           </LinearGradient>
         </View>
       </View>
+
+      <Modal
+        visible={expiredVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={dismissExpired}
+      >
+        <View style={styles.expiredOverlay}>
+          <View style={styles.expiredCardWrap}>
+            <View style={styles.expiredIconWrap}>
+              <View style={styles.expiredIconCircle}>
+                <AlertCircle color="#FFFFFF" size={44} strokeWidth={2.4} />
+              </View>
+            </View>
+            <View style={styles.expiredCard} testID="wallet-receive-expired">
+              <Text style={styles.expiredTitle}>QR code expired</Text>
+              <Text style={styles.expiredSub}>
+                DuitNow QR has expired. Regenerate a new QR now or go back to receive
+                page?
+              </Text>
+              <TouchableOpacity
+                style={[styles.filledBtn, styles.expiredBtn, { backgroundColor: Colors.accent }]}
+                onPress={regenerateQr}
+                testID="wallet-receive-regenerate"
+              >
+                <Text style={styles.filledBtnText}>REGENERATE</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.outlineBtn, styles.expiredBtnOutline]}
+                onPress={dismissExpired}
+                testID="wallet-receive-expired-cancel"
+              >
+                <Text style={styles.outlineBtnText}>CANCEL</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={amountModalVisible}
@@ -730,5 +788,58 @@ const styles = StyleSheet.create({
     fontWeight: "800" as const,
     color: "#111827",
     padding: 0,
+  },
+  expiredOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+  expiredCardWrap: {
+    alignSelf: "stretch" as const,
+    alignItems: "center",
+  },
+  expiredIconWrap: {
+    zIndex: 2,
+    marginBottom: -44,
+  },
+  expiredIconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "#F43F30",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 6,
+    borderColor: "#FFFFFF",
+  },
+  expiredCard: {
+    alignSelf: "stretch" as const,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 26,
+    paddingTop: 62,
+    paddingBottom: 24,
+    paddingHorizontal: 22,
+  },
+  expiredTitle: {
+    fontSize: 22,
+    fontWeight: "800" as const,
+    color: "#111827",
+    textAlign: "center" as const,
+  },
+  expiredSub: {
+    fontSize: 15,
+    color: "#6B7280",
+    textAlign: "center" as const,
+    lineHeight: 22,
+    marginTop: 10,
+  },
+  expiredBtn: {
+    marginTop: 22,
+  },
+  expiredBtnOutline: {
+    marginTop: 12,
+    backgroundColor: "#FFFFFF",
   },
 });
