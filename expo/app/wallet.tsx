@@ -840,7 +840,13 @@ export default function WalletScreen() {
 
                 <TouchableOpacity
                   style={styles.pillWrap}
-                  onPress={() => setDuitNowVisible(true)}
+                  onPress={() =>
+                    router.push(
+                      isPartnerMode
+                        ? { pathname: "/wallet-receive", params: { mode: "partner" } }
+                        : { pathname: "/wallet-receive" }
+                    )
+                  }
                   activeOpacity={0.85}
                   testID="wallet-receive"
                 >
