@@ -113,6 +113,7 @@ export default function WalletScreen() {
   const scrollRef = useRef<ScrollView | null>(null);
   const creditCardY = useRef<number>(0);
   const didAutoScroll = useRef<boolean>(false);
+  const returnToScanRef = useRef<boolean>(false);
   const [highlighted, setHighlighted] = useState<"credit" | "wallet" | null>(null);
 
   const [balances, setBalances] = useState<WalletBalances | null>(null);
@@ -186,16 +187,27 @@ export default function WalletScreen() {
     };
   }, [loading, focusTarget]);
 
-  // Opened via the Scan / Show Code screens' "Reload" link.
+  // Opened via the Scan / Show Code screens' "Reload" link. Cancelling the
+  // popup in that case returns to the screen that opened it.
   useEffect(() => {
     if (params.action !== "reload") return;
     router.setParams({ action: "" });
+    returnToScanRef.current = true;
     setAmountText("");
     setActionError("");
     setMethodId("");
     setTopUpStep("amount");
     setTopUpVisible(true);
   }, [params.action, router]);
+
+  /** Close the reload popup; if it was opened from Scan, go back there. */
+  const closeTopUp = useCallback(() => {
+    setTopUpVisible(false);
+    if (returnToScanRef.current) {
+      returnToScanRef.current = false;
+      if (router.canGoBack()) router.back();
+    }
+  }, [router]);
 
   useEffect(() => {
     if (!successNote) return;
@@ -213,6 +225,7 @@ export default function WalletScreen() {
   }, [amountText]);
 
   const openTopUp = () => {
+    returnToScanRef.current = false;
     setAmountText("");
     setActionError("");
     setMethodId("");
@@ -245,6 +258,7 @@ export default function WalletScreen() {
       return;
     }
     if (res.balances) setBalances(res.balances);
+    returnToScanRef.current = false;
     setTopUpVisible(false);
     setSuccessNote(`RM ${parsedAmount.toFixed(2)} added to GET.wallet`);
     loadAll();
@@ -342,7 +356,7 @@ export default function WalletScreen() {
         transparent
         animationType="fade"
         statusBarTranslucent
-        onRequestClose={() => (isTopUp ? setTopUpVisible(false) : setRechargeVisible(false))}
+        onRequestClose={() => (isTopUp ? closeTopUp() : setRechargeVisible(false))}
       >
         <KeyboardAvoidingView
           style={styles.modalOverlay}
@@ -457,7 +471,7 @@ export default function WalletScreen() {
                   <View style={styles.modalButtons}>
                     <TouchableOpacity
                       style={[styles.modalBtn, styles.topUpCancelBtn]}
-                      onPress={() => setTopUpVisible(false)}
+                      onPress={closeTopUp}
                       disabled={submitting}
                     >
                       <Text style={[styles.modalBtnText, { color: "#3A3A3C" }]}>Cancel</Text>
@@ -588,7 +602,7 @@ export default function WalletScreen() {
                   <View style={styles.modalButtons}>
                     <TouchableOpacity
                       style={[styles.modalBtn, styles.topUpCancelBtn]}
-                      onPress={() => setTopUpVisible(false)}
+                      onPress={closeTopUp}
                       disabled={submitting}
                     >
                       <Text style={[styles.modalBtnText, { color: "#3A3A3C" }]}>Cancel</Text>
