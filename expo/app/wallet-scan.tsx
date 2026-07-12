@@ -30,7 +30,7 @@ import {
   ArrowLeft,
   ChevronsRight,
 } from "lucide-react-native";
-import Svg, { Path, Circle, Ellipse } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import WalletBalanceBar from "@/components/WalletBalanceBar";
@@ -51,26 +51,6 @@ function DuitNowMark({ size }: { size: number }) {
 
 const SLIDE_THUMB = 58;
 const SLIDE_PAD = 7;
-
-/** Decorative swoosh + gold coins for the pay page, bottom-right corner. */
-function PayCoinsDecor({ accent }: { accent: string }) {
-  return (
-    <Svg width={240} height={300} viewBox="0 0 240 300" pointerEvents="none">
-      <Path d="M240 0 C160 95 145 180 240 300 L240 0 Z" fill={accent} opacity={0.14} />
-      <Path d="M240 45 C185 125 175 195 240 290 L240 45 Z" fill={accent} opacity={0.18} />
-      <Circle cx={166} cy={190} r={32} fill="#F6BA30" stroke="#DE9B12" strokeWidth={6} />
-      <Circle cx={166} cy={190} r={17} fill="none" stroke="#DE9B12" strokeWidth={3} opacity={0.6} />
-      <Ellipse cx={106} cy={152} rx={16} ry={11} fill="#F6BA30" stroke="#DE9B12" strokeWidth={3} />
-      <Ellipse cx={210} cy={132} rx={14} ry={10} fill="#F6BA30" stroke="#DE9B12" strokeWidth={3} />
-      <Ellipse cx={130} cy={242} rx={13} ry={9} fill="#F6BA30" stroke="#DE9B12" strokeWidth={3} />
-      <Ellipse cx={218} cy={252} rx={15} ry={10} fill="#F6BA30" stroke="#DE9B12" strokeWidth={3} />
-      <Circle cx={92} cy={200} r={3} fill="#FFFFFF" />
-      <Circle cx={202} cy={172} r={3} fill="#FFFFFF" />
-      <Circle cx={148} cy={128} r={2.5} fill="#F6BA30" />
-      <Circle cx={90} cy={252} r={2.5} fill="#F6BA30" />
-    </Svg>
-  );
-}
 
 /**
  * Slide-to-pay button — drag the chevron thumb across the track to confirm.
@@ -208,6 +188,7 @@ export default function WalletScanScreen() {
   const [paying, setPaying] = useState<boolean>(false);
   const [paidAmount, setPaidAmount] = useState<number | null>(null);
   const scanLockRef = useRef<boolean>(false);
+  const amountPop = useRef(new Animated.Value(1)).current;
   const frameRef = useRef<View>(null);
   const [frameRect, setFrameRect] = useState<{ x: number; y: number; w: number; h: number } | null>(
     null
@@ -238,11 +219,20 @@ export default function WalletScanScreen() {
    * Cents-style amount entry: every typed digit shifts in from the right,
    * e.g. typing 5 → 0.05, 55 → 0.55, 550 → 5.50 (like most e-wallets).
    */
-  const handleAmountChange = useCallback((text: string) => {
-    const digits = text.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
-    setAmountText(digits.length > 0 ? (Number(digits) / 100).toFixed(2) : "");
-    setPayError("");
-  }, []);
+  const handleAmountChange = useCallback(
+    (text: string) => {
+      const digits = text.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
+      setAmountText(digits.length > 0 ? (Number(digits) / 100).toFixed(2) : "");
+      setPayError("");
+      amountPop.stopAnimation();
+      amountPop.setValue(1);
+      Animated.sequence([
+        Animated.timing(amountPop, { toValue: 1.05, duration: 80, useNativeDriver: true }),
+        Animated.spring(amountPop, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }),
+      ]).start();
+    },
+    [amountPop]
+  );
 
   const parsedAmount = useMemo(() => {
     const n = Number(amountText);
@@ -500,16 +490,19 @@ export default function WalletScanScreen() {
                   </Text>
 
                   <Text style={styles.payAmountLabel}>Pay (RM)</Text>
-                  <TextInput
-                    style={styles.payAmountInput}
-                    value={amountText}
-                    onChangeText={handleAmountChange}
-                    placeholder="0.00"
-                    placeholderTextColor="#C3C9CF"
-                    keyboardType="number-pad"
-                    autoFocus
-                    testID="wallet-scan-pay-amount"
-                  />
+                  <Animated.View style={{ transform: [{ scale: amountPop }] }}>
+                    <TextInput
+                      style={styles.payAmountInput}
+                      value={amountText}
+                      onChangeText={handleAmountChange}
+                      placeholder="0.00"
+                      placeholderTextColor="#C3C9CF"
+                      keyboardType="number-pad"
+                      caretHidden
+                      autoFocus
+                      testID="wallet-scan-pay-amount"
+                    />
+                  </Animated.View>
                   {parsedAmount > 0 ? (
                     payError ? (
                       <Text style={[styles.payHint, { color: Colors.danger }]}>{payError}</Text>
@@ -522,24 +515,12 @@ export default function WalletScanScreen() {
                     </Text>
                   )}
 
-                  <View style={styles.payDecorArea} pointerEvents="none">
-                    <PayCoinsDecor accent={Colors.accent} />
-                  </View>
+                  <View style={styles.payDecorArea} pointerEvents="none" />
 
                   <View
                     style={[styles.payBottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}
                   >
                     <View style={styles.payBalanceRow}>
-                      <View
-                        style={[
-                          styles.payBalanceAvatar,
-                          { backgroundColor: Colors.accent + "22" },
-                        ]}
-                      >
-                        <Text style={[styles.payBalanceAvatarText, { color: Colors.accent }]}>
-                          G
-                        </Text>
-                      </View>
                       <Text style={styles.payBalanceText}>
                         Wallet Balance {"\u2022"} RM{(balances?.getWallet ?? 0).toFixed(2)}
                       </Text>
@@ -782,8 +763,6 @@ const styles = StyleSheet.create({
   },
   payDecorArea: {
     flex: 1,
-    alignItems: "flex-end",
-    justifyContent: "flex-end",
   },
   payBottomBar: {
     backgroundColor: "#FFFFFF",
@@ -803,17 +782,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 9,
     marginBottom: 16,
-  },
-  payBalanceAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  payBalanceAvatarText: {
-    fontSize: 12,
-    fontWeight: "800" as const,
   },
   payBalanceText: {
     fontSize: 16,
