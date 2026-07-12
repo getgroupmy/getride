@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, Copy, Check, Home, Wallet, X } from "lucide-react-native";
+import { ChevronLeft, Copy, Check, Wallet, X } from "lucide-react-native";
 import QRCodeLib from "qrcode";
 import Svg, { Path, Rect } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
@@ -313,16 +313,6 @@ export default function WalletReceiveScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
-
-        {!isPartnerMode ? (
-          <TouchableOpacity
-            style={styles.homeFab}
-            onPress={() => router.push("/")}
-            testID="wallet-receive-home"
-          >
-            <Home color={Colors.accent} size={24} />
-          </TouchableOpacity>
-        ) : null}
       </View>
 
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
@@ -570,22 +560,6 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
-  },
-  homeFab: {
-    position: "absolute" as const,
-    right: 20,
-    bottom: 16,
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
   },
   bottomBar: {
     paddingHorizontal: 14,
