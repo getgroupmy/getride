@@ -205,7 +205,12 @@ export default function WalletScreen() {
     setTopUpVisible(false);
     if (returnToScanRef.current) {
       returnToScanRef.current = false;
-      if (router.canGoBack()) router.back();
+      // router.canGoBack() throws on web, so just attempt back() safely.
+      try {
+        router.back();
+      } catch (e) {
+        console.log("[wallet-screen] back to scan failed", e);
+      }
     }
   }, [router]);
 
