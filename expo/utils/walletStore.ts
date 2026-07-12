@@ -392,6 +392,72 @@ export async function rechargeCredit(
   };
 }
 
+/**
+ * Pay from GET.wallet by scanning a QR code. Ledger-driven: inserts a negative
+ * `payment` transaction and the DB trigger moves the balance. Falls back to
+ * the device-local wallet when the schema is missing.
+ */
+export async function payFromWallet(
+  userId: string,
+  amount: number,
+  note: string
+): Promise<WalletActionResult> {
+  if (!userId) return { ok: false, error: "Missing user." };
+  if (!(amount > 0)) return { ok: false, error: "Enter an amount greater than 0." };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const balances = await fetchWalletBalances(userId);
+      if (balances.source === "supabase") {
+        if (balances.getWallet < amount) {
+          return { ok: false, error: "Not enough balance in GET.wallet." };
+        }
+        const { error } = await supabase.from("wallet_transactions").insert({
+          user_id: userId,
+          wallet_type: "get_wallet",
+          kind: "payment",
+          amount: -amount,
+          method: "qr_scan",
+          note,
+        });
+        if (error) throw error;
+        return { ok: true, balances: await fetchWalletBalances(userId) };
+      }
+    } catch (e) {
+      const msg = String((e as { message?: string })?.message ?? e ?? "").toLowerCase();
+      if (msg.includes("check") || msg.includes("balance") || msg.includes("negative")) {
+        return { ok: false, error: "Not enough balance in GET.wallet." };
+      }
+      if (!isMissingSchemaError(e)) {
+        console.log("[wallet] payment failed", e);
+        return { ok: false, error: "Payment failed. Please try again." };
+      }
+      console.log("[wallet] payment falling back to local wallet");
+    }
+  }
+
+  const local = await readLocalBalances(userId);
+  if (local.getWallet < amount) {
+    return { ok: false, error: "Not enough balance in GET.wallet." };
+  }
+  const next: LocalWalletState = { ...local, getWallet: round2(local.getWallet - amount) };
+  await writeLocalBalances(userId, next);
+  await appendLocalTransactions(userId, [
+    {
+      walletType: "get_wallet",
+      kind: "payment",
+      amount: -amount,
+      balanceAfter: next.getWallet,
+      method: "qr_scan",
+      note,
+    },
+  ]);
+  return {
+    ok: true,
+    balances: { getWallet: next.getWallet, getCredit: next.getCredit, currency: "RM", source: "local" },
+  };
+}
+
 export interface CommissionChargeResult {
   ok: boolean;
   /** True when this ride's commission had already been charged earlier. */

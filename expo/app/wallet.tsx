@@ -105,7 +105,7 @@ export default function WalletScreen() {
   const Colors = useColors();
   const { height: windowHeight } = useWindowDimensions();
   const { authState } = useAuth();
-  const params = useLocalSearchParams<{ mode?: string; focus?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; focus?: string; action?: string }>();
   const isPartnerMode = params.mode === "partner";
   const focusTarget = params.focus === "credit" || params.focus === "wallet" ? params.focus : undefined;
   const userId = authState.userId ?? "";
@@ -185,6 +185,17 @@ export default function WalletScreen() {
       clearTimeout(highlightTimer);
     };
   }, [loading, focusTarget]);
+
+  // Opened via the Scan / Show Code screens' "Reload" link.
+  useEffect(() => {
+    if (params.action !== "reload") return;
+    router.setParams({ action: "" });
+    setAmountText("");
+    setActionError("");
+    setMethodId("");
+    setTopUpStep("amount");
+    setTopUpVisible(true);
+  }, [params.action, router]);
 
   useEffect(() => {
     if (!successNote) return;
@@ -809,7 +820,13 @@ export default function WalletScreen() {
 
                 <TouchableOpacity
                   style={styles.pillWrap}
-                  onPress={() => setComingSoonVisible(true)}
+                  onPress={() =>
+                    router.push(
+                      isPartnerMode
+                        ? { pathname: "/wallet-scan", params: { mode: "partner" } }
+                        : { pathname: "/wallet-scan" }
+                    )
+                  }
                   activeOpacity={0.85}
                   testID="wallet-scan"
                 >
