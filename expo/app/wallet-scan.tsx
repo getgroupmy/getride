@@ -190,7 +190,7 @@ export default function WalletScanScreen() {
   const router = useRouter();
   const Colors = useColors();
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPartnerMode = params.mode === "partner";
   const { authState } = useAuth();
@@ -208,6 +208,10 @@ export default function WalletScanScreen() {
   const [paying, setPaying] = useState<boolean>(false);
   const [paidAmount, setPaidAmount] = useState<number | null>(null);
   const scanLockRef = useRef<boolean>(false);
+  const frameRef = useRef<View>(null);
+  const [frameRect, setFrameRect] = useState<{ x: number; y: number; w: number; h: number } | null>(
+    null
+  );
 
   const loadBalances = useCallback(async () => {
     if (!userId) return;
@@ -304,6 +308,25 @@ export default function WalletScanScreen() {
   const frameSize = Math.min(windowWidth * 0.72, 300);
   const granted = permission?.granted === true;
 
+  const measureFrame = useCallback(() => {
+    frameRef.current?.measureInWindow((x, y, w, h) => {
+      if (w > 0 && h > 0) setFrameRect({ x, y, w, h });
+    });
+  }, []);
+
+  const dimPath = useMemo(() => {
+    if (!frameRect) return "";
+    const { x, y, w, h } = frameRect;
+    const r = 34;
+    return (
+      `M0 0 H${windowWidth} V${windowHeight} H0 Z ` +
+      `M${x + r} ${y} H${x + w - r} A${r} ${r} 0 0 1 ${x + w} ${y + r} ` +
+      `V${y + h - r} A${r} ${r} 0 0 1 ${x + w - r} ${y + h} ` +
+      `H${x + r} A${r} ${r} 0 0 1 ${x} ${y + h - r} ` +
+      `V${y + r} A${r} ${r} 0 0 1 ${x + r} ${y} Z`
+    );
+  }, [frameRect, windowWidth, windowHeight]);
+
   return (
     <View style={styles.container} testID="wallet-scan-screen">
       {granted ? (
@@ -317,6 +340,15 @@ export default function WalletScanScreen() {
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.cameraFallback]} />
       )}
+
+      {/* Dim tint around the scan frame with a clear rounded cut-out */}
+      {granted && dimPath ? (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Svg width={windowWidth} height={windowHeight}>
+            <Path d={dimPath} fill="rgba(0,0,0,0.45)" fillRule="evenodd" />
+          </Svg>
+        </View>
+      ) : null}
 
       <SafeAreaView style={styles.overlay} edges={["top"]}>
         <View style={styles.topRow}>
@@ -343,7 +375,11 @@ export default function WalletScanScreen() {
 
         <View style={styles.frameArea}>
           {granted ? (
-            <View style={[styles.frame, { width: frameSize, height: frameSize }]}>
+            <View
+              ref={frameRef}
+              onLayout={measureFrame}
+              style={[styles.frame, { width: frameSize, height: frameSize }]}
+            >
               <View style={[styles.corner, styles.cornerTL]} />
               <View style={[styles.corner, styles.cornerTR]} />
               <View style={[styles.corner, styles.cornerBL]} />
