@@ -10,6 +10,7 @@ import {
   Pressable,
   Platform,
   ActivityIndicator,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -137,6 +138,8 @@ export default function WalletReceiveScreen() {
   const [amountText, setAmountText] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
   const [downloading, setDownloading] = useState<boolean>(false);
+  const [bodyHeight, setBodyHeight] = useState<number>(0);
+  const { width: windowWidth } = useWindowDimensions();
   const posterRef = useRef<View>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -149,6 +152,18 @@ export default function WalletReceiveScreen() {
 
   const qr = useMemo(() => buildQrPath(qrValue), [qrValue]);
   const posterQr = useMemo(() => buildQrPath(`getpay://u/${userId}`), [userId]);
+
+  /**
+   * QR frame size computed from the measured body height so the whole
+   * screen (QR card + account card) always fits without scrolling.
+   */
+  const frameSize = useMemo(() => {
+    const maxByWidth = windowWidth - 28 - 36;
+    if (bodyHeight <= 0) return Math.min(300, maxByWidth);
+    const overhead = 348;
+    const byHeight = bodyHeight - overhead;
+    return Math.max(190, Math.min(320, maxByWidth, byHeight));
+  }, [bodyHeight, windowWidth]);
 
   /** Countdown for a specific-amount QR — reverts to the open QR at zero. */
   useEffect(() => {
@@ -258,10 +273,16 @@ export default function WalletReceiveScreen() {
         </View>
       </SafeAreaView>
 
-      <View style={styles.body}>
+      <View
+        style={styles.body}
+        onLayout={(e) => setBodyHeight(e.nativeEvent.layout.height)}
+      >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          bounces
+          alwaysBounceVertical
+          overScrollMode="always"
         >
           <View style={styles.qrCard} testID="wallet-receive-card">
             {amount != null ? (
@@ -274,7 +295,7 @@ export default function WalletReceiveScreen() {
             <Text style={styles.cardName}>{displayName}</Text>
 
             <View style={styles.frameWrap}>
-              <DuitNowFrame qr={qr} size={300} />
+              <DuitNowFrame qr={qr} size={frameSize} />
             </View>
 
             {amount != null ? (
@@ -466,8 +487,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     padding: 14,
     paddingBottom: 24,
+    justifyContent: "center" as const,
   },
   qrCard: {
     backgroundColor: "#FFFFFF",
