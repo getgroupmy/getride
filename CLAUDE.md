@@ -106,12 +106,20 @@ Additional dispatch behaviors, all riding on `ride_requests` columns:
 - **Restore after restart**: on cold launch the rider is returned to their in-progress screen via `fetchOngoingRequestForRider` + `utils/ongoingRequestRestore.ts` (`buildRestoreTarget` maps status → `/ride-tracking` or `/ride-confirm`); the partner side uses `fetchOngoingRequestForPartner` to return to `/ride-running`.
 - **Commission**: when a partner completes a trip, `ride-running.tsx` calls `chargeRideCommission` (see Wallets below).
 
-### Wallets & Commission
+### Wallets, GET.coin & Commission
 
-Each account has two wallets (`utils/walletStore.ts`, tables `wallets`/`wallet_transactions` from migration `0056`, rider-facing screen `app/wallet.tsx`):
+Each account has three wallets (`utils/walletStore.ts`, tables `wallets`/`wallet_transactions` from migration `0056`, main screen `app/wallet.tsx` plus `wallet-history`/`wallet-scan`/`wallet-receive`/`wallet-show-code`/`wallet-trade`):
 
 - **GET.wallet** (`get_wallet`) — master wallet, used in both user and partner mode, topped up via payment methods. Must stay non-negative.
 - **GET.credit** (`get_credit`) — partner-only wallet that pays for in-app services and ride commissions; recharged by transferring from GET.wallet. May go negative (commission owed).
+- **GET.coin** (`get_coin`) — rewards/trading wallet for both modes, denominated in GC (Get Coins), not currency (migrations `0061`–`0063`).
+
+`wallet_transactions` is the authoritative ledger: a database trigger (migration `0060`) applies every inserted/updated/deleted row to `wallets.balance`, and the wallet RPCs only insert ledger rows — never write balances directly. Balance changes reach the app live via the realtime publication (migration `0059`).
+
+**GET.coin flows** (exchange-rate + market settings in `get_coin_settings` via `utils/getCoinStore.ts`, admin screen `app/admin-settings-get-coin.tsx`):
+- *Earn*: riders are rewarded GC per RM1 of completed-ride fare (`awardRideCoins`, idempotent via `ride_requests.coin_rewarded_at`).
+- *Spend*: QR payments can be part-paid with GC — `computeCoinSplit` covers what the coin balance allows and GET.wallet pays the rest.
+- *Trade*: users buy/sell GC against GET.wallet (`wallet-trade.tsx`). When `market_enabled`, the GC price floats around the admin peg driven by toggleable in-app signals (trading volume, revenue, services, sign-ups, minting), clamped by `market_max_swing`; `max_supply` caps total GC minted.
 
 On trip completion the platform commission is deducted from GET.credit through the `wallet_charge_ride_commission` RPC (migration `0057`) — atomic and idempotent (the charge is stamped on the ride row via `commission_charged_at`, so it can never apply twice).
 
@@ -133,7 +141,7 @@ Files with a `.web.ts` / `.web.tsx` suffix are automatically used by Metro/Expo 
 
 ## Database
 
-The full, consolidated schema lives in `supabase/schema.sql` (idempotent — safe to re-run). Key tables: `profiles`, `partners`, `vehicles`, `partner_documents`, `settings_entries`, `app_settings`, `rides`, `ride_requests`, `wallets`/`wallet_transactions`, `commission_rates`, `support_tickets`/`support_messages`/`support_calls`, `push_tokens`, `push_notifications`, `ip_access_rules`, plus geo tables (`countries`/`states`/`cities`/`suburbs`/`airport_areas`).
+The full, consolidated schema lives in `supabase/schema.sql` (idempotent — safe to re-run). Key tables: `profiles`, `partners`, `vehicles`, `partner_documents`, `settings_entries`, `app_settings`, `rides`, `ride_requests`, `wallets`/`wallet_transactions`, `commission_rates`, `get_coin_settings`, `support_tickets`/`support_messages`/`support_calls`, `push_tokens`, `push_notifications`, `ip_access_rules`, plus geo tables (`countries`/`states`/`cities`/`suburbs`/`airport_areas`).
 
 `supabase/migrations/` holds the numbered incremental migration history (`0001_…` onward). `schema.sql` is the canonical full snapshot; the migrations are the historical deltas that produced it. When adding tables/columns, update `schema.sql` and add a new numbered migration.
 
@@ -160,5 +168,5 @@ The user's 6-digit sign-in PIN is stored as a bcrypt hash in `profiles.pin_hash`
 - **Partner vs Driver**: The codebase uses "partner" throughout. `DriverRecord` and `DriverStatus` are deprecated aliases for `PartnerRecord` and `PartnerStatus` in `AdminDataContext.tsx`.
 - **Diagnostics**: `/auth-diagnostics` is a hidden screen (reachable from the connection error modal) for debugging Supabase connectivity and OTP delivery. It is intentionally not shown in normal navigation.
 - **Admin access guard**: Screens under the admin panel check `useAdminAccess()` from `AdminAccessContext`. Sub-admin permissions are stored in settings entries.
-- **Graceful schema degradation**: newer `utils/*Store.ts` modules (wallets, commission rates) fall back to AsyncStorage when their tables/columns are missing from the live database, and `rideRequestsStore` retries writes without columns the DB reports as missing. Follow this pattern when adding features that depend on new migrations — the app must keep working against older databases.
+- **Graceful schema degradation**: newer `utils/*Store.ts` modules (wallets, commission rates, GET.coin settings) fall back to AsyncStorage when their tables/columns are missing from the live database, and `rideRequestsStore` retries writes without columns the DB reports as missing. Follow this pattern when adding features that depend on new migrations — the app must keep working against older databases.
 - **Mock/test features**: `app/admin-settings-mock.tsx` exposes toggles (mock users/partners on the map, rider trip simulation, partner drive simulation) persisted via `DisplaySettingsContext`. Gate any demo/simulation behavior behind these flags rather than hardcoding it.
