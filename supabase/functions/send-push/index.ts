@@ -4,7 +4,7 @@
 // Broadcasts a push notification to registered devices through Expo's push
 // service (https://exp.host/--/api/v2/push/send).
 //
-// Request body: { title: string, body: string, audience?: "all" | "partners" | "users", data?: object }
+// Request body: { title: string, body: string, audience?: "all" | "partners" | "users", profileId?: string, data?: object }
 //
 // Audience resolution:
 //   * all      — every registered token
@@ -12,6 +12,10 @@
 //   * users    — tokens whose profile is NOT a partner (user-mode accounts)
 //
 // "drivers" is accepted as a legacy alias for "partners".
+//
+// When `profileId` is set the notification goes only to that profile's
+// devices (used for targeted events like wallet transfer requests) and the
+// audience field is ignored.
 //
 // Reads tokens with the service-role key (bypasses RLS) and logs the dispatch
 // to `public.push_notifications`.
@@ -37,6 +41,8 @@ interface SendBody {
   title?: string;
   body?: string;
   audience?: string;
+  /** Target a single profile's devices instead of a broadcast audience. */
+  profileId?: string;
   data?: Record<string, unknown>;
 }
 
@@ -88,9 +94,13 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
+  const profileId = (payload.profileId ?? "").trim();
+
   // Resolve the audience to a set of profile ids when scoping by role.
   let profileFilter: string[] | null = null;
-  if (audience !== "all") {
+  if (profileId) {
+    profileFilter = [profileId];
+  } else if (audience !== "all") {
     const { data: partners, error: partnersErr } = await supabase
       .from("partners")
       .select("auth_user_id")
@@ -147,11 +157,13 @@ Deno.serve(async (req: Request) => {
     )
   );
 
+  const loggedAudience = profileId ? "direct" : audience;
+
   if (tokens.length === 0) {
     await supabase.from("push_notifications").insert({
       title,
       body,
-      audience,
+      audience: loggedAudience,
       recipients: 0,
       sent: 0,
       failed: 0,
@@ -228,7 +240,7 @@ Deno.serve(async (req: Request) => {
   await supabase.from("push_notifications").insert({
     title,
     body,
-    audience,
+    audience: loggedAudience,
     recipients: tokens.length,
     sent,
     failed,
