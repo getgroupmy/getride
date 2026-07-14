@@ -995,14 +995,24 @@ export default function WalletScreen() {
                   ? `≈ RM ${coinsToCurrency(balances?.getCoin ?? 0, coinSettings.coinsPerCurrency).toFixed(2)} · Rate: RM1 = ${coinSettings.coinsPerCurrency % 1 === 0 ? coinSettings.coinsPerCurrency : coinSettings.coinsPerCurrency.toFixed(2)} GC`
                   : "Get Coins earned in the app."}
               </Text>
-              <TouchableOpacity
-                style={[styles.rechargeBtn, { backgroundColor: "#EAB308" }]}
-                onPress={() => router.push("/wallet-trade" as any)}
-                testID="wallet-trade-open"
-              >
-                <TrendingUp color="#000000" size={16} />
-                <Text style={styles.rechargeBtnText}>Trade GET.coin</Text>
-              </TouchableOpacity>
+              <View style={styles.coinBtnRow}>
+                <TouchableOpacity
+                  style={[styles.rechargeBtn, styles.coinTradeBtn, { backgroundColor: "#EAB308" }]}
+                  onPress={() => router.push("/wallet-trade" as any)}
+                  testID="wallet-trade-open"
+                >
+                  <TrendingUp color="#000000" size={16} />
+                  <Text style={styles.rechargeBtnText}>Trade GET.coin</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.coinQrBtn}
+                  onPress={() => router.push("/wallet-coin-qr" as any)}
+                  testID="wallet-coin-qr-open"
+                >
+                  <QrCode color="#92400E" size={16} />
+                  <Text style={styles.coinQrBtnText}>QR</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Recent Activity */}
@@ -1450,6 +1460,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700" as const,
     color: "#000000",
+  },
+  coinBtnRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 10,
+  },
+  coinTradeBtn: {
+    flex: 1,
+  },
+  coinQrBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1.5,
+    borderColor: "#EAB308",
+    backgroundColor: "#FFFFFF",
+  },
+  coinQrBtnText: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: "#92400E",
   },
   activityHeaderRow: {
     flexDirection: "row",

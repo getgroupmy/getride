@@ -239,6 +239,7 @@ function RootLayoutNav() {
       <Stack.Screen name="wallet-show-code" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="wallet-receive" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="wallet-trade" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="wallet-coin-qr" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="edit-profile" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="auth-diagnostics" options={{ animation: "slide_from_right", gestureEnabled: true, presentation: "modal" }} />
       <Stack.Screen name="support" options={{ animation: "slide_from_right", gestureEnabled: false }} />

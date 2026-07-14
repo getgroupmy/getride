@@ -21,6 +21,7 @@ import {
   Check,
   Info,
   Send,
+  QrCode,
 } from "lucide-react-native";
 import Svg, { Polyline, Line } from "react-native-svg";
 import * as Haptics from "expo-haptics";
@@ -336,7 +337,13 @@ export default function WalletTradeScreen() {
           <Coins color={COIN_YELLOW} size={18} />
           <Text style={styles.headerTitle}>Trade GET.coin</Text>
         </View>
-        <View style={styles.backBtn} />
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.push("/wallet-coin-qr" as never)}
+          testID="trade-show-qr"
+        >
+          <QrCode color="#111827" size={22} />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -465,6 +472,17 @@ export default function WalletTradeScreen() {
                   );
                 })}
               </View>
+
+              {direction === "send" ? (
+                <TouchableOpacity
+                  style={styles.myQrRow}
+                  onPress={() => router.push("/wallet-coin-qr" as never)}
+                  testID="trade-my-qr"
+                >
+                  <QrCode color={COIN_AMBER_DARK} size={14} />
+                  <Text style={styles.myQrText}>Receiving instead? Show my QR code</Text>
+                </TouchableOpacity>
+              ) : null}
 
               {direction === "send" ? (
                 <View style={styles.recipientRow}>
@@ -701,6 +719,19 @@ const styles = StyleSheet.create({
     alignItems: "center" as const,
   },
   segmentText: { fontSize: 14, fontWeight: "800" as const },
+  myQrRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    marginBottom: 10,
+    alignSelf: "flex-start" as const,
+  },
+  myQrText: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+    color: COIN_AMBER_DARK,
+    textDecorationLine: "underline" as const,
+  },
   recipientRow: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
