@@ -31,6 +31,7 @@ import {
   Eye,
   EyeOff,
   X,
+  Coins,
 } from "lucide-react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
@@ -46,7 +47,18 @@ import {
   type WalletTransaction,
   type WalletType,
 } from "@/utils/walletStore";
-import { formatActivityDate, formatUpdatedStamp, walletTxMeta } from "@/utils/walletDisplay";
+import {
+  formatActivityDate,
+  formatUpdatedStamp,
+  walletAmountText,
+  walletTxMeta,
+} from "@/utils/walletDisplay";
+import {
+  fetchGetCoinSettings,
+  coinsToCurrency,
+  formatCoins,
+  type GetCoinSettings,
+} from "@/utils/getCoinStore";
 import { consumeWalletReloadRequest } from "@/utils/walletUiFlags";
 
 /**
@@ -118,6 +130,7 @@ export default function WalletScreen() {
   const [highlighted, setHighlighted] = useState<"credit" | "wallet" | null>(null);
 
   const [balances, setBalances] = useState<WalletBalances | null>(null);
+  const [coinSettings, setCoinSettings] = useState<GetCoinSettings | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
@@ -145,12 +158,14 @@ export default function WalletScreen() {
       return;
     }
     try {
-      const [b, t] = await Promise.all([
+      const [b, t, coin] = await Promise.all([
         fetchWalletBalances(userId),
         fetchWalletTransactions(userId),
+        fetchGetCoinSettings(),
       ]);
       setBalances(b);
       setTransactions(t.transactions);
+      setCoinSettings(coin);
       setLastUpdated(new Date());
     } catch (e) {
       console.log("[wallet-screen] load failed", e);
@@ -324,9 +339,11 @@ export default function WalletScreen() {
     const heroH = 236;
     const sheetTopPad = 52;
     const activityHeaderH = 46;
+    // GET.coin card (both modes) + partner-only GET.credit card & filter chips.
+    const coinCardH = 150;
     const partnerExtras = isPartnerMode ? 300 : 0;
     const available =
-      windowHeight - headerH - heroH - sheetTopPad - activityHeaderH - bottomPad - partnerExtras;
+      windowHeight - headerH - heroH - sheetTopPad - activityHeaderH - bottomPad - coinCardH - partnerExtras;
     return Math.min(Math.max(Math.floor(available / rowH), 2), 12);
   }, [viewportH, bodyY, listY, windowHeight, isPartnerMode]);
 
@@ -958,6 +975,27 @@ export default function WalletScreen() {
               </View>
             ) : null}
 
+            {/* GET.coin — available in both user and partner mode */}
+            <View style={styles.coinCard} testID="wallet-coin-card">
+              <View style={styles.cardTopRow}>
+                <View style={styles.cardTitleRow}>
+                  <Coins color="#EAB308" size={18} />
+                  <Text style={styles.creditCardName}>GET.coin</Text>
+                </View>
+                <View style={styles.coinBadge}>
+                  <Text style={styles.coinBadgeText}>GC</Text>
+                </View>
+              </View>
+              <Text style={styles.creditBalance} testID="wallet-coin-balance">
+                {formatCoins(balances?.getCoin ?? 0)}
+              </Text>
+              <Text style={[styles.creditHint, { marginBottom: 0 }]}>
+                {coinSettings
+                  ? `≈ RM ${coinsToCurrency(balances?.getCoin ?? 0, coinSettings.coinsPerCurrency).toFixed(2)} · Rate: RM1 = ${coinSettings.coinsPerCurrency % 1 === 0 ? coinSettings.coinsPerCurrency : coinSettings.coinsPerCurrency.toFixed(2)} GC`
+                  : "Get Coins earned in the app."}
+              </Text>
+            </View>
+
             {/* Recent Activity */}
             <View style={styles.activityHeaderRow}>
               <Text style={styles.activityTitle}>Recent Activity</Text>
@@ -972,14 +1010,20 @@ export default function WalletScreen() {
               </TouchableOpacity>
             </View>
 
-            {isPartnerMode ? (
-              <View style={styles.filterRow}>
+            <View style={styles.filterRow}>
                 {(
-                  [
-                    { id: "all" as TxFilter, label: "All" },
-                    { id: "get_wallet" as TxFilter, label: "GET.wallet" },
-                    { id: "get_credit" as TxFilter, label: "GET.credit" },
-                  ]
+                  isPartnerMode
+                    ? [
+                        { id: "all" as TxFilter, label: "All" },
+                        { id: "get_wallet" as TxFilter, label: "GET.wallet" },
+                        { id: "get_credit" as TxFilter, label: "GET.credit" },
+                        { id: "get_coin" as TxFilter, label: "GET.coin" },
+                      ]
+                    : [
+                        { id: "all" as TxFilter, label: "All" },
+                        { id: "get_wallet" as TxFilter, label: "GET.wallet" },
+                        { id: "get_coin" as TxFilter, label: "GET.coin" },
+                      ]
                 ).map((f) => {
                   const selected = txFilter === f.id;
                   return (
@@ -1006,8 +1050,7 @@ export default function WalletScreen() {
                     </TouchableOpacity>
                   );
                 })}
-              </View>
-            ) : null}
+            </View>
 
             {recentTx.length === 0 ? (
               <View
@@ -1055,8 +1098,8 @@ export default function WalletScreen() {
                         ]}
                       >
                         {positive
-                          ? `+ RM${Math.abs(tx.amount).toFixed(2)}`
-                          : `-RM${Math.abs(tx.amount).toFixed(2)}`}
+                          ? `+ ${walletAmountText(tx.walletType, tx.amount)}`
+                          : `-${walletAmountText(tx.walletType, tx.amount)}`}
                       </Text>
                     </View>
                   );
@@ -1348,6 +1391,26 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     backgroundColor: "#FFFFFF",
     marginBottom: 18,
+  },
+  coinCard: {
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#F3E8C0",
+    backgroundColor: "#FFFDF4",
+    marginBottom: 18,
+  },
+  coinBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    backgroundColor: "#EAB30822",
+  },
+  coinBadgeText: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    color: "#A16207",
+    letterSpacing: 0.5,
   },
   creditCardName: {
     fontSize: 17,

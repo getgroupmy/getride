@@ -6,7 +6,7 @@ import {
   Landmark,
   Banknote,
 } from "lucide-react-native";
-import type { WalletTransaction } from "@/utils/walletStore";
+import type { WalletTransaction, WalletType } from "@/utils/walletStore";
 
 /** "19 Jun 2026, 10:41 PM" style date for wallet activity rows. */
 export function formatActivityDate(iso: string): string {
@@ -26,6 +26,31 @@ export function formatUpdatedStamp(d: Date): string {
     `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ` +
     `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
   );
+}
+
+/** Friendly name for a wallet type. */
+export function walletTypeLabel(walletType: WalletType): string {
+  switch (walletType) {
+    case "get_credit":
+      return "GET.credit";
+    case "get_coin":
+      return "GET.coin";
+    default:
+      return "GET.wallet";
+  }
+}
+
+/**
+ * Unsigned amount string in the wallet's own unit:
+ * currency wallets -> "RM12.50", GET.coin -> "12 GC" (2dp when fractional).
+ */
+export function walletAmountText(walletType: WalletType, amount: number): string {
+  const abs = Math.abs(amount);
+  if (walletType === "get_coin") {
+    const whole = Math.abs(abs - Math.round(abs)) < 0.005;
+    return `${whole ? Math.round(abs).toLocaleString() : abs.toFixed(2)} GC`;
+  }
+  return `RM${abs.toFixed(2)}`;
 }
 
 /**

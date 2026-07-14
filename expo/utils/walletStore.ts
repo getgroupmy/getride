@@ -3,11 +3,14 @@ import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
 import { resolveCommissionRateForRide, DEFAULT_COMMISSION_RATE } from "@/utils/commissionStore";
 
 /**
- * Wallet store — two wallets per account:
+ * Wallet store — three wallets per account:
  *  - GET.wallet  (master): usable in both user & partner mode, topped up via
  *    payment methods.
  *  - GET.credit  (partner): pays for in-app services & commissions; recharged
  *    by transferring funds from GET.wallet.
+ *  - GET.coin    (user & partner): denominated in GC (Get Coins), not
+ *    currency. The GC <-> RM exchange rate is set from Admin -> Settings ->
+ *    Get Coin (see utils/getCoinStore.ts).
  *
  * Supabase-backed (tables from migrations/0056_wallets.sql). If those tables
  * haven't been applied to the live database yet, every function degrades to a
@@ -15,13 +18,15 @@ import { resolveCommissionRateForRide, DEFAULT_COMMISSION_RATE } from "@/utils/c
  * receive `source: "local"` to surface a notice.
  */
 
-export type WalletType = "get_wallet" | "get_credit";
+export type WalletType = "get_wallet" | "get_credit" | "get_coin";
 
 export type WalletSource = "supabase" | "local";
 
 export interface WalletBalances {
   getWallet: number;
   getCredit: number;
+  /** GET.coin balance, denominated in GC (not currency). */
+  getCoin: number;
   currency: string;
   source: WalletSource;
 }
@@ -57,6 +62,7 @@ export const RIDE_COMMISSION_RATE = DEFAULT_COMMISSION_RATE;
 interface LocalWalletState {
   getWallet: number;
   getCredit: number;
+  getCoin: number;
 }
 
 /** True when the error indicates the wallet tables/functions aren't in the DB yet. */
@@ -85,12 +91,13 @@ async function readLocalBalances(userId: string): Promise<LocalWalletState> {
       return {
         getWallet: Number(parsed.getWallet ?? 0),
         getCredit: Number(parsed.getCredit ?? 0),
+        getCoin: Number(parsed.getCoin ?? 0),
       };
     }
   } catch (e) {
     console.log("[wallet] local balances read failed", e);
   }
-  return { getWallet: 0, getCredit: 0 };
+  return { getWallet: 0, getCredit: 0, getCoin: 0 };
 }
 
 async function writeLocalBalances(userId: string, state: LocalWalletState): Promise<void> {
@@ -144,7 +151,7 @@ export async function fetchWalletBalances(userId: string): Promise<WalletBalance
       if (error) throw error;
 
       const rows = (data ?? []) as { wallet_type: string; balance: number; currency: string }[];
-      const missing: WalletType[] = (["get_wallet", "get_credit"] as WalletType[]).filter(
+      const missing: WalletType[] = (["get_wallet", "get_credit", "get_coin"] as WalletType[]).filter(
         (t) => !rows.some((r) => r.wallet_type === t)
       );
       if (missing.length > 0) {
@@ -161,6 +168,7 @@ export async function fetchWalletBalances(userId: string): Promise<WalletBalance
       return {
         getWallet: Number(find("get_wallet")?.balance ?? 0),
         getCredit: Number(find("get_credit")?.balance ?? 0),
+        getCoin: Number(find("get_coin")?.balance ?? 0),
         currency: find("get_wallet")?.currency ?? "RM",
         source: "supabase",
       };
@@ -173,7 +181,13 @@ export async function fetchWalletBalances(userId: string): Promise<WalletBalance
     }
   }
   const local = await readLocalBalances(userId);
-  return { getWallet: local.getWallet, getCredit: local.getCredit, currency: "RM", source: "local" };
+  return {
+    getWallet: local.getWallet,
+    getCredit: local.getCredit,
+    getCoin: local.getCoin,
+    currency: "RM",
+    source: "local",
+  };
 }
 
 /**
@@ -323,7 +337,13 @@ export async function topUpWallet(
   ]);
   return {
     ok: true,
-    balances: { getWallet: next.getWallet, getCredit: next.getCredit, currency: "RM", source: "local" },
+    balances: {
+      getWallet: next.getWallet,
+      getCredit: next.getCredit,
+      getCoin: next.getCoin,
+      currency: "RM",
+      source: "local",
+    },
   };
 }
 
@@ -364,6 +384,7 @@ export async function rechargeCredit(
     return { ok: false, error: "Not enough balance in GET.wallet." };
   }
   const next: LocalWalletState = {
+    ...local,
     getWallet: round2(local.getWallet - amount),
     getCredit: round2(local.getCredit + amount),
   };
@@ -388,7 +409,13 @@ export async function rechargeCredit(
   ]);
   return {
     ok: true,
-    balances: { getWallet: next.getWallet, getCredit: next.getCredit, currency: "RM", source: "local" },
+    balances: {
+      getWallet: next.getWallet,
+      getCredit: next.getCredit,
+      getCoin: next.getCoin,
+      currency: "RM",
+      source: "local",
+    },
   };
 }
 
@@ -454,7 +481,13 @@ export async function payFromWallet(
   ]);
   return {
     ok: true,
-    balances: { getWallet: next.getWallet, getCredit: next.getCredit, currency: "RM", source: "local" },
+    balances: {
+      getWallet: next.getWallet,
+      getCredit: next.getCredit,
+      getCoin: next.getCoin,
+      currency: "RM",
+      source: "local",
+    },
   };
 }
 

@@ -27,7 +27,7 @@ import {
   type WalletTransaction,
   type WalletType,
 } from "@/utils/walletStore";
-import { walletTxMeta } from "@/utils/walletDisplay";
+import { walletAmountText, walletTxMeta, walletTypeLabel } from "@/utils/walletDisplay";
 import PullDownScrollView from "@/components/PullDownScrollView";
 
 type TxFilter = "all" | WalletType;
@@ -196,7 +196,8 @@ export default function WalletHistoryScreen() {
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Amount</Text>
             <Text style={styles.detailValue}>
-              {positive ? "" : "-"}RM{Math.abs(tx.amount).toFixed(2)}
+              {positive ? "" : "-"}
+              {walletAmountText(tx.walletType, tx.amount)}
             </Text>
           </View>
           <View style={styles.detailRow}>
@@ -207,9 +208,7 @@ export default function WalletHistoryScreen() {
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Wallet</Text>
-            <Text style={styles.detailValue}>
-              {tx.walletType === "get_wallet" ? "GET.wallet" : "GET.credit"}
-            </Text>
+            <Text style={styles.detailValue}>{walletTypeLabel(tx.walletType)}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Transaction ID</Text>
@@ -246,14 +245,20 @@ export default function WalletHistoryScreen() {
       onPullRefresh={onRefresh}
       spinnerColor={Colors.accent}
     >
-      {isPartnerMode ? (
-        <View style={styles.tabsRow}>
+      <View style={styles.tabsRow}>
           {(
-            [
-              { id: "all" as TxFilter, label: "All" },
-              { id: "get_wallet" as TxFilter, label: "GET.wallet" },
-              { id: "get_credit" as TxFilter, label: "GET.credit" },
-            ]
+            isPartnerMode
+              ? [
+                  { id: "all" as TxFilter, label: "All" },
+                  { id: "get_wallet" as TxFilter, label: "GET.wallet" },
+                  { id: "get_credit" as TxFilter, label: "GET.credit" },
+                  { id: "get_coin" as TxFilter, label: "GET.coin" },
+                ]
+              : [
+                  { id: "all" as TxFilter, label: "All" },
+                  { id: "get_wallet" as TxFilter, label: "GET.wallet" },
+                  { id: "get_coin" as TxFilter, label: "GET.coin" },
+                ]
           ).map((f) => {
             const selected = txFilter === f.id;
             return (
@@ -283,8 +288,7 @@ export default function WalletHistoryScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
-      ) : null}
+      </View>
 
       <View style={styles.filterRow}>
         <Text style={styles.filterLabel}>Filter by Month</Text>
@@ -333,7 +337,8 @@ export default function WalletHistoryScreen() {
                         { color: positive ? "#16A34A" : "#EF4444" },
                       ]}
                     >
-                      {positive ? "" : "-"}RM{Math.abs(tx.amount).toFixed(2)}
+                      {positive ? "" : "-"}
+                      {walletAmountText(tx.walletType, tx.amount)}
                     </Text>
                     {expanded ? (
                       <ChevronUp color="#9CA3AF" size={20} />
@@ -497,8 +502,9 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: "row",
-    gap: 22,
+    gap: 18,
     marginBottom: 16,
+    flexWrap: "wrap" as const,
   },
   tabItem: {
     alignItems: "center",
