@@ -20,6 +20,7 @@ import {
   Wallet,
   Check,
   Info,
+  Send,
 } from "lucide-react-native";
 import Svg, { Polyline, Line } from "react-native-svg";
 import * as Haptics from "expo-haptics";
@@ -40,6 +41,7 @@ import {
 import {
   fetchWalletBalances,
   tradeCoins,
+  transferCoins,
   type WalletBalances,
 } from "@/utils/walletStore";
 
@@ -47,8 +49,26 @@ const COIN_YELLOW = "#EAB308";
 const COIN_AMBER_DARK = "#92400E";
 const GAIN_GREEN = "#16A34A";
 const LOSS_RED = "#DC2626";
+const SEND_AMBER = "#D97706";
 
-type TradeDirection = "buy" | "sell";
+type TradeDirection = "buy" | "sell" | "send";
+
+const UUID_RE = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+
+/**
+ * Parse the "Send to" field: a pasted/scanned account id (raw uuid or a
+ * getpay://u/<id> QR payload) wins; anything with 7+ digits is treated as a
+ * phone number and resolved server-side.
+ */
+function parseRecipient(raw: string): { toUserId?: string; toPhone?: string } | null {
+  const text = raw.trim();
+  if (!text) return null;
+  const idMatch = text.match(UUID_RE);
+  if (idMatch) return { toUserId: idMatch[1].toLowerCase() };
+  const digits = text.replace(/\D/g, "");
+  if (digits.length >= 7) return { toPhone: text };
+  return null;
+}
 
 /** Compact RM formatting for rates: RM0.10, RM1.25, RM0.0825. */
 function formatRate(rate: number): string {
@@ -127,6 +147,7 @@ export default function WalletTradeScreen() {
   const [history, setHistory] = useState<CoinRatePoint[]>([]);
   const [direction, setDirection] = useState<TradeDirection>("buy");
   const [amountInput, setAmountInput] = useState<string>("");
+  const [recipientInput, setRecipientInput] = useState<string>("");
   const [trading, setTrading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
@@ -181,9 +202,11 @@ export default function WalletTradeScreen() {
     return Math.round(parsedCoins * market.ratePerGC * 100) / 100;
   }, [market, parsedCoins]);
 
+  const recipient = useMemo(() => parseRecipient(recipientInput), [recipientInput]);
+
   const maxCoins = useMemo(() => {
     if (!market || !balances) return 0;
-    if (direction === "sell") return Math.floor(balances.getCoin * 100) / 100;
+    if (direction !== "buy") return Math.floor(balances.getCoin * 100) / 100;
     if (!(market.ratePerGC > 0)) return 0;
     let affordable = Math.floor((balances.getWallet / market.ratePerGC) * 100) / 100;
     if (settings && settings.maxSupply > 0 && stats) {
@@ -197,9 +220,9 @@ export default function WalletTradeScreen() {
     !trading &&
     !loading &&
     parsedCoins > 0 &&
-    tradeValue > 0 &&
     market !== null &&
-    parsedCoins <= maxCoins + 0.0001;
+    parsedCoins <= maxCoins + 0.0001 &&
+    (direction === "send" ? recipient !== null : tradeValue > 0);
 
   const handleQuick = (v: number | "max") => {
     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -217,6 +240,38 @@ export default function WalletTradeScreen() {
     setTrading(true);
     setError("");
     setSuccessNote("");
+
+    if (direction === "send") {
+      if (!authState.userId || !recipient) {
+        setTrading(false);
+        setError(!authState.userId ? "Sign in to send coins." : "Enter who to send to.");
+        return;
+      }
+      const res = await transferCoins({
+        fromUserId: authState.userId,
+        ...recipient,
+        coins: parsedCoins,
+      });
+      setTrading(false);
+      if (!res.ok) {
+        setError(res.error ?? "Transfer failed. Please try again.");
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        }
+        return;
+      }
+      if (res.balances) setBalances(res.balances);
+      setAmountInput("");
+      setRecipientInput("");
+      setSuccessNote(
+        `Sent ${formatCoins(res.coins ?? 0)} to ${res.recipientName ?? recipientInput.trim()}`
+      );
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
+      return;
+    }
+
     const res = await tradeCoins({
       userId,
       direction,
@@ -379,16 +434,16 @@ export default function WalletTradeScreen() {
             {/* Trade form */}
             <View style={styles.card}>
               <View style={styles.segmentTrack}>
-                {(["buy", "sell"] as TradeDirection[]).map((d) => {
+                {(["buy", "sell", "send"] as TradeDirection[]).map((d) => {
                   const selected = direction === d;
+                  const selectedColor =
+                    d === "buy" ? GAIN_GREEN : d === "sell" ? LOSS_RED : SEND_AMBER;
                   return (
                     <TouchableOpacity
                       key={d}
                       style={[
                         styles.segment,
-                        selected && {
-                          backgroundColor: d === "buy" ? GAIN_GREEN : LOSS_RED,
-                        },
+                        selected && { backgroundColor: selectedColor },
                       ]}
                       onPress={() => {
                         if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -404,12 +459,32 @@ export default function WalletTradeScreen() {
                           { color: selected ? "#FFFFFF" : "#6B7280" },
                         ]}
                       >
-                        {d === "buy" ? "Buy" : "Sell"}
+                        {d === "buy" ? "Buy" : d === "sell" ? "Sell" : "Send"}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
+
+              {direction === "send" ? (
+                <View style={styles.recipientRow}>
+                  <Send color="#A16207" size={16} />
+                  <TextInput
+                    style={styles.recipientInput}
+                    value={recipientInput}
+                    onChangeText={(t) => {
+                      setRecipientInput(t);
+                      setError("");
+                      setSuccessNote("");
+                    }}
+                    placeholder="Recipient phone number or wallet QR code"
+                    placeholderTextColor="#C4C4C4"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    testID="trade-recipient-input"
+                  />
+                </View>
+              ) : null}
 
               <View style={styles.amountRow}>
                 <TextInput
@@ -449,7 +524,11 @@ export default function WalletTradeScreen() {
 
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
-                  {direction === "buy" ? "You pay" : "You receive"}
+                  {direction === "buy"
+                    ? "You pay"
+                    : direction === "sell"
+                      ? "You receive"
+                      : "Worth about"}
                 </Text>
                 <Text style={styles.summaryValue} testID="trade-total">
                   RM {tradeValue.toFixed(2)}
@@ -483,7 +562,12 @@ export default function WalletTradeScreen() {
                 style={[
                   styles.confirmBtn,
                   {
-                    backgroundColor: direction === "buy" ? GAIN_GREEN : LOSS_RED,
+                    backgroundColor:
+                      direction === "buy"
+                        ? GAIN_GREEN
+                        : direction === "sell"
+                          ? LOSS_RED
+                          : SEND_AMBER,
                     opacity: canConfirm ? 1 : 0.4,
                   },
                 ]}
@@ -495,9 +579,9 @@ export default function WalletTradeScreen() {
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
                   <Text style={styles.confirmText}>
-                    {direction === "buy"
-                      ? `Buy ${parsedCoins > 0 ? formatCoins(parsedCoins) : "GET.coin"}`
-                      : `Sell ${parsedCoins > 0 ? formatCoins(parsedCoins) : "GET.coin"}`}
+                    {`${direction === "buy" ? "Buy" : direction === "sell" ? "Sell" : "Send"} ${
+                      parsedCoins > 0 ? formatCoins(parsedCoins) : "GET.coin"
+                    }`}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -507,6 +591,7 @@ export default function WalletTradeScreen() {
               <Info color="#9CA3AF" size={13} />
               <Text style={styles.noteText}>
                 Trades settle instantly between GET.wallet and GET.coin at the rate shown.
+                Sending moves coins straight to the other person&apos;s GET.coin wallet.
                 Spending and ride redemptions always use the official pegged rate.
               </Text>
             </View>
@@ -616,6 +701,24 @@ const styles = StyleSheet.create({
     alignItems: "center" as const,
   },
   segmentText: { fontSize: 14, fontWeight: "800" as const },
+  recipientRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#F3E8C0",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    backgroundColor: "#FFFDF4",
+    marginBottom: 10,
+  },
+  recipientInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600" as const,
+    color: "#111827",
+    paddingVertical: 12,
+  },
   amountRow: {
     flexDirection: "row" as const,
     alignItems: "center" as const,

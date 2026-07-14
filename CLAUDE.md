@@ -108,10 +108,11 @@ Additional dispatch behaviors, all riding on `ride_requests` columns:
 
 ### Wallets & Commission
 
-Each account has two wallets (`utils/walletStore.ts`, tables `wallets`/`wallet_transactions` from migration `0056`, rider-facing screen `app/wallet.tsx`):
+Each account has three wallets (`utils/walletStore.ts`, tables `wallets`/`wallet_transactions` from migration `0056`, rider-facing screen `app/wallet.tsx`):
 
 - **GET.wallet** (`get_wallet`) — master wallet, used in both user and partner mode, topped up via payment methods. Must stay non-negative.
 - **GET.credit** (`get_credit`) — partner-only wallet that pays for in-app services and ride commissions; recharged by transferring from GET.wallet. May go negative (commission owed).
+- **GET.coin** (`get_coin`, migrations `0061`–`0064`) — reward coin denominated in GC, used in both modes; must stay non-negative. The GC↔RM rate (and optional market-speculated pricing/supply cap) is set from Admin → Settings → Get Coin (`utils/getCoinStore.ts`). Coins are earned as ride rewards (`wallet_award_ride_coins` RPC, idempotent per ride), redeemed against QR payments and fares, bought/sold against GET.wallet on `app/wallet-trade.tsx`, and sent P2P between accounts (`transferCoins` → `wallet_transfer_coins` RPC, migration `0064`, which resolves recipients by account id or phone server-side; transfers move coins 1:1 without minting). Balances are ledger-driven: clients/RPCs insert `wallet_transactions` rows and the `0060` trigger moves `wallets.balance`.
 
 On trip completion the platform commission is deducted from GET.credit through the `wallet_charge_ride_commission` RPC (migration `0057`) — atomic and idempotent (the charge is stamped on the ride row via `commission_charged_at`, so it can never apply twice).
 

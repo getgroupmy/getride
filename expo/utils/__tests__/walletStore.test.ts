@@ -5,6 +5,7 @@ import {
   rechargeCredit,
   chargeRideCommission,
   fetchWalletBalances,
+  transferCoins,
 } from "@/utils/walletStore";
 import { resolveCommissionRateForRide } from "@/utils/commissionStore";
 
@@ -52,17 +53,19 @@ beforeEach(async () => {
 });
 
 describe("fetchWalletBalances", () => {
-  it("reads both wallets from Supabase", async () => {
+  it("reads all three wallets from Supabase", async () => {
     sb.queueResult({
       data: [
         { wallet_type: "get_wallet", balance: "120.5", currency: "RM" },
         { wallet_type: "get_credit", balance: "-3.25", currency: "RM" },
+        { wallet_type: "get_coin", balance: "18", currency: "RM" },
       ],
     });
     const balances = await fetchWalletBalances(USER);
     expect(balances).toEqual({
       getWallet: 120.5,
       getCredit: -3.25,
+      getCoin: 18,
       currency: "RM",
       source: "supabase",
     });
@@ -70,14 +73,16 @@ describe("fetchWalletBalances", () => {
 
   it("creates missing wallet rows and defaults their balances to 0", async () => {
     sb.queueResult({ data: [{ wallet_type: "get_wallet", balance: 10, currency: "RM" }] });
-    sb.queueResult({ data: null, error: null }); // upsert of the missing get_credit row
+    sb.queueResult({ data: null, error: null }); // upsert of the missing rows
     const balances = await fetchWalletBalances(USER);
     expect(balances.getCredit).toBe(0);
+    expect(balances.getCoin).toBe(0);
     const upsert = sb.queries[1];
     expect(upsert.table).toBe("wallets");
     expect(upsert.steps[0].method).toBe("upsert");
     expect(upsert.steps[0].args[0]).toEqual([
       { user_id: USER, wallet_type: "get_credit", balance: 0 },
+      { user_id: USER, wallet_type: "get_coin", balance: 0 },
     ]);
   });
 
@@ -88,7 +93,13 @@ describe("fetchWalletBalances", () => {
     );
     sb.queueResult({ error: MISSING_SCHEMA });
     const balances = await fetchWalletBalances(USER);
-    expect(balances).toEqual({ getWallet: 42, getCredit: 7, currency: "RM", source: "local" });
+    expect(balances).toEqual({
+      getWallet: 42,
+      getCredit: 7,
+      getCoin: 0,
+      currency: "RM",
+      source: "local",
+    });
   });
 });
 
@@ -182,6 +193,140 @@ describe("rechargeCredit", () => {
     // Balances untouched.
     const raw = JSON.parse((await AsyncStorage.getItem(`wallet:balances:${USER}`)) ?? "{}");
     expect(raw).toEqual({ getWallet: 20, getCredit: 0 });
+  });
+});
+
+describe("transferCoins", () => {
+  const RECIPIENT = "0d9c1f2e-3a4b-4c5d-8e6f-7a8b9c0d1e2f";
+  const ALL_WALLETS = (coin: number) => ({
+    data: [
+      { wallet_type: "get_wallet", balance: 100, currency: "RM" },
+      { wallet_type: "get_credit", balance: 0, currency: "RM" },
+      { wallet_type: "get_coin", balance: coin, currency: "RM" },
+    ],
+  });
+
+  it("validates its inputs without calling the backend", async () => {
+    expect(await transferCoins({ fromUserId: USER, toUserId: RECIPIENT, coins: 0 })).toEqual({
+      ok: false,
+      error: "Enter an amount greater than 0.",
+    });
+    expect(await transferCoins({ fromUserId: USER, coins: 10 })).toEqual({
+      ok: false,
+      error: "Enter who to send to.",
+    });
+    expect(await transferCoins({ fromUserId: USER, toUserId: USER, coins: 10 })).toEqual({
+      ok: false,
+      error: "You can't send coins to yourself.",
+    });
+    expect(sb.rpcCalls).toHaveLength(0);
+  });
+
+  it("sends through the atomic wallet_transfer_coins RPC", async () => {
+    sb.queueRpcResult({
+      data: { coins: 25, recipient_id: RECIPIENT, recipient_name: "Aisha", balance_after: 75 },
+    });
+    sb.queueResult(ALL_WALLETS(75));
+    const result = await transferCoins({ fromUserId: USER, toUserId: RECIPIENT, coins: 25 });
+    expect(result).toMatchObject({ ok: true, coins: 25, recipientName: "Aisha" });
+    expect(result.balances?.getCoin).toBe(75);
+    expect(sb.rpcCalls[0]).toEqual({
+      fn: "wallet_transfer_coins",
+      params: { p_from: USER, p_coins: 25, p_to: RECIPIENT, p_to_phone: null, p_note: null },
+    });
+  });
+
+  it("resolves phone recipients server-side via the RPC", async () => {
+    sb.queueRpcResult({
+      data: { coins: 5, recipient_id: RECIPIENT, recipient_name: null, balance_after: 45 },
+    });
+    sb.queueResult(ALL_WALLETS(45));
+    const result = await transferCoins({ fromUserId: USER, toPhone: "+60 12-345 6789", coins: 5 });
+    expect(result).toMatchObject({ ok: true, coins: 5, recipientName: null });
+    expect(sb.rpcCalls[0]).toEqual({
+      fn: "wallet_transfer_coins",
+      params: { p_from: USER, p_coins: 5, p_to: null, p_to_phone: "+60 12-345 6789", p_note: null },
+    });
+  });
+
+  it("maps the RPC's business errors to friendly messages", async () => {
+    sb.queueRpcResult({ error: { message: "P0001: insufficient_coins" } });
+    expect(await transferCoins({ fromUserId: USER, toUserId: RECIPIENT, coins: 999 })).toEqual({
+      ok: false,
+      error: "Not enough GET.coin to send.",
+    });
+    sb.queueRpcResult({ error: { message: "P0001: recipient_not_found" } });
+    expect(await transferCoins({ fromUserId: USER, toPhone: "0123456789", coins: 5 })).toEqual({
+      ok: false,
+      error: "Recipient not found. Check the number and try again.",
+    });
+    sb.queueRpcResult({ error: { message: "P0001: self_transfer" } });
+    expect(await transferCoins({ fromUserId: USER, toPhone: "0123456789", coins: 5 })).toEqual({
+      ok: false,
+      error: "You can't send coins to yourself.",
+    });
+  });
+
+  it("falls back to direct ledger inserts for id recipients on pre-0064 databases", async () => {
+    sb.queueRpcResult({ error: MISSING_SCHEMA });
+    sb.queueResult(ALL_WALLETS(50)); // balance check
+    sb.queueResult({ data: null }); // ledger insert
+    sb.queueResult(ALL_WALLETS(30)); // refreshed balances
+    const result = await transferCoins({
+      fromUserId: USER,
+      toUserId: RECIPIENT,
+      coins: 20,
+      note: "lunch",
+    });
+    expect(result).toMatchObject({ ok: true, coins: 20 });
+    expect(result.balances?.getCoin).toBe(30);
+
+    const insert = sb.queries[1];
+    expect(insert.table).toBe("wallet_transactions");
+    expect(insert.steps[0].method).toBe("insert");
+    const rows = insert.steps[0].args[0] as Record<string, unknown>[];
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      user_id: USER,
+      wallet_type: "get_coin",
+      kind: "transfer_out",
+      amount: -20,
+      method: "p2p_transfer",
+    });
+    expect(rows[1]).toMatchObject({
+      user_id: RECIPIENT,
+      wallet_type: "get_coin",
+      kind: "transfer_in",
+      amount: 20,
+      method: "p2p_transfer",
+    });
+  });
+
+  it("refuses to overdraw GET.coin in the fallback path", async () => {
+    sb.queueRpcResult({ error: MISSING_SCHEMA });
+    sb.queueResult(ALL_WALLETS(10));
+    expect(await transferCoins({ fromUserId: USER, toUserId: RECIPIENT, coins: 20 })).toEqual({
+      ok: false,
+      error: "Not enough GET.coin to send.",
+    });
+    // Only the balance read ran — nothing was inserted.
+    expect(sb.queries).toHaveLength(1);
+  });
+
+  it("cannot fall back for phone recipients (profiles are RLS-protected)", async () => {
+    sb.queueRpcResult({ error: MISSING_SCHEMA });
+    const result = await transferCoins({ fromUserId: USER, toPhone: "0123456789", coins: 5 });
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("QR code");
+    expect(sb.queries).toHaveLength(0);
+  });
+
+  it("fails cleanly when Supabase isn't configured — no device-local transfer", async () => {
+    supabaseModule.isSupabaseConfigured = false;
+    const result = await transferCoins({ fromUserId: USER, toUserId: RECIPIENT, coins: 5 });
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("connection");
+    expect(await AsyncStorage.getItem(`wallet:balances:${USER}`)).toBeNull();
   });
 });
 

@@ -1656,3 +1656,388 @@ $$;
 
 grant execute on function public.wallet_charge_ride_commission(uuid, uuid, numeric, numeric)
   to anon, authenticated;
+
+-- ============================================================================
+-- GET.coin — third wallet, available to BOTH user and partner mode
+-- (migrations/0061_get_coin.sql .. 0064_get_coin_transfer.sql, folded in)
+-- ----------------------------------------------------------------------------
+-- GET.coin balances are denominated in "GC" (Get Coins), not currency. The
+-- GC <-> currency exchange rate is set from Admin -> Settings -> Get Coin.
+-- Coins are earned as ride rewards, spent on QR payments / fares, traded
+-- against GET.wallet, and transferable P2P between accounts.
+-- ============================================================================
+
+-- Allow the coin wallet type on both ledger tables (upgrades the inline
+-- checks from the original wallets DDL above).
+alter table public.wallets
+  drop constraint if exists wallets_wallet_type_check;
+alter table public.wallets
+  add constraint wallets_wallet_type_check
+  check (wallet_type in ('get_wallet','get_credit','get_coin'));
+
+alter table public.wallet_transactions
+  drop constraint if exists wallet_transactions_wallet_type_check;
+alter table public.wallet_transactions
+  add constraint wallet_transactions_wallet_type_check
+  check (wallet_type in ('get_wallet','get_credit','get_coin'));
+
+-- ----------------------------------------------------------------------------
+-- Exchange rate + rewards + market settings (single master row)
+--   coins_per_currency      : GC per 1 unit of currency (RM). e.g. 10 =>
+--                             RM1 = 10 GC, so 1 GC = RM0.10.
+--   earn_coins_per_currency : GC earned per RM1 of completed-ride fare
+--                             (0 disables ride rewards).
+--   market_*                : market-speculated pricing — when enabled, the
+--                             coin's RM value floats around the admin peg,
+--                             driven by in-app signals (each toggleable).
+--   max_supply              : hard cap on total GC in circulation (0 = none).
+-- ----------------------------------------------------------------------------
+create table if not exists public.get_coin_settings (
+  id text primary key default 'master',
+  coins_per_currency numeric(12,4) not null default 1 check (coins_per_currency > 0),
+  earn_coins_per_currency numeric(12,4) not null default 0,
+  market_enabled  boolean       not null default false,
+  signal_trading  boolean       not null default true,
+  signal_revenue  boolean       not null default true,
+  signal_services boolean       not null default true,
+  signal_signups  boolean       not null default true,
+  signal_minting  boolean       not null default true,
+  market_max_swing numeric(6,2) not null default 50,
+  max_supply      numeric(18,2) not null default 0,
+  currency text not null default 'RM',
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+-- Idempotent upgrades for databases created from a pre-0062/0063 snapshot.
+alter table public.get_coin_settings
+  add column if not exists earn_coins_per_currency numeric(12,4) not null default 0,
+  add column if not exists market_enabled  boolean       not null default false,
+  add column if not exists signal_trading  boolean       not null default true,
+  add column if not exists signal_revenue  boolean       not null default true,
+  add column if not exists signal_services boolean       not null default true,
+  add column if not exists signal_signups  boolean       not null default true,
+  add column if not exists signal_minting  boolean       not null default true,
+  add column if not exists market_max_swing numeric(6,2) not null default 50,
+  add column if not exists max_supply      numeric(18,2) not null default 0;
+
+alter table public.get_coin_settings
+  drop constraint if exists get_coin_settings_earn_rate_check;
+alter table public.get_coin_settings
+  add constraint get_coin_settings_earn_rate_check
+  check (earn_coins_per_currency >= 0);
+
+alter table public.get_coin_settings
+  drop constraint if exists get_coin_settings_swing_check;
+alter table public.get_coin_settings
+  add constraint get_coin_settings_swing_check
+  check (market_max_swing >= 0 and market_max_swing <= 95);
+
+alter table public.get_coin_settings
+  drop constraint if exists get_coin_settings_supply_check;
+alter table public.get_coin_settings
+  add constraint get_coin_settings_supply_check
+  check (max_supply >= 0);
+
+insert into public.get_coin_settings (id, coins_per_currency)
+values ('master', 1)
+on conflict (id) do nothing;
+
+do $$
+begin
+  drop trigger if exists trg_get_coin_settings_updated_at on public.get_coin_settings;
+  create trigger trg_get_coin_settings_updated_at before update on public.get_coin_settings
+    for each row execute function public.set_updated_at();
+end$$;
+
+alter table public.get_coin_settings enable row level security;
+
+drop policy if exists "get_coin_settings read"   on public.get_coin_settings;
+drop policy if exists "get_coin_settings insert" on public.get_coin_settings;
+drop policy if exists "get_coin_settings update" on public.get_coin_settings;
+
+create policy "get_coin_settings read"   on public.get_coin_settings for select using (true);
+create policy "get_coin_settings insert" on public.get_coin_settings for insert to public with check (true);
+create policy "get_coin_settings update" on public.get_coin_settings for update to public using (true) with check (true);
+
+grant select, insert, update on public.get_coin_settings to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- Ride rewards (0062): idempotent per-ride GC reward, anchored on
+-- ride_requests.coin_rewarded_at so a ride can never be rewarded twice.
+-- ----------------------------------------------------------------------------
+alter table public.ride_requests
+  add column if not exists coin_rewarded_at timestamptz;
+
+create or replace function public.wallet_award_ride_coins(
+  p_ride uuid,
+  p_user uuid,
+  p_fare numeric
+) returns numeric
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_rate numeric;
+  v_coins numeric;
+  v_claimed int;
+begin
+  select earn_coins_per_currency into v_rate
+  from public.get_coin_settings
+  where id = 'master';
+
+  if v_rate is null or v_rate <= 0 or p_fare is null or p_fare <= 0 then
+    return 0;
+  end if;
+
+  v_coins := round(p_fare * v_rate, 2);
+  if v_coins <= 0 then
+    return 0;
+  end if;
+
+  -- Claim the ride atomically; a second call finds coin_rewarded_at set.
+  update public.ride_requests
+  set coin_rewarded_at = now()
+  where id = p_ride and coin_rewarded_at is null;
+  get diagnostics v_claimed = row_count;
+  if v_claimed = 0 then
+    return 0;
+  end if;
+
+  insert into public.wallets (user_id, wallet_type, balance)
+  values (p_user, 'get_coin', 0)
+  on conflict (user_id, wallet_type) do nothing;
+
+  insert into public.wallet_transactions (user_id, wallet_type, kind, amount, note)
+  values (p_user, 'get_coin', 'reward', v_coins, 'Ride reward');
+
+  return v_coins;
+end;
+$$;
+
+grant execute on function public.wallet_award_ride_coins(uuid, uuid, numeric) to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- Rate history (0063): snapshots of the effective RM value of 1 GC, for the
+-- trade screen's price chart. Clients insert at most one point per ~15 min.
+-- ----------------------------------------------------------------------------
+create table if not exists public.get_coin_rate_history (
+  id uuid primary key default gen_random_uuid(),
+  rate_per_gc numeric(14,6) not null check (rate_per_gc > 0),
+  recorded_at timestamptz not null default now()
+);
+
+create index if not exists get_coin_rate_history_time_idx
+  on public.get_coin_rate_history(recorded_at desc);
+
+alter table public.get_coin_rate_history enable row level security;
+
+drop policy if exists "coin rate history read"   on public.get_coin_rate_history;
+drop policy if exists "coin rate history insert" on public.get_coin_rate_history;
+
+create policy "coin rate history read"   on public.get_coin_rate_history for select using (true);
+create policy "coin rate history insert" on public.get_coin_rate_history for insert to public with check (true);
+
+grant select, insert on public.get_coin_rate_history to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- Market stats (0063, updated by 0064): one security-definer RPC returning
+-- every pricing signal over a 30-day window plus circulating supply, so
+-- clients never need broad table read access. P2P transfers are excluded from
+-- the "minted" signal — they only move coins already in circulation.
+-- ----------------------------------------------------------------------------
+create or replace function public.get_coin_market_stats()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_since    timestamptz := now() - interval '30 days';
+  v_buy      numeric := 0;
+  v_sell     numeric := 0;
+  v_revenue  numeric := 0;
+  v_services bigint  := 0;
+  v_signups  bigint  := 0;
+  v_minted   numeric := 0;
+  v_supply   numeric := 0;
+begin
+  -- GC bought / sold through trading (30d)
+  select coalesce(sum(amount), 0) into v_buy
+  from public.wallet_transactions
+  where wallet_type = 'get_coin' and method = 'trade_buy'
+    and amount > 0 and created_at >= v_since;
+
+  select coalesce(sum(-amount), 0) into v_sell
+  from public.wallet_transactions
+  where wallet_type = 'get_coin' and method = 'trade_sell'
+    and amount < 0 and created_at >= v_since;
+
+  -- App revenue from commissions charged to partners (30d)
+  select coalesce(sum(-amount), 0) into v_revenue
+  from public.wallet_transactions
+  where wallet_type = 'get_credit' and kind = 'commission'
+    and amount < 0 and created_at >= v_since;
+
+  -- Completed services (30d)
+  select count(*) into v_services
+  from public.ride_requests
+  where status = 'completed' and created_at >= v_since;
+
+  -- New sign-ups: users + partners (30d)
+  select
+    (select count(*) from public.profiles where created_at >= v_since)
+    + (select count(*) from public.partners where created_at >= v_since)
+  into v_signups;
+
+  -- New coins generated (rewards, admin grants, purchases) (30d) —
+  -- p2p transfers move existing coins, so they don't count as minting.
+  select coalesce(sum(amount), 0) into v_minted
+  from public.wallet_transactions
+  where wallet_type = 'get_coin' and amount > 0
+    and coalesce(method, '') <> 'p2p_transfer'
+    and created_at >= v_since;
+
+  -- Total GC in circulation right now
+  select coalesce(sum(balance), 0) into v_supply
+  from public.wallets
+  where wallet_type = 'get_coin';
+
+  return jsonb_build_object(
+    'trade_buy_gc',        v_buy,
+    'trade_sell_gc',       v_sell,
+    'commission_revenue',  v_revenue,
+    'completed_services',  v_services,
+    'new_signups',         v_signups,
+    'minted_gc',           v_minted,
+    'circulating_supply',  v_supply
+  );
+end;
+$$;
+
+grant execute on function public.get_coin_market_stats() to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- P2P transfers (0064): send GC straight to another account (user or
+-- partner). Transfers move existing coins 1:1 — nothing is minted or burned.
+-- Recipients are addressed by account id (scanned getpay:// QR) or by phone
+-- number, resolved server-side (profiles are RLS-protected, so the client
+-- cannot look other users up itself). The sender's wallet row is locked so
+-- concurrent transfers can't overdraw it.
+-- ----------------------------------------------------------------------------
+create or replace function public.wallet_transfer_coins(
+  p_from uuid,
+  p_coins numeric,
+  p_to uuid default null,
+  p_to_phone text default null,
+  p_note text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_coins     numeric := round(coalesce(p_coins, 0), 2);
+  v_to        uuid    := p_to;
+  v_to_name   text;
+  v_from_name text;
+  v_digits    text;
+  v_balance   numeric;
+  v_after     numeric;
+  v_suffix    text := coalesce(' — ' || nullif(trim(p_note), ''), '');
+begin
+  if p_from is null then
+    raise exception 'invalid_user';
+  end if;
+  if v_coins <= 0 or v_coins > 1000000 then
+    raise exception 'invalid_amount';
+  end if;
+
+  if v_to is not null then
+    select coalesce(name, '') into v_to_name from public.profiles where id = v_to;
+    if not found then
+      select coalesce(name, '') into v_to_name from public.partners where id = v_to;
+      if not found then
+        raise exception 'recipient_not_found';
+      end if;
+    end if;
+  else
+    -- Resolve by phone: compare digits only, so "+60 12-345 6789" and
+    -- "0123456789" line up; fall back to matching the last 9 digits to
+    -- bridge country-code prefixes.
+    v_digits := regexp_replace(coalesce(p_to_phone, ''), '\D', '', 'g');
+    if length(v_digits) < 7 then
+      raise exception 'recipient_not_found';
+    end if;
+
+    select id, coalesce(name, '') into v_to, v_to_name
+    from public.profiles
+    where regexp_replace(coalesce(phone, ''), '\D', '', 'g') = v_digits
+       or (length(v_digits) >= 9
+           and right(regexp_replace(coalesce(phone, ''), '\D', '', 'g'), 9) = right(v_digits, 9))
+    order by created_at
+    limit 1;
+
+    if v_to is null then
+      select id, coalesce(name, '') into v_to, v_to_name
+      from public.partners
+      where regexp_replace(coalesce(phone, ''), '\D', '', 'g') = v_digits
+         or (length(v_digits) >= 9
+             and right(regexp_replace(coalesce(phone, ''), '\D', '', 'g'), 9) = right(v_digits, 9))
+      order by created_at
+      limit 1;
+    end if;
+
+    if v_to is null then
+      raise exception 'recipient_not_found';
+    end if;
+  end if;
+
+  if v_to = p_from then
+    raise exception 'self_transfer';
+  end if;
+
+  select coalesce(name, '') into v_from_name from public.profiles where id = p_from;
+  if not found then
+    select coalesce(name, '') into v_from_name from public.partners where id = p_from;
+  end if;
+
+  -- Lock the sender's coin wallet so concurrent transfers serialise.
+  insert into public.wallets (user_id, wallet_type, balance)
+  values (p_from, 'get_coin', 0)
+  on conflict (user_id, wallet_type) do nothing;
+
+  select balance into v_balance
+  from public.wallets
+  where user_id = p_from and wallet_type = 'get_coin'
+  for update;
+
+  if v_balance is null or v_balance < v_coins then
+    raise exception 'insufficient_coins';
+  end if;
+
+  -- Ledger-driven: the trg_wallet_tx_apply trigger moves both balances.
+  insert into public.wallet_transactions (user_id, wallet_type, kind, amount, method, note)
+  values
+    (p_from, 'get_coin', 'transfer_out', -v_coins, 'p2p_transfer',
+     'Sent to ' || coalesce(nullif(v_to_name, ''), 'user') || v_suffix),
+    (v_to, 'get_coin', 'transfer_in', v_coins, 'p2p_transfer',
+     'Received from ' || coalesce(nullif(v_from_name, ''), 'user') || v_suffix);
+
+  select balance into v_after
+  from public.wallets
+  where user_id = p_from and wallet_type = 'get_coin';
+
+  return jsonb_build_object(
+    'coins',          v_coins,
+    'recipient_id',   v_to,
+    'recipient_name', nullif(v_to_name, ''),
+    'balance_after',  v_after
+  );
+end;
+$$;
+
+grant execute on function public.wallet_transfer_coins(uuid, numeric, uuid, text, text)
+  to anon, authenticated;
