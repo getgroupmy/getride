@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,12 @@ import {
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
+  Modal,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter, useFocusEffect } from "expo-router";
+import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import {
   ChevronLeft,
   Coins,
@@ -22,6 +25,9 @@ import {
   Info,
   Send,
   QrCode,
+  ScanLine,
+  X,
+  Camera as CameraIcon,
 } from "lucide-react-native";
 import Svg, { Polyline, Line } from "react-native-svg";
 import * as Haptics from "expo-haptics";
@@ -152,6 +158,45 @@ export default function WalletTradeScreen() {
   const [trading, setTrading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [successNote, setSuccessNote] = useState<string>("");
+
+  const [scanVisible, setScanVisible] = useState<boolean>(false);
+  const [scanError, setScanError] = useState<string>("");
+  const [permission, requestPermission] = useCameraPermissions();
+  const scanLockRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (scanVisible && permission && !permission.granted && permission.canAskAgain) {
+      requestPermission();
+    }
+  }, [scanVisible, permission, requestPermission]);
+
+  const openScanner = () => {
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    scanLockRef.current = false;
+    setScanError("");
+    setScanVisible(true);
+  };
+
+  const handleScanned = useCallback((result: BarcodeScanningResult) => {
+    if (scanLockRef.current || !result?.data) return;
+    scanLockRef.current = true;
+    const parsed = parseRecipient(result.data);
+    if (!parsed) {
+      setScanError("That QR code isn't a GET wallet code. Try another.");
+      // Re-arm after a moment so the user can point at a different code.
+      setTimeout(() => {
+        scanLockRef.current = false;
+      }, 1200);
+      return;
+    }
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    setRecipientInput(result.data.trim());
+    setError("");
+    setSuccessNote("");
+    setScanVisible(false);
+  }, []);
 
   const loadAll = useCallback(async () => {
     try {
@@ -501,6 +546,13 @@ export default function WalletTradeScreen() {
                     autoCorrect={false}
                     testID="trade-recipient-input"
                   />
+                  <TouchableOpacity
+                    style={styles.scanBtn}
+                    onPress={openScanner}
+                    testID="trade-scan-qr"
+                  >
+                    <ScanLine color={COIN_AMBER_DARK} size={18} />
+                  </TouchableOpacity>
                 </View>
               ) : null}
 
@@ -616,6 +668,77 @@ export default function WalletTradeScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+
+      {/* QR scanner — fills the "Send to" field from a wallet QR code */}
+      <Modal
+        visible={scanVisible}
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setScanVisible(false)}
+      >
+        <View style={styles.scanContainer} testID="trade-scan-modal">
+          {permission?.granted ? (
+            <CameraView
+              style={StyleSheet.absoluteFill}
+              facing="back"
+              barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+              onBarcodeScanned={handleScanned}
+            />
+          ) : null}
+          <SafeAreaView style={styles.scanOverlay} edges={["top", "bottom"]}>
+            <View style={styles.scanTopRow}>
+              <TouchableOpacity
+                style={styles.scanCloseBtn}
+                onPress={() => setScanVisible(false)}
+                testID="trade-scan-close"
+              >
+                <X color="#FFFFFF" size={22} />
+              </TouchableOpacity>
+              <Text style={styles.scanTitle}>Scan wallet QR</Text>
+              <View style={styles.scanCloseBtn} />
+            </View>
+
+            <View style={styles.scanFrameArea}>
+              {permission?.granted ? (
+                <>
+                  <View style={styles.scanFrame}>
+                    <View style={[styles.scanCorner, styles.scanCornerTL]} />
+                    <View style={[styles.scanCorner, styles.scanCornerTR]} />
+                    <View style={[styles.scanCorner, styles.scanCornerBL]} />
+                    <View style={[styles.scanCorner, styles.scanCornerBR]} />
+                  </View>
+                  <Text style={styles.scanHint}>
+                    {scanError || "Point at the recipient's GET.coin QR code"}
+                  </Text>
+                </>
+              ) : (
+                <View style={styles.scanPermissionCard}>
+                  <CameraIcon color="#FFFFFF" size={34} />
+                  <Text style={styles.scanPermissionTitle}>Camera access needed</Text>
+                  <Text style={styles.scanPermissionSub}>
+                    Allow camera access to scan the recipient&apos;s wallet QR code.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.scanPermissionBtn}
+                    onPress={() => {
+                      if (permission?.canAskAgain) {
+                        requestPermission();
+                      } else {
+                        Linking.openSettings().catch(() => {});
+                      }
+                    }}
+                    testID="trade-scan-allow-camera"
+                  >
+                    <Text style={styles.scanPermissionBtnText}>
+                      {permission?.canAskAgain === false ? "Open Settings" : "Allow Camera"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -750,6 +873,76 @@ const styles = StyleSheet.create({
     color: "#111827",
     paddingVertical: 12,
   },
+  scanBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: "#FEF3C7",
+  },
+  scanContainer: { flex: 1, backgroundColor: "#111111" },
+  scanOverlay: { flex: 1 },
+  scanTopRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  scanCloseBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  scanTitle: { fontSize: 16, fontWeight: "800" as const, color: "#FFFFFF" },
+  scanFrameArea: {
+    flex: 1,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 22,
+  },
+  scanFrame: { width: 260, height: 260 },
+  scanCorner: {
+    position: "absolute" as const,
+    width: 52,
+    height: 52,
+    borderColor: "#FFFFFF",
+  },
+  scanCornerTL: { top: 0, left: 0, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 30 },
+  scanCornerTR: { top: 0, right: 0, borderTopWidth: 5, borderRightWidth: 5, borderTopRightRadius: 30 },
+  scanCornerBL: { bottom: 0, left: 0, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 30 },
+  scanCornerBR: { bottom: 0, right: 0, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 30 },
+  scanHint: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: "#FFFFFF",
+    textAlign: "center" as const,
+    paddingHorizontal: 40,
+  },
+  scanPermissionCard: {
+    alignItems: "center" as const,
+    gap: 10,
+    paddingHorizontal: 32,
+  },
+  scanPermissionTitle: { fontSize: 18, fontWeight: "800" as const, color: "#FFFFFF" },
+  scanPermissionSub: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.75)",
+    textAlign: "center" as const,
+    lineHeight: 20,
+  },
+  scanPermissionBtn: {
+    marginTop: 8,
+    borderRadius: 999,
+    paddingHorizontal: 26,
+    paddingVertical: 12,
+    backgroundColor: SEND_AMBER,
+  },
+  scanPermissionBtnText: { fontSize: 15, fontWeight: "800" as const, color: "#FFFFFF" },
   amountRow: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
