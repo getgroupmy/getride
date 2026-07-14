@@ -974,6 +974,134 @@ export async function tradeCoins(input: {
   };
 }
 
+export interface TransferCoinsResult extends WalletActionResult {
+  /** GC sent. */
+  coins?: number;
+  /** Recipient display name resolved by the server (null when unknown). */
+  recipientName?: string | null;
+}
+
+/**
+ * Send GET.coin to another account (user or partner) — coins move 1:1 between
+ * wallets, nothing is minted or burned. Uses the atomic `wallet_transfer_coins`
+ * RPC (migration 0064), which resolves the recipient by account id or phone
+ * number server-side (profiles are RLS-protected, so the client can't look
+ * other users up itself). On pre-0064 databases it falls back to direct
+ * ledger inserts for id-addressed recipients (the 0060 trigger moves both
+ * balances). A two-party transfer can't settle on one device, so there is no
+ * AsyncStorage fallback — offline sends fail with a clear error instead.
+ */
+export async function transferCoins(input: {
+  fromUserId: string;
+  /** Recipient account id (e.g. from a scanned getpay:// QR). */
+  toUserId?: string;
+  /** Recipient phone number — resolved server-side. */
+  toPhone?: string;
+  coins: number;
+  note?: string;
+}): Promise<TransferCoinsResult> {
+  const { fromUserId } = input;
+  const coins = round2(input.coins);
+  const toUserId = input.toUserId?.trim() || undefined;
+  const toPhone = input.toPhone?.trim() || undefined;
+  if (!fromUserId) return { ok: false, error: "Missing user." };
+  if (!(coins > 0)) return { ok: false, error: "Enter an amount greater than 0." };
+  if (!toUserId && !toPhone) return { ok: false, error: "Enter who to send to." };
+  if (toUserId && toUserId === fromUserId) {
+    return { ok: false, error: "You can't send coins to yourself." };
+  }
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: "Sending coins needs a connection. Try again when you're online." };
+  }
+
+  const note = input.note?.trim() || null;
+
+  try {
+    const { data, error } = await supabase.rpc("wallet_transfer_coins", {
+      p_from: fromUserId,
+      p_coins: coins,
+      p_to: toUserId ?? null,
+      p_to_phone: toPhone ?? null,
+      p_note: note,
+    });
+    if (error) throw error;
+    const row = (data ?? {}) as Record<string, unknown>;
+    return {
+      ok: true,
+      balances: await fetchWalletBalances(fromUserId),
+      coins,
+      recipientName: typeof row.recipient_name === "string" ? row.recipient_name : null,
+    };
+  } catch (e) {
+    const msg = String((e as { message?: string })?.message ?? e ?? "");
+    if (msg.includes("insufficient_coins")) {
+      return { ok: false, error: "Not enough GET.coin to send." };
+    }
+    if (msg.includes("recipient_not_found")) {
+      return { ok: false, error: "Recipient not found. Check the number and try again." };
+    }
+    if (msg.includes("self_transfer")) {
+      return { ok: false, error: "You can't send coins to yourself." };
+    }
+    if (msg.includes("invalid_amount")) {
+      return { ok: false, error: "Enter an amount greater than 0." };
+    }
+    if (!isMissingSchemaError(e)) {
+      console.log("[wallet] coin transfer failed", e);
+      return { ok: false, error: "Transfer failed. Please try again." };
+    }
+    console.log("[wallet] transfer RPC missing — falling back to ledger inserts");
+  }
+
+  // Pre-0064 database: settle by inserting the two ledger rows directly.
+  // Phone recipients can't be resolved client-side (profiles are
+  // RLS-protected), so this path needs an account id.
+  if (!toUserId) {
+    return {
+      ok: false,
+      error: "Sending by phone number isn't available yet. Ask the recipient to show their wallet QR code instead.",
+    };
+  }
+  try {
+    const balances = await fetchWalletBalances(fromUserId);
+    if (balances.source !== "supabase") {
+      return { ok: false, error: "Sending coins needs a connection. Try again when you're online." };
+    }
+    if (balances.getCoin < coins) {
+      return { ok: false, error: "Not enough GET.coin to send." };
+    }
+    const suffix = note ? ` — ${note}` : "";
+    const { error } = await supabase.from("wallet_transactions").insert([
+      {
+        user_id: fromUserId,
+        wallet_type: "get_coin",
+        kind: "transfer_out",
+        amount: -coins,
+        method: "p2p_transfer",
+        note: `Sent to ${toUserId.slice(0, 8)}…${suffix}`,
+      },
+      {
+        user_id: toUserId,
+        wallet_type: "get_coin",
+        kind: "transfer_in",
+        amount: coins,
+        method: "p2p_transfer",
+        note: `Received GET.coin${suffix}`,
+      },
+    ]);
+    if (error) throw error;
+    return { ok: true, balances: await fetchWalletBalances(fromUserId), coins, recipientName: null };
+  } catch (e) {
+    const msg = String((e as { message?: string })?.message ?? e ?? "").toLowerCase();
+    if (msg.includes("check") || msg.includes("balance") || msg.includes("negative")) {
+      return { ok: false, error: "Not enough GET.coin to send." };
+    }
+    console.log("[wallet] coin transfer fallback failed", e);
+    return { ok: false, error: "Transfer failed. Please try again." };
+  }
+}
+
 export interface CommissionChargeResult {
   ok: boolean;
   /** True when this ride's commission had already been charged earlier. */
