@@ -9,6 +9,7 @@ import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import WalletBalanceBar from "@/components/WalletBalanceBar";
 import { fetchWalletBalances, type WalletBalances } from "@/utils/walletStore";
+import { requestWalletReload } from "@/utils/walletUiFlags";
 
 const QR_SIZE = 256;
 
@@ -102,10 +103,23 @@ export default function WalletShowCodeScreen() {
   }, [digits]);
 
   const openReload = () => {
-    router.navigate({
-      pathname: "/wallet",
-      params: isPartnerMode ? { mode: "partner", action: "reload" } : { action: "reload" },
-    });
+    // Dismiss back to the already-mounted wallet screen (avoids stacking a
+    // duplicate wallet screen); it opens the reload popup on focus.
+    requestWalletReload("/wallet-show-code");
+    try {
+      router.dismissTo(
+        isPartnerMode
+          ? { pathname: "/wallet", params: { mode: "partner" } }
+          : { pathname: "/wallet" }
+      );
+    } catch (e) {
+      console.log("[wallet-show-code] dismissTo wallet failed, falling back", e);
+      router.navigate(
+        isPartnerMode
+          ? { pathname: "/wallet", params: { mode: "partner" } }
+          : { pathname: "/wallet" }
+      );
+    }
   };
 
   return (

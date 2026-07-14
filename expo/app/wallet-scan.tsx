@@ -35,6 +35,7 @@ import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import WalletBalanceBar from "@/components/WalletBalanceBar";
 import { fetchWalletBalances, payFromWallet, type WalletBalances } from "@/utils/walletStore";
+import { requestWalletReload } from "@/utils/walletUiFlags";
 
 /** DuitNow-style pin mark: rounded square with one square corner and a hole. */
 function DuitNowMark({ size }: { size: number }) {
@@ -291,10 +292,23 @@ export default function WalletScanScreen() {
   };
 
   const openReload = () => {
-    router.navigate({
-      pathname: "/wallet",
-      params: isPartnerMode ? { mode: "partner", action: "reload" } : { action: "reload" },
-    });
+    // Dismiss back to the already-mounted wallet screen (avoids stacking a
+    // duplicate wallet screen); it opens the reload popup on focus.
+    requestWalletReload("/wallet-scan");
+    try {
+      router.dismissTo(
+        isPartnerMode
+          ? { pathname: "/wallet", params: { mode: "partner" } }
+          : { pathname: "/wallet" }
+      );
+    } catch (e) {
+      console.log("[wallet-scan] dismissTo wallet failed, falling back", e);
+      router.navigate(
+        isPartnerMode
+          ? { pathname: "/wallet", params: { mode: "partner" } }
+          : { pathname: "/wallet" }
+      );
+    }
   };
 
   const openShowCode = () => {

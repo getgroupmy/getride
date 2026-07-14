@@ -47,6 +47,7 @@ import {
   type WalletType,
 } from "@/utils/walletStore";
 import { formatActivityDate, formatUpdatedStamp, walletTxMeta } from "@/utils/walletDisplay";
+import { consumeWalletReloadRequest } from "@/utils/walletUiFlags";
 
 /**
  * Dollar-in-circle with an incoming arrow — matches the "Reload" reference icon.
@@ -113,7 +114,7 @@ export default function WalletScreen() {
   const scrollRef = useRef<ScrollView | null>(null);
   const creditCardY = useRef<number>(0);
   const didAutoScroll = useRef<boolean>(false);
-  const returnToScanRef = useRef<boolean>(false);
+  const reloadReturnPathRef = useRef<"/wallet-scan" | "/wallet-show-code" | null>(null);
   const [highlighted, setHighlighted] = useState<"credit" | "wallet" | null>(null);
 
   const [balances, setBalances] = useState<WalletBalances | null>(null);
@@ -161,6 +162,17 @@ export default function WalletScreen() {
   useFocusEffect(
     useCallback(() => {
       loadAll();
+      // Reload requested from the Scan / Show Code screens (they dismiss back
+      // to this already-mounted wallet screen instead of pushing a new one).
+      const returnPath = consumeWalletReloadRequest();
+      if (returnPath) {
+        reloadReturnPathRef.current = returnPath;
+        setAmountText("");
+        setActionError("");
+        setMethodId("");
+        setTopUpStep("amount");
+        setTopUpVisible(true);
+      }
       // Live updates: refetch whenever this user's wallet rows change in the
       // database. When Supabase isn't reachable/configured this is a no-op and
       // the screen keeps using the device-local wallet.
@@ -187,12 +199,10 @@ export default function WalletScreen() {
     };
   }, [loading, focusTarget]);
 
-  // Opened via the Scan / Show Code screens' "Reload" link. Cancelling the
-  // popup in that case returns to the screen that opened it.
+  // Legacy deep-link support (e.g. ?action=reload) — just opens the popup.
   useEffect(() => {
     if (params.action !== "reload") return;
     router.setParams({ action: "" });
-    returnToScanRef.current = true;
     setAmountText("");
     setActionError("");
     setMethodId("");
@@ -200,19 +210,19 @@ export default function WalletScreen() {
     setTopUpVisible(true);
   }, [params.action, router]);
 
-  /** Close the reload popup; if it was opened from Scan, go back there. */
+  /** Close the reload popup; if opened from Scan / Show Code, return there. */
   const closeTopUp = useCallback(() => {
     setTopUpVisible(false);
-    if (returnToScanRef.current) {
-      returnToScanRef.current = false;
-      // router.canGoBack() throws on web, so just attempt back() safely.
-      try {
-        router.back();
-      } catch (e) {
-        console.log("[wallet-screen] back to scan failed", e);
-      }
+    const returnPath = reloadReturnPathRef.current;
+    if (returnPath) {
+      reloadReturnPathRef.current = null;
+      router.push(
+        isPartnerMode
+          ? { pathname: returnPath, params: { mode: "partner" } }
+          : { pathname: returnPath }
+      );
     }
-  }, [router]);
+  }, [router, isPartnerMode]);
 
   useEffect(() => {
     if (!successNote) return;
@@ -230,7 +240,7 @@ export default function WalletScreen() {
   }, [amountText]);
 
   const openTopUp = () => {
-    returnToScanRef.current = false;
+    reloadReturnPathRef.current = null;
     setAmountText("");
     setActionError("");
     setMethodId("");
@@ -263,7 +273,7 @@ export default function WalletScreen() {
       return;
     }
     if (res.balances) setBalances(res.balances);
-    returnToScanRef.current = false;
+    reloadReturnPathRef.current = null;
     setTopUpVisible(false);
     setSuccessNote(`RM ${parsedAmount.toFixed(2)} added to GET.wallet`);
     loadAll();
