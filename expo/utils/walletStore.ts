@@ -774,6 +774,206 @@ export async function redeemCoinsForFare(input: {
   return { ok: true, coinsUsed: split.coinsUsed, coinValue: split.coinValue };
 }
 
+export interface TradeCoinsResult extends WalletActionResult {
+  /** GC bought or sold. */
+  coins?: number;
+  /** RM moved in/out of GET.wallet. */
+  amountCurrency?: number;
+  /** RM value of 1 GC at execution. */
+  ratePerGC?: number;
+}
+
+/**
+ * Trade GET.coin against GET.wallet at the given rate.
+ *  - buy : GET.wallet pays `coins × ratePerGC` RM, GET.coin receives the GC
+ *          (mints new coins — blocked when the supply cap would be exceeded).
+ *  - sell: GET.coin burns the GC, GET.wallet receives the RM.
+ * Ledger-driven: inserts transaction rows and the DB trigger moves balances.
+ * Falls back to the device-local wallet when the schema is missing.
+ */
+export async function tradeCoins(input: {
+  userId: string;
+  direction: "buy" | "sell";
+  coins: number;
+  /** RM value of 1 GC at execution (market or pegged rate). */
+  ratePerGC: number;
+  /** Hard cap on circulating GC (0 = unlimited) — enforced on buys. */
+  maxSupply?: number;
+  /** Current circulating GC, for cap enforcement. */
+  circulatingSupply?: number;
+}): Promise<TradeCoinsResult> {
+  const { userId, direction, ratePerGC } = input;
+  const coins = round2(input.coins);
+  if (!userId) return { ok: false, error: "Missing user." };
+  if (!(coins > 0)) return { ok: false, error: "Enter an amount greater than 0." };
+  if (!(ratePerGC > 0)) return { ok: false, error: "Coin rate unavailable. Try again." };
+
+  const amountCurrency = round2(coins * ratePerGC);
+  if (!(amountCurrency > 0)) return { ok: false, error: "Amount is too small to trade." };
+
+  const maxSupply = input.maxSupply ?? 0;
+  if (direction === "buy" && maxSupply > 0) {
+    const circulating = Math.max(input.circulatingSupply ?? 0, 0);
+    const remaining = round2(maxSupply - circulating);
+    if (remaining <= 0) {
+      return { ok: false, error: "Supply cap reached — no more GC can be minted." };
+    }
+    if (coins > remaining) {
+      return { ok: false, error: `Only ${remaining.toLocaleString()} GC left before the supply cap.` };
+    }
+  }
+
+  const rateNote = `RM${ratePerGC.toFixed(4)}/GC`;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const balances = await fetchWalletBalances(userId);
+      if (balances.source === "supabase") {
+        if (direction === "buy" && balances.getWallet < amountCurrency) {
+          return { ok: false, error: "Not enough balance in GET.wallet." };
+        }
+        if (direction === "sell" && balances.getCoin < coins) {
+          return { ok: false, error: "Not enough GET.coin to sell." };
+        }
+        const rows =
+          direction === "buy"
+            ? [
+                {
+                  user_id: userId,
+                  wallet_type: "get_wallet",
+                  kind: "payment",
+                  amount: -amountCurrency,
+                  method: "coin_trade",
+                  note: `Bought ${coins} GC @ ${rateNote}`,
+                },
+                {
+                  user_id: userId,
+                  wallet_type: "get_coin",
+                  kind: "topup",
+                  amount: coins,
+                  method: "trade_buy",
+                  note: `Bought @ ${rateNote}`,
+                },
+              ]
+            : [
+                {
+                  user_id: userId,
+                  wallet_type: "get_coin",
+                  kind: "redeem",
+                  amount: -coins,
+                  method: "trade_sell",
+                  note: `Sold @ ${rateNote}`,
+                },
+                {
+                  user_id: userId,
+                  wallet_type: "get_wallet",
+                  kind: "topup",
+                  amount: amountCurrency,
+                  method: "coin_trade",
+                  note: `Sold ${coins} GC @ ${rateNote}`,
+                },
+              ];
+        const { error } = await supabase.from("wallet_transactions").insert(rows);
+        if (error) throw error;
+        return {
+          ok: true,
+          balances: await fetchWalletBalances(userId),
+          coins,
+          amountCurrency,
+          ratePerGC,
+        };
+      }
+    } catch (e) {
+      const msg = String((e as { message?: string })?.message ?? e ?? "").toLowerCase();
+      if (msg.includes("check") || msg.includes("balance") || msg.includes("negative")) {
+        return {
+          ok: false,
+          error: direction === "buy" ? "Not enough balance in GET.wallet." : "Not enough GET.coin to sell.",
+        };
+      }
+      if (!isMissingSchemaError(e)) {
+        console.log("[wallet] coin trade failed", e);
+        return { ok: false, error: "Trade failed. Please try again." };
+      }
+      console.log("[wallet] coin trade falling back to local wallet");
+    }
+  }
+
+  const local = await readLocalBalances(userId);
+  if (direction === "buy" && local.getWallet < amountCurrency) {
+    return { ok: false, error: "Not enough balance in GET.wallet." };
+  }
+  if (direction === "sell" && local.getCoin < coins) {
+    return { ok: false, error: "Not enough GET.coin to sell." };
+  }
+  const next: LocalWalletState =
+    direction === "buy"
+      ? {
+          ...local,
+          getWallet: round2(local.getWallet - amountCurrency),
+          getCoin: round2(local.getCoin + coins),
+        }
+      : {
+          ...local,
+          getWallet: round2(local.getWallet + amountCurrency),
+          getCoin: round2(local.getCoin - coins),
+        };
+  await writeLocalBalances(userId, next);
+  await appendLocalTransactions(
+    userId,
+    direction === "buy"
+      ? [
+          {
+            walletType: "get_coin",
+            kind: "topup",
+            amount: coins,
+            balanceAfter: next.getCoin,
+            method: "trade_buy",
+            note: `Bought @ ${rateNote}`,
+          },
+          {
+            walletType: "get_wallet",
+            kind: "payment",
+            amount: -amountCurrency,
+            balanceAfter: next.getWallet,
+            method: "coin_trade",
+            note: `Bought ${coins} GC @ ${rateNote}`,
+          },
+        ]
+      : [
+          {
+            walletType: "get_wallet",
+            kind: "topup",
+            amount: amountCurrency,
+            balanceAfter: next.getWallet,
+            method: "coin_trade",
+            note: `Sold ${coins} GC @ ${rateNote}`,
+          },
+          {
+            walletType: "get_coin",
+            kind: "redeem",
+            amount: -coins,
+            balanceAfter: next.getCoin,
+            method: "trade_sell",
+            note: `Sold @ ${rateNote}`,
+          },
+        ]
+  );
+  return {
+    ok: true,
+    balances: {
+      getWallet: next.getWallet,
+      getCredit: next.getCredit,
+      getCoin: next.getCoin,
+      currency: "RM",
+      source: "local",
+    },
+    coins,
+    amountCurrency,
+    ratePerGC,
+  };
+}
+
 export interface CommissionChargeResult {
   ok: boolean;
   /** True when this ride's commission had already been charged earlier. */

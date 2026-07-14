@@ -32,6 +32,7 @@ import {
   EyeOff,
   X,
   Coins,
+  TrendingUp,
 } from "lucide-react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
@@ -989,11 +990,19 @@ export default function WalletScreen() {
               <Text style={styles.creditBalance} testID="wallet-coin-balance">
                 {formatCoins(balances?.getCoin ?? 0)}
               </Text>
-              <Text style={[styles.creditHint, { marginBottom: 0 }]}>
+              <Text style={styles.creditHint}>
                 {coinSettings
                   ? `≈ RM ${coinsToCurrency(balances?.getCoin ?? 0, coinSettings.coinsPerCurrency).toFixed(2)} · Rate: RM1 = ${coinSettings.coinsPerCurrency % 1 === 0 ? coinSettings.coinsPerCurrency : coinSettings.coinsPerCurrency.toFixed(2)} GC`
                   : "Get Coins earned in the app."}
               </Text>
+              <TouchableOpacity
+                style={[styles.rechargeBtn, { backgroundColor: "#EAB308" }]}
+                onPress={() => router.push("/wallet-trade" as any)}
+                testID="wallet-trade-open"
+              >
+                <TrendingUp color="#000000" size={16} />
+                <Text style={styles.rechargeBtnText}>Trade GET.coin</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Recent Activity */}
