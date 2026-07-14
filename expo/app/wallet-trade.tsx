@@ -48,9 +48,17 @@ import {
 import {
   fetchWalletBalances,
   tradeCoins,
-  transferCoins,
   type WalletBalances,
 } from "@/utils/walletStore";
+import {
+  requestCoinTransfer,
+  cancelTransferRequest,
+  fetchTransferRequest,
+  subscribeTransferRequestUpdates,
+  isRequestExpired,
+  type WalletTransferRequest,
+  type TransferRequestStatus,
+} from "@/utils/transferRequestsStore";
 
 const COIN_YELLOW = "#EAB308";
 const COIN_AMBER_DARK = "#92400E";
@@ -163,6 +171,19 @@ export default function WalletTradeScreen() {
   const [scanError, setScanError] = useState<string>("");
   const [permission, requestPermission] = useCameraPermissions();
   const scanLockRef = useRef<boolean>(false);
+
+  // Send approval handshake: the request we're waiting on, then its outcome.
+  const [awaiting, setAwaiting] = useState<{
+    requestId: string;
+    coins: number;
+    recipientHint: string;
+  } | null>(null);
+  const [outcome, setOutcome] = useState<{
+    status: TransferRequestStatus;
+    name: string | null;
+    coins: number;
+  } | null>(null);
+  const resolvedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (scanVisible && permission && !permission.granted && permission.canAskAgain) {
@@ -293,7 +314,7 @@ export default function WalletTradeScreen() {
         setError(!authState.userId ? "Sign in to send coins." : "Enter who to send to.");
         return;
       }
-      const res = await transferCoins({
+      const res = await requestCoinTransfer({
         fromUserId: authState.userId,
         ...recipient,
         coins: parsedCoins,
@@ -306,15 +327,30 @@ export default function WalletTradeScreen() {
         }
         return;
       }
-      if (res.balances) setBalances(res.balances);
-      setAmountInput("");
-      setRecipientInput("");
-      setSuccessNote(
-        `Sent ${formatCoins(res.coins ?? 0)} to ${res.recipientName ?? recipientInput.trim()}`
-      );
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      // Pre-approval databases send instantly — keep the old success path.
+      if (res.immediate) {
+        if (res.balances) setBalances(res.balances);
+        setAmountInput("");
+        setRecipientInput("");
+        setSuccessNote(
+          `Sent ${formatCoins(res.coins ?? 0)} to ${res.recipientName ?? recipientInput.trim()}`
+        );
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        }
+        return;
       }
+      if (!res.requestId) {
+        setError("Transfer request failed. Please try again.");
+        return;
+      }
+      // The recipient now gets a popup naming the sender and the amount;
+      // coins move once they accept.
+      setAwaiting({
+        requestId: res.requestId,
+        coins: res.coins ?? parsedCoins,
+        recipientHint: recipientInput.trim(),
+      });
       return;
     }
 
@@ -351,6 +387,63 @@ export default function WalletTradeScreen() {
     } catch (e) {
       console.log("[wallet-trade] stats refresh failed", e);
     }
+  };
+
+  // A watched request left the pending state (realtime or poll — both can
+  // fire, so the resolved-ids set dedupes).
+  const handleRequestResolved = useCallback(
+    (req: WalletTransferRequest) => {
+      if (req.status === "pending") return;
+      if (resolvedIdsRef.current.has(req.id)) return;
+      resolvedIdsRef.current.add(req.id);
+      setAwaiting(null);
+      setOutcome({ status: req.status, name: req.toName, coins: req.coins });
+      if (req.status === "accepted") {
+        setAmountInput("");
+        setRecipientInput("");
+        fetchWalletBalances(userId)
+          .then(setBalances)
+          .catch((e) => console.log("[wallet-trade] balance refresh failed", e));
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        }
+      } else if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      }
+    },
+    [userId]
+  );
+
+  // Watch the pending request for the recipient's response — realtime first,
+  // with a light poll as fallback (realtime may be unavailable).
+  useEffect(() => {
+    if (!awaiting) return;
+    const unsubscribe = subscribeTransferRequestUpdates(
+      awaiting.requestId,
+      handleRequestResolved
+    );
+    const poll = setInterval(async () => {
+      const req = await fetchTransferRequest(awaiting.requestId);
+      if (!req) return;
+      if (req.status !== "pending") {
+        handleRequestResolved(req);
+      } else if (isRequestExpired(req)) {
+        handleRequestResolved({ ...req, status: "expired" });
+      }
+    }, 5000);
+    return () => {
+      unsubscribe();
+      clearInterval(poll);
+    };
+  }, [awaiting, handleRequestResolved]);
+
+  const handleCancelRequest = async () => {
+    if (!awaiting || !authState.userId) return;
+    const id = awaiting.requestId;
+    // Ignore any late update events for this request.
+    resolvedIdsRef.current.add(id);
+    setAwaiting(null);
+    await cancelTransferRequest({ requestId: id, userId: authState.userId });
   };
 
   const goBack = () => {
@@ -661,8 +754,9 @@ export default function WalletTradeScreen() {
               <Info color="#9CA3AF" size={13} />
               <Text style={styles.noteText}>
                 Trades settle instantly between GET.wallet and GET.coin at the rate shown.
-                Sending moves coins straight to the other person&apos;s GET.coin wallet.
-                Spending and ride redemptions always use the official pegged rate.
+                Sending asks the recipient to approve first — the coins move to their
+                GET.coin wallet once they accept. Spending and ride redemptions always
+                use the official pegged rate.
               </Text>
             </View>
           </ScrollView>
@@ -737,6 +831,89 @@ export default function WalletTradeScreen() {
               )}
             </View>
           </SafeAreaView>
+        </View>
+      </Modal>
+
+      {/* Send approval — waiting for the recipient, then the outcome */}
+      <Modal
+        visible={awaiting !== null || outcome !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {
+          if (outcome) setOutcome(null);
+        }}
+      >
+        <View style={styles.approvalBackdrop}>
+          {awaiting ? (
+            <View style={styles.approvalCard} testID="transfer-waiting-modal">
+              <ActivityIndicator color={SEND_AMBER} size="large" />
+              <Text style={styles.approvalTitle}>Waiting for approval</Text>
+              <Text style={styles.approvalSub}>
+                {`${awaiting.recipientHint || "The recipient"} got a notification to accept ${formatCoins(
+                  awaiting.coins
+                )} from you. The coins move once they approve.`}
+              </Text>
+              <TouchableOpacity
+                style={styles.approvalCancelBtn}
+                onPress={handleCancelRequest}
+                testID="transfer-cancel-request"
+              >
+                <Text style={styles.approvalCancelText}>Cancel request</Text>
+              </TouchableOpacity>
+            </View>
+          ) : outcome ? (
+            <View style={styles.approvalCard} testID="transfer-outcome-modal">
+              <View
+                style={[
+                  styles.approvalIconWrap,
+                  {
+                    backgroundColor:
+                      outcome.status === "accepted" ? "#DCFCE7" : "#FEE2E2",
+                  },
+                ]}
+              >
+                {outcome.status === "accepted" ? (
+                  <Check color={GAIN_GREEN} size={34} />
+                ) : (
+                  <X color={LOSS_RED} size={34} />
+                )}
+              </View>
+              <Text style={styles.approvalTitle} testID="transfer-outcome-title">
+                {outcome.status === "accepted"
+                  ? `${outcome.name ?? "Recipient"} approved your request`
+                  : outcome.status === "declined"
+                    ? `${outcome.name ?? "The recipient"} declined the transfer`
+                    : outcome.status === "expired"
+                      ? "Request expired"
+                      : outcome.status === "failed"
+                        ? "Transfer failed"
+                        : "Request cancelled"}
+              </Text>
+              <Text style={styles.approvalSub}>
+                {outcome.status === "accepted"
+                  ? `Sent ${formatCoins(outcome.coins)} to ${outcome.name ?? "the recipient"}.`
+                  : outcome.status === "expired"
+                    ? "The recipient didn't respond in time. Your GET.coin was not moved."
+                    : outcome.status === "failed"
+                      ? "There wasn't enough GET.coin when the recipient accepted."
+                      : "Your GET.coin was not moved."}
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.approvalDoneBtn,
+                  {
+                    backgroundColor:
+                      outcome.status === "accepted" ? GAIN_GREEN : "#4B5563",
+                  },
+                ]}
+                onPress={() => setOutcome(null)}
+                testID="transfer-outcome-done"
+              >
+                <Text style={styles.approvalDoneText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </View>
       </Modal>
     </SafeAreaView>
@@ -1006,4 +1183,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   noteText: { flex: 1, fontSize: 12, lineHeight: 17, color: "#9CA3AF" },
+  approvalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    padding: 28,
+  },
+  approvalCard: {
+    width: "100%" as const,
+    maxWidth: 400,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 24,
+    alignItems: "center" as const,
+  },
+  approvalIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  approvalTitle: {
+    fontSize: 17,
+    fontWeight: "800" as const,
+    color: "#111827",
+    textAlign: "center" as const,
+    marginTop: 14,
+  },
+  approvalSub: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#6B7280",
+    textAlign: "center" as const,
+    marginTop: 8,
+  },
+  approvalCancelBtn: {
+    marginTop: 18,
+    borderRadius: 12,
+    paddingHorizontal: 22,
+    paddingVertical: 11,
+    backgroundColor: "#F3F4F6",
+  },
+  approvalCancelText: { fontSize: 14, fontWeight: "800" as const, color: "#4B5563" },
+  approvalDoneBtn: {
+    marginTop: 18,
+    alignSelf: "stretch" as const,
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: "center" as const,
+  },
+  approvalDoneText: { fontSize: 15, fontWeight: "800" as const, color: "#FFFFFF" },
 });

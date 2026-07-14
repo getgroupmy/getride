@@ -21,6 +21,7 @@ import { PushNotificationProvider } from "@/contexts/PushNotificationContext";
 import { IpAccessProvider } from "@/contexts/IpAccessContext";
 import { AppIconChangeModal } from "@/components/AppIconChangeModal";
 import SupportCallListener from "@/components/SupportCallListener";
+import IncomingTransferPopup from "@/components/IncomingTransferPopup";
 import { RootErrorBoundary } from "@/components/RootErrorBoundary";
 import { installGlobalErrorGuard } from "@/utils/globalErrorGuard";
 
@@ -98,6 +99,7 @@ function RootLayoutNav() {
     <>
     <AppIconChangeModal />
     <SupportCallListener />
+    <IncomingTransferPopup />
     <ConnectionStatusModal
       visible={showConnectionModal}
       connected={isConnected}
