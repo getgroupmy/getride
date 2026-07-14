@@ -2795,6 +2795,10 @@ export default function RideConfirmScreen() {
       fontWeight: "700" as const,
       color: "#B45309",
     },
+    searchCoinEarnWrap: {
+      alignItems: "center" as const,
+      marginBottom: 12,
+    },
     bottomBar: {
       flexDirection: "row" as const,
       alignItems: "center" as const,
@@ -4792,6 +4796,17 @@ export default function RideConfirmScreen() {
             </TouchableOpacity>
               </>
             ) : null}
+            {coinEarnRate > 0 &&
+              rideRewardCoins(estimatedPrice + committedFareRaise + searchFareAdjustment, coinEarnRate) > 0 && (
+              <View style={styles.searchCoinEarnWrap} testID="ride-search-coin-earn">
+                <View style={styles.coinEarnPill}>
+                  <Coins color="#B45309" size={11} />
+                  <Text style={styles.coinEarnText}>
+                    Earn {formatCoins(rideRewardCoins(estimatedPrice + committedFareRaise + searchFareAdjustment, coinEarnRate))} on this booking
+                  </Text>
+                </View>
+              </View>
+            )}
             <View style={styles.searchAutoAcceptRow}>
               <View style={styles.searchAutoAcceptLeft}>
                 <Send color="#000" size={20} style={styles.searchAutoAcceptIcon} />
