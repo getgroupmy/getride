@@ -62,6 +62,7 @@ const LOCAL_BALANCES_KEY = (userId: string) => `wallet:balances:${userId}`;
 const LOCAL_TX_KEY = (userId: string) => `wallet:transactions:${userId}`;
 const COMMISSION_GUARD_KEY = (rideKey: string) => `wallet:commission:${rideKey}`;
 const COIN_REWARD_GUARD_KEY = (rideKey: string) => `wallet:coinreward:${rideKey}`;
+const COIN_REDEEM_GUARD_KEY = (rideKey: string) => `wallet:coinredeem:${rideKey}`;
 
 /**
  * Fallback platform commission rate. The effective rate is resolved per ride
@@ -669,6 +670,108 @@ export async function awardRideCoins(input: {
   await markAwarded();
   console.log("[wallet] ride coins awarded (local)", { guardKey, coins });
   return { ok: true, coins };
+}
+
+export interface CoinFareRedeemResult {
+  ok: boolean;
+  /** GC deducted (0 when nothing could be redeemed). */
+  coinsUsed: number;
+  /** Currency value the redeemed coins covered. */
+  coinValue: number;
+  error?: string;
+}
+
+/**
+ * Redeems GET.coin towards a ride fare when the rider enabled the "Use
+ * GET.coin" toggle at booking. Coins cover as much of the fare as the balance
+ * allows (at the admin exchange rate); the rider pays the remainder with the
+ * ride's payment method. Idempotent per ride via a device-local guard.
+ */
+export async function redeemCoinsForFare(input: {
+  userId: string;
+  /** Final trip total. */
+  fareTotal: number;
+  /** Idempotency key — ride request id or a simulated-ride key. */
+  rideKey: string;
+}): Promise<CoinFareRedeemResult> {
+  const { userId, fareTotal, rideKey } = input;
+  if (!userId) return { ok: false, coinsUsed: 0, coinValue: 0, error: "Missing user." };
+  if (!(fareTotal > 0)) return { ok: false, coinsUsed: 0, coinValue: 0, error: "Invalid fare." };
+  if (!rideKey) return { ok: false, coinsUsed: 0, coinValue: 0, error: "Missing ride reference." };
+
+  try {
+    const done = await AsyncStorage.getItem(COIN_REDEEM_GUARD_KEY(rideKey));
+    if (done) {
+      console.log("[wallet] ride coins already redeemed", rideKey);
+      return { ok: true, coinsUsed: 0, coinValue: 0 };
+    }
+  } catch (e) {
+    console.log("[wallet] coin redeem guard read failed", e);
+  }
+  const markRedeemed = async () => {
+    try {
+      await AsyncStorage.setItem(COIN_REDEEM_GUARD_KEY(rideKey), new Date().toISOString());
+    } catch (e) {
+      console.log("[wallet] coin redeem guard write failed", e);
+    }
+  };
+
+  const settings = await fetchGetCoinSettings();
+  const rate = settings.coinsPerCurrency;
+  if (!(rate > 0)) return { ok: true, coinsUsed: 0, coinValue: 0 };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const balances = await fetchWalletBalances(userId);
+      if (balances.source === "supabase") {
+        const split = computeCoinSplit(fareTotal, balances.getCoin, rate);
+        if (!(split.coinsUsed > 0)) {
+          await markRedeemed();
+          return { ok: true, coinsUsed: 0, coinValue: 0 };
+        }
+        const { error } = await supabase.from("wallet_transactions").insert({
+          user_id: userId,
+          wallet_type: "get_coin",
+          kind: "redeem",
+          amount: -split.coinsUsed,
+          method: "ride_fare",
+          note: `Ride fare \u2014 RM${split.coinValue.toFixed(2)} paid with coins`,
+        });
+        if (error) throw error;
+        await markRedeemed();
+        console.log("[wallet] ride coins redeemed (supabase)", { rideKey, coins: split.coinsUsed });
+        return { ok: true, coinsUsed: split.coinsUsed, coinValue: split.coinValue };
+      }
+    } catch (e) {
+      if (!isMissingSchemaError(e)) {
+        console.log("[wallet] coin fare redeem failed", e);
+        return { ok: false, coinsUsed: 0, coinValue: 0, error: "Coin redemption failed." };
+      }
+      console.log("[wallet] coin fare redeem falling back to local wallet");
+    }
+  }
+
+  const local = await readLocalBalances(userId);
+  const split = computeCoinSplit(fareTotal, local.getCoin, rate);
+  if (!(split.coinsUsed > 0)) {
+    await markRedeemed();
+    return { ok: true, coinsUsed: 0, coinValue: 0 };
+  }
+  const next: LocalWalletState = { ...local, getCoin: round2(local.getCoin - split.coinsUsed) };
+  await writeLocalBalances(userId, next);
+  await appendLocalTransactions(userId, [
+    {
+      walletType: "get_coin",
+      kind: "redeem",
+      amount: -split.coinsUsed,
+      balanceAfter: next.getCoin,
+      method: "ride_fare",
+      note: `Ride fare \u2014 RM${split.coinValue.toFixed(2)} paid with coins`,
+    },
+  ]);
+  await markRedeemed();
+  console.log("[wallet] ride coins redeemed (local)", { rideKey, coins: split.coinsUsed });
+  return { ok: true, coinsUsed: split.coinsUsed, coinValue: split.coinValue };
 }
 
 export interface CommissionChargeResult {

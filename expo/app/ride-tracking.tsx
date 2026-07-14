@@ -35,6 +35,7 @@ import {
   XCircle,
   ShieldAlert,
   Check,
+  Coins,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -52,7 +53,8 @@ import {
 } from "@/utils/rideRequestsStore";
 import { AppAlertModal } from "@/components/AppAlertModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { awardRideCoins } from "@/utils/walletStore";
+import { awardRideCoins, redeemCoinsForFare } from "@/utils/walletStore";
+import { formatCoins } from "@/utils/getCoinStore";
 
 const { width, height } = Dimensions.get("window");
 
@@ -115,6 +117,8 @@ export default function RideTrackingScreen() {
   const destLng = params.destLng ? parseFloat(params.destLng as string) : 101.7123;
 
   const requestId = (params.requestId as string) || "";
+  // "Use GET.coin" toggle from booking: redeem coins towards the fare at drop-off.
+  const useCoinsParam = (params.useCoins as string) === "1";
   const driverName = (params.driverName as string) || "Your driver";
   const driverPhoto = (params.driverPhoto as string) || "";
   const driverRating = (params.driverRating as string) || "5.0";
@@ -181,6 +185,45 @@ export default function RideTrackingScreen() {
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const cancelAnim = useRef(new Animated.Value(0)).current;
+
+  // GET.coin toast shown when the trip completes (coins earned / redeemed).
+  const [coinToast, setCoinToast] = useState<{
+    earned: number;
+    redeemedCoins: number;
+    redeemedValue: number;
+  } | null>(null);
+  // Coin discount applied to the fare, shown in the completed summary card.
+  const [coinRedeemInfo, setCoinRedeemInfo] = useState<{
+    coinsUsed: number;
+    coinValue: number;
+  } | null>(null);
+  const coinToastAnim = useRef(new Animated.Value(0)).current;
+  const coinToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Slide the coin toast in when set, auto-dismiss after a few seconds.
+  useEffect(() => {
+    if (!coinToast) return;
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    Animated.spring(coinToastAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 60,
+      friction: 9,
+    }).start();
+    if (coinToastTimerRef.current) clearTimeout(coinToastTimerRef.current);
+    coinToastTimerRef.current = setTimeout(() => {
+      Animated.timing(coinToastAnim, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }).start(() => setCoinToast(null));
+    }, 4500);
+    return () => {
+      if (coinToastTimerRef.current) clearTimeout(coinToastTimerRef.current);
+    };
+  }, [coinToast, coinToastAnim]);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -288,8 +331,10 @@ export default function RideTrackingScreen() {
     };
   }, [requestId]);
 
-  // GET.coin ride reward: when the trip completes, award GC to the rider at
-  // the admin-configured earn rate (idempotent per ride).
+  // GET.coin at trip completion: redeem coins towards the fare when the rider
+  // enabled the toggle at booking, then award ride-reward GC at the
+  // admin-configured earn rate (both idempotent per ride). Surfaces a toast
+  // with what was earned / used.
   const coinAwardFiredRef = useRef<boolean>(false);
   const simRideKeyRef = useRef<string>(`sim-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
   useEffect(() => {
@@ -298,17 +343,38 @@ export default function RideTrackingScreen() {
     const uid = authState.userId ?? "";
     const fare = parseFloat(priceParam.replace(/[^0-9.]/g, ""));
     if (!uid || !(fare > 0)) return;
-    void awardRideCoins({
-      userId: uid,
-      fareTotal: fare,
-      rideRequestId: requestId || null,
-      rideKey: requestId || simRideKeyRef.current,
-    }).then((res) => {
-      if (res.ok && res.coins > 0) {
-        console.log("[ride-tracking] ride reward granted", res.coins, "GC");
+    const rideKey = requestId || simRideKeyRef.current;
+    void (async () => {
+      let redeemedCoins = 0;
+      let redeemedValue = 0;
+      if (useCoinsParam) {
+        try {
+          const r = await redeemCoinsForFare({ userId: uid, fareTotal: fare, rideKey });
+          if (r.ok && r.coinsUsed > 0) {
+            redeemedCoins = r.coinsUsed;
+            redeemedValue = r.coinValue;
+            setCoinRedeemInfo({ coinsUsed: r.coinsUsed, coinValue: r.coinValue });
+            console.log("[ride-tracking] fare coins redeemed", r.coinsUsed, "GC");
+          }
+        } catch (e) {
+          console.log("[ride-tracking] coin redemption failed", e);
+        }
       }
-    });
-  }, [phase, authState.userId, priceParam, requestId]);
+      const res = await awardRideCoins({
+        userId: uid,
+        fareTotal: fare,
+        rideRequestId: requestId || null,
+        rideKey,
+      });
+      const earned = res.ok ? res.coins : 0;
+      if (earned > 0) {
+        console.log("[ride-tracking] ride reward granted", earned, "GC");
+      }
+      if (earned > 0 || redeemedCoins > 0) {
+        setCoinToast({ earned, redeemedCoins, redeemedValue });
+      }
+    })();
+  }, [phase, authState.userId, priceParam, requestId, useCoinsParam]);
 
   // Keep the ride request row in sync with the trip lifecycle so a finished
   // trip never lingers as "ongoing" and blocks the rider's next request.
@@ -653,6 +719,53 @@ export default function RideTrackingScreen() {
         </TouchableOpacity>
       </SafeAreaView>
 
+      {/* GET.coin toast — coins earned / redeemed on trip completion */}
+      {coinToast && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.coinToast,
+            {
+              top: insets.top + 64,
+              backgroundColor: colorScheme === "dark" ? "#2A2410" : "#FFFBEB",
+              borderColor: "#F3E8C0",
+              opacity: coinToastAnim,
+              transform: [
+                {
+                  translateY: coinToastAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-24, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+          testID="ride-coin-toast"
+        >
+          <View style={styles.coinToastBadge}>
+            <Coins color="#B45309" size={18} />
+          </View>
+          <View style={styles.coinToastTextWrap}>
+            {coinToast.earned > 0 && (
+              <Text style={[styles.coinToastTitle, { color: Colors.text }]}>
+                +{formatCoins(coinToast.earned)} earned
+              </Text>
+            )}
+            {coinToast.redeemedCoins > 0 && (
+              <Text
+                style={[
+                  coinToast.earned > 0 ? styles.coinToastSub : styles.coinToastTitle,
+                  { color: coinToast.earned > 0 ? Colors.textSecondary : Colors.text },
+                ]}
+              >
+                −{formatCoins(coinToast.redeemedCoins)} used • RM
+                {coinToast.redeemedValue.toFixed(2)} off fare
+              </Text>
+            )}
+          </View>
+        </Animated.View>
+      )}
+
       {/* Recenter */}
       {!followDriver && Platform.OS !== "web" && phase !== "completed" && (
         <TouchableOpacity
@@ -793,6 +906,14 @@ export default function RideTrackingScreen() {
                   <Text style={[styles.fareLabel, { color: Colors.textSecondary }]}>Total fare · Cash</Text>
                   <Text style={[styles.fareValue, { color: Colors.text }]}>{priceDisplay}</Text>
                 </View>
+                {useCoinsParam && (
+                  <View style={styles.coinNoteRow}>
+                    <Coins color="#B45309" size={13} />
+                    <Text style={[styles.coinNoteText, { color: Colors.textSecondary }]}>
+                      GET.coin will be applied at drop-off
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Secondary actions */}
@@ -857,8 +978,28 @@ export default function RideTrackingScreen() {
                       {driverVehicle} · {plateNo}
                     </Text>
                   </View>
-                  <Text style={[styles.completedFare, { color: Colors.text }]}>{priceDisplay}</Text>
+                  <View style={styles.completedFareCol}>
+                    <Text style={[styles.completedFare, { color: Colors.text }]}>{priceDisplay}</Text>
+                    {coinRedeemInfo && (
+                      <Text style={styles.completedCoinText}>
+                        −RM{coinRedeemInfo.coinValue.toFixed(2)} coins
+                      </Text>
+                    )}
+                  </View>
                 </View>
+                {coinRedeemInfo && (
+                  <View style={[styles.completedCoinRow, { borderTopColor: Colors.gray[200] }]}>
+                    <Coins color="#B45309" size={14} />
+                    <Text style={[styles.coinNoteText, { color: Colors.textSecondary }]}>
+                      {formatCoins(coinRedeemInfo.coinsUsed)} redeemed • pay RM
+                      {Math.max(
+                        parseFloat(priceParam.replace(/[^0-9.]/g, "")) - coinRedeemInfo.coinValue,
+                        0
+                      ).toFixed(2)}{" "}
+                      in cash
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <Text style={[styles.rateTitle, { color: Colors.text }]}>Rate your trip</Text>
@@ -1221,6 +1362,52 @@ const styles = StyleSheet.create({
   completedDriver: { flexDirection: "row", alignItems: "center" },
   completedPhoto: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
   completedFare: { fontSize: 18, fontWeight: "800" },
+  completedFareCol: { alignItems: "flex-end" },
+  completedCoinText: { fontSize: 12, fontWeight: "700", color: "#B45309", marginTop: 2 },
+  completedCoinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderTopWidth: 1,
+    marginTop: 12,
+    paddingTop: 10,
+  },
+  coinNoteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+  },
+  coinNoteText: { fontSize: 12, flex: 1 },
+  coinToast: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 60,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  coinToastBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FEF3C7",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  coinToastTextWrap: { flex: 1 },
+  coinToastTitle: { fontSize: 14, fontWeight: "800" },
+  coinToastSub: { fontSize: 12, marginTop: 1 },
   rateTitle: { fontSize: 16, fontWeight: "700", textAlign: "center", marginTop: 8, marginBottom: 12 },
   starsRow: { flexDirection: "row", justifyContent: "center", gap: 10, marginBottom: 20 },
   primaryBtn: {

@@ -37,8 +37,10 @@ import {
   Tag,
   ChevronRight,
   Equal,
+  Coins,
 } from "lucide-react-native";
 
+import * as Haptics from "expo-haptics";
 import { useAudioPlayer } from "expo-audio";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import OfferFareSideSheet from "@/components/OfferFareSideSheet";
@@ -68,6 +70,8 @@ import {
 } from "@/utils/rideRequestsStore";
 import { consumePendingLocationReturn } from "@/utils/locationReturn";
 import RollingFareAmount from "@/components/RollingFareAmount";
+import { fetchWalletBalances } from "@/utils/walletStore";
+import { fetchGetCoinSettings, formatCoins, coinsToCurrency } from "@/utils/getCoinStore";
 
 const CHIME_SOURCE = { uri: "https://cdn.pixabay.com/audio/2022/11/17/audio_febc508520.mp3" };
 
@@ -284,6 +288,12 @@ export default function RideConfirmScreen() {
   }, [EXTENDED_RIDE_TYPES, selectedRide.id]);
   const [fareAdjustment, setFareAdjustment] = useState(0);
   const [autoAccept, setAutoAccept] = useState(false);
+  // GET.coin fare redemption: when on, the rider's coins cover part of the
+  // fare at drop-off (at the admin exchange rate) and the rest is paid with
+  // the selected payment method.
+  const [useCoinsForFare, setUseCoinsForFare] = useState(false);
+  const [coinBalance, setCoinBalance] = useState<number>(0);
+  const [coinRate, setCoinRate] = useState<number>(0);
   // Id of the real ride request created in Supabase while searching, so an
   // online partner can view/accept it. Watched for the partner's acceptance.
   const activeRequestIdRef = useRef<string | null>(null);
@@ -869,6 +879,27 @@ export default function RideConfirmScreen() {
     presentDriverOffer(offer);
   };
 
+  // Load the rider's GET.coin balance + exchange rate so the "Use GET.coin"
+  // toggle can show what the coins are worth against the fare.
+  useEffect(() => {
+    const uid = authState.userId ?? "";
+    if (!uid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [b, cs] = await Promise.all([fetchWalletBalances(uid), fetchGetCoinSettings()]);
+        if (cancelled) return;
+        setCoinBalance(b.getCoin);
+        setCoinRate(cs.coinsPerCurrency);
+      } catch (e) {
+        console.log("[ride-confirm] coin balance load failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authState.userId]);
+
   /**
    * Creates a real ride request in Supabase so any online partner can view and
    * accept it. Stores the id locally; the passenger then watches that row for
@@ -1021,6 +1052,7 @@ export default function RideConfirmScreen() {
           driverPhoto: row.partner_photo ?? "",
           driverRating: `${row.partner_rating ?? 5}`,
           driverVehicle: row.partner_vehicle ?? "",
+          useCoins: useCoinsForFare && coinBalance > 0 && coinRate > 0 ? "1" : "0",
         },
       } as any);
     };
@@ -1978,6 +2010,7 @@ export default function RideConfirmScreen() {
         driverPhoto: offer.photo,
         driverRating: `${offer.rating}`,
         driverVehicle: offer.vehicle,
+        useCoins: useCoinsForFare && coinBalance > 0 && coinRate > 0 ? "1" : "0",
       },
     } as any);
   };
@@ -2706,6 +2739,43 @@ export default function RideConfirmScreen() {
     autoAcceptText: {
       fontSize: 14,
       color: colors.text,
+    },
+    coinToggleRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    coinToggleLeft: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      flex: 1,
+      marginRight: 12,
+    },
+    coinToggleBadge: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: "#FEF3C7",
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      marginRight: 10,
+    },
+    coinToggleTextWrap: {
+      flex: 1,
+    },
+    coinToggleTitle: {
+      fontSize: 14,
+      fontWeight: "600" as const,
+      color: colors.text,
+    },
+    coinToggleSub: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 1,
     },
     bottomBar: {
       flexDirection: "row" as const,
@@ -5092,6 +5162,35 @@ export default function RideConfirmScreen() {
           transform: [{ translateY: fixedBottomSlideAnim }],
         }
       ]} {...menuPanResponder.panHandlers}>
+        {/* GET.coin fare redemption toggle */}
+        {coinBalance > 0 && coinRate > 0 && (
+          <View style={styles.coinToggleRow} testID="ride-confirm-coin-row">
+            <View style={styles.coinToggleLeft}>
+              <View style={styles.coinToggleBadge}>
+                <Coins color="#B45309" size={16} />
+              </View>
+              <View style={styles.coinToggleTextWrap}>
+                <Text style={styles.coinToggleTitle}>Use GET.coin</Text>
+                <Text style={styles.coinToggleSub} numberOfLines={1}>
+                  {useCoinsForFare
+                    ? `\u2212RM${Math.min(coinsToCurrency(coinBalance, coinRate), estimatedPrice).toFixed(2)} off fare at drop-off`
+                    : `${formatCoins(coinBalance)} \u2248 RM${coinsToCurrency(coinBalance, coinRate).toFixed(2)}`}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={useCoinsForFare}
+              onValueChange={(v) => {
+                if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+                setUseCoinsForFare(v);
+              }}
+              trackColor={{ false: "#3a3a3a", true: "#FDE68A" }}
+              thumbColor={useCoinsForFare ? "#EAB308" : "#6B7280"}
+              testID="ride-confirm-coin-switch"
+            />
+          </View>
+        )}
+
         {/* Auto Accept Toggle */}
         <View style={styles.autoAcceptRow}>
           <View style={styles.autoAcceptLeft}>
