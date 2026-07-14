@@ -71,7 +71,7 @@ import {
 import { consumePendingLocationReturn } from "@/utils/locationReturn";
 import RollingFareAmount from "@/components/RollingFareAmount";
 import { fetchWalletBalances } from "@/utils/walletStore";
-import { fetchGetCoinSettings, formatCoins, coinsToCurrency } from "@/utils/getCoinStore";
+import { fetchGetCoinSettings, formatCoins, coinsToCurrency, rideRewardCoins } from "@/utils/getCoinStore";
 
 const CHIME_SOURCE = { uri: "https://cdn.pixabay.com/audio/2022/11/17/audio_febc508520.mp3" };
 
@@ -294,6 +294,7 @@ export default function RideConfirmScreen() {
   const [useCoinsForFare, setUseCoinsForFare] = useState(false);
   const [coinBalance, setCoinBalance] = useState<number>(0);
   const [coinRate, setCoinRate] = useState<number>(0);
+  const [coinEarnRate, setCoinEarnRate] = useState<number>(0);
   // Id of the real ride request created in Supabase while searching, so an
   // online partner can view/accept it. Watched for the partner's acceptance.
   const activeRequestIdRef = useRef<string | null>(null);
@@ -891,6 +892,7 @@ export default function RideConfirmScreen() {
         if (cancelled) return;
         setCoinBalance(b.getCoin);
         setCoinRate(cs.coinsPerCurrency);
+        setCoinEarnRate(cs.earnCoinsPerCurrency);
       } catch (e) {
         console.log("[ride-confirm] coin balance load failed", e);
       }
@@ -2776,6 +2778,22 @@ export default function RideConfirmScreen() {
       fontSize: 12,
       color: colors.textSecondary,
       marginTop: 1,
+    },
+    coinEarnPill: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      alignSelf: "center" as const,
+      gap: 4,
+      backgroundColor: "#FEF3C7",
+      borderRadius: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      marginTop: 5,
+    },
+    coinEarnText: {
+      fontSize: 11,
+      fontWeight: "700" as const,
+      color: "#B45309",
     },
     bottomBar: {
       flexDirection: "row" as const,
@@ -4963,6 +4981,15 @@ export default function RideConfirmScreen() {
                               ? "Recommended fare" 
                               : `Recommended fare: ${currency.symbol} ${recommendedPrice}`}
                           </Text>
+                          {coinEarnRate > 0 && !isCalculatingFare && distance != null &&
+                            rideRewardCoins(adjustedRidePrice, coinEarnRate) > 0 && (
+                            <View style={styles.coinEarnPill} testID="ride-confirm-coin-earn">
+                              <Coins color="#B45309" size={11} />
+                              <Text style={styles.coinEarnText}>
+                                Earn {formatCoins(rideRewardCoins(adjustedRidePrice, coinEarnRate))} on this booking
+                              </Text>
+                            </View>
+                          )}
                           {displaySettings.showAiTollBooths && tollBooths.length > 0 && (
                             <TouchableOpacity style={styles.tollChargesRow} onPress={(e) => { e.stopPropagation(); openTollSheet(); }}>
                               <Text style={styles.tollChargesText}>
@@ -5075,6 +5102,15 @@ export default function RideConfirmScreen() {
                               ? "Recommended fare" 
                               : `Recommended fare: ${currency.symbol} ${recommendedPrice}`}
                           </Text>
+                          {coinEarnRate > 0 && !isCalculatingFare && distance != null &&
+                            rideRewardCoins(adjustedRidePrice, coinEarnRate) > 0 && (
+                            <View style={styles.coinEarnPill} testID="ride-confirm-coin-earn">
+                              <Coins color="#B45309" size={11} />
+                              <Text style={styles.coinEarnText}>
+                                Earn {formatCoins(rideRewardCoins(adjustedRidePrice, coinEarnRate))} on this booking
+                              </Text>
+                            </View>
+                          )}
                           {displaySettings.showAiTollBooths && tollBooths.length > 0 && (
                             <TouchableOpacity style={styles.tollChargesRow} onPress={(e) => { e.stopPropagation(); openTollSheet(); }}>
                               <Text style={styles.tollChargesText}>
