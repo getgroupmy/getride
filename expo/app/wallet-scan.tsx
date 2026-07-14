@@ -13,6 +13,7 @@ import {
   useWindowDimensions,
   Animated,
   PanResponder,
+  Switch,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -29,12 +30,24 @@ import {
   CheckCircle2,
   ArrowLeft,
   ChevronsRight,
+  Coins,
 } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import WalletBalanceBar from "@/components/WalletBalanceBar";
-import { fetchWalletBalances, payFromWallet, type WalletBalances } from "@/utils/walletStore";
+import {
+  fetchWalletBalances,
+  payFromWallet,
+  computeCoinSplit,
+  type WalletBalances,
+} from "@/utils/walletStore";
+import {
+  fetchGetCoinSettings,
+  formatCoins,
+  coinsToCurrency,
+  type GetCoinSettings,
+} from "@/utils/getCoinStore";
 import { requestWalletReload } from "@/utils/walletUiFlags";
 
 /** DuitNow-style pin mark: rounded square with one square corner and a hole. */
@@ -188,6 +201,9 @@ export default function WalletScanScreen() {
   const [payError, setPayError] = useState<string>("");
   const [paying, setPaying] = useState<boolean>(false);
   const [paidAmount, setPaidAmount] = useState<number | null>(null);
+  const [coinSettings, setCoinSettings] = useState<GetCoinSettings | null>(null);
+  const [useCoins, setUseCoins] = useState<boolean>(false);
+  const [paidCoins, setPaidCoins] = useState<{ coinsUsed: number; coinValue: number; walletPaid: number } | null>(null);
   const scanLockRef = useRef<boolean>(false);
   const amountPop = useRef(new Animated.Value(1)).current;
   const frameRef = useRef<View>(null);
@@ -198,7 +214,9 @@ export default function WalletScanScreen() {
   const loadBalances = useCallback(async () => {
     if (!userId) return;
     try {
-      setBalances(await fetchWalletBalances(userId));
+      const [b, cs] = await Promise.all([fetchWalletBalances(userId), fetchGetCoinSettings()]);
+      setBalances(b);
+      setCoinSettings(cs);
     } catch (e) {
       console.log("[wallet-scan] balance load failed", e);
     }
@@ -258,17 +276,29 @@ export default function WalletScanScreen() {
     setAmountText("");
     setPayError("");
     setPaidAmount(null);
+    setPaidCoins(null);
+    setUseCoins(false);
     setPayVisible(true);
   }, []);
 
   const closePaySheet = () => {
     setPayVisible(false);
     setPaidAmount(null);
+    setPaidCoins(null);
     // Small delay before re-arming so the same code isn't instantly re-scanned.
     setTimeout(() => {
       scanLockRef.current = false;
     }, 800);
   };
+
+  /** GET.coin redemption preview: what coins cover vs what GET.wallet pays. */
+  const coinRate = coinSettings?.coinsPerCurrency ?? 0;
+  const coinBalance = balances?.getCoin ?? 0;
+  const coinRowAvailable = coinBalance > 0 && coinRate > 0;
+  const coinSplit = useMemo(() => {
+    if (!useCoins || !coinRowAvailable || !(parsedAmount > 0)) return null;
+    return computeCoinSplit(parsedAmount, coinBalance, coinRate);
+  }, [useCoins, coinRowAvailable, parsedAmount, coinBalance, coinRate]);
 
   const handlePay = async () => {
     if (paying) return;
@@ -278,7 +308,14 @@ export default function WalletScanScreen() {
       return;
     }
     setPaying(true);
-    const res = await payFromWallet(userId, parsedAmount, `QR payment — ${scannedLabel}`);
+    const res = await payFromWallet(
+      userId,
+      parsedAmount,
+      `QR payment — ${scannedLabel}`,
+      useCoins && coinRowAvailable
+        ? { redeemCoins: true, coinsPerCurrency: coinRate }
+        : undefined
+    );
     setPaying(false);
     if (!res.ok) {
       setPayError(res.error ?? "Payment failed.");
@@ -288,6 +325,15 @@ export default function WalletScanScreen() {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
+    setPaidCoins(
+      (res.coinsUsed ?? 0) > 0
+        ? {
+            coinsUsed: res.coinsUsed ?? 0,
+            coinValue: res.coinValue ?? 0,
+            walletPaid: res.walletPaid ?? 0,
+          }
+        : null
+    );
     setPaidAmount(parsedAmount);
   };
 
@@ -465,6 +511,17 @@ export default function WalletScanScreen() {
                   <CheckCircle2 color={Colors.success} size={64} />
                   <Text style={styles.successTitle}>Payment Successful</Text>
                   <Text style={styles.successAmount}>RM {paidAmount.toFixed(2)}</Text>
+                  {paidCoins ? (
+                    <View style={styles.successCoinRow}>
+                      <Coins color="#B45309" size={15} />
+                      <Text style={styles.successCoinText}>
+                        {formatCoins(paidCoins.coinsUsed)} used (−RM{paidCoins.coinValue.toFixed(2)})
+                        {paidCoins.walletPaid > 0
+                          ? ` • GET.wallet RM${paidCoins.walletPaid.toFixed(2)}`
+                          : ""}
+                      </Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.successNote} numberOfLines={2}>
                     {scannedLabel}
                   </Text>
@@ -534,6 +591,35 @@ export default function WalletScanScreen() {
                   <View
                     style={[styles.payBottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}
                   >
+                    {coinRowAvailable ? (
+                      <View style={styles.coinRow} testID="wallet-scan-coin-row">
+                        <View style={styles.coinRowLeft}>
+                          <View style={styles.coinBadge}>
+                            <Coins color="#B45309" size={16} />
+                          </View>
+                          <View style={styles.coinRowTextWrap}>
+                            <Text style={styles.coinRowTitle}>Use GET.coin</Text>
+                            <Text style={styles.coinRowSub} numberOfLines={1}>
+                              {useCoins && coinSplit
+                                ? `−RM${coinSplit.coinValue.toFixed(2)} (${formatCoins(coinSplit.coinsUsed)}) • wallet pays RM${coinSplit.walletShare.toFixed(2)}`
+                                : `${formatCoins(coinBalance)} ≈ RM${coinsToCurrency(coinBalance, coinRate).toFixed(2)}`}
+                            </Text>
+                          </View>
+                        </View>
+                        <Switch
+                          value={useCoins}
+                          onValueChange={(v) => {
+                            setUseCoins(v);
+                            if (Platform.OS !== "web") {
+                              Haptics.selectionAsync().catch(() => {});
+                            }
+                          }}
+                          trackColor={{ true: "#EAB308", false: "#D6DADF" }}
+                          thumbColor="#FFFFFF"
+                          testID="wallet-scan-coin-switch"
+                        />
+                      </View>
+                    ) : null}
                     <View style={styles.payBalanceRow}>
                       <Text style={styles.payBalanceText}>
                         Wallet Balance {"\u2022"} RM{(balances?.getWallet ?? 0).toFixed(2)}
@@ -796,6 +882,61 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 9,
     marginBottom: 16,
+  },
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#F3E8C0",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  coinRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  coinBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FDE68A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  coinRowTextWrap: {
+    flex: 1,
+  },
+  coinRowTitle: {
+    fontSize: 14,
+    fontWeight: "800" as const,
+    color: "#92400E",
+  },
+  coinRowSub: {
+    fontSize: 12,
+    color: "#A16207",
+    marginTop: 1,
+  },
+  successCoinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FFFBEB",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginTop: 2,
+  },
+  successCoinText: {
+    fontSize: 12.5,
+    fontWeight: "700" as const,
+    color: "#92400E",
   },
   payBalanceText: {
     fontSize: 16,

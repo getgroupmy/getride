@@ -51,6 +51,8 @@ import {
   publishLiveLocation,
 } from "@/utils/rideRequestsStore";
 import { AppAlertModal } from "@/components/AppAlertModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { awardRideCoins } from "@/utils/walletStore";
 
 const { width, height } = Dimensions.get("window");
 
@@ -101,6 +103,7 @@ export default function RideTrackingScreen() {
   const Colors = useColors();
   const { colorScheme } = useTheme();
   const { currency } = useLocation();
+  const { authState } = useAuth();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<any>(null);
 
@@ -284,6 +287,28 @@ export default function RideTrackingScreen() {
       sub?.remove();
     };
   }, [requestId]);
+
+  // GET.coin ride reward: when the trip completes, award GC to the rider at
+  // the admin-configured earn rate (idempotent per ride).
+  const coinAwardFiredRef = useRef<boolean>(false);
+  const simRideKeyRef = useRef<string>(`sim-${Date.now()}-${Math.floor(Math.random() * 1e6)}`);
+  useEffect(() => {
+    if (phase !== "completed" || coinAwardFiredRef.current) return;
+    coinAwardFiredRef.current = true;
+    const uid = authState.userId ?? "";
+    const fare = parseFloat(priceParam.replace(/[^0-9.]/g, ""));
+    if (!uid || !(fare > 0)) return;
+    void awardRideCoins({
+      userId: uid,
+      fareTotal: fare,
+      rideRequestId: requestId || null,
+      rideKey: requestId || simRideKeyRef.current,
+    }).then((res) => {
+      if (res.ok && res.coins > 0) {
+        console.log("[ride-tracking] ride reward granted", res.coins, "GC");
+      }
+    });
+  }, [phase, authState.userId, priceParam, requestId]);
 
   // Keep the ride request row in sync with the trip lifecycle so a finished
   // trip never lingers as "ongoing" and blocks the rider's next request.

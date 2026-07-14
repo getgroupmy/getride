@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
 import { resolveCommissionRateForRide, DEFAULT_COMMISSION_RATE } from "@/utils/commissionStore";
+import { fetchGetCoinSettings, rideRewardCoins } from "@/utils/getCoinStore";
 
 /**
  * Wallet store — three wallets per account:
@@ -48,9 +49,19 @@ export interface WalletActionResult {
   balances?: WalletBalances;
 }
 
+export interface PayResult extends WalletActionResult {
+  /** GC redeemed towards this payment (0 when coins weren't used). */
+  coinsUsed?: number;
+  /** Currency value the redeemed coins covered. */
+  coinValue?: number;
+  /** Currency amount charged to GET.wallet. */
+  walletPaid?: number;
+}
+
 const LOCAL_BALANCES_KEY = (userId: string) => `wallet:balances:${userId}`;
 const LOCAL_TX_KEY = (userId: string) => `wallet:transactions:${userId}`;
 const COMMISSION_GUARD_KEY = (rideKey: string) => `wallet:commission:${rideKey}`;
+const COIN_REWARD_GUARD_KEY = (rideKey: string) => `wallet:coinreward:${rideKey}`;
 
 /**
  * Fallback platform commission rate. The effective rate is resolved per ride
@@ -419,36 +430,91 @@ export async function rechargeCredit(
   };
 }
 
+export interface CoinRedemptionOption {
+  /** Redeem GET.coin towards this payment. */
+  redeemCoins: boolean;
+  /** GC per 1 unit of currency — from Admin → Settings → Get Coin. */
+  coinsPerCurrency: number;
+}
+
 /**
- * Pay from GET.wallet by scanning a QR code. Ledger-driven: inserts a negative
- * `payment` transaction and the DB trigger moves the balance. Falls back to
- * the device-local wallet when the schema is missing.
+ * Split a payment between GET.coin and GET.wallet: coins cover as much of the
+ * amount as the balance allows, GET.wallet pays the remainder.
+ */
+export function computeCoinSplit(
+  amount: number,
+  coinBalance: number,
+  coinsPerCurrency: number
+): { coinsUsed: number; coinValue: number; walletShare: number } {
+  if (!(amount > 0) || !(coinBalance > 0) || !(coinsPerCurrency > 0)) {
+    return { coinsUsed: 0, coinValue: 0, walletShare: round2(Math.max(amount, 0)) };
+  }
+  const maxCoinValue = Math.floor((coinBalance / coinsPerCurrency) * 100) / 100;
+  const coinValue = Math.min(maxCoinValue, amount);
+  const coinsUsed = round2(coinValue * coinsPerCurrency);
+  return { coinsUsed, coinValue, walletShare: round2(amount - coinValue) };
+}
+
+/**
+ * Pay from GET.wallet by scanning a QR code, optionally redeeming GET.coin
+ * first (coins cover what they can, GET.wallet pays the rest). Ledger-driven:
+ * inserts negative `redeem` / `payment` transactions and the DB trigger moves
+ * the balances. Falls back to the device-local wallet when the schema is
+ * missing.
  */
 export async function payFromWallet(
   userId: string,
   amount: number,
-  note: string
-): Promise<WalletActionResult> {
+  note: string,
+  coinOption?: CoinRedemptionOption
+): Promise<PayResult> {
   if (!userId) return { ok: false, error: "Missing user." };
   if (!(amount > 0)) return { ok: false, error: "Enter an amount greater than 0." };
+
+  const useCoins = coinOption?.redeemCoins === true && (coinOption?.coinsPerCurrency ?? 0) > 0;
 
   if (isSupabaseConfigured && supabase) {
     try {
       const balances = await fetchWalletBalances(userId);
       if (balances.source === "supabase") {
-        if (balances.getWallet < amount) {
+        const split = useCoins
+          ? computeCoinSplit(amount, balances.getCoin, coinOption?.coinsPerCurrency ?? 0)
+          : { coinsUsed: 0, coinValue: 0, walletShare: amount };
+        if (balances.getWallet < split.walletShare) {
           return { ok: false, error: "Not enough balance in GET.wallet." };
         }
-        const { error } = await supabase.from("wallet_transactions").insert({
-          user_id: userId,
-          wallet_type: "get_wallet",
-          kind: "payment",
-          amount: -amount,
-          method: "qr_scan",
-          note,
-        });
-        if (error) throw error;
-        return { ok: true, balances: await fetchWalletBalances(userId) };
+        const rows: Record<string, unknown>[] = [];
+        if (split.coinsUsed > 0) {
+          rows.push({
+            user_id: userId,
+            wallet_type: "get_coin",
+            kind: "redeem",
+            amount: -split.coinsUsed,
+            method: "qr_scan",
+            note: `${note} — paid with coins (RM${split.coinValue.toFixed(2)})`,
+          });
+        }
+        if (split.walletShare > 0) {
+          rows.push({
+            user_id: userId,
+            wallet_type: "get_wallet",
+            kind: "payment",
+            amount: -split.walletShare,
+            method: "qr_scan",
+            note,
+          });
+        }
+        if (rows.length > 0) {
+          const { error } = await supabase.from("wallet_transactions").insert(rows);
+          if (error) throw error;
+        }
+        return {
+          ok: true,
+          balances: await fetchWalletBalances(userId),
+          coinsUsed: split.coinsUsed,
+          coinValue: split.coinValue,
+          walletPaid: split.walletShare,
+        };
       }
     } catch (e) {
       const msg = String((e as { message?: string })?.message ?? e ?? "").toLowerCase();
@@ -464,21 +530,40 @@ export async function payFromWallet(
   }
 
   const local = await readLocalBalances(userId);
-  if (local.getWallet < amount) {
+  const split = useCoins
+    ? computeCoinSplit(amount, local.getCoin, coinOption?.coinsPerCurrency ?? 0)
+    : { coinsUsed: 0, coinValue: 0, walletShare: amount };
+  if (local.getWallet < split.walletShare) {
     return { ok: false, error: "Not enough balance in GET.wallet." };
   }
-  const next: LocalWalletState = { ...local, getWallet: round2(local.getWallet - amount) };
+  const next: LocalWalletState = {
+    ...local,
+    getWallet: round2(local.getWallet - split.walletShare),
+    getCoin: round2(local.getCoin - split.coinsUsed),
+  };
   await writeLocalBalances(userId, next);
-  await appendLocalTransactions(userId, [
-    {
+  const txRows: Omit<WalletTransaction, "id" | "createdAt">[] = [];
+  if (split.coinsUsed > 0) {
+    txRows.push({
+      walletType: "get_coin",
+      kind: "redeem",
+      amount: -split.coinsUsed,
+      balanceAfter: next.getCoin,
+      method: "qr_scan",
+      note: `${note} — paid with coins (RM${split.coinValue.toFixed(2)})`,
+    });
+  }
+  if (split.walletShare > 0) {
+    txRows.push({
       walletType: "get_wallet",
       kind: "payment",
-      amount: -amount,
+      amount: -split.walletShare,
       balanceAfter: next.getWallet,
       method: "qr_scan",
       note,
-    },
-  ]);
+    });
+  }
+  await appendLocalTransactions(userId, txRows);
   return {
     ok: true,
     balances: {
@@ -488,7 +573,102 @@ export async function payFromWallet(
       currency: "RM",
       source: "local",
     },
+    coinsUsed: split.coinsUsed,
+    coinValue: split.coinValue,
+    walletPaid: split.walletShare,
   };
+}
+
+export interface CoinRewardResult {
+  ok: boolean;
+  /** GC awarded (0 when rewards are disabled or already claimed). */
+  coins: number;
+  error?: string;
+}
+
+/**
+ * Awards GET.coin ride rewards to the rider after a completed trip, at the
+ * admin-configured earn rate (GC per RM1 of fare; 0 disables rewards).
+ * Idempotent per ride: the `wallet_award_ride_coins` RPC anchors on
+ * `ride_requests.coin_rewarded_at`, and a device-local guard covers the
+ * AsyncStorage fallback.
+ */
+export async function awardRideCoins(input: {
+  userId: string;
+  /** Final trip total the rider paid. */
+  fareTotal: number;
+  rideRequestId?: string | null;
+  /** Fallback idempotency key when there is no ride request row. */
+  rideKey?: string | null;
+}): Promise<CoinRewardResult> {
+  const { userId, fareTotal, rideRequestId } = input;
+  if (!userId) return { ok: false, coins: 0, error: "Missing user." };
+  if (!(fareTotal > 0)) return { ok: false, coins: 0, error: "Invalid fare." };
+
+  const settings = await fetchGetCoinSettings();
+  const coins = rideRewardCoins(fareTotal, settings.earnCoinsPerCurrency);
+  if (!(coins > 0)) {
+    console.log("[wallet] ride rewards disabled — nothing to award");
+    return { ok: true, coins: 0 };
+  }
+
+  const guardKey = rideRequestId ?? input.rideKey ?? null;
+  if (!guardKey) return { ok: false, coins: 0, error: "Missing ride reference." };
+
+  try {
+    const done = await AsyncStorage.getItem(COIN_REWARD_GUARD_KEY(guardKey));
+    if (done) {
+      console.log("[wallet] ride coins already awarded", guardKey);
+      return { ok: true, coins: 0 };
+    }
+  } catch (e) {
+    console.log("[wallet] coin reward guard read failed", e);
+  }
+  const markAwarded = async () => {
+    try {
+      await AsyncStorage.setItem(COIN_REWARD_GUARD_KEY(guardKey), new Date().toISOString());
+    } catch (e) {
+      console.log("[wallet] coin reward guard write failed", e);
+    }
+  };
+
+  if (isSupabaseConfigured && supabase && rideRequestId) {
+    try {
+      const { data, error } = await supabase.rpc("wallet_award_ride_coins", {
+        p_ride: rideRequestId,
+        p_user: userId,
+        p_fare: fareTotal,
+      });
+      if (error) throw error;
+      await markAwarded();
+      const awarded = Number(data ?? 0);
+      console.log("[wallet] ride coins awarded (supabase)", { rideRequestId, awarded });
+      return { ok: true, coins: awarded };
+    } catch (e) {
+      if (!isMissingSchemaError(e)) {
+        console.log("[wallet] coin reward rpc failed", e);
+        return { ok: false, coins: 0, error: "Reward failed." };
+      }
+      console.log("[wallet] coin reward falling back to local wallet");
+    }
+  }
+
+  const local = await readLocalBalances(userId);
+  const next: LocalWalletState = { ...local, getCoin: round2(local.getCoin + coins) };
+  await writeLocalBalances(userId, next);
+  await appendLocalTransactions(userId, [
+    {
+      walletType: "get_coin",
+      kind: "reward",
+      amount: coins,
+      balanceAfter: next.getCoin,
+      method: null,
+      note: `Ride reward — RM${fareTotal.toFixed(2)} trip`,
+    },
+  ]);
+  await markAwarded();
+  console.log("[wallet] ride coins awarded (local)", { guardKey, coins });
+  return { ok: true, coins };
 }
 
 export interface CommissionChargeResult {

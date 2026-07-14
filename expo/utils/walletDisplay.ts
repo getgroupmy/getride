@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   Landmark,
   Banknote,
+  Coins,
 } from "lucide-react-native";
 import type { WalletTransaction, WalletType } from "@/utils/walletStore";
 
@@ -73,6 +74,10 @@ export function walletTxMeta(
       return { label: "Commission", Icon: Landmark, color: colors.danger };
     case "refund":
       return { label: "Refund", Icon: ArrowDownLeft, color: colors.success };
+    case "reward":
+      return { label: "Ride Reward", Icon: Coins, color: colors.success };
+    case "redeem":
+      return { label: "Paid with GET.coin", Icon: Coins, color: colors.danger };
     default:
       return { label: tx.note ?? "Adjustment", Icon: Banknote, color: colors.textSecondary };
   }

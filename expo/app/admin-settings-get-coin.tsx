@@ -12,13 +12,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter, useFocusEffect } from "expo-router";
-import { ArrowLeft, Coins, Info, ArrowRightLeft, Check } from "lucide-react-native";
+import { ArrowLeft, Coins, Info, ArrowRightLeft, Check, Gift } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import {
   fetchGetCoinSettings,
-  saveGetCoinRate,
+  saveGetCoinSettings,
   coinsToCurrency,
   currencyToCoins,
+  rideRewardCoins,
   type GetCoinSettings,
 } from "@/utils/getCoinStore";
 
@@ -40,6 +41,7 @@ export default function AdminSettingsGetCoinScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [rateInput, setRateInput] = useState<string>("");
+  const [earnInput, setEarnInput] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [savedNote, setSavedNote] = useState<string>("");
 
@@ -48,6 +50,7 @@ export default function AdminSettingsGetCoinScreen() {
       const s = await fetchGetCoinSettings();
       setSettings(s);
       setRateInput(formatRate(s.coinsPerCurrency));
+      setEarnInput(formatRate(s.earnCoinsPerCurrency));
     } catch (e) {
       console.log("[admin-getcoin] load failed", e);
     } finally {
@@ -66,7 +69,15 @@ export default function AdminSettingsGetCoinScreen() {
     return Number.isFinite(n) && n > 0 ? n : 0;
   }, [rateInput]);
 
-  const dirty = settings !== null && parsedRate > 0 && parsedRate !== settings.coinsPerCurrency;
+  const parsedEarn = useMemo(() => {
+    const n = Number(earnInput.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  }, [earnInput]);
+
+  const dirty =
+    settings !== null &&
+    parsedRate > 0 &&
+    (parsedRate !== settings.coinsPerCurrency || parsedEarn !== settings.earnCoinsPerCurrency);
 
   const handleSave = async () => {
     if (saving) return;
@@ -77,7 +88,10 @@ export default function AdminSettingsGetCoinScreen() {
       return;
     }
     setSaving(true);
-    const res = await saveGetCoinRate(parsedRate);
+    const res = await saveGetCoinSettings({
+      coinsPerCurrency: parsedRate,
+      earnCoinsPerCurrency: parsedEarn,
+    });
     setSaving(false);
     if (!res.ok) {
       setError(res.error ?? "Save failed.");
@@ -86,8 +100,9 @@ export default function AdminSettingsGetCoinScreen() {
     if (res.settings) {
       setSettings(res.settings);
       setRateInput(formatRate(res.settings.coinsPerCurrency));
+      setEarnInput(formatRate(res.settings.earnCoinsPerCurrency));
     }
-    setSavedNote("Exchange rate saved.");
+    setSavedNote("Get Coin settings saved.");
     setTimeout(() => setSavedNote(""), 2600);
   };
 
@@ -212,7 +227,7 @@ export default function AdminSettingsGetCoinScreen() {
                 {saving ? (
                   <ActivityIndicator color={Colors.onAccent} size="small" />
                 ) : (
-                  <Text style={[styles.saveBtnText, { color: Colors.onAccent }]}>Save Rate</Text>
+                  <Text style={[styles.saveBtnText, { color: Colors.onAccent }]}>Save Settings</Text>
                 )}
               </TouchableOpacity>
 
@@ -221,6 +236,45 @@ export default function AdminSettingsGetCoinScreen() {
                   Last updated {new Date(settings.updatedAt).toLocaleString()}
                 </Text>
               ) : null}
+            </View>
+
+            <View style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+              <View style={styles.cardTitleRow}>
+                <Gift color="#EAB308" size={18} />
+                <Text style={[styles.cardTitle, { color: Colors.text }]}>Ride Rewards</Text>
+              </View>
+              <Text style={[styles.cardSub, { color: Colors.textSecondary }]}>
+                Coins riders earn per RM1 of a completed trip fare. Set to 0 to turn ride
+                rewards off.
+              </Text>
+
+              <View style={styles.rateRow}>
+                <View style={[styles.ratePill, { backgroundColor: "#FDE68A" }]}>
+                  <Text style={[styles.ratePillText, { color: "#92400E" }]}>RM 1 fare</Text>
+                </View>
+                <Text style={[styles.rateEquals, { color: Colors.textSecondary }]}>{"\u2192"}</Text>
+                <View style={[styles.rateInputWrap, { borderColor: Colors.border, backgroundColor: Colors.background }]}>
+                  <TextInput
+                    style={[styles.rateInput, { color: Colors.text }]}
+                    value={earnInput}
+                    onChangeText={(t) => {
+                      setEarnInput(t);
+                      setError("");
+                    }}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor={Colors.textSecondary}
+                    testID="getcoin-earn-input"
+                  />
+                  <Text style={[styles.rateUnit, { color: "#A16207" }]}>GC</Text>
+                </View>
+              </View>
+
+              <Text style={[styles.inverseText, { color: Colors.textSecondary }]}>
+                {parsedEarn > 0
+                  ? `Example: a RM25.00 trip rewards ${formatRate(rideRewardCoins(25, parsedEarn))} GC`
+                  : "Ride rewards are currently off."}
+              </Text>
             </View>
 
             {previewRows.length > 0 ? (

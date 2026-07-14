@@ -19,6 +19,8 @@ export type GetCoinSource = "supabase" | "local";
 export interface GetCoinSettings {
   /** GC per 1 unit of currency (RM). */
   coinsPerCurrency: number;
+  /** GC earned per RM1 of completed-ride fare. 0 disables ride rewards. */
+  earnCoinsPerCurrency: number;
   currency: string;
   updatedAt: string | null;
   source: GetCoinSource;
@@ -54,8 +56,10 @@ async function readCached(): Promise<GetCoinSettings | null> {
       const parsed = JSON.parse(raw) as Partial<GetCoinSettings>;
       const rate = Number(parsed.coinsPerCurrency);
       if (Number.isFinite(rate) && rate > 0) {
+        const earn = Number(parsed.earnCoinsPerCurrency);
         return {
           coinsPerCurrency: rate,
+          earnCoinsPerCurrency: Number.isFinite(earn) && earn >= 0 ? earn : 0,
           currency: parsed.currency ?? "RM",
           updatedAt: parsed.updatedAt ?? null,
           source: "local",
@@ -85,15 +89,23 @@ export async function fetchGetCoinSettings(): Promise<GetCoinSettings> {
     try {
       const { data, error } = await supabase
         .from("get_coin_settings")
-        .select("coins_per_currency, currency, updated_at")
+        .select("*")
         .eq("id", "master")
         .maybeSingle();
       if (error) throw error;
       if (data) {
+        const row = data as {
+          coins_per_currency?: number;
+          earn_coins_per_currency?: number;
+          currency?: string;
+          updated_at?: string;
+        };
+        const earn = Number(row.earn_coins_per_currency);
         const settings: GetCoinSettings = {
-          coinsPerCurrency: Number(data.coins_per_currency) || DEFAULT_COINS_PER_CURRENCY,
-          currency: String(data.currency ?? "RM"),
-          updatedAt: data.updated_at ?? null,
+          coinsPerCurrency: Number(row.coins_per_currency) || DEFAULT_COINS_PER_CURRENCY,
+          earnCoinsPerCurrency: Number.isFinite(earn) && earn >= 0 ? earn : 0,
+          currency: String(row.currency ?? "RM"),
+          updatedAt: row.updated_at ?? null,
           source: "supabase",
         };
         await writeCached(settings);
@@ -111,6 +123,7 @@ export async function fetchGetCoinSettings(): Promise<GetCoinSettings> {
   if (cached) return cached;
   return {
     coinsPerCurrency: DEFAULT_COINS_PER_CURRENCY,
+    earnCoinsPerCurrency: 0,
     currency: "RM",
     updatedAt: null,
     source: "local",
@@ -123,14 +136,33 @@ export interface SaveGetCoinResult {
   settings?: GetCoinSettings;
 }
 
-/** Save the GC per currency rate (admin only). */
-export async function saveGetCoinRate(coinsPerCurrency: number): Promise<SaveGetCoinResult> {
+/** True when the error indicates the earn-rate column isn't in the DB yet. */
+function isMissingColumnError(err: unknown): boolean {
+  const msg =
+    typeof err === "object" && err !== null
+      ? String((err as { message?: string }).message ?? "") +
+        " " +
+        String((err as { code?: string }).code ?? "")
+      : String(err ?? "");
+  return msg.includes("42703") || msg.toLowerCase().includes("column");
+}
+
+/** Save the GET.coin exchange + ride-reward rates (admin only). */
+export async function saveGetCoinSettings(input: {
+  coinsPerCurrency: number;
+  earnCoinsPerCurrency: number;
+}): Promise<SaveGetCoinResult> {
+  const { coinsPerCurrency, earnCoinsPerCurrency } = input;
   if (!(Number.isFinite(coinsPerCurrency) && coinsPerCurrency > 0)) {
     return { ok: false, error: "Enter a rate greater than 0." };
+  }
+  if (!(Number.isFinite(earnCoinsPerCurrency) && earnCoinsPerCurrency >= 0)) {
+    return { ok: false, error: "Enter a reward rate of 0 or more." };
   }
 
   const settings: GetCoinSettings = {
     coinsPerCurrency,
+    earnCoinsPerCurrency,
     currency: "RM",
     updatedAt: new Date().toISOString(),
     source: "local",
@@ -140,22 +172,54 @@ export async function saveGetCoinRate(coinsPerCurrency: number): Promise<SaveGet
     try {
       const { error } = await supabase
         .from("get_coin_settings")
-        .upsert({ id: "master", coins_per_currency: coinsPerCurrency }, { onConflict: "id" });
+        .upsert(
+          {
+            id: "master",
+            coins_per_currency: coinsPerCurrency,
+            earn_coins_per_currency: earnCoinsPerCurrency,
+          },
+          { onConflict: "id" }
+        );
       if (error) throw error;
       settings.source = "supabase";
       await writeCached(settings);
       return { ok: true, settings };
     } catch (e) {
+      if (isMissingColumnError(e)) {
+        // Earn column not migrated yet — persist the exchange rate alone and
+        // keep the earn rate device-local.
+        try {
+          const { error: retryErr } = await supabase
+            .from("get_coin_settings")
+            .upsert({ id: "master", coins_per_currency: coinsPerCurrency }, { onConflict: "id" });
+          if (!retryErr) {
+            settings.source = "supabase";
+            await writeCached(settings);
+            return { ok: true, settings };
+          }
+        } catch (retryE) {
+          console.log("[getcoin] save retry failed", retryE);
+        }
+      }
       if (!isMissingSchemaError(e)) {
-        console.log("[getcoin] save rate failed", e);
+        console.log("[getcoin] save settings failed", e);
         return { ok: false, error: "Save failed. Please try again." };
       }
-      console.log("[getcoin] table missing — saving rate locally");
+      console.log("[getcoin] table missing — saving settings locally");
     }
   }
 
   await writeCached(settings);
   return { ok: true, settings };
+}
+
+/** Save only the GC per currency rate (kept for backwards compatibility). */
+export async function saveGetCoinRate(coinsPerCurrency: number): Promise<SaveGetCoinResult> {
+  const current = await fetchGetCoinSettings();
+  return saveGetCoinSettings({
+    coinsPerCurrency,
+    earnCoinsPerCurrency: current.earnCoinsPerCurrency,
+  });
 }
 
 /** Convert a GC amount to its approximate currency (RM) value. */
@@ -167,6 +231,12 @@ export function coinsToCurrency(coins: number, coinsPerCurrency: number): number
 /** Convert a currency (RM) amount to GC. */
 export function currencyToCoins(amount: number, coinsPerCurrency: number): number {
   return Math.round(amount * coinsPerCurrency * 100) / 100;
+}
+
+/** GC earned for a completed ride at the given earn rate. */
+export function rideRewardCoins(fareTotal: number, earnCoinsPerCurrency: number): number {
+  if (!(fareTotal > 0) || !(earnCoinsPerCurrency > 0)) return 0;
+  return Math.round(fareTotal * earnCoinsPerCurrency * 100) / 100;
 }
 
 /** "125 GC" for whole values, "125.50 GC" otherwise. */
