@@ -64,7 +64,7 @@ import VehicleSelectModal from "@/components/VehicleSelectModal";
 import { Alert } from "react-native";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings, DEFAULT_USER_MENU_ITEMS, getMenuItemOrder, PROFILE_MENU_ITEM_ID, PARTNER_MODE_MENU_ITEM_ID, PARTNER_MODE_DEFAULT_LABEL } from "@/contexts/DisplaySettingsContext";
-import { useAdminAccess, markSuperAdminSession } from "@/contexts/AdminAccessContext";
+import { useAdminAccess, isLegacyAdminLoginAvailable, markSuperAdminSession } from "@/contexts/AdminAccessContext";
 import { evaluateCurrentIp } from "@/utils/ipAccessStore";
 
 const SIDE_MENU_ICON_MAP: Record<string, LucideIcon> = {
@@ -535,7 +535,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
               setAdminChecking(true);
               try {
                 const { ip, status } = await evaluateCurrentIp();
-                if (status === "whitelist") {
+                if (status === "whitelist" && (await isLegacyAdminLoginAvailable())) {
                   console.log("[menu-sheet] whitelisted IP bypass", ip);
                   await markSuperAdminSession();
                   onClose();

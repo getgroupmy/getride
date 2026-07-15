@@ -133,3 +133,31 @@ export async function clearSuperAdminSession(): Promise<void> {
     console.log("[adminAccess] clearSuperAdminSession error", e);
   }
 }
+
+/**
+ * Whether the legacy hardcoded PIN / credentials / IP-whitelist bypass on
+ * `admin-login` are still allowed to grant a super-admin session (migration
+ * 0068). Once a real `admin_access` row exists — the only way anyone
+ * reaches the admin panel at all before that is this same legacy flow, so
+ * seeding one is always a deliberate, out-of-band step — the hardcoded
+ * login is retired and operators must sign in with their own
+ * admin_access-scoped Supabase session.
+ *
+ * Fails open (returns true) when Supabase isn't configured, the RPC is
+ * missing (pre-0068 database), or the call errors — same graceful
+ * degradation as the rest of the admin-settings stores.
+ */
+export async function isLegacyAdminLoginAvailable(): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return true;
+  try {
+    const { data, error } = await supabase.rpc("admin_access_exists");
+    if (error) {
+      console.log("[adminAccess] admin_access_exists error", error.message);
+      return true;
+    }
+    return data !== true;
+  } catch (e) {
+    console.log("[adminAccess] admin_access_exists threw", e);
+    return true;
+  }
+}

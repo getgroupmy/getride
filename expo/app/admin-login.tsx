@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -13,9 +13,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
-import { ArrowLeft, Eye, EyeOff, ShieldCheck, Lock, User, Delete, KeyRound } from "lucide-react-native";
+import { ArrowLeft, Eye, EyeOff, ShieldCheck, ShieldX, Lock, User, Delete, KeyRound } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
-import { markSuperAdminSession } from "@/contexts/AdminAccessContext";
+import { isLegacyAdminLoginAvailable, markSuperAdminSession } from "@/contexts/AdminAccessContext";
 import { useIpAccess } from "@/contexts/IpAccessContext";
 
 const ADMIN_USERNAME = "admin";
@@ -34,6 +34,23 @@ export default function AdminLoginScreen() {
   const [pin, setPin] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [legacyAvailable, setLegacyAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void isLegacyAdminLoginAvailable().then((available) => {
+      if (!cancelled) setLegacyAvailable(available);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const retiredAlert = () =>
+    Alert.alert(
+      "Legacy login retired",
+      "A real admin account now exists. Sign in with your account — the admin access granted to your profile will unlock the dashboard automatically."
+    );
 
   const handleCredentialsLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -43,6 +60,10 @@ export default function AdminLoginScreen() {
     setLoading(true);
     try {
       await new Promise((r) => setTimeout(r, 600));
+      if (!(await isLegacyAdminLoginAvailable())) {
+        retiredAlert();
+        return;
+      }
       if (
         username.trim().toLowerCase() === ADMIN_USERNAME &&
         password === ADMIN_PASSWORD
@@ -64,6 +85,10 @@ export default function AdminLoginScreen() {
   const handleWhitelistBypass = async () => {
     setLoading(true);
     try {
+      if (!(await isLegacyAdminLoginAvailable())) {
+        retiredAlert();
+        return;
+      }
       console.log("Admin login success (whitelisted IP bypass)", currentIp);
       await markSuperAdminSession();
       router.replace("/admin-dashboard" as any);
@@ -79,6 +104,11 @@ export default function AdminLoginScreen() {
     setLoading(true);
     try {
       await new Promise((r) => setTimeout(r, 300));
+      if (!(await isLegacyAdminLoginAvailable())) {
+        retiredAlert();
+        setPin("");
+        return;
+      }
       if (value === ADMIN_PIN) {
         console.log("Admin login success (pin)");
         await markSuperAdminSession();
@@ -152,29 +182,45 @@ export default function AdminLoginScreen() {
             Sign in to access the admin dashboard
           </Text>
 
-          {!ipLoading && isWhitelisted ? (
-            <View style={[styles.whitelistCard, { backgroundColor: Colors.success + "15", borderColor: Colors.success + "40" }]}>
+          {legacyAvailable === null ? (
+            <ActivityIndicator color={Colors.accent} style={{ marginTop: 24 }} testID="admin-login-checking" />
+          ) : legacyAvailable === false ? (
+            <View style={[styles.whitelistCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]} testID="admin-login-retired">
               <View style={styles.whitelistHeader}>
-                <ShieldCheck color={Colors.success} size={18} />
-                <Text style={[styles.whitelistTitle, { color: Colors.text }]}>Trusted IP detected</Text>
+                <ShieldX color={Colors.textSecondary} size={18} />
+                <Text style={[styles.whitelistTitle, { color: Colors.text }]}>Legacy login retired</Text>
               </View>
               <Text style={[styles.whitelistSub, { color: Colors.textSecondary }]}>
-                {currentIp} is whitelisted. Enter the dashboard without a PIN.
+                A real admin account now exists, so the shared PIN / credentials no longer work.
+                Sign in with your account — admin access granted to your profile unlocks the
+                dashboard automatically.
               </Text>
-              <TouchableOpacity
-                style={[styles.whitelistBtn, { backgroundColor: Colors.success, opacity: loading ? 0.7 : 1 }]}
-                onPress={handleWhitelistBypass}
-                disabled={loading}
-                testID="admin-whitelist-bypass"
-              >
-                {loading ? (
-                  <ActivityIndicator color={Colors.onAccent} />
-                ) : (
-                  <Text style={[styles.whitelistBtnText, { color: Colors.onAccent }]}>Enter as admin</Text>
-                )}
-              </TouchableOpacity>
             </View>
-          ) : null}
+          ) : (
+            <>
+              {!ipLoading && isWhitelisted ? (
+                <View style={[styles.whitelistCard, { backgroundColor: Colors.success + "15", borderColor: Colors.success + "40" }]}>
+                  <View style={styles.whitelistHeader}>
+                    <ShieldCheck color={Colors.success} size={18} />
+                    <Text style={[styles.whitelistTitle, { color: Colors.text }]}>Trusted IP detected</Text>
+                  </View>
+                  <Text style={[styles.whitelistSub, { color: Colors.textSecondary }]}>
+                    {currentIp} is whitelisted. Enter the dashboard without a PIN.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.whitelistBtn, { backgroundColor: Colors.success, opacity: loading ? 0.7 : 1 }]}
+                    onPress={handleWhitelistBypass}
+                    disabled={loading}
+                    testID="admin-whitelist-bypass"
+                  >
+                    {loading ? (
+                      <ActivityIndicator color={Colors.onAccent} />
+                    ) : (
+                      <Text style={[styles.whitelistBtnText, { color: Colors.onAccent }]}>Enter as admin</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : null}
 
           <View style={[styles.tabs, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
             <TouchableOpacity
@@ -321,11 +367,9 @@ export default function AdminLoginScreen() {
                   <Text style={[styles.loginText, { color: Colors.onAccent }]}>Sign in</Text>
                 )}
               </TouchableOpacity>
-
-              <Text style={[styles.hint, { color: Colors.textSecondary }]}>
-                Demo credentials: admin / admin123
-              </Text>
             </View>
+          )}
+            </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>

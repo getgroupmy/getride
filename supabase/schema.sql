@@ -898,6 +898,26 @@ $$;
 grant execute on function public.admin_write_access(text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Bootstrap gate for the legacy hardcoded admin login (0068): the client
+-- only honors the hardcoded PIN/credentials/whitelist-bypass while no real
+-- admin_access row exists yet. Once a real admin has been seeded (only
+-- possible via the service role / a direct DB session, since the insert
+-- policy above requires an existing admin), the legacy login stops working
+-- and operators must sign in with their own admin_access-scoped session.
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_access_exists()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.admin_access);
+$$;
+
+grant execute on function public.admin_access_exists() to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- app_settings (0066): the 'fare_ai_provider' row holds SECRET AI provider
 -- API keys. It is only visible/writable to admin_access holders and the
 -- service role (used by the ai-route-proxy edge function); every other row
