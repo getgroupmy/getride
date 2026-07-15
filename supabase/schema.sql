@@ -838,6 +838,10 @@ language sql stable security definer set search_path = public as $$
   );
 $$;
 
+grant execute on function public.is_admin(uuid) to anon, authenticated;
+grant execute on function public.admin_can_edit(uuid, text) to anon, authenticated;
+grant execute on function public.admin_can_read(uuid, text) to anon, authenticated;
+
 alter table public.admin_access enable row level security;
 
 drop policy if exists "admin_access self read" on public.admin_access;
@@ -1305,12 +1309,59 @@ drop policy if exists "ride_requests insert" on public.ride_requests;
 drop policy if exists "ride_requests update" on public.ride_requests;
 drop policy if exists "ride_requests delete" on public.ride_requests;
 
-create policy "ride_requests read"   on public.ride_requests for select using (true);
-create policy "ride_requests insert" on public.ride_requests for insert to public with check (true);
-create policy "ride_requests update" on public.ride_requests for update to public using (true) with check (true);
-create policy "ride_requests delete" on public.ride_requests for delete to public using (true);
+-- Participant-scoped since 0067: dispatch requires an authenticated Supabase
+-- session. Open requests are the marketplace every signed-in user can browse;
+-- matched rides (live GPS, contact details) are only visible to their rider,
+-- partner, or an admin. OPEN rows stay updatable by any authenticated user so
+-- partners can claim them (setting partner_id to themselves) or counter-offer
+-- (status stays 'open') — the WITH CHECK keeps the updated row attributable,
+-- and Postgres re-applies the SELECT policy to updated rows, so a
+-- non-participant can never move a request into a state they cannot see.
+-- Expiry is rider-driven (both expiry paths run as the request's rider).
+create policy "ride_requests read"
+  on public.ride_requests for select
+  to authenticated
+  using (
+    status = 'open'
+    or rider_id = auth.uid()
+    or partner_id = auth.uid()
+    or public.is_admin(auth.uid())
+  );
 
-grant select, insert, update, delete on public.ride_requests to anon, authenticated;
+create policy "ride_requests insert"
+  on public.ride_requests for insert
+  to authenticated
+  with check (
+    rider_id = auth.uid()
+    or public.is_admin(auth.uid())
+  );
+
+create policy "ride_requests update"
+  on public.ride_requests for update
+  to authenticated
+  using (
+    status = 'open'
+    or rider_id = auth.uid()
+    or partner_id = auth.uid()
+    or public.is_admin(auth.uid())
+  )
+  with check (
+    rider_id = auth.uid()
+    or partner_id = auth.uid()
+    or public.is_admin(auth.uid())
+    or status in ('open', 'expired')
+  );
+
+create policy "ride_requests delete"
+  on public.ride_requests for delete
+  to authenticated
+  using (
+    rider_id = auth.uid()
+    or public.is_admin(auth.uid())
+  );
+
+grant select, insert, update, delete on public.ride_requests to authenticated;
+revoke select, insert, update, delete on public.ride_requests from anon;
 
 do $$ begin
   alter publication supabase_realtime add table public.ride_requests;
@@ -1348,12 +1399,32 @@ drop policy if exists "ip_access_rules insert" on public.ip_access_rules;
 drop policy if exists "ip_access_rules update" on public.ip_access_rules;
 drop policy if exists "ip_access_rules delete" on public.ip_access_rules;
 
-create policy "ip_access_rules read"   on public.ip_access_rules for select using (true);
-create policy "ip_access_rules insert" on public.ip_access_rules for insert to public with check (true);
-create policy "ip_access_rules update" on public.ip_access_rules for update to public using (true) with check (true);
-create policy "ip_access_rules delete" on public.ip_access_rules for delete to public using (true);
+-- Reads stay open (every device evaluates the blacklist at login time);
+-- writes are admin-only since 0067 — previously a blocked device could
+-- delete its own blacklist row or whitelist itself to skip the admin PIN.
+create policy "ip_access_rules read"
+  on public.ip_access_rules for select
+  using (true);
 
-grant select, insert, update, delete on public.ip_access_rules to anon, authenticated;
+create policy "ip_access_rules insert"
+  on public.ip_access_rules for insert
+  to authenticated
+  with check (public.is_admin(auth.uid()));
+
+create policy "ip_access_rules update"
+  on public.ip_access_rules for update
+  to authenticated
+  using (public.is_admin(auth.uid()))
+  with check (public.is_admin(auth.uid()));
+
+create policy "ip_access_rules delete"
+  on public.ip_access_rules for delete
+  to authenticated
+  using (public.is_admin(auth.uid()));
+
+grant select on public.ip_access_rules to anon, authenticated;
+grant insert, update, delete on public.ip_access_rules to authenticated;
+revoke insert, update, delete on public.ip_access_rules from anon;
 
 -- ============================================================================
 -- Wallets — GET.wallet (master) + GET.credit (partner credit)

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import {
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import AdminSideSheet from "@/components/AdminSideSheet";
+import { useAdminAccess } from "@/contexts/AdminAccessContext";
 
 interface Stat {
   id: string;
@@ -53,7 +54,17 @@ interface Activity {
 export default function AdminDashboardScreen() {
   const router = useRouter();
   const Colors = useColors();
+  const { isAdmin, isLoading: accessLoading } = useAdminAccess();
   const [sideSheetVisible, setSideSheetVisible] = useState<boolean>(false);
+
+  // Entry guard: the dashboard is only for admin_access holders (or the
+  // dev-build god-mode flag). Anyone else is bounced back to admin-login.
+  useEffect(() => {
+    if (!accessLoading && !isAdmin) {
+      console.log("[admin-dashboard] no admin access — redirecting to login");
+      router.replace("/admin-login" as any);
+    }
+  }, [accessLoading, isAdmin, router]);
 
   const stats = useMemo<Stat[]>(
     () => [

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -15,12 +15,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { ArrowLeft, Eye, EyeOff, ShieldCheck, Lock, User, Delete, KeyRound } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
-import { markSuperAdminSession } from "@/contexts/AdminAccessContext";
+import { markSuperAdminSession, useAdminAccess } from "@/contexts/AdminAccessContext";
 import { useIpAccess } from "@/contexts/IpAccessContext";
+import { useAuth } from "@/contexts/AuthContext";
 
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin123";
-const ADMIN_PIN = "522337";
+/**
+ * Admin entry requires a Supabase-authenticated profile with at least one
+ * `admin_access` row. The PIN pad re-verifies the signed-in user's own login
+ * PIN through the rate-limited `verify_pin_for_login` RPC — there is no
+ * shared admin secret. A whitelisted IP (admin-managed since migration 0067)
+ * skips only the PIN re-entry, never the account check.
+ *
+ * Dev builds keep the legacy demo PIN / credentials so local demos work
+ * without a seeded database; they set the client-only god-mode flag, which
+ * production builds ignore entirely.
+ */
+const DEV_ADMIN_USERNAME = "admin";
+const DEV_ADMIN_PASSWORD = "admin123";
+const DEV_ADMIN_PIN = "522337";
+const PIN_LENGTH = 6;
 
 type Mode = "pin" | "credentials";
 
@@ -28,6 +41,8 @@ export default function AdminLoginScreen() {
   const router = useRouter();
   const Colors = useColors();
   const { isWhitelisted, currentIp, isLoading: ipLoading } = useIpAccess();
+  const { authState, verifyPinRemote } = useAuth();
+  const { rows: accessRows, isLoading: accessLoading, refresh: refreshAccess } = useAdminAccess();
   const [mode, setMode] = useState<Mode>("pin");
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -35,7 +50,28 @@ export default function AdminLoginScreen() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Reload the signed-in profile's admin_access rows on entry, in case they
+  // were granted since app start.
+  useEffect(() => {
+    void refreshAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isAdminAccount = authState.isSupabaseSession === true && accessRows.length > 0;
+
+  const requireAdminAccount = (): boolean => {
+    if (isAdminAccount) return true;
+    Alert.alert(
+      "Admin access required",
+      authState.isSupabaseSession
+        ? "This account doesn't have admin permissions. Ask an existing admin to grant access from Settings → Sub Admin."
+        : "Sign in with your phone number first, using an account that has admin permissions."
+    );
+    return false;
+  };
+
   const handleCredentialsLogin = async () => {
+    if (!__DEV__) return;
     if (!username.trim() || !password.trim()) {
       Alert.alert("Missing fields", "Please enter username and password");
       return;
@@ -44,10 +80,10 @@ export default function AdminLoginScreen() {
     try {
       await new Promise((r) => setTimeout(r, 600));
       if (
-        username.trim().toLowerCase() === ADMIN_USERNAME &&
-        password === ADMIN_PASSWORD
+        username.trim().toLowerCase() === DEV_ADMIN_USERNAME &&
+        password === DEV_ADMIN_PASSWORD
       ) {
-        console.log("Admin login success (credentials)");
+        console.log("Admin login success (dev credentials)");
         await markSuperAdminSession();
         router.replace("/admin-dashboard" as any);
       } else {
@@ -62,29 +98,37 @@ export default function AdminLoginScreen() {
   };
 
   const handleWhitelistBypass = async () => {
-    setLoading(true);
-    try {
-      console.log("Admin login success (whitelisted IP bypass)", currentIp);
-      await markSuperAdminSession();
-      router.replace("/admin-dashboard" as any);
-    } catch (e) {
-      console.log("Admin whitelist bypass error", e);
-      Alert.alert("Error", "Could not sign in. Try again.");
-    } finally {
-      setLoading(false);
-    }
+    if (!requireAdminAccount()) return;
+    console.log("Admin login success (whitelisted IP, admin account)", currentIp);
+    router.replace("/admin-dashboard" as any);
   };
 
   const submitPin = async (value: string) => {
     setLoading(true);
     try {
-      await new Promise((r) => setTimeout(r, 300));
-      if (value === ADMIN_PIN) {
-        console.log("Admin login success (pin)");
+      // Dev demo path: the legacy hardcoded PIN sets the local god-mode flag
+      // (ignored by production builds).
+      if (__DEV__ && value === DEV_ADMIN_PIN) {
+        console.log("Admin login success (dev pin)");
         await markSuperAdminSession();
         router.replace("/admin-dashboard" as any);
+        return;
+      }
+      if (!requireAdminAccount()) {
+        setPin("");
+        return;
+      }
+      // Re-verify the signed-in admin's own login PIN (rate limited
+      // server-side — 5 wrong attempts lock verification for 15 minutes).
+      const res = await verifyPinRemote(authState.phoneNumber ?? "", value);
+      if (res.ok) {
+        console.log("Admin login success (account pin)");
+        router.replace("/admin-dashboard" as any);
       } else {
-        Alert.alert("Invalid PIN", "The PIN you entered is incorrect");
+        Alert.alert(
+          res.locked ? "PIN locked" : "Invalid PIN",
+          res.error ?? "The PIN you entered is incorrect"
+        );
         setPin("");
       }
     } catch (e) {
@@ -98,9 +142,9 @@ export default function AdminLoginScreen() {
   const onPressDigit = (d: string) => {
     if (loading) return;
     setPin((prev) => {
-      if (prev.length >= ADMIN_PIN.length) return prev;
+      if (prev.length >= PIN_LENGTH) return prev;
       const next = prev + d;
-      if (next.length === ADMIN_PIN.length) {
+      if (next.length === PIN_LENGTH) {
         submitPin(next);
       }
       return next;
@@ -113,7 +157,7 @@ export default function AdminLoginScreen() {
   };
 
   const dots = useMemo(() => {
-    return Array.from({ length: ADMIN_PIN.length }).map((_, i) => i < pin.length);
+    return Array.from({ length: PIN_LENGTH }).map((_, i) => i < pin.length);
   }, [pin]);
 
   const keypad: (string | "del" | "")[] = [
@@ -149,7 +193,11 @@ export default function AdminLoginScreen() {
           </View>
           <Text style={[styles.title, { color: Colors.text }]}>Admin Login</Text>
           <Text style={[styles.subtitle, { color: Colors.textSecondary }]}>
-            Sign in to access the admin dashboard
+            {isAdminAccount
+              ? "Enter your login PIN to open the admin dashboard"
+              : accessLoading
+              ? "Checking admin permissions…"
+              : "Admin access requires a signed-in account with admin permissions"}
           </Text>
 
           {!ipLoading && isWhitelisted ? (
@@ -176,6 +224,7 @@ export default function AdminLoginScreen() {
             </View>
           ) : null}
 
+          {__DEV__ ? (
           <View style={[styles.tabs, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
             <TouchableOpacity
               style={[
@@ -214,8 +263,9 @@ export default function AdminLoginScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+          ) : null}
 
-          {mode === "pin" ? (
+          {mode === "pin" || !__DEV__ ? (
             <View style={styles.pinSection} testID="admin-pin-section">
               <View style={styles.dotsRow}>
                 {dots.map((filled, i) => (
@@ -323,7 +373,7 @@ export default function AdminLoginScreen() {
               </TouchableOpacity>
 
               <Text style={[styles.hint, { color: Colors.textSecondary }]}>
-                Demo credentials: admin / admin123
+                Dev build only — demo credentials: admin / admin123
               </Text>
             </View>
           )}

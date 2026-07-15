@@ -64,8 +64,7 @@ import VehicleSelectModal from "@/components/VehicleSelectModal";
 import { Alert } from "react-native";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings, DEFAULT_USER_MENU_ITEMS, getMenuItemOrder, PROFILE_MENU_ITEM_ID, PARTNER_MODE_MENU_ITEM_ID, PARTNER_MODE_DEFAULT_LABEL } from "@/contexts/DisplaySettingsContext";
-import { useAdminAccess, markSuperAdminSession } from "@/contexts/AdminAccessContext";
-import { evaluateCurrentIp } from "@/utils/ipAccessStore";
+import { useAdminAccess } from "@/contexts/AdminAccessContext";
 
 const SIDE_MENU_ICON_MAP: Record<string, LucideIcon> = {
   Bell,
@@ -105,7 +104,6 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
   const { rows: adminAccessRows, isSuper, refresh: refreshAdminAccess } = useAdminAccess();
   const { settings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const showAdminLogin = isSuper || adminAccessRows.length > 0;
-  const [adminChecking, setAdminChecking] = React.useState<boolean>(false);
 
   // Re-check admin_access membership whenever the sheet opens so newly granted
   // access shows up without needing an app restart.
@@ -528,41 +526,23 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
 
         {showAdminLogin ? (
           <TouchableOpacity
-            style={[styles.adminLoginButton, { borderColor: Colors.accent, backgroundColor: Colors.accent + "10", opacity: adminChecking ? 0.6 : 1 }]}
-            disabled={adminChecking}
-            onPress={async () => {
+            style={[styles.adminLoginButton, { borderColor: Colors.accent, backgroundColor: Colors.accent + "10" }]}
+            onPress={() => {
+              // Always go through the admin-login screen — it verifies the
+              // signed-in account has admin_access rows and re-checks the
+              // login PIN (a whitelisted IP only skips the PIN re-entry
+              // there, never the account check).
               console.log("Admin login tapped");
-              setAdminChecking(true);
-              try {
-                const { ip, status } = await evaluateCurrentIp();
-                if (status === "whitelist") {
-                  console.log("[menu-sheet] whitelisted IP bypass", ip);
-                  await markSuperAdminSession();
-                  onClose();
-                  setTimeout(() => {
-                    router.replace("/admin-dashboard" as any);
-                  }, 200);
-                  return;
-                }
-                onClose();
-                setTimeout(() => {
-                  router.push("/admin-login" as any);
-                }, 200);
-              } catch (e) {
-                console.log("[menu-sheet] admin IP check failed", e);
-                onClose();
-                setTimeout(() => {
-                  router.push("/admin-login" as any);
-                }, 200);
-              } finally {
-                setAdminChecking(false);
-              }
+              onClose();
+              setTimeout(() => {
+                router.push("/admin-login" as any);
+              }, 200);
             }}
             testID="admin-login-button"
           >
             <ShieldCheck color={Colors.accent} size={18} />
             <Text style={[styles.adminLoginText, { color: Colors.accent }]}>
-              {adminChecking ? "Checking…" : "Admin login"}
+              Admin login
             </Text>
           </TouchableOpacity>
         ) : null}

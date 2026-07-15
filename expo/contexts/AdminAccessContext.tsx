@@ -57,8 +57,11 @@ export const [AdminAccessProvider, useAdminAccess] = createContextHook(() => {
   const refresh = useCallback(async () => {
     setIsLoading(true);
     try {
+      // The god-mode flag is a pure client-side value, so it only counts in
+      // development builds (demo/local workflows). Production admin access is
+      // always backed by the Supabase `admin_access` table.
       const flag = await AsyncStorage.getItem(ADMIN_SUPER_KEY);
-      const superNow = flag === "1";
+      const superNow = flag === "1" && __DEV__;
       setIsSuper(superNow);
 
       let uid: string | null = null;
@@ -100,9 +103,17 @@ export const [AdminAccessProvider, useAdminAccess] = createContextHook(() => {
     [isSuper, rows]
   );
 
+  /**
+   * True when the current session may enter the admin panel: either a
+   * Supabase-authenticated profile with at least one `admin_access` row, or
+   * the dev-build god-mode flag.
+   */
+  const isAdmin = isSuper || rows.length > 0;
+
   return {
     rows,
     isSuper,
+    isAdmin,
     profileId,
     isLoading,
     canEdit,
@@ -112,8 +123,10 @@ export const [AdminAccessProvider, useAdminAccess] = createContextHook(() => {
 });
 
 /**
- * Mark the current session as the hardcoded super-admin. Called from
- * `admin-login` after a successful PIN / credentials match.
+ * Mark the current session as the local super-admin. DEV BUILDS ONLY — the
+ * flag is ignored in production (`refresh` above requires `__DEV__`), where
+ * admin access must come from the Supabase `admin_access` table. Called from
+ * `admin-login`'s dev demo paths.
  */
 export async function markSuperAdminSession(): Promise<void> {
   try {
