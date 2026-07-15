@@ -883,7 +883,7 @@ export default function WalletTradeScreen() {
                 {outcome.status === "accepted"
                   ? `${outcome.name ?? "Recipient"} approved your request`
                   : outcome.status === "declined"
-                    ? `${outcome.name ?? "The recipient"} declined the transfer`
+                    ? "The recipient declined the transfer"
                     : outcome.status === "expired"
                       ? "Request expired"
                       : outcome.status === "failed"
