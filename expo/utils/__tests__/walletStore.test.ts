@@ -6,6 +6,9 @@ import {
   chargeRideCommission,
   fetchWalletBalances,
   transferCoins,
+  payFromWallet,
+  tradeCoins,
+  redeemCoinsForFare,
 } from "@/utils/walletStore";
 import { resolveCommissionRateForRide } from "@/utils/commissionStore";
 
@@ -21,6 +24,20 @@ jest.mock("@/utils/supabase", () => {
 jest.mock("@/utils/commissionStore", () => ({
   DEFAULT_COMMISSION_RATE: 0.15,
   resolveCommissionRateForRide: jest.fn(),
+}));
+
+jest.mock("@/utils/getCoinStore", () => ({
+  fetchGetCoinSettings: jest.fn(async () => ({
+    coinsPerCurrency: 2,
+    earnCoinsPerCurrency: 1,
+    currency: "RM",
+    active: true,
+    marketEnabled: false,
+    maxSwingPct: 50,
+    maxSupply: 0,
+    source: "local",
+  })),
+  rideRewardCoins: (fare: number, rate: number) => Math.round(fare * rate * 100) / 100,
 }));
 
 const supabaseModule = jest.requireMock("@/utils/supabase") as {
@@ -435,7 +452,7 @@ describe("chargeRideCommission", () => {
   });
 
   it("reports failure without a local charge when the RPC fails for another reason", async () => {
-    sb.queueRpcResult({ error: { message: "permission denied" } });
+    sb.queueRpcResult({ error: { message: "boom" } });
     const result = await chargeRideCommission({
       partnerId: PARTNER,
       fareTotal: 40,
@@ -444,5 +461,177 @@ describe("chargeRideCommission", () => {
     });
     expect(result).toMatchObject({ ok: false, error: "Commission charge failed." });
     expect(await AsyncStorage.getItem(`wallet:balances:${PARTNER}`)).toBeNull();
+  });
+
+  it("asks the user to sign in when the database rejects the caller (0066 lockdown)", async () => {
+    sb.queueRpcResult({ error: { message: "P0001: not_authorized" } });
+    const result = await chargeRideCommission({
+      partnerId: PARTNER,
+      fareTotal: 40,
+      rideRequestId: "ride-6",
+      rate: 0.25,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("sign in");
+    // No local charge — the account genuinely couldn't be verified.
+    expect(await AsyncStorage.getItem(`wallet:balances:${PARTNER}`)).toBeNull();
+  });
+});
+
+describe("payFromWallet", () => {
+  const ALL_WALLETS = (wallet: number, coin: number) => ({
+    data: [
+      { wallet_type: "get_wallet", balance: wallet, currency: "RM" },
+      { wallet_type: "get_credit", balance: 0, currency: "RM" },
+      { wallet_type: "get_coin", balance: coin, currency: "RM" },
+    ],
+  });
+
+  it("pays through the owner-scoped wallet_pay RPC", async () => {
+    sb.queueRpcResult({ data: { coins_used: 0, coin_value: 0, wallet_paid: 30 } });
+    sb.queueResult(ALL_WALLETS(70, 0)); // refreshed balances
+    const result = await payFromWallet(USER, 30, "Coffee");
+    expect(result).toMatchObject({ ok: true, coinsUsed: 0, coinValue: 0, walletPaid: 30 });
+    expect(sb.rpcCalls[0]).toEqual({
+      fn: "wallet_pay",
+      params: {
+        p_user: USER,
+        p_amount: 30,
+        p_note: "Coffee",
+        p_method: "qr_scan",
+        p_redeem_coins: false,
+      },
+    });
+  });
+
+  it("passes the coin redemption flag through to the RPC", async () => {
+    sb.queueRpcResult({ data: { coins_used: 20, coin_value: 10, wallet_paid: 20 } });
+    sb.queueResult(ALL_WALLETS(50, 0));
+    const result = await payFromWallet(USER, 30, "Groceries", {
+      redeemCoins: true,
+      coinsPerCurrency: 2,
+    });
+    expect(result).toMatchObject({ ok: true, coinsUsed: 20, coinValue: 10, walletPaid: 20 });
+    expect(sb.rpcCalls[0].params).toMatchObject({ p_redeem_coins: true });
+  });
+
+  it("maps insufficient_balance to a friendly message", async () => {
+    sb.queueRpcResult({ error: { message: "P0001: insufficient_balance" } });
+    expect(await payFromWallet(USER, 500, "TV")).toEqual({
+      ok: false,
+      error: "Not enough balance in GET.wallet.",
+    });
+  });
+
+  it("asks the user to sign in when the database rejects the caller", async () => {
+    sb.queueRpcResult({ error: { message: "P0001: not_authorized" } });
+    const result = await payFromWallet(USER, 30, "Coffee");
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("sign in");
+  });
+
+  it("falls back to direct ledger inserts on pre-0066 databases", async () => {
+    sb.queueRpcResult({ error: MISSING_SCHEMA });
+    sb.queueResult(ALL_WALLETS(100, 0)); // balance check
+    sb.queueResult({ data: null }); // ledger insert
+    sb.queueResult(ALL_WALLETS(70, 0)); // refreshed balances
+    const result = await payFromWallet(USER, 30, "Coffee");
+    expect(result).toMatchObject({ ok: true, walletPaid: 30 });
+
+    const insert = sb.queries[1];
+    expect(insert.table).toBe("wallet_transactions");
+    expect(insert.steps[0].method).toBe("insert");
+    const rows = insert.steps[0].args[0] as Record<string, unknown>[];
+    expect(rows[0]).toMatchObject({
+      user_id: USER,
+      wallet_type: "get_wallet",
+      kind: "payment",
+      amount: -30,
+    });
+  });
+});
+
+describe("tradeCoins", () => {
+  const ALL_WALLETS = (wallet: number, coin: number) => ({
+    data: [
+      { wallet_type: "get_wallet", balance: wallet, currency: "RM" },
+      { wallet_type: "get_credit", balance: 0, currency: "RM" },
+      { wallet_type: "get_coin", balance: coin, currency: "RM" },
+    ],
+  });
+
+  it("buys through the owner-scoped wallet_trade_coins RPC", async () => {
+    sb.queueRpcResult({ data: { coins: 10, amount_currency: 5, rate_per_gc: 0.5 } });
+    sb.queueResult(ALL_WALLETS(95, 10));
+    const result = await tradeCoins({ userId: USER, direction: "buy", coins: 10, ratePerGC: 0.5 });
+    expect(result).toMatchObject({ ok: true, coins: 10, amountCurrency: 5, ratePerGC: 0.5 });
+    expect(sb.rpcCalls[0]).toEqual({
+      fn: "wallet_trade_coins",
+      params: { p_user: USER, p_direction: "buy", p_coins: 10, p_rate_per_gc: 0.5 },
+    });
+  });
+
+  it("maps the RPC's business errors to friendly messages", async () => {
+    sb.queueRpcResult({ error: { message: "P0001: insufficient_balance" } });
+    expect(await tradeCoins({ userId: USER, direction: "buy", coins: 99, ratePerGC: 1 })).toEqual({
+      ok: false,
+      error: "Not enough balance in GET.wallet.",
+    });
+    sb.queueRpcResult({ error: { message: "P0001: insufficient_coins" } });
+    expect(await tradeCoins({ userId: USER, direction: "sell", coins: 99, ratePerGC: 1 })).toEqual({
+      ok: false,
+      error: "Not enough GET.coin to sell.",
+    });
+    sb.queueRpcResult({ error: { message: "P0001: supply_cap_reached" } });
+    expect(await tradeCoins({ userId: USER, direction: "buy", coins: 5, ratePerGC: 1 })).toEqual({
+      ok: false,
+      error: "Supply cap reached — no more GC can be minted.",
+    });
+  });
+
+  it("falls back to direct ledger inserts on pre-0066 databases", async () => {
+    sb.queueRpcResult({ error: MISSING_SCHEMA });
+    sb.queueResult(ALL_WALLETS(100, 0)); // balance check
+    sb.queueResult({ data: null }); // ledger insert
+    sb.queueResult(ALL_WALLETS(90, 10)); // refreshed balances
+    const result = await tradeCoins({ userId: USER, direction: "buy", coins: 10, ratePerGC: 1 });
+    expect(result).toMatchObject({ ok: true, coins: 10, amountCurrency: 10 });
+
+    const insert = sb.queries[1];
+    expect(insert.table).toBe("wallet_transactions");
+    const rows = insert.steps[0].args[0] as Record<string, unknown>[];
+    expect(rows.map((r) => [r.wallet_type, r.amount])).toEqual([
+      ["get_wallet", -10],
+      ["get_coin", 10],
+    ]);
+  });
+});
+
+describe("redeemCoinsForFare", () => {
+  const RIDE_UUID = "5f7a1b2c-3d4e-4f5a-8b6c-7d8e9f0a1b2c";
+
+  it("redeems through the RPC, passing real ride ids for server-side idempotency", async () => {
+    sb.queueRpcResult({ data: { coins_used: 20, coin_value: 10 } });
+    const result = await redeemCoinsForFare({ userId: USER, fareTotal: 25, rideKey: RIDE_UUID });
+    expect(result).toEqual({ ok: true, coinsUsed: 20, coinValue: 10 });
+    expect(sb.rpcCalls[0]).toEqual({
+      fn: "wallet_redeem_fare_coins",
+      params: { p_user: USER, p_fare: 25, p_ride: RIDE_UUID },
+    });
+  });
+
+  it("passes p_ride = null for simulated (non-UUID) ride keys", async () => {
+    sb.queueRpcResult({ data: { coins_used: 0, coin_value: 0 } });
+    const result = await redeemCoinsForFare({ userId: USER, fareTotal: 25, rideKey: "sim-ride-1" });
+    expect(result.ok).toBe(true);
+    expect(sb.rpcCalls[0].params).toMatchObject({ p_ride: null });
+  });
+
+  it("short-circuits on the device-local guard for repeat calls", async () => {
+    sb.queueRpcResult({ data: { coins_used: 20, coin_value: 10 } });
+    await redeemCoinsForFare({ userId: USER, fareTotal: 25, rideKey: RIDE_UUID });
+    const again = await redeemCoinsForFare({ userId: USER, fareTotal: 25, rideKey: RIDE_UUID });
+    expect(again).toEqual({ ok: true, coinsUsed: 0, coinValue: 0 });
+    expect(sb.rpcCalls).toHaveLength(1);
   });
 });

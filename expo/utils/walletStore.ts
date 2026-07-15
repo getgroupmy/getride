@@ -95,6 +95,36 @@ function isMissingSchemaError(err: unknown): boolean {
   );
 }
 
+/**
+ * True when the database rejected the call because the caller isn't the
+ * wallet's owner (0066 lockdown: wallet writes require an authenticated
+ * Supabase session matching the target user). Legacy local-PIN sessions land
+ * here — surface a sign-in prompt instead of a generic failure.
+ */
+function isPermissionError(err: unknown): boolean {
+  const msg = (
+    typeof err === "object" && err !== null
+      ? String((err as { message?: string; code?: string }).message ?? "") +
+        " " +
+        String((err as { code?: string }).code ?? "")
+      : String(err ?? "")
+  ).toLowerCase();
+  return (
+    msg.includes("not_authorized") ||
+    msg.includes("42501") ||
+    msg.includes("permission denied") ||
+    msg.includes("row-level security")
+  );
+}
+
+const SIGN_IN_ERROR =
+  "Your session can't access the shared wallet. Please sign in again.";
+
+/** UUID shape check — ride keys may also be local/simulated identifiers. */
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
 async function readLocalBalances(userId: string): Promise<LocalWalletState> {
   try {
     const raw = await AsyncStorage.getItem(LOCAL_BALANCES_KEY(userId));
@@ -326,6 +356,9 @@ export async function topUpWallet(
       if (error) throw error;
       return { ok: true, balances: await fetchWalletBalances(userId) };
     } catch (e) {
+      if (isPermissionError(e)) {
+        return { ok: false, error: SIGN_IN_ERROR };
+      }
       if (!isMissingSchemaError(e)) {
         console.log("[wallet] topup rpc failed", e);
         return { ok: false, error: "Top up failed. Please try again." };
@@ -383,6 +416,9 @@ export async function rechargeCredit(
       }
       return { ok: true, balances: await fetchWalletBalances(userId) };
     } catch (e) {
+      if (isPermissionError(e)) {
+        return { ok: false, error: SIGN_IN_ERROR };
+      }
       if (!isMissingSchemaError(e)) {
         console.log("[wallet] recharge rpc failed", e);
         return { ok: false, error: "Recharge failed. Please try again." };
@@ -475,6 +511,42 @@ export async function payFromWallet(
   const useCoins = coinOption?.redeemCoins === true && (coinOption?.coinsPerCurrency ?? 0) > 0;
 
   if (isSupabaseConfigured && supabase) {
+    // Preferred: atomic owner-scoped RPC (migration 0066). The coin exchange
+    // rate is resolved server-side, so the split can't be tampered with.
+    try {
+      const { data, error } = await supabase.rpc("wallet_pay", {
+        p_user: userId,
+        p_amount: amount,
+        p_note: note,
+        p_method: "qr_scan",
+        p_redeem_coins: coinOption?.redeemCoins === true,
+      });
+      if (error) throw error;
+      const row = (data ?? {}) as Record<string, unknown>;
+      return {
+        ok: true,
+        balances: await fetchWalletBalances(userId),
+        coinsUsed: Number(row.coins_used ?? 0),
+        coinValue: Number(row.coin_value ?? 0),
+        walletPaid: Number(row.wallet_paid ?? 0),
+      };
+    } catch (e) {
+      const msg = String((e as { message?: string })?.message ?? e ?? "").toLowerCase();
+      if (msg.includes("insufficient_balance")) {
+        return { ok: false, error: "Not enough balance in GET.wallet." };
+      }
+      if (isPermissionError(e)) {
+        return { ok: false, error: SIGN_IN_ERROR };
+      }
+      if (!isMissingSchemaError(e)) {
+        console.log("[wallet] wallet_pay rpc failed", e);
+        return { ok: false, error: "Payment failed. Please try again." };
+      }
+      console.log("[wallet] wallet_pay RPC missing — falling back to ledger inserts");
+    }
+
+    // Pre-0066 database: settle with direct ledger inserts (the 0060 trigger
+    // moves the balances).
     try {
       const balances = await fetchWalletBalances(userId);
       if (balances.source === "supabase") {
@@ -521,6 +593,9 @@ export async function payFromWallet(
       const msg = String((e as { message?: string })?.message ?? e ?? "").toLowerCase();
       if (msg.includes("check") || msg.includes("balance") || msg.includes("negative")) {
         return { ok: false, error: "Not enough balance in GET.wallet." };
+      }
+      if (isPermissionError(e)) {
+        return { ok: false, error: SIGN_IN_ERROR };
       }
       if (!isMissingSchemaError(e)) {
         console.log("[wallet] payment failed", e);
@@ -646,6 +721,9 @@ export async function awardRideCoins(input: {
       console.log("[wallet] ride coins awarded (supabase)", { rideRequestId, awarded });
       return { ok: true, coins: awarded };
     } catch (e) {
+      if (isPermissionError(e)) {
+        return { ok: false, coins: 0, error: SIGN_IN_ERROR };
+      }
       if (!isMissingSchemaError(e)) {
         console.log("[wallet] coin reward rpc failed", e);
         return { ok: false, coins: 0, error: "Reward failed." };
@@ -721,6 +799,34 @@ export async function redeemCoinsForFare(input: {
   if (!(rate > 0)) return { ok: true, coinsUsed: 0, coinValue: 0 };
 
   if (isSupabaseConfigured && supabase) {
+    // Preferred: atomic owner-scoped RPC (migration 0066). Real ride ids also
+    // gain server-side idempotency (ride_requests.fare_coins_redeemed_at);
+    // simulated rides pass null and rely on the device-local guard.
+    try {
+      const { data, error } = await supabase.rpc("wallet_redeem_fare_coins", {
+        p_user: userId,
+        p_fare: fareTotal,
+        p_ride: isUuid(rideKey) ? rideKey : null,
+      });
+      if (error) throw error;
+      await markRedeemed();
+      const row = (data ?? {}) as Record<string, unknown>;
+      const coinsUsed = Number(row.coins_used ?? 0);
+      const coinValue = Number(row.coin_value ?? 0);
+      console.log("[wallet] ride coins redeemed (rpc)", { rideKey, coins: coinsUsed });
+      return { ok: true, coinsUsed, coinValue };
+    } catch (e) {
+      if (isPermissionError(e)) {
+        return { ok: false, coinsUsed: 0, coinValue: 0, error: SIGN_IN_ERROR };
+      }
+      if (!isMissingSchemaError(e)) {
+        console.log("[wallet] coin fare redeem rpc failed", e);
+        return { ok: false, coinsUsed: 0, coinValue: 0, error: "Coin redemption failed." };
+      }
+      console.log("[wallet] wallet_redeem_fare_coins RPC missing — falling back to ledger inserts");
+    }
+
+    // Pre-0066 database: settle with a direct ledger insert.
     try {
       const balances = await fetchWalletBalances(userId);
       if (balances.source === "supabase") {
@@ -826,6 +932,50 @@ export async function tradeCoins(input: {
   const rateNote = `RM${ratePerGC.toFixed(4)}/GC`;
 
   if (isSupabaseConfigured && supabase) {
+    // Preferred: atomic owner-scoped RPC (migration 0066). The server anchors
+    // the rate to the admin peg (clamped to the market swing band) and
+    // re-enforces the supply cap, so a client can't trade at a made-up price.
+    try {
+      const { data, error } = await supabase.rpc("wallet_trade_coins", {
+        p_user: userId,
+        p_direction: direction,
+        p_coins: coins,
+        p_rate_per_gc: ratePerGC,
+      });
+      if (error) throw error;
+      const row = (data ?? {}) as Record<string, unknown>;
+      return {
+        ok: true,
+        balances: await fetchWalletBalances(userId),
+        coins: Number(row.coins ?? coins),
+        amountCurrency: Number(row.amount_currency ?? amountCurrency),
+        ratePerGC: Number(row.rate_per_gc ?? ratePerGC),
+      };
+    } catch (e) {
+      const msg = String((e as { message?: string })?.message ?? e ?? "").toLowerCase();
+      if (msg.includes("insufficient_balance")) {
+        return { ok: false, error: "Not enough balance in GET.wallet." };
+      }
+      if (msg.includes("insufficient_coins")) {
+        return { ok: false, error: "Not enough GET.coin to sell." };
+      }
+      if (msg.includes("supply_cap_reached")) {
+        return { ok: false, error: "Supply cap reached — no more GC can be minted." };
+      }
+      if (msg.includes("rate_unavailable")) {
+        return { ok: false, error: "Coin rate unavailable. Try again." };
+      }
+      if (isPermissionError(e)) {
+        return { ok: false, error: SIGN_IN_ERROR };
+      }
+      if (!isMissingSchemaError(e)) {
+        console.log("[wallet] wallet_trade_coins rpc failed", e);
+        return { ok: false, error: "Trade failed. Please try again." };
+      }
+      console.log("[wallet] wallet_trade_coins RPC missing — falling back to ledger inserts");
+    }
+
+    // Pre-0066 database: settle with direct ledger inserts.
     try {
       const balances = await fetchWalletBalances(userId);
       if (balances.source === "supabase") {
@@ -890,6 +1040,9 @@ export async function tradeCoins(input: {
           ok: false,
           error: direction === "buy" ? "Not enough balance in GET.wallet." : "Not enough GET.coin to sell.",
         };
+      }
+      if (isPermissionError(e)) {
+        return { ok: false, error: SIGN_IN_ERROR };
       }
       if (!isMissingSchemaError(e)) {
         console.log("[wallet] coin trade failed", e);
@@ -1047,6 +1200,9 @@ export async function transferCoins(input: {
     if (msg.includes("invalid_amount")) {
       return { ok: false, error: "Enter an amount greater than 0." };
     }
+    if (isPermissionError(e)) {
+      return { ok: false, error: SIGN_IN_ERROR };
+    }
     if (!isMissingSchemaError(e)) {
       console.log("[wallet] coin transfer failed", e);
       return { ok: false, error: "Transfer failed. Please try again." };
@@ -1188,6 +1344,9 @@ export async function chargeRideCommission(input: {
       console.log("[wallet] ride commission charged (supabase)", { rideRequestId, amount, rate, rateLabel });
       return { ok: true, amount, rate, rateLabel };
     } catch (e) {
+      if (isPermissionError(e)) {
+        return { ok: false, error: SIGN_IN_ERROR, amount, rate, rateLabel };
+      }
       if (!isMissingSchemaError(e)) {
         console.log("[wallet] commission rpc failed", e);
         return { ok: false, error: "Commission charge failed.", amount, rate, rateLabel };

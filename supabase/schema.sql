@@ -780,10 +780,149 @@ create policy "settings_entries read"
   on public.settings_entries for select
   using (true);
 
+-- ---------------------------------------------------------------------------
+-- Admin access control (migration 0009, folded in) — one row per
+-- (profile, page) pair; a profile with ANY row is considered an admin, and
+-- page='*' grants every admin page at the given level. Also backs the
+-- app_settings secret-row policies below.
+-- ---------------------------------------------------------------------------
+do $$ begin
+  create type admin_access_level as enum ('read','edit');
+exception when duplicate_object then null; end $$;
+
+create table if not exists public.admin_access (
+  id            uuid primary key default gen_random_uuid(),
+  profile_id    uuid not null references public.profiles(id) on delete cascade,
+  page          text not null,
+  access_level  admin_access_level not null default 'read',
+  notes         text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  unique (profile_id, page)
+);
+
+create index if not exists admin_access_profile_idx on public.admin_access(profile_id);
+create index if not exists admin_access_page_idx    on public.admin_access(page);
+
+drop trigger if exists trg_admin_access_updated_at on public.admin_access;
+create trigger trg_admin_access_updated_at
+  before update on public.admin_access
+  for each row execute function public.set_updated_at();
+
+create or replace function public.is_admin(p_profile uuid)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.admin_access where profile_id = p_profile
+  );
+$$;
+
+create or replace function public.admin_can_edit(p_profile uuid, p_page text)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.admin_access
+    where profile_id = p_profile
+      and (page = p_page or page = '*')
+      and access_level = 'edit'
+  );
+$$;
+
+create or replace function public.admin_can_read(p_profile uuid, p_page text)
+returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.admin_access
+    where profile_id = p_profile
+      and (page = p_page or page = '*')
+  );
+$$;
+
+alter table public.admin_access enable row level security;
+
+drop policy if exists "admin_access self read" on public.admin_access;
+create policy "admin_access self read"
+  on public.admin_access for select
+  using (profile_id = auth.uid());
+
+drop policy if exists "admin_access admin read" on public.admin_access;
+create policy "admin_access admin read"
+  on public.admin_access for select
+  using (public.admin_can_edit(auth.uid(), 'admin-settings-sub-admin'));
+
+drop policy if exists "admin_access admin write insert" on public.admin_access;
+create policy "admin_access admin write insert"
+  on public.admin_access for insert
+  with check (public.admin_can_edit(auth.uid(), 'admin-settings-sub-admin'));
+
+drop policy if exists "admin_access admin write update" on public.admin_access;
+create policy "admin_access admin write update"
+  on public.admin_access for update
+  using (public.admin_can_edit(auth.uid(), 'admin-settings-sub-admin'));
+
+drop policy if exists "admin_access admin write delete" on public.admin_access;
+create policy "admin_access admin write delete"
+  on public.admin_access for delete
+  using (public.admin_can_edit(auth.uid(), 'admin-settings-sub-admin'));
+
+grant select, insert, update, delete on public.admin_access to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- app_settings (0066): the 'fare_ai_provider' row holds SECRET AI provider
+-- API keys. It is only visible/writable to admin_access holders and the
+-- service role (used by the ai-route-proxy edge function); every other row
+-- keeps the open policies the app relies on.
+-- ---------------------------------------------------------------------------
+create or replace function public.app_settings_secret_access()
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_claims text := current_setting('request.jwt.claims', true);
+begin
+  if v_claims is null or v_claims = '' then
+    return true; -- direct database session (setup scripts, psql)
+  end if;
+  if coalesce(auth.jwt() ->> 'role', '') = 'service_role' then
+    return true;
+  end if;
+  if auth.uid() is null then
+    return false;
+  end if;
+  if to_regclass('public.admin_access') is null then
+    return false;
+  end if;
+  return exists (
+    select 1 from public.admin_access where profile_id = auth.uid()
+  );
+end;
+$$;
+
+grant execute on function public.app_settings_secret_access() to anon, authenticated;
+
 drop policy if exists "app_settings read" on public.app_settings;
 create policy "app_settings read"
   on public.app_settings for select
-  using (true);
+  using (key <> 'fare_ai_provider' or public.app_settings_secret_access());
+
+drop policy if exists "app_settings insert" on public.app_settings;
+create policy "app_settings insert"
+  on public.app_settings for insert to public
+  with check (key <> 'fare_ai_provider' or public.app_settings_secret_access());
+
+drop policy if exists "app_settings update" on public.app_settings;
+create policy "app_settings update"
+  on public.app_settings for update to public
+  using (key <> 'fare_ai_provider' or public.app_settings_secret_access())
+  with check (key <> 'fare_ai_provider' or public.app_settings_secret_access());
+
+drop policy if exists "app_settings delete" on public.app_settings;
+create policy "app_settings delete"
+  on public.app_settings for delete to public
+  using (key <> 'fare_ai_provider' or public.app_settings_secret_access());
 
 drop policy if exists "rides participant" on public.rides;
 create policy "rides participant"
@@ -1270,22 +1409,56 @@ end$$;
 alter table public.wallets enable row level security;
 alter table public.wallet_transactions enable row level security;
 
+-- Locked down in 0066: balances/history stay readable (admin panel + the
+-- user's own app), but the ledger can only be written through the
+-- SECURITY DEFINER wallet RPCs below — direct client inserts would let any
+-- anon-key holder mint money (the 0060 trigger moves wallets.balance for
+-- every wallet_transactions row).
 drop policy if exists "wallets read"   on public.wallets;
 drop policy if exists "wallets insert" on public.wallets;
 drop policy if exists "wallets update" on public.wallets;
 
 create policy "wallets read"   on public.wallets for select using (true);
-create policy "wallets insert" on public.wallets for insert to public with check (true);
-create policy "wallets update" on public.wallets for update to public using (true) with check (true);
 
 drop policy if exists "wallet_transactions read"   on public.wallet_transactions;
 drop policy if exists "wallet_transactions insert" on public.wallet_transactions;
 
 create policy "wallet_transactions read"   on public.wallet_transactions for select using (true);
-create policy "wallet_transactions insert" on public.wallet_transactions for insert to public with check (true);
 
-grant select, insert, update on public.wallets to anon, authenticated;
-grant select, insert on public.wallet_transactions to anon, authenticated;
+grant select on public.wallets to anon, authenticated;
+grant select on public.wallet_transactions to anon, authenticated;
+revoke insert, update on public.wallets from anon, authenticated;
+revoke insert on public.wallet_transactions from anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- Caller assertion helper (0066): every wallet RPC verifies the caller owns
+-- the wallet it moves. Direct DB sessions (no PostgREST JWT context) and the
+-- service role are exempt.
+-- ----------------------------------------------------------------------------
+create or replace function public.wallet_assert_caller(p_user uuid)
+returns void
+language plpgsql
+stable
+security definer
+set search_path = public
+as $wac$
+declare
+  v_claims text := current_setting('request.jwt.claims', true);
+begin
+  if p_user is null then
+    raise exception 'invalid_user';
+  end if;
+  if v_claims is null or v_claims = '' then
+    return; -- direct database session (no API JWT context)
+  end if;
+  if coalesce(auth.jwt() ->> 'role', '') = 'service_role' then
+    return;
+  end if;
+  if auth.uid() is distinct from p_user then
+    raise exception 'not_authorized';
+  end if;
+end;
+$wac$;
 
 -- Realtime: live wallet balance updates (migrations/0059_wallets_realtime.sql)
 alter table public.wallets replica identity full;
@@ -1380,9 +1553,7 @@ as $$
 declare
   w public.wallets;
 begin
-  if p_user is null then
-    raise exception 'invalid_user';
-  end if;
+  perform public.wallet_assert_caller(p_user);
   if p_amount is null or p_amount <= 0 or p_amount > 100000 then
     raise exception 'invalid_amount';
   end if;
@@ -1412,9 +1583,7 @@ declare
   w_master public.wallets;
   w_credit public.wallets;
 begin
-  if p_user is null then
-    raise exception 'invalid_user';
-  end if;
+  perform public.wallet_assert_caller(p_user);
   if p_amount is null or p_amount <= 0 then
     raise exception 'invalid_amount';
   end if;
@@ -1604,10 +1773,10 @@ declare
   w public.wallets;
   v_rate numeric;
   v_amount numeric(12,2);
+  v_claims text := current_setting('request.jwt.claims', true);
+  v_privileged boolean;
 begin
-  if p_partner is null then
-    raise exception 'invalid_partner';
-  end if;
+  perform public.wallet_assert_caller(p_partner);
   if p_fare is null or p_fare <= 0 then
     raise exception 'invalid_fare';
   end if;
@@ -1617,6 +1786,10 @@ begin
     raise exception 'ride_not_found';
   end if;
 
+  if r.partner_id is not null and r.partner_id <> p_partner then
+    raise exception 'not_authorized';
+  end if;
+
   -- Already charged: idempotent no-op.
   if r.commission_charged_at is not null then
     select * into w from public.wallets
@@ -1624,7 +1797,11 @@ begin
     return w;
   end if;
 
-  v_rate := p_rate;
+  -- API callers can't pick their own rate — always resolve server-side
+  -- (p_rate is honoured only for service-role / direct DB sessions).
+  v_privileged := (v_claims is null or v_claims = '')
+    or coalesce(auth.jwt() ->> 'role', '') = 'service_role';
+  v_rate := case when v_privileged then p_rate else null end;
   if v_rate is null then
     v_rate := public.commission_resolve_rate(p_partner, r.country, r.state, r.city, r.suburb);
   end if;
@@ -1779,15 +1956,35 @@ security definer
 set search_path = public
 as $$
 declare
+  r public.ride_requests;
   v_rate numeric;
   v_coins numeric;
-  v_claimed int;
 begin
+  perform public.wallet_assert_caller(p_user);
+  if p_fare is null or p_fare <= 0 or p_fare > 10000 then
+    return 0;
+  end if;
+
   select earn_coins_per_currency into v_rate
   from public.get_coin_settings
   where id = 'master';
 
-  if v_rate is null or v_rate <= 0 or p_fare is null or p_fare <= 0 then
+  if v_rate is null or v_rate <= 0 then
+    return 0;
+  end if;
+
+  -- Only the ride's rider can claim, only for a completed ride, only once.
+  select * into r from public.ride_requests where id = p_ride for update;
+  if not found then
+    return 0;
+  end if;
+  if r.status <> 'completed' then
+    return 0;
+  end if;
+  if r.rider_id is not null and r.rider_id <> p_user then
+    raise exception 'not_authorized';
+  end if;
+  if r.coin_rewarded_at is not null then
     return 0;
   end if;
 
@@ -1796,14 +1993,9 @@ begin
     return 0;
   end if;
 
-  -- Claim the ride atomically; a second call finds coin_rewarded_at set.
   update public.ride_requests
   set coin_rewarded_at = now()
-  where id = p_ride and coin_rewarded_at is null;
-  get diagnostics v_claimed = row_count;
-  if v_claimed = 0 then
-    return 0;
-  end if;
+  where id = p_ride;
 
   insert into public.wallets (user_id, wallet_type, balance)
   values (p_user, 'get_coin', 0)
@@ -1817,6 +2009,298 @@ end;
 $$;
 
 grant execute on function public.wallet_award_ride_coins(uuid, uuid, numeric) to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- Owner-scoped spending RPCs (0066) — replace the client's direct ledger
+-- inserts for QR payments, ride-fare coin redemption and coin trading.
+-- ----------------------------------------------------------------------------
+alter table public.ride_requests
+  add column if not exists fare_coins_redeemed_at timestamptz;
+
+-- QR payment from GET.wallet, optionally redeeming GET.coin first (coins
+-- cover what they can at the admin rate, GET.wallet pays the rest).
+create or replace function public.wallet_pay(
+  p_user uuid,
+  p_amount numeric,
+  p_note text default null,
+  p_method text default 'qr_scan',
+  p_redeem_coins boolean default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_amount numeric := round(coalesce(p_amount, 0), 2);
+  v_rate numeric := 0;
+  v_coin_balance numeric := 0;
+  v_wallet_balance numeric;
+  v_max_coin_value numeric := 0;
+  v_coin_value numeric := 0;
+  v_coins_used numeric := 0;
+  v_wallet_share numeric;
+begin
+  perform public.wallet_assert_caller(p_user);
+  if v_amount <= 0 or v_amount > 100000 then
+    raise exception 'invalid_amount';
+  end if;
+
+  insert into public.wallets (user_id, wallet_type, balance)
+  values (p_user, 'get_wallet', 0), (p_user, 'get_coin', 0)
+  on conflict (user_id, wallet_type) do nothing;
+
+  if coalesce(p_redeem_coins, false) then
+    select coins_per_currency into v_rate
+    from public.get_coin_settings where id = 'master';
+
+    if coalesce(v_rate, 0) > 0 then
+      select balance into v_coin_balance
+      from public.wallets
+      where user_id = p_user and wallet_type = 'get_coin'
+      for update;
+      v_coin_balance := coalesce(v_coin_balance, 0);
+
+      if v_coin_balance > 0 then
+        v_max_coin_value := floor((v_coin_balance / v_rate) * 100) / 100;
+        v_coin_value := least(v_max_coin_value, v_amount);
+        v_coins_used := round(v_coin_value * v_rate, 2);
+      end if;
+    end if;
+  end if;
+
+  v_wallet_share := round(v_amount - v_coin_value, 2);
+
+  select balance into v_wallet_balance
+  from public.wallets
+  where user_id = p_user and wallet_type = 'get_wallet'
+  for update;
+
+  if coalesce(v_wallet_balance, 0) < v_wallet_share then
+    raise exception 'insufficient_balance';
+  end if;
+
+  if v_coins_used > 0 then
+    insert into public.wallet_transactions
+      (user_id, wallet_type, kind, amount, method, note)
+    values
+      (p_user, 'get_coin', 'redeem', -v_coins_used, p_method,
+       coalesce(p_note, 'Payment') || ' — paid with coins (RM' ||
+       to_char(v_coin_value, 'FM999999990.00') || ')');
+  end if;
+
+  if v_wallet_share > 0 then
+    insert into public.wallet_transactions
+      (user_id, wallet_type, kind, amount, method, note)
+    values
+      (p_user, 'get_wallet', 'payment', -v_wallet_share, p_method, p_note);
+  end if;
+
+  return jsonb_build_object(
+    'coins_used', v_coins_used,
+    'coin_value', v_coin_value,
+    'wallet_paid', v_wallet_share
+  );
+end;
+$$;
+
+-- Redeem GET.coin towards a ride fare. Idempotent per ride via
+-- ride_requests.fare_coins_redeemed_at (simulated rides pass p_ride = null
+-- and rely on the client-side guard).
+create or replace function public.wallet_redeem_fare_coins(
+  p_user uuid,
+  p_fare numeric,
+  p_ride uuid default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r public.ride_requests;
+  v_fare numeric := round(coalesce(p_fare, 0), 2);
+  v_rate numeric;
+  v_coin_balance numeric := 0;
+  v_max_coin_value numeric := 0;
+  v_coin_value numeric := 0;
+  v_coins_used numeric := 0;
+begin
+  perform public.wallet_assert_caller(p_user);
+  if v_fare <= 0 or v_fare > 10000 then
+    raise exception 'invalid_amount';
+  end if;
+
+  select coins_per_currency into v_rate
+  from public.get_coin_settings where id = 'master';
+  if coalesce(v_rate, 0) <= 0 then
+    return jsonb_build_object('coins_used', 0, 'coin_value', 0);
+  end if;
+
+  if p_ride is not null then
+    select * into r from public.ride_requests where id = p_ride for update;
+    if found then
+      if r.rider_id is not null and r.rider_id <> p_user then
+        raise exception 'not_authorized';
+      end if;
+      if r.fare_coins_redeemed_at is not null then
+        return jsonb_build_object('coins_used', 0, 'coin_value', 0);
+      end if;
+      update public.ride_requests
+         set fare_coins_redeemed_at = now()
+       where id = p_ride;
+    end if;
+  end if;
+
+  insert into public.wallets (user_id, wallet_type, balance)
+  values (p_user, 'get_coin', 0)
+  on conflict (user_id, wallet_type) do nothing;
+
+  select balance into v_coin_balance
+  from public.wallets
+  where user_id = p_user and wallet_type = 'get_coin'
+  for update;
+  v_coin_balance := coalesce(v_coin_balance, 0);
+
+  if v_coin_balance > 0 then
+    v_max_coin_value := floor((v_coin_balance / v_rate) * 100) / 100;
+    v_coin_value := least(v_max_coin_value, v_fare);
+    v_coins_used := round(v_coin_value * v_rate, 2);
+  end if;
+
+  if v_coins_used <= 0 then
+    return jsonb_build_object('coins_used', 0, 'coin_value', 0);
+  end if;
+
+  insert into public.wallet_transactions
+    (user_id, wallet_type, kind, amount, method, note)
+  values
+    (p_user, 'get_coin', 'redeem', -v_coins_used, 'ride_fare',
+     'Ride fare — RM' || to_char(v_coin_value, 'FM999999990.00') || ' paid with coins');
+
+  return jsonb_build_object('coins_used', v_coins_used, 'coin_value', v_coin_value);
+end;
+$$;
+
+-- Buy GC with GET.wallet / sell GC back. The rate is anchored server-side to
+-- the admin peg (clamped to the market swing band when market pricing is on)
+-- and the supply cap is enforced on buys.
+create or replace function public.wallet_trade_coins(
+  p_user uuid,
+  p_direction text,
+  p_coins numeric,
+  p_rate_per_gc numeric default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_coins numeric := round(coalesce(p_coins, 0), 2);
+  v_peg numeric;
+  v_rate numeric;
+  v_amount numeric;
+  v_swing numeric;
+  v_market boolean;
+  v_max_supply numeric;
+  v_circulating numeric;
+  v_balance numeric;
+  v_rate_note text;
+begin
+  perform public.wallet_assert_caller(p_user);
+  if v_coins <= 0 or v_coins > 1000000 then
+    raise exception 'invalid_amount';
+  end if;
+  if p_direction not in ('buy', 'sell') then
+    raise exception 'invalid_direction';
+  end if;
+
+  select
+    case when coins_per_currency > 0 then 1 / coins_per_currency else 0 end,
+    market_enabled,
+    coalesce(market_max_swing, 0),
+    coalesce(max_supply, 0)
+  into v_peg, v_market, v_swing, v_max_supply
+  from public.get_coin_settings where id = 'master';
+
+  if coalesce(v_peg, 0) <= 0 then
+    raise exception 'rate_unavailable';
+  end if;
+
+  if coalesce(v_market, false) and coalesce(p_rate_per_gc, 0) > 0 then
+    v_rate := least(
+      greatest(p_rate_per_gc, v_peg * (1 - v_swing / 100)),
+      v_peg * (1 + v_swing / 100)
+    );
+  else
+    v_rate := v_peg;
+  end if;
+
+  v_amount := round(v_coins * v_rate, 2);
+  if v_amount <= 0 then
+    raise exception 'invalid_amount';
+  end if;
+
+  v_rate_note := 'RM' || to_char(round(v_rate, 4), 'FM999999990.0000') || '/GC';
+
+  insert into public.wallets (user_id, wallet_type, balance)
+  values (p_user, 'get_wallet', 0), (p_user, 'get_coin', 0)
+  on conflict (user_id, wallet_type) do nothing;
+
+  if p_direction = 'buy' then
+    if v_max_supply > 0 then
+      select coalesce(sum(balance), 0) into v_circulating
+      from public.wallets where wallet_type = 'get_coin';
+      if v_circulating + v_coins > v_max_supply then
+        raise exception 'supply_cap_reached';
+      end if;
+    end if;
+
+    select balance into v_balance
+    from public.wallets
+    where user_id = p_user and wallet_type = 'get_wallet'
+    for update;
+    if coalesce(v_balance, 0) < v_amount then
+      raise exception 'insufficient_balance';
+    end if;
+
+    insert into public.wallet_transactions
+      (user_id, wallet_type, kind, amount, method, note)
+    values
+      (p_user, 'get_wallet', 'payment', -v_amount, 'coin_trade',
+       'Bought ' || v_coins || ' GC @ ' || v_rate_note),
+      (p_user, 'get_coin', 'topup', v_coins, 'trade_buy',
+       'Bought @ ' || v_rate_note);
+  else
+    select balance into v_balance
+    from public.wallets
+    where user_id = p_user and wallet_type = 'get_coin'
+    for update;
+    if coalesce(v_balance, 0) < v_coins then
+      raise exception 'insufficient_coins';
+    end if;
+
+    insert into public.wallet_transactions
+      (user_id, wallet_type, kind, amount, method, note)
+    values
+      (p_user, 'get_coin', 'redeem', -v_coins, 'trade_sell',
+       'Sold @ ' || v_rate_note),
+      (p_user, 'get_wallet', 'topup', v_amount, 'coin_trade',
+       'Sold ' || v_coins || ' GC @ ' || v_rate_note);
+  end if;
+
+  return jsonb_build_object(
+    'coins', v_coins,
+    'amount_currency', v_amount,
+    'rate_per_gc', v_rate
+  );
+end;
+$$;
+
+grant execute on function public.wallet_pay(uuid, numeric, text, text, boolean) to anon, authenticated;
+grant execute on function public.wallet_redeem_fare_coins(uuid, numeric, uuid) to anon, authenticated;
+grant execute on function public.wallet_trade_coins(uuid, text, numeric, numeric) to anon, authenticated;
 
 -- ----------------------------------------------------------------------------
 -- Rate history (0063): snapshots of the effective RM value of 1 GC, for the
@@ -1948,9 +2432,7 @@ declare
   v_after     numeric;
   v_suffix    text := coalesce(' — ' || nullif(trim(p_note), ''), '');
 begin
-  if p_from is null then
-    raise exception 'invalid_user';
-  end if;
+  perform public.wallet_assert_caller(p_from);
   if v_coins <= 0 or v_coins > 1000000 then
     raise exception 'invalid_amount';
   end if;
@@ -2116,9 +2598,7 @@ declare
   v_balance   numeric;
   v_request   public.wallet_transfer_requests;
 begin
-  if p_from is null then
-    raise exception 'invalid_user';
-  end if;
+  perform public.wallet_assert_caller(p_from);
   if v_coins <= 0 or v_coins > 1000000 then
     raise exception 'invalid_amount';
   end if;
@@ -2217,7 +2697,8 @@ declare
   v_balance numeric;
   v_suffix  text;
 begin
-  if p_request is null or p_user is null then
+  perform public.wallet_assert_caller(p_user);
+  if p_request is null then
     raise exception 'invalid_user';
   end if;
 
@@ -2303,6 +2784,7 @@ security definer
 set search_path = public
 as $$
 begin
+  perform public.wallet_assert_caller(p_user);
   update public.wallet_transfer_requests
      set status = 'cancelled', responded_at = now()
    where id = p_request and from_user_id = p_user and status = 'pending';

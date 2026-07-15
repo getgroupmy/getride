@@ -29,6 +29,7 @@ import {
   recordResponse,
   recordUsage,
 } from "@/utils/fareAiStats";
+import { isSupabaseConfigured, supabase } from "@/utils/supabase";
 
 const ENV_GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 const ENV_GEMINI_KEY_ID = "env:gemini";
@@ -116,14 +117,82 @@ function candidateKeys(config: FareAIConfig): FareAIKey[] {
 }
 
 /**
+ * Ask the `ai-route-proxy` edge function for the estimate. The proxy holds
+ * the provider API keys server-side (the `fare_ai_provider` settings row is
+ * hidden from anonymous clients since migration 0066) and runs the same
+ * multi-key failover loop this module used to run locally.
+ *
+ * Returns:
+ *   - a RouteEstimate when the proxy produced one,
+ *   - null when the proxy ran but every provider key failed / the service is
+ *     off (callers fall back to a routing engine — same contract as before),
+ *   - undefined when the proxy is unreachable or not deployed, so the caller
+ *     falls through to the legacy client-side loop.
+ */
+async function estimateViaProxy(
+  origin: LatLng,
+  destination: LatLng
+): Promise<RouteEstimate | null | undefined> {
+  if (!isSupabaseConfigured || !supabase) return undefined;
+  try {
+    const { data, error } = await supabase.functions.invoke("ai-route-proxy", {
+      body: { origin, destination },
+    });
+    if (error) {
+      console.log("[routeAI] proxy unavailable, using client fallback:", error.message ?? error);
+      return undefined;
+    }
+    const payload = data as {
+      ok?: boolean;
+      estimate?: {
+        distance_km?: number;
+        duration_min?: number;
+        summary?: string;
+        provider?: FareAIProvider;
+        toll_count?: number;
+        toll_total?: number;
+        tolls?: TollBooth[];
+      } | null;
+      reason?: string;
+    } | null;
+    if (!payload?.ok) return undefined;
+    if (!payload.estimate) {
+      console.log("[routeAI] proxy returned no estimate:", payload.reason ?? "unknown");
+      return null;
+    }
+    const est = payload.estimate;
+    const distanceKm = Number(est.distance_km);
+    const durationMin = Number(est.duration_min);
+    if (!(distanceKm > 0) || !(durationMin > 0)) return null;
+    return {
+      distanceKm,
+      durationMin,
+      summary: typeof est.summary === "string" ? est.summary : undefined,
+      provider: est.provider,
+      tollCount: est.toll_count,
+      tollTotal: est.toll_total,
+      tolls: Array.isArray(est.tolls) ? est.tolls : undefined,
+    };
+  } catch (e) {
+    console.log("[routeAI] proxy call threw, using client fallback:", e);
+    return undefined;
+  }
+}
+
+/**
  * Estimate driving time and distance (with traffic) between two coordinates
- * using the globally-configured AI provider, trying each configured key in turn.
+ * using the globally-configured AI provider. Prefers the `ai-route-proxy`
+ * edge function (keys stay server-side); falls back to the legacy client-side
+ * key loop for projects where the function isn't deployed.
  * Returns null on total failure so callers can fall back to a routing engine.
  */
 export async function estimateRouteWithAI(
   origin: LatLng,
   destination: LatLng
 ): Promise<RouteEstimate | null> {
+  const proxied = await estimateViaProxy(origin, destination);
+  if (proxied !== undefined) return proxied;
+
   const config = await loadFareAIConfig();
   if (!config.serviceEnabled) {
     console.warn("Route AI estimate skipped: fare AI service is turned off");
