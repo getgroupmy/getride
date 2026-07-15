@@ -31,10 +31,12 @@ import {
   Search,
   Crown,
   Inbox,
+  Lock,
 } from "lucide-react-native";
 import { Country, State, City } from "country-state-city";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
+import { useAdminAccess } from "@/contexts/AdminAccessContext";
 import {
   CommissionLevel,
   CommissionRule,
@@ -95,9 +97,13 @@ function ruleScopeLabel(rule: CommissionRule): string {
   }
 }
 
+const PAGE_KEY = "admin-settings-commission";
+
 export default function AdminSettingsCommissionScreen() {
   const router = useRouter();
   const Colors = useColors();
+  const { canEdit, isLoading: accessLoading } = useAdminAccess();
+  const editable = canEdit(PAGE_KEY);
 
   const [rules, setRules] = useState<CommissionRule[]>([]);
   const [source, setSource] = useState<CommissionSource>("supabase");
@@ -216,6 +222,7 @@ export default function AdminSettingsCommissionScreen() {
   );
 
   const openAdd = useCallback((level: OverrideLevel) => {
+    if (!editable) return;
     setModalLevel(level);
     setEditingId(null);
     setSelCountry("");
@@ -230,10 +237,10 @@ export default function AdminSettingsCommissionScreen() {
     setActiveInput(true);
     setFocusField(null);
     setModalVisible(true);
-  }, []);
+  }, [editable]);
 
   const openEdit = useCallback((rule: CommissionRule) => {
-    if (rule.level === "master") return;
+    if (!editable || rule.level === "master") return;
     setModalLevel(rule.level);
     setEditingId(rule.id);
     setSelCountry(rule.country ?? "");
@@ -249,7 +256,7 @@ export default function AdminSettingsCommissionScreen() {
     setActiveInput(rule.active);
     setFocusField(null);
     setModalVisible(true);
-  }, []);
+  }, [editable]);
 
   const parsePct = (raw: string): number | null => {
     const n = parseFloat(raw.replace(",", "."));
@@ -258,6 +265,7 @@ export default function AdminSettingsCommissionScreen() {
   };
 
   const submitModal = useCallback(async () => {
+    if (!editable) return;
     const rate = parsePct(rateInput);
     if (rate === null) {
       Alert.alert("Invalid rate", "Enter a commission percentage between 0 and 99.99.");
@@ -283,9 +291,10 @@ export default function AdminSettingsCommissionScreen() {
     }
     setModalVisible(false);
     await loadRules();
-  }, [rateInput, editingId, modalLevel, selCountry, selState, selCity, selSuburb, selUserId, selUserLabel, activeInput, loadRules]);
+  }, [editable, rateInput, editingId, modalLevel, selCountry, selState, selCity, selSuburb, selUserId, selUserLabel, activeInput, loadRules]);
 
   const saveMaster = useCallback(async () => {
+    if (!editable) return;
     const rate = parsePct(masterInput);
     if (rate === null) {
       Alert.alert("Invalid rate", "Enter a commission percentage between 0 and 99.99.");
@@ -300,10 +309,11 @@ export default function AdminSettingsCommissionScreen() {
     }
     setMasterEditing(false);
     await loadRules();
-  }, [masterInput, masterRule?.id, loadRules]);
+  }, [editable, masterInput, masterRule?.id, loadRules]);
 
   const toggleActive = useCallback(
     async (rule: CommissionRule) => {
+      if (!editable) return;
       const res = await saveCommissionRule({
         id: rule.id,
         level: rule.level,
@@ -322,11 +332,12 @@ export default function AdminSettingsCommissionScreen() {
       }
       await loadRules();
     },
-    [loadRules]
+    [editable, loadRules]
   );
 
   const confirmDelete = useCallback(
     (rule: CommissionRule) => {
+      if (!editable) return;
       Alert.alert(
         "Delete override?",
         `${ruleScopeLabel(rule)} — ${formatPct(rule.rate)} will be removed. Rides will fall back to the next level in the chain.`,
@@ -347,7 +358,7 @@ export default function AdminSettingsCommissionScreen() {
         ]
       );
     },
-    [loadRules]
+    [editable, loadRules]
   );
 
   const effectiveMasterRate = masterRule?.rate ?? DEFAULT_COMMISSION_RATE;
@@ -429,14 +440,25 @@ export default function AdminSettingsCommissionScreen() {
       <Switch
         value={rule.active}
         onValueChange={() => void toggleActive(rule)}
+        disabled={!editable}
         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
         thumbColor="#fff"
         testID={`commission-active-${rule.id}`}
       />
-      <TouchableOpacity onPress={() => openEdit(rule)} style={styles.ruleBtn} testID={`commission-edit-${rule.id}`}>
+      <TouchableOpacity
+        onPress={() => openEdit(rule)}
+        disabled={!editable}
+        style={[styles.ruleBtn, { opacity: editable ? 1 : 0.4 }]}
+        testID={`commission-edit-${rule.id}`}
+      >
         <Pencil color={Colors.textSecondary} size={16} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => confirmDelete(rule)} style={styles.ruleBtn} testID={`commission-delete-${rule.id}`}>
+      <TouchableOpacity
+        onPress={() => confirmDelete(rule)}
+        disabled={!editable}
+        style={[styles.ruleBtn, { opacity: editable ? 1 : 0.4 }]}
+        testID={`commission-delete-${rule.id}`}
+      >
         <Trash2 color={Colors.error} size={16} />
       </TouchableOpacity>
     </View>
@@ -462,18 +484,27 @@ export default function AdminSettingsCommissionScreen() {
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Commission Rates</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
-            Master rate + geographic & per-user overrides
+            Master rate + geographic & per-user overrides · {editable ? "edit" : "read-only"}
           </Text>
         </View>
         <View style={styles.iconBtn} />
       </View>
 
-      {loading ? (
+      {loading || accessLoading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={Colors.accent} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {!editable ? (
+            <View style={[styles.localBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border, flexDirection: "row" as const, alignItems: "center" as const, gap: 8 }]}>
+              <Lock color={Colors.textSecondary} size={14} />
+              <Text style={[styles.localText, { color: Colors.textSecondary, flex: 1 }]}>
+                You have read-only access to this page. Ask a super-admin to grant edit access.
+              </Text>
+            </View>
+          ) : null}
+
           <View style={[styles.priorityBox, { backgroundColor: Colors.accent + "10", borderColor: Colors.accent + "30" }]}>
             <Text style={[styles.priorityTitle, { color: Colors.text }]}>Override priority</Text>
             <Text style={[styles.priorityChain, { color: Colors.textSecondary }]}>
@@ -537,15 +568,17 @@ export default function AdminSettingsCommissionScreen() {
             ) : (
               <TouchableOpacity
                 onPress={() => {
+                  if (!editable) return;
                   const pct = Math.round(effectiveMasterRate * 10000) / 100;
                   setMasterInput(String(pct));
                   setMasterEditing(true);
                 }}
-                style={[styles.masterRatePill, { backgroundColor: Colors.accent }]}
+                disabled={!editable}
+                style={[styles.masterRatePill, { backgroundColor: Colors.accent, opacity: editable ? 1 : 0.5 }]}
                 testID="commission-master-edit"
               >
                 <Text style={styles.masterRateText}>{formatPct(effectiveMasterRate)}</Text>
-                <Pencil color="#fff" size={13} />
+                {editable ? <Pencil color="#fff" size={13} /> : null}
               </TouchableOpacity>
             )}
           </View>
@@ -563,7 +596,8 @@ export default function AdminSettingsCommissionScreen() {
                   </View>
                   <TouchableOpacity
                     onPress={() => openAdd(meta.level)}
-                    style={[styles.addBtn, { backgroundColor: Colors.accent + "15" }]}
+                    disabled={!editable}
+                    style={[styles.addBtn, { backgroundColor: Colors.accent + "15", opacity: editable ? 1 : 0.5 }]}
                     testID={`commission-add-${meta.level}`}
                   >
                     <Plus color={Colors.accent} size={14} />

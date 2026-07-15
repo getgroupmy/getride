@@ -22,8 +22,10 @@ import {
   Gift,
   TrendingUp,
   Database,
+  Lock,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { useAdminAccess } from "@/contexts/AdminAccessContext";
 import {
   fetchGetCoinSettings,
   saveGetCoinSettings,
@@ -47,9 +49,13 @@ function formatRate(rate: number): string {
  * Sets the GET.coin exchange rate: how many GC equal RM1. GET.coin balances
  * are shown in GC across the app and converted with this rate.
  */
+const PAGE_KEY = "admin-settings-get-coin";
+
 export default function AdminSettingsGetCoinScreen() {
   const router = useRouter();
   const Colors = useColors();
+  const { canEdit, isLoading: accessLoading } = useAdminAccess();
+  const editable = canEdit(PAGE_KEY);
 
   const [settings, setSettings] = useState<GetCoinSettings | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -170,7 +176,7 @@ export default function AdminSettingsGetCoinScreen() {
   );
 
   const handleSave = async () => {
-    if (saving) return;
+    if (saving || !editable) return;
     setError("");
     setSavedNote("");
     if (!(parsedRate > 0)) {
@@ -232,13 +238,13 @@ export default function AdminSettingsGetCoinScreen() {
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Get Coin</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
-            GET.coin exchange rate (GC per RM)
+            GET.coin exchange rate (GC per RM) · {editable ? "edit" : "read-only"}
           </Text>
         </View>
         <View style={styles.iconBtn} />
       </View>
 
-      {loading ? (
+      {loading || accessLoading ? (
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={Colors.accent} size="large" />
         </View>
@@ -252,6 +258,15 @@ export default function AdminSettingsGetCoinScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {!editable ? (
+              <View style={[styles.banner, { backgroundColor: Colors.gray[100] }]}>
+                <Lock color={Colors.textSecondary} size={15} />
+                <Text style={[styles.bannerText, { color: Colors.textSecondary }]}>
+                  You have read-only access to this page. Ask a super-admin to grant edit access.
+                </Text>
+              </View>
+            ) : null}
+
             {settings?.source === "local" ? (
               <View style={[styles.banner, { backgroundColor: Colors.warning + "15" }]}>
                 <Info color={Colors.warning} size={15} />
@@ -314,10 +329,10 @@ export default function AdminSettingsGetCoinScreen() {
               <TouchableOpacity
                 style={[
                   styles.saveBtn,
-                  { backgroundColor: Colors.accent, opacity: saving ? 0.6 : dirty ? 1 : 0.4 },
+                  { backgroundColor: Colors.accent, opacity: saving ? 0.6 : dirty && editable ? 1 : 0.4 },
                 ]}
                 onPress={handleSave}
-                disabled={saving || !dirty}
+                disabled={saving || !dirty || !editable}
                 testID="getcoin-save"
               >
                 {saving ? (

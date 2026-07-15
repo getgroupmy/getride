@@ -868,6 +868,36 @@ create policy "admin_access admin write delete"
 grant select, insert, update, delete on public.admin_access to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Generic write gate for admin-only settings tables (0067): true for direct
+-- DB sessions and the service role, otherwise requires an admin_access row
+-- with edit access on the given page.
+-- ---------------------------------------------------------------------------
+create or replace function public.admin_write_access(p_page text)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_claims text := current_setting('request.jwt.claims', true);
+begin
+  if v_claims is null or v_claims = '' then
+    return true; -- direct database session (setup scripts, psql)
+  end if;
+  if coalesce(auth.jwt() ->> 'role', '') = 'service_role' then
+    return true;
+  end if;
+  if auth.uid() is null then
+    return false;
+  end if;
+  return public.admin_can_edit(auth.uid(), p_page);
+end;
+$$;
+
+grant execute on function public.admin_write_access(text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- app_settings (0066): the 'fare_ai_provider' row holds SECRET AI provider
 -- API keys. It is only visible/writable to admin_access holders and the
 -- service role (used by the ai-route-proxy edge function); every other row
@@ -1348,12 +1378,21 @@ drop policy if exists "ip_access_rules insert" on public.ip_access_rules;
 drop policy if exists "ip_access_rules update" on public.ip_access_rules;
 drop policy if exists "ip_access_rules delete" on public.ip_access_rules;
 
+-- Read stays open (evaluated pre-login, sometimes with no session at all).
+-- Writes (0067) require edit access on admin-settings-ip-access — this table
+-- backs the admin-login whitelist bypass, so a public write policy here is a
+-- credential-free path to a super-admin session.
 create policy "ip_access_rules read"   on public.ip_access_rules for select using (true);
-create policy "ip_access_rules insert" on public.ip_access_rules for insert to public with check (true);
-create policy "ip_access_rules update" on public.ip_access_rules for update to public using (true) with check (true);
-create policy "ip_access_rules delete" on public.ip_access_rules for delete to public using (true);
+create policy "ip_access_rules insert" on public.ip_access_rules for insert to public
+  with check (public.admin_write_access('admin-settings-ip-access'));
+create policy "ip_access_rules update" on public.ip_access_rules for update to public
+  using (public.admin_write_access('admin-settings-ip-access'))
+  with check (public.admin_write_access('admin-settings-ip-access'));
+create policy "ip_access_rules delete" on public.ip_access_rules for delete to public
+  using (public.admin_write_access('admin-settings-ip-access'));
 
-grant select, insert, update, delete on public.ip_access_rules to anon, authenticated;
+grant select on public.ip_access_rules to anon, authenticated;
+grant insert, update, delete on public.ip_access_rules to authenticated;
 
 -- ============================================================================
 -- Wallets — GET.wallet (master) + GET.credit (partner credit)
@@ -1669,12 +1708,21 @@ drop policy if exists "commission_rates insert" on public.commission_rates;
 drop policy if exists "commission_rates update" on public.commission_rates;
 drop policy if exists "commission_rates delete" on public.commission_rates;
 
+-- Read stays open (rate cards render across admin/rider/partner screens).
+-- Writes (0067) require edit access on admin-settings-commission — resolved
+-- server-side by wallet_charge_ride_commission, a public write policy here
+-- would let any partner zero their own commission with a user-level override.
 create policy "commission_rates read"   on public.commission_rates for select using (true);
-create policy "commission_rates insert" on public.commission_rates for insert to public with check (true);
-create policy "commission_rates update" on public.commission_rates for update to public using (true) with check (true);
-create policy "commission_rates delete" on public.commission_rates for delete to public using (true);
+create policy "commission_rates insert" on public.commission_rates for insert to public
+  with check (public.admin_write_access('admin-settings-commission'));
+create policy "commission_rates update" on public.commission_rates for update to public
+  using (public.admin_write_access('admin-settings-commission'))
+  with check (public.admin_write_access('admin-settings-commission'));
+create policy "commission_rates delete" on public.commission_rates for delete to public
+  using (public.admin_write_access('admin-settings-commission'));
 
-grant select, insert, update, delete on public.commission_rates to anon, authenticated;
+grant select on public.commission_rates to anon, authenticated;
+grant insert, update, delete on public.commission_rates to authenticated;
 
 -- Server-side rate resolution mirroring the client priority chain.
 create or replace function public.commission_resolve_rate(
@@ -1933,11 +1981,19 @@ drop policy if exists "get_coin_settings read"   on public.get_coin_settings;
 drop policy if exists "get_coin_settings insert" on public.get_coin_settings;
 drop policy if exists "get_coin_settings update" on public.get_coin_settings;
 
+-- Read stays open (balances/rates render across the app). Writes (0067)
+-- require edit access on admin-settings-get-coin — wallet_trade_coins anchors
+-- trade rates to this row, so a public write policy here would let anyone
+-- rewrite the peg right before trading.
 create policy "get_coin_settings read"   on public.get_coin_settings for select using (true);
-create policy "get_coin_settings insert" on public.get_coin_settings for insert to public with check (true);
-create policy "get_coin_settings update" on public.get_coin_settings for update to public using (true) with check (true);
+create policy "get_coin_settings insert" on public.get_coin_settings for insert to public
+  with check (public.admin_write_access('admin-settings-get-coin'));
+create policy "get_coin_settings update" on public.get_coin_settings for update to public
+  using (public.admin_write_access('admin-settings-get-coin'))
+  with check (public.admin_write_access('admin-settings-get-coin'));
 
-grant select, insert, update on public.get_coin_settings to anon, authenticated;
+grant select on public.get_coin_settings to anon, authenticated;
+grant insert, update on public.get_coin_settings to authenticated;
 
 -- ----------------------------------------------------------------------------
 -- Ride rewards (0062): idempotent per-ride GC reward, anchored on
