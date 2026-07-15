@@ -64,16 +64,19 @@ if [[ $FUNCTIONS -eq 1 ]]; then
     echo "→ Deploying edge functions…"
     REF_ARG=()
     [[ -n "${SUPABASE_PROJECT_REF:-}" ]] && REF_ARG=(--project-ref "$SUPABASE_PROJECT_REF")
-    if supabase functions deploy send-push --no-verify-jwt "${REF_ARG[@]}"; then
-      echo "  ✓ send-push deployed."
-    else
-      echo "  ! Could not deploy send-push automatically."
-      echo "    Run manually:  supabase functions deploy send-push --no-verify-jwt"
-    fi
+    for fn in send-push ai-route-proxy; do
+      if supabase functions deploy "$fn" --no-verify-jwt "${REF_ARG[@]}"; then
+        echo "  ✓ $fn deployed."
+      else
+        echo "  ! Could not deploy $fn automatically."
+        echo "    Run manually:  supabase functions deploy $fn --no-verify-jwt"
+      fi
+    done
   else
     echo "→ Skipping edge functions (Supabase CLI not found)."
-    echo "  Deploy the push sender manually so notifications can be sent:"
+    echo "  Deploy them manually (push notifications + AI fare estimates):"
     echo "    supabase functions deploy send-push --no-verify-jwt"
+    echo "    supabase functions deploy ai-route-proxy --no-verify-jwt"
   fi
 fi
 
