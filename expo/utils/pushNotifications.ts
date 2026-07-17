@@ -32,7 +32,12 @@ export function configureNotificationHandler(): void {
   });
 }
 
-/** Resolve the EAS projectId required by getExpoPushTokenAsync. */
+/**
+ * Resolve the EAS projectId required by getExpoPushTokenAsync. Standalone and
+ * dev-client builds fail token registration without one, so besides the usual
+ * app config locations it can be supplied via EXPO_PUBLIC_EAS_PROJECT_ID
+ * (place in `expo/env`) until the app is linked to an EAS project.
+ */
 function getProjectId(): string | undefined {
   const fromExtra =
     (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)
@@ -40,7 +45,8 @@ function getProjectId(): string | undefined {
   const fromEasConfig = (Constants as unknown as {
     easConfig?: { projectId?: string };
   }).easConfig?.projectId;
-  return fromExtra ?? fromEasConfig;
+  const fromEnv = process.env.EXPO_PUBLIC_EAS_PROJECT_ID?.trim() || undefined;
+  return fromExtra ?? fromEasConfig ?? fromEnv;
 }
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
