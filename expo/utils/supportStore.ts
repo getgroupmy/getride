@@ -564,13 +564,73 @@ export interface SupportAgent {
   priority: number | null;
 }
 
+/** True when an RPC isn't in the live database yet (pre-0069 schema). */
+function isMissingFunctionError(err: unknown): boolean {
+  const msg = (
+    typeof err === "object" && err !== null
+      ? String((err as { message?: string }).message ?? "") +
+        " " +
+        String((err as { code?: string }).code ?? "")
+      : String(err ?? "")
+  ).toLowerCase();
+  return (
+    msg.includes("pgrst202") ||
+    msg.includes("could not find") ||
+    msg.includes("does not exist") ||
+    msg.includes("schema cache")
+  );
+}
+
+let supportAgentsRpcMissing = false;
+
+function sortAgents(agents: SupportAgent[]): SupportAgent[] {
+  agents.sort((a, b) => {
+    if (a.priority != null && b.priority != null) return a.priority - b.priority;
+    if (a.priority != null) return -1;
+    if (b.priority != null) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  return agents;
+}
+
 /**
  * List the admins who can handle support, ordered by their `support` priority
  * tag (lowest number first). Admins without a tag come after, so there is
  * always at least one agent to fall back on ("first in the list").
+ *
+ * Since migration 0069 regular users can no longer read `admin_access`
+ * directly, so the roster comes from the `support_agents` RPC; the legacy
+ * direct query remains as the fallback for older databases.
  */
 export async function fetchSupportAgents(): Promise<SupportAgent[]> {
   if (!isSupabaseConfigured || !supabase) return [];
+  if (!supportAgentsRpcMissing) {
+    try {
+      const { data, error } = await supabase.rpc("support_agents");
+      if (!error) {
+        const agents = ((data ?? []) as {
+          profile_id: string;
+          name: string | null;
+          avatar_url: string | null;
+          priority: number | null;
+        }[]).map((row) => ({
+          profile_id: row.profile_id,
+          name: row.name || "Agent",
+          avatar_url: row.avatar_url ?? null,
+          priority: row.priority ?? null,
+        }));
+        return sortAgents(agents);
+      }
+      if (!isMissingFunctionError(error)) {
+        console.log("[support] support_agents rpc error", error.message);
+        return [];
+      }
+      supportAgentsRpcMissing = true;
+    } catch (e) {
+      console.log("[support] support_agents rpc threw", e);
+      return [];
+    }
+  }
   try {
     const { data, error } = await supabase
       .from("admin_access")
@@ -582,7 +642,7 @@ export async function fetchSupportAgents(): Promise<SupportAgent[]> {
       return [];
     }
     const byProfile = new Map<string, SupportAgent>();
-    for (const row of (data ?? []) as unknown as Array<{
+    for (const row of (data ?? []) as unknown as {
       profile_id: string;
       support: number | null;
       profile?: {
@@ -591,7 +651,7 @@ export async function fetchSupportAgents(): Promise<SupportAgent[]> {
         avatar_url: string | null;
         profile_image: string | null;
       } | null;
-    }>) {
+    }[]) {
       const existing = byProfile.get(row.profile_id);
       const priority = row.support ?? null;
       const name =
@@ -609,14 +669,7 @@ export async function fetchSupportAgents(): Promise<SupportAgent[]> {
         existing.priority = priority;
       }
     }
-    const agents = Array.from(byProfile.values());
-    agents.sort((a, b) => {
-      if (a.priority != null && b.priority != null) return a.priority - b.priority;
-      if (a.priority != null) return -1;
-      if (b.priority != null) return 1;
-      return a.name.localeCompare(b.name);
-    });
-    return agents;
+    return sortAgents(Array.from(byProfile.values()));
   } catch (e) {
     console.log("[support] fetchSupportAgents threw", e);
     return [];

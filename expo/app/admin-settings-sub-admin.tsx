@@ -238,9 +238,20 @@ export default function AdminSettingsSubAdminScreen() {
           notes: notes.trim() || null,
         }));
         // upsert so existing (profile_id, page) pairs are updated instead of erroring.
-        const { error } = await supabase
+        let { error } = await supabase
           .from("admin_access")
           .upsert(rowsToInsert, { onConflict: "profile_id,page" });
+        if (error) {
+          // 0069 lockdown: admin_access writes require sub-admin edit access.
+          // On a fresh install nobody has it yet — the bootstrap RPC makes the
+          // first authenticated caller the '*' admin, then the write retries.
+          const { data: bootstrapped } = await supabase.rpc("admin_access_bootstrap");
+          if (bootstrapped === true) {
+            ({ error } = await supabase
+              .from("admin_access")
+              .upsert(rowsToInsert, { onConflict: "profile_id,page" }));
+          }
+        }
         if (error) {
           Alert.alert("Couldn't grant access", error.message);
           return;
