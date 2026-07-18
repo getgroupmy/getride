@@ -38,12 +38,12 @@ Client touchpoint: `expo/utils/walletStore.ts` gains an MCash branch that is pre
 profile has an `mcash_wallet_id`. The existing Supabase RPC path and the AsyncStorage path remain as
 fallbacks, per the repo's graceful-degradation convention.
 
-New profile columns (new migration): `mcash_wallet_id`, `mcash_ekyc_status`
+New profile columns (shipped in migration `0068`): `mcash_wallet_id`, `mcash_ekyc_status`
 (`never_submit | pending_screening | pending_review | approved | rejected | on_hold | next_screening_due`),
 `mcash_customer_status` (`active | inactive | partial_blocked | blacklisted | terminated`).
-New mirror column: `wallet_transactions.status`
-(`success | failed | pending | processing | paused | cancelled`) with `mcash_ref` for reconciliation
-— today every ledger row is implicitly final, but FPX reloads are asynchronous.
+New mirror columns (also `0068`): `wallet_transactions.status`
+(`success | failed | pending | processing | paused | cancelled`, default `success`) with `mcash_ref`
+for reconciliation — today every ledger row is implicitly final, but FPX reloads are asynchronous.
 
 ---
 
