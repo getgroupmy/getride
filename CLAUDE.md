@@ -10,6 +10,8 @@ The repository has two main subdirectories:
 - `expo/` — the React Native / Expo Router application (all app code lives here)
 - `supabase/` — database schema, seed data, and setup scripts
 
+Design/spec documents live in `docs/`. Currently: `docs/get-wallet-mcash-flow.md`, the planned (not yet implemented) re-basing of GET.wallet onto the MCash e-money platform via an `mcash-proxy` edge function — only the MCash logo on the wallet top-up screen exists in code today.
+
 ## Commands
 
 All commands run from the `expo/` directory. The project uses **Bun** as the package manager. The `start*` scripts wrap the **Rork** CLI (`bunx rork start …`), not the bare Expo CLI — see `rork.json` at the repo root for the app registration.
