@@ -1,1 +1,8 @@
 EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBj89Dt9v6SiDMvA3XUsoRm6ey6L-nKMfI
+
+# Supabase endpoint. Leave unset to use the hardcoded project in
+# expo/utils/supabase.ts. If the network blocks *.supabase.co, deploy the
+# Cloudflare Worker in cloudflare/supabase-proxy/ and point these at it — keep
+# the SAME anon key, only the host changes.
+# EXPO_PUBLIC_SUPABASE_URL=https://sb.get.ride
+# EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxbGF2b2drZ3l3eHNwdXhnaXdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NTk5NzQsImV4cCI6MjA5NDAzNTk3NH0.xzx_EdvoOeTLxNQTIzG0EiF9H34OlHirHAdSVA4_aG0

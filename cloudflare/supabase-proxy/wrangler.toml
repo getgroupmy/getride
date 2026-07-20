@@ -1,0 +1,20 @@
+name = "getride-supabase-proxy"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# The Supabase project this proxy forwards to. Override per-environment or via
+# the Cloudflare dashboard if you don't want it committed. This is the same
+# project URL the app falls back to in expo/utils/supabase.ts.
+[vars]
+SUPABASE_ORIGIN = "https://rqlavogkgywxspuxgiwk.supabase.co"
+
+# Give the Worker a stable hostname on a domain that isn't filtered. Either use
+# the default *.workers.dev subdomain (uncomment workers_dev) or bind a custom
+# route on your own zone (recommended — a novel domain is far less likely to be
+# blocked than workers.dev).
+#
+# workers_dev = true
+#
+# [[routes]]
+# pattern = "sb.get.ride/*"
+# zone_name = "get.ride"
