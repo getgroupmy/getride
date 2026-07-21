@@ -144,15 +144,13 @@ export default function AdminSplashScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={[styles.previewWrap, { backgroundColor: valid ? bg : Colors.gray[100], borderColor: Colors.border }]}>
+        <View style={[styles.previewWrap, { backgroundColor: image && valid ? bg : Colors.gray[100], borderColor: Colors.border }]}>
           {image ? (
             <Image source={{ uri: image }} style={styles.previewImg} resizeMode="contain" />
           ) : (
-            <Image
-              source={require("@/assets/images/splash-icon.png")}
-              style={styles.previewImg}
-              resizeMode="contain"
-            />
+            <Text style={[styles.caption, { color: Colors.textSecondary, marginTop: 0 }]}>
+              No image set — splash will be blank
+            </Text>
           )}
         </View>
         <Text style={[styles.caption, { color: Colors.textSecondary }]}>
