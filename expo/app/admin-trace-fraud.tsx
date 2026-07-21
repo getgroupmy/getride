@@ -116,6 +116,34 @@ const RIDE_LIMIT = 3000;
 const WALLET_TX_LIMIT = 3000;
 const TRANSFER_LIMIT = 2000;
 
+interface SuspectInfo {
+  name: string | null;
+  phone: string | null;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A finding's `subjects` are account keys (`uid:<id>` / `phone:<phone>`) or raw ids/phones. */
+function normalizeSubject(subject: string): string {
+  if (subject.startsWith("uid:")) return subject.slice(4);
+  if (subject.startsWith("phone:")) return subject.slice(6);
+  return subject;
+}
+
+function suspectsForFinding(finding: FraudFinding, directory: Map<string, SuspectInfo>): SuspectInfo[] {
+  const seen = new Set<string>();
+  const suspects: SuspectInfo[] = [];
+  for (const subject of finding.subjects) {
+    const info = directory.get(normalizeSubject(subject));
+    if (!info) continue;
+    const dedupeKey = `${info.name ?? ""}|${info.phone ?? ""}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    suspects.push(info);
+  }
+  return suspects;
+}
+
 export default function AdminTraceFraudScreen() {
   const router = useRouter();
   const Colors = useColors();
@@ -123,6 +151,7 @@ export default function AdminTraceFraudScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [findings, setFindings] = useState<FraudFinding[]>([]);
+  const [suspectDirectory, setSuspectDirectory] = useState<Map<string, SuspectInfo>>(new Map());
   const [scannedAt, setScannedAt] = useState<Date | null>(null);
   const [query, setQuery] = useState<string>("");
   const [severityFilter, setSeverityFilter] = useState<"all" | FraudSeverity>("all");
@@ -172,7 +201,50 @@ export default function AdminTraceFraudScreen() {
         walletTx: (walletTxRes.data ?? []) as WalletTxSignal[],
         transfers: (transfersRes.data ?? []) as TransferSignal[],
       });
+
+      const candidateIds = new Set<string>();
+      const candidatePhones = new Set<string>();
+      for (const f of result) {
+        for (const subject of f.subjects) {
+          const normalized = normalizeSubject(subject);
+          if (!normalized) continue;
+          if (UUID_RE.test(normalized)) candidateIds.add(normalized);
+          else candidatePhones.add(normalized);
+        }
+      }
+      const idList = Array.from(candidateIds);
+      const phoneList = Array.from(candidatePhones);
+
+      const directory = new Map<string, SuspectInfo>();
+      if (idList.length > 0 || phoneList.length > 0) {
+        const [profilesById, profilesByPhone, partnersById, partnersByAuthId, partnersByPhone] = await Promise.all([
+          idList.length ? supabase.from("profiles").select("id, name, phone").in("id", idList) : Promise.resolve({ data: [] as { id: string; name: string | null; phone: string | null }[] }),
+          phoneList.length ? supabase.from("profiles").select("id, name, phone").in("phone", phoneList) : Promise.resolve({ data: [] as { id: string; name: string | null; phone: string | null }[] }),
+          idList.length ? supabase.from("partners").select("id, auth_user_id, name, phone").in("id", idList) : Promise.resolve({ data: [] as { id: string; auth_user_id: string | null; name: string | null; phone: string | null }[] }),
+          idList.length ? supabase.from("partners").select("id, auth_user_id, name, phone").in("auth_user_id", idList) : Promise.resolve({ data: [] as { id: string; auth_user_id: string | null; name: string | null; phone: string | null }[] }),
+          phoneList.length ? supabase.from("partners").select("id, auth_user_id, name, phone").in("phone", phoneList) : Promise.resolve({ data: [] as { id: string; auth_user_id: string | null; name: string | null; phone: string | null }[] }),
+        ]);
+
+        for (const p of profilesById.data ?? []) {
+          const info: SuspectInfo = { name: p.name, phone: p.phone };
+          directory.set(p.id, info);
+          if (p.phone) directory.set(p.phone, info);
+        }
+        for (const p of profilesByPhone.data ?? []) {
+          const info: SuspectInfo = { name: p.name, phone: p.phone };
+          if (!directory.has(p.id)) directory.set(p.id, info);
+          if (p.phone && !directory.has(p.phone)) directory.set(p.phone, info);
+        }
+        for (const p of [...(partnersById.data ?? []), ...(partnersByAuthId.data ?? []), ...(partnersByPhone.data ?? [])]) {
+          const info: SuspectInfo = { name: p.name, phone: p.phone };
+          if (!directory.has(p.id)) directory.set(p.id, info);
+          if (p.auth_user_id && !directory.has(p.auth_user_id)) directory.set(p.auth_user_id, info);
+          if (p.phone && !directory.has(p.phone)) directory.set(p.phone, info);
+        }
+      }
+
       setFindings(result);
+      setSuspectDirectory(directory);
       setScannedAt(new Date());
     } catch (e) {
       console.log("[trace-fraud] scan threw", e);
@@ -204,12 +276,19 @@ export default function AdminTraceFraudScreen() {
       if (severityFilter !== "all" && f.severity !== severityFilter) return false;
       if (categoryFilter !== "all" && f.category !== categoryFilter) return false;
       if (!q) return true;
-      const haystack = [f.title, f.description, ...f.subjects, JSON.stringify(f.evidence)]
+      const suspects = suspectsForFinding(f, suspectDirectory);
+      const haystack = [
+        f.title,
+        f.description,
+        ...f.subjects,
+        JSON.stringify(f.evidence),
+        ...suspects.map((s) => `${s.name ?? ""} ${s.phone ?? ""}`),
+      ]
         .join(" ")
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [findings, severityFilter, categoryFilter, query]);
+  }, [findings, severityFilter, categoryFilter, query, suspectDirectory]);
 
   const categoriesPresent = useMemo(() => {
     const set = new Set<FraudCategory>();
@@ -223,18 +302,23 @@ export default function AdminTraceFraudScreen() {
       return;
     }
     const csv = rowsToCsv(
-      filtered.map((f) => ({
-        category: CATEGORY_META[f.category].label,
-        severity: f.severity,
-        title: f.title,
-        description: f.description,
-        subjects: f.subjects.join(" | "),
-        evidence: f.evidence,
-      })),
-      ["category", "severity", "title", "description", "subjects", "evidence"]
+      filtered.map((f) => {
+        const suspects = suspectsForFinding(f, suspectDirectory);
+        return {
+          category: CATEGORY_META[f.category].label,
+          severity: f.severity,
+          title: f.title,
+          description: f.description,
+          suspectNames: suspects.map((s) => s.name ?? "Unknown").join(" | "),
+          suspectPhones: suspects.map((s) => s.phone ?? "").join(" | "),
+          subjects: f.subjects.join(" | "),
+          evidence: f.evidence,
+        };
+      }),
+      ["category", "severity", "title", "description", "suspectNames", "suspectPhones", "subjects", "evidence"]
     );
     await exportCsv(`fraud-findings-${Date.now()}.csv`, csv);
-  }, [filtered]);
+  }, [filtered, suspectDirectory]);
 
   const showEvidence = useCallback((f: FraudFinding) => {
     Alert.alert(f.title, JSON.stringify(f.evidence, null, 2));
@@ -249,6 +333,7 @@ export default function AdminTraceFraudScreen() {
     const meta = CATEGORY_META[item.category];
     const Icon = meta.icon;
     const color = severityColor(item.severity);
+    const suspects = suspectsForFinding(item, suspectDirectory);
     return (
       <TouchableOpacity
         onPress={() => showEvidence(item)}
@@ -270,6 +355,17 @@ export default function AdminTraceFraudScreen() {
           </View>
         </View>
         <Text style={[styles.cardDesc, { color: Colors.textSecondary }]}>{item.description}</Text>
+        {suspects.length > 0 && (
+          <View style={styles.suspectsWrap}>
+            {suspects.map((s, idx) => (
+              <View key={`${item.id}-suspect-${idx}`} style={[styles.suspectPill, { backgroundColor: Colors.gray[200] }]}>
+                <Text style={[styles.suspectText, { color: Colors.text }]} numberOfLines={1}>
+                  {s.name?.trim() || "Unnamed"} · {s.phone?.trim() || "No registered number"}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -525,4 +621,16 @@ const styles = StyleSheet.create({
   },
   severityText: { fontSize: 11, fontWeight: "800" as const, textTransform: "uppercase" as const },
   cardDesc: { fontSize: 13, lineHeight: 18 },
+  suspectsWrap: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 6,
+    marginTop: 10,
+  },
+  suspectPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  suspectText: { fontSize: 11, fontWeight: "700" as const },
 });
