@@ -195,6 +195,15 @@ export default function AdminSessionHistoryScreen() {
   const [trailVisible, setTrailVisible] = useState<boolean>(false);
   const [trailMode, setTrailMode] = useState<"polyline" | "heatmap">("polyline");
   const [trailMapReady, setTrailMapReady] = useState<boolean>(false);
+  const [trailPopupVisible, setTrailPopupVisible] = useState<boolean>(false);
+  const [trailScope, setTrailScope] = useState<"today" | "yesterday" | "range">("today");
+  const [trailTimeMode, setTrailTimeMode] = useState<"all" | "filter">("all");
+  const [trailTimeFrom, setTrailTimeFrom] = useState<string>("00:00");
+  const [trailTimeTo, setTrailTimeTo] = useState<string>("23:59");
+  const [trailRangeFrom, setTrailRangeFrom] = useState<string>("");
+  const [trailRangeTo, setTrailRangeTo] = useState<string>("");
+  const [trailLoading, setTrailLoading] = useState<boolean>(false);
+  const [trailLocations, setTrailLocations] = useState<LocationRow[]>([]);
 
   useEffect(() => {
     if (!trailVisible) {
@@ -366,6 +375,8 @@ export default function AdminSessionHistoryScreen() {
   const closeDetail = useCallback(() => {
     setSelectedKey(null);
     setTrailVisible(false);
+    setTrailPopupVisible(false);
+    setTrailLocations([]);
   }, []);
 
   const onRefresh = useCallback(() => {
@@ -402,6 +413,85 @@ export default function AdminSessionHistoryScreen() {
     () => detail.locations.filter((l) => inRange(l.captured_at)),
     [detail.locations, inRange]
   );
+
+  const fetchTrailLocations = useCallback(
+    async (startMs: number, endMs: number): Promise<LocationRow[]> => {
+      if (!isSupabaseConfigured || !supabase || !selected) return [];
+      let q = supabase.from("user_location_history").select("*");
+      if (selected.user_id) {
+        q = q.eq("user_id", selected.user_id);
+      } else if (selected.phone) {
+        q = q.eq("phone", selected.phone);
+      } else {
+        return [];
+      }
+      const { data, error } = await q
+        .gte("captured_at", new Date(startMs).toISOString())
+        .lte("captured_at", new Date(endMs).toISOString())
+        .order("captured_at", { ascending: false })
+        .limit(5000);
+      if (error) {
+        console.log("[trail] fetch error", error.message);
+        Alert.alert("Failed to load trail", error.message);
+        return [];
+      }
+      return (data ?? []) as LocationRow[];
+    },
+    [selected]
+  );
+
+  const applyTrailFilter = useCallback(async () => {
+    if (!selected) return;
+    let startMs: number;
+    let endMs: number;
+    if (trailScope === "today") {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      startMs = d.getTime();
+      endMs = Date.now();
+    } else if (trailScope === "yesterday") {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      d.setHours(0, 0, 0, 0);
+      startMs = d.getTime();
+      const e = new Date(d);
+      e.setHours(23, 59, 59, 999);
+      endMs = e.getTime();
+    } else {
+      if (!trailRangeFrom || !trailRangeTo) {
+        Alert.alert("Pick a range", "Choose both a start and end date.");
+        return;
+      }
+      startMs = new Date(trailRangeFrom + "T00:00:00").getTime();
+      endMs = new Date(trailRangeTo + "T23:59:59.999").getTime();
+      if (Number.isNaN(startMs) || Number.isNaN(endMs) || startMs > endMs) {
+        Alert.alert("Invalid range", "Check the date range values.");
+        return;
+      }
+    }
+
+    setTrailLoading(true);
+    const rows = await fetchTrailLocations(startMs, endMs);
+    let filtered = rows;
+    if (trailTimeMode === "filter") {
+      const [fh, fm] = trailTimeFrom.split(":").map((n) => Number(n) || 0);
+      const [th, tm] = trailTimeTo.split(":").map((n) => Number(n) || 0);
+      const fromMin = fh * 60 + fm;
+      const toMin = th * 60 + tm;
+      filtered = rows.filter((l) => {
+        const d = new Date(l.captured_at);
+        const mins = d.getHours() * 60 + d.getMinutes();
+        return fromMin <= toMin
+          ? mins >= fromMin && mins <= toMin
+          : mins >= fromMin || mins <= toMin;
+      });
+    }
+    setTrailLocations(filtered);
+    setTrailLoading(false);
+    setTrailPopupVisible(false);
+    setTrailMode("polyline");
+    setTrailVisible(true);
+  }, [selected, trailScope, trailRangeFrom, trailRangeTo, trailTimeMode, trailTimeFrom, trailTimeTo, fetchTrailLocations]);
 
   const exportAllSessions = useCallback(async () => {
     const filtered = sessions.filter((s) => inRange(s.captured_at));
@@ -506,9 +596,9 @@ export default function AdminSessionHistoryScreen() {
   );
 
   const trailRegion = useMemo(() => {
-    if (filteredDetailLocations.length === 0) return null;
+    if (trailLocations.length === 0) return null;
     let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-    for (const l of filteredDetailLocations) {
+    for (const l of trailLocations) {
       if (l.latitude < minLat) minLat = l.latitude;
       if (l.latitude > maxLat) maxLat = l.latitude;
       if (l.longitude < minLng) minLng = l.longitude;
@@ -519,24 +609,24 @@ export default function AdminSessionHistoryScreen() {
     const latitudeDelta = Math.max(0.01, (maxLat - minLat) * 1.4);
     const longitudeDelta = Math.max(0.01, (maxLng - minLng) * 1.4);
     return { latitude, longitude, latitudeDelta, longitudeDelta };
-  }, [filteredDetailLocations]);
+  }, [trailLocations]);
 
   /** Sample down dense ping arrays for heatmap rendering to keep it smooth. */
   const heatmapPoints = useMemo(() => {
     const max = 80;
-    if (filteredDetailLocations.length <= max) return filteredDetailLocations;
-    const stride = Math.ceil(filteredDetailLocations.length / max);
+    if (trailLocations.length <= max) return trailLocations;
+    const stride = Math.ceil(trailLocations.length / max);
     const out: LocationRow[] = [];
-    for (let i = 0; i < filteredDetailLocations.length; i += stride) {
-      out.push(filteredDetailLocations[i]);
+    for (let i = 0; i < trailLocations.length; i += stride) {
+      out.push(trailLocations[i]);
     }
     return out;
-  }, [filteredDetailLocations]);
+  }, [trailLocations]);
 
   /** Pre-compute polyline coordinates once (chronological order: oldest → newest). Aggressively capped to keep native map responsive on Android. */
   const polylineCoords = useMemo(() => {
     const max = 400;
-    const src = filteredDetailLocations;
+    const src = trailLocations;
     const total = src.length;
     if (total < 2) return [] as { latitude: number; longitude: number }[];
     const stride = total > max ? Math.ceil(total / max) : 1;
@@ -546,7 +636,7 @@ export default function AdminSessionHistoryScreen() {
       out.push({ latitude: src[i].latitude, longitude: src[i].longitude });
     }
     return out;
-  }, [filteredDetailLocations]);
+  }, [trailLocations]);
 
   const renderUser = ({ item }: { item: UserSummary }) => {
     const initials = (item.phone ?? item.user_id ?? "?")
@@ -807,19 +897,14 @@ export default function AdminSessionHistoryScreen() {
         </View>
       )}
 
-      {filteredDetailLocations.length > 0 && Platform.OS !== "web" && (
+      {detail.locations.length > 0 && Platform.OS !== "web" && (
         <TouchableOpacity
-          onPress={() => {
-            setTrailMode("polyline");
-            setTrailVisible(true);
-          }}
+          onPress={() => setTrailPopupVisible(true)}
           style={[styles.trailBtn, { backgroundColor: Colors.accent, marginBottom: 14 }]}
           testID="open-trail"
         >
           <MapIcon color="#000000" size={16} />
-          <Text style={styles.trailBtnText}>
-            View full trail ({filteredDetailLocations.length} pings)
-          </Text>
+          <Text style={styles.trailBtnText}>View full trail</Text>
         </TouchableOpacity>
       )}
 
@@ -1030,7 +1115,7 @@ export default function AdminSessionHistoryScreen() {
                     Location trail
                   </Text>
                   <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
-                    {selected?.phone ?? "(no phone)"} · {filteredDetailLocations.length} pings
+                    {selected?.phone ?? "(no phone)"} · {trailLocations.length} pings
                   </Text>
                 </View>
               </View>
@@ -1113,27 +1198,27 @@ export default function AdminSessionHistoryScreen() {
                       strokeWidth={3}
                     />
                   )}
-                  {trailMode === "polyline" && filteredDetailLocations.length > 0 && (
+                  {trailMode === "polyline" && trailLocations.length > 0 && (
                     <>
                       <Marker
                         coordinate={{
-                          latitude: filteredDetailLocations[filteredDetailLocations.length - 1].latitude,
-                          longitude: filteredDetailLocations[filteredDetailLocations.length - 1].longitude,
+                          latitude: trailLocations[trailLocations.length - 1].latitude,
+                          longitude: trailLocations[trailLocations.length - 1].longitude,
                         }}
                         pinColor="green"
                         title="Start"
                         description={formatDate(
-                          filteredDetailLocations[filteredDetailLocations.length - 1].captured_at
+                          trailLocations[trailLocations.length - 1].captured_at
                         )}
                       />
                       <Marker
                         coordinate={{
-                          latitude: filteredDetailLocations[0].latitude,
-                          longitude: filteredDetailLocations[0].longitude,
+                          latitude: trailLocations[0].latitude,
+                          longitude: trailLocations[0].longitude,
                         }}
                         pinColor="red"
                         title="End"
-                        description={formatDate(filteredDetailLocations[0].captured_at)}
+                        description={formatDate(trailLocations[0].captured_at)}
                       />
                     </>
                   )}
@@ -1210,6 +1295,202 @@ export default function AdminSessionHistoryScreen() {
             </>
           )}
         </SafeAreaView>
+      </Modal>
+
+      <Modal
+        visible={trailPopupVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setTrailPopupVisible(false)}
+      >
+        <View style={styles.trailPopupOverlay}>
+          <View
+            style={[
+              styles.trailPopupCard,
+              { backgroundColor: Colors.background, borderColor: Colors.border },
+            ]}
+          >
+            <Text style={[styles.trailPopupTitle, { color: Colors.text }]}>Location trail</Text>
+            <Text style={[styles.trailPopupSubtitle, { color: Colors.textSecondary }]}>
+              Choose which pings to pull
+            </Text>
+
+            <View style={styles.trailPopupRow}>
+              {(
+                [
+                  { key: "today", label: "Today" },
+                  { key: "yesterday", label: "Yesterday" },
+                  { key: "range", label: "Date range" },
+                ] as const
+              ).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  onPress={() => setTrailScope(opt.key)}
+                  style={[
+                    styles.trailModeBtn,
+                    {
+                      flex: 1,
+                      justifyContent: "center",
+                      backgroundColor: trailScope === opt.key ? Colors.accent : Colors.gray[100],
+                      borderColor: trailScope === opt.key ? Colors.accent : Colors.border,
+                    },
+                  ]}
+                  testID={`trail-scope-${opt.key}`}
+                >
+                  <Text
+                    style={[
+                      styles.trailModeText,
+                      { color: trailScope === opt.key ? "#000000" : Colors.text },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {trailScope === "range" && (
+              <View style={styles.dateFilterRow}>
+                <View
+                  style={[
+                    styles.dateInputWrap,
+                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+                  ]}
+                >
+                  <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>From</Text>
+                  <TextInput
+                    value={trailRangeFrom}
+                    onChangeText={setTrailRangeFrom}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={Colors.textSecondary}
+                    style={[styles.dateInput, { color: Colors.text }]}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    testID="trail-range-from"
+                  />
+                </View>
+                <View
+                  style={[
+                    styles.dateInputWrap,
+                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+                  ]}
+                >
+                  <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>To</Text>
+                  <TextInput
+                    value={trailRangeTo}
+                    onChangeText={setTrailRangeTo}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={Colors.textSecondary}
+                    style={[styles.dateInput, { color: Colors.text }]}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    testID="trail-range-to"
+                  />
+                </View>
+              </View>
+            )}
+
+            <Text style={[styles.trailPopupSubtitle, { color: Colors.textSecondary, marginTop: 16 }]}>
+              Time of day
+            </Text>
+            <View style={styles.trailPopupRow}>
+              {(
+                [
+                  { key: "all", label: "All" },
+                  { key: "filter", label: "Time filter" },
+                ] as const
+              ).map((opt) => (
+                <TouchableOpacity
+                  key={opt.key}
+                  onPress={() => setTrailTimeMode(opt.key)}
+                  style={[
+                    styles.trailModeBtn,
+                    {
+                      flex: 1,
+                      justifyContent: "center",
+                      backgroundColor: trailTimeMode === opt.key ? Colors.accent : Colors.gray[100],
+                      borderColor: trailTimeMode === opt.key ? Colors.accent : Colors.border,
+                    },
+                  ]}
+                  testID={`trail-timemode-${opt.key}`}
+                >
+                  <Text
+                    style={[
+                      styles.trailModeText,
+                      { color: trailTimeMode === opt.key ? "#000000" : Colors.text },
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {trailTimeMode === "filter" && (
+              <View style={styles.dateFilterRow}>
+                <View
+                  style={[
+                    styles.dateInputWrap,
+                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+                  ]}
+                >
+                  <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>From</Text>
+                  <TextInput
+                    value={trailTimeFrom}
+                    onChangeText={setTrailTimeFrom}
+                    placeholder="HH:MM"
+                    placeholderTextColor={Colors.textSecondary}
+                    style={[styles.dateInput, { color: Colors.text }]}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    testID="trail-time-from"
+                  />
+                </View>
+                <View
+                  style={[
+                    styles.dateInputWrap,
+                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+                  ]}
+                >
+                  <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>To</Text>
+                  <TextInput
+                    value={trailTimeTo}
+                    onChangeText={setTrailTimeTo}
+                    placeholder="HH:MM"
+                    placeholderTextColor={Colors.textSecondary}
+                    style={[styles.dateInput, { color: Colors.text }]}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    testID="trail-time-to"
+                  />
+                </View>
+              </View>
+            )}
+
+            <View style={styles.trailPopupActions}>
+              <TouchableOpacity
+                onPress={() => setTrailPopupVisible(false)}
+                style={[styles.popupBtn, { backgroundColor: Colors.gray[100] }]}
+                disabled={trailLoading}
+                testID="trail-popup-cancel"
+              >
+                <Text style={[styles.popupBtnText, { color: Colors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={applyTrailFilter}
+                style={[styles.popupBtn, { backgroundColor: Colors.accent }]}
+                disabled={trailLoading}
+                testID="trail-popup-apply"
+              >
+                {trailLoading ? (
+                  <ActivityIndicator color="#000000" size="small" />
+                ) : (
+                  <Text style={[styles.popupBtnText, { color: "#000000" }]}>Show trail</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -1432,4 +1713,37 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   rangePillText: { fontSize: 11, fontWeight: "700" as const },
+  trailPopupOverlay: {
+    flex: 1,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 20,
+  },
+  trailPopupCard: {
+    width: "100%" as const,
+    maxWidth: 420,
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: 20,
+  },
+  trailPopupTitle: { fontSize: 17, fontWeight: "800" as const },
+  trailPopupSubtitle: { fontSize: 12, marginTop: 4, marginBottom: 10 },
+  trailPopupRow: {
+    flexDirection: "row" as const,
+    gap: 8,
+  },
+  trailPopupActions: {
+    flexDirection: "row" as const,
+    gap: 10,
+    marginTop: 20,
+  },
+  popupBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  popupBtnText: { fontSize: 14, fontWeight: "800" as const },
 });
