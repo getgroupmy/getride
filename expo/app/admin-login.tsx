@@ -426,11 +426,8 @@ const styles = StyleSheet.create({
   },
   keyText: {
     fontSize: 24,
-    lineHeight: 28,
     fontWeight: "700" as const,
     textAlign: "center" as const,
-    includeFontPadding: false,
-    textAlignVertical: "center" as const,
   },
   inputWrap: {
     width: "100%" as const,
