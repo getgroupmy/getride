@@ -44,6 +44,7 @@ interface SessionRow {
   user_id: string | null;
   phone: string | null;
   event_type: string;
+  device_id: string | null;
   os_name: string | null;
   os_version: string | null;
   device_brand: string | null;
@@ -77,6 +78,7 @@ interface LocationRow {
   user_id: string | null;
   phone: string | null;
   session_id: string | null;
+  device_id: string | null;
   latitude: number;
   longitude: number;
   accuracy: number | null;
@@ -504,6 +506,7 @@ export default function AdminSessionHistoryScreen() {
       "event_type",
       "user_id",
       "phone",
+      "device_id",
       "os_name",
       "os_version",
       "device_brand",
@@ -547,6 +550,7 @@ export default function AdminSessionHistoryScreen() {
           [
             "captured_at",
             "event_type",
+            "device_id",
             "os_name",
             "os_version",
             "device_brand",
@@ -586,6 +590,7 @@ export default function AdminSessionHistoryScreen() {
             "heading",
             "speed",
             "session_id",
+            "device_id",
             "id",
           ]
         );
@@ -816,6 +821,12 @@ export default function AdminSessionHistoryScreen() {
           value={`${s.app_version ?? "?"}${s.app_build_version ? " (" + s.app_build_version + ")" : ""}`}
           Colors={Colors}
         />
+        <KV
+          icon={<Hash color={Colors.textSecondary} size={14} />}
+          label="Device ID"
+          value={s.device_id ?? "—"}
+          Colors={Colors}
+        />
       </View>
     </View>
   );
@@ -837,6 +848,11 @@ export default function AdminSessionHistoryScreen() {
           {l.accuracy != null ? ` · ±${Math.round(l.accuracy)}m` : ""}
           {l.speed != null && l.speed >= 0 ? ` · ${l.speed.toFixed(1)} m/s` : ""}
         </Text>
+        {l.device_id ? (
+          <Text style={[styles.metaText, { color: Colors.textSecondary }]} numberOfLines={1}>
+            Device: {l.device_id}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
