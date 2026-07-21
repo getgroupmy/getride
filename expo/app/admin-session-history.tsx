@@ -363,7 +363,10 @@ export default function AdminSessionHistoryScreen() {
     []
   );
 
-  const closeDetail = useCallback(() => setSelectedKey(null), []);
+  const closeDetail = useCallback(() => {
+    setSelectedKey(null);
+    setTrailVisible(false);
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -1008,209 +1011,203 @@ export default function AdminSessionHistoryScreen() {
       <Modal
         visible={selectedKey !== null}
         animationType="slide"
-        onRequestClose={closeDetail}
-        presentationStyle="pageSheet"
+        onRequestClose={() => (trailVisible ? setTrailVisible(false) : closeDetail())}
+        presentationStyle={trailVisible ? "fullScreen" : "pageSheet"}
       >
         <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }} edges={["top", "bottom"]}>
-          <View style={[styles.header, { borderBottomColor: Colors.border }]}>
-            <TouchableOpacity
-              onPress={closeDetail}
-              style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
-              testID="close-detail"
-            >
-              <X color={Colors.text} size={20} />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
-                {selected?.phone ?? "(no phone)"}
-              </Text>
-              <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
-                {selected?.user_id ? `uid ${selected.user_id.slice(0, 8)}…` : "no auth uid"}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => exportDetailCsv("sessions")}
-              style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
-              testID="export-detail"
-            >
-              <Download color={Colors.text} size={18} />
-            </TouchableOpacity>
-          </View>
-
-          {detailLoading ? (
-            <View style={styles.center}>
-              <ActivityIndicator color={Colors.accent} />
-            </View>
-          ) : (
-            <FlatList
-              data={filteredDetailLocations}
-              keyExtractor={(l) => l.id}
-              renderItem={({ item }) => renderLocationRow(item)}
-              ListHeaderComponent={renderDetailHeader}
-              ListEmptyComponent={
-                <Text style={[styles.muted, { color: Colors.textSecondary }]}>
-                  No location pings in range.
-                </Text>
-              }
-              contentContainerStyle={{ padding: 16 }}
-              initialNumToRender={15}
-              maxToRenderPerBatch={20}
-              windowSize={11}
-              keyboardShouldPersistTaps="handled"
-            />
-          )}
-        </SafeAreaView>
-      </Modal>
-
-      <Modal
-        visible={trailVisible}
-        animationType="slide"
-        onRequestClose={() => setTrailVisible(false)}
-        presentationStyle="fullScreen"
-      >
-        <SafeAreaView
-          style={{ flex: 1, backgroundColor: Colors.background }}
-          edges={["top", "bottom"]}
-        >
-          <View style={[styles.header, { borderBottomColor: Colors.border }]}>
-            <TouchableOpacity
-              onPress={() => setTrailVisible(false)}
-              style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
-              testID="close-trail"
-            >
-              <X color={Colors.text} size={20} />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
-                Location trail
-              </Text>
-              <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
-                {selected?.phone ?? "(no phone)"} · {filteredDetailLocations.length} pings
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.trailModeRow}>
-            <TouchableOpacity
-              onPress={() => setTrailMode("polyline")}
-              style={[
-                styles.trailModeBtn,
-                {
-                  backgroundColor: trailMode === "polyline" ? Colors.accent : Colors.gray[100],
-                  borderColor: trailMode === "polyline" ? Colors.accent : Colors.border,
-                },
-              ]}
-              testID="trail-polyline"
-            >
-              <RouteIcon color={trailMode === "polyline" ? "#000000" : Colors.text} size={14} />
-              <Text
-                style={[
-                  styles.trailModeText,
-                  { color: trailMode === "polyline" ? "#000000" : Colors.text },
-                ]}
-              >
-                Path
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setTrailMode("heatmap")}
-              style={[
-                styles.trailModeBtn,
-                {
-                  backgroundColor: trailMode === "heatmap" ? Colors.accent : Colors.gray[100],
-                  borderColor: trailMode === "heatmap" ? Colors.accent : Colors.border,
-                },
-              ]}
-              testID="trail-heatmap"
-            >
-              <Flame color={trailMode === "heatmap" ? "#000000" : Colors.text} size={14} />
-              <Text
-                style={[
-                  styles.trailModeText,
-                  { color: trailMode === "heatmap" ? "#000000" : Colors.text },
-                ]}
-              >
-                Heatmap
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {Platform.OS === "web" ? (
-            <View style={styles.center}>
-              <MapPin color={Colors.textSecondary} size={28} />
-              <Text style={[styles.muted, { color: Colors.textSecondary, marginTop: 8 }]}>
-                Trail view is only available on iOS/Android.
-              </Text>
-            </View>
-          ) : trailRegion ? (
-            !trailMapReady ? (
-              <View style={styles.center}>
-                <ActivityIndicator color={Colors.accent} />
-                <Text style={[styles.muted, { color: Colors.textSecondary, marginTop: 8 }]}>
-                  Preparing map…
-                </Text>
+          {trailVisible ? (
+            <>
+              <View style={[styles.header, { borderBottomColor: Colors.border }]}>
+                <TouchableOpacity
+                  onPress={() => setTrailVisible(false)}
+                  style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                  testID="close-trail"
+                >
+                  <X color={Colors.text} size={20} />
+                </TouchableOpacity>
+                <View style={styles.headerCenter}>
+                  <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
+                    Location trail
+                  </Text>
+                  <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
+                    {selected?.phone ?? "(no phone)"} · {filteredDetailLocations.length} pings
+                  </Text>
+                </View>
               </View>
-            ) : (
-            <MapView
-              provider={PROVIDER_DEFAULT}
-              style={{ flex: 1 }}
-              initialRegion={trailRegion}
-              loadingEnabled
-              moveOnMarkerPress={false}
-              toolbarEnabled={false}
-              pitchEnabled={false}
-              rotateEnabled={false}
-            >
-              {trailMode === "polyline" && polylineCoords.length > 1 && Polyline && (
-                <Polyline
-                  coordinates={polylineCoords}
-                  strokeColor={Colors.accent}
-                  strokeWidth={3}
+
+              <View style={styles.trailModeRow}>
+                <TouchableOpacity
+                  onPress={() => setTrailMode("polyline")}
+                  style={[
+                    styles.trailModeBtn,
+                    {
+                      backgroundColor: trailMode === "polyline" ? Colors.accent : Colors.gray[100],
+                      borderColor: trailMode === "polyline" ? Colors.accent : Colors.border,
+                    },
+                  ]}
+                  testID="trail-polyline"
+                >
+                  <RouteIcon color={trailMode === "polyline" ? "#000000" : Colors.text} size={14} />
+                  <Text
+                    style={[
+                      styles.trailModeText,
+                      { color: trailMode === "polyline" ? "#000000" : Colors.text },
+                    ]}
+                  >
+                    Path
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setTrailMode("heatmap")}
+                  style={[
+                    styles.trailModeBtn,
+                    {
+                      backgroundColor: trailMode === "heatmap" ? Colors.accent : Colors.gray[100],
+                      borderColor: trailMode === "heatmap" ? Colors.accent : Colors.border,
+                    },
+                  ]}
+                  testID="trail-heatmap"
+                >
+                  <Flame color={trailMode === "heatmap" ? "#000000" : Colors.text} size={14} />
+                  <Text
+                    style={[
+                      styles.trailModeText,
+                      { color: trailMode === "heatmap" ? "#000000" : Colors.text },
+                    ]}
+                  >
+                    Heatmap
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {Platform.OS === "web" ? (
+                <View style={styles.center}>
+                  <MapPin color={Colors.textSecondary} size={28} />
+                  <Text style={[styles.muted, { color: Colors.textSecondary, marginTop: 8 }]}>
+                    Trail view is only available on iOS/Android.
+                  </Text>
+                </View>
+              ) : trailRegion ? (
+                !trailMapReady ? (
+                  <View style={styles.center}>
+                    <ActivityIndicator color={Colors.accent} />
+                    <Text style={[styles.muted, { color: Colors.textSecondary, marginTop: 8 }]}>
+                      Preparing map…
+                    </Text>
+                  </View>
+                ) : (
+                <MapView
+                  provider={PROVIDER_DEFAULT}
+                  style={{ flex: 1 }}
+                  initialRegion={trailRegion}
+                  loadingEnabled
+                  moveOnMarkerPress={false}
+                  toolbarEnabled={false}
+                  pitchEnabled={false}
+                  rotateEnabled={false}
+                >
+                  {trailMode === "polyline" && polylineCoords.length > 1 && Polyline && (
+                    <Polyline
+                      coordinates={polylineCoords}
+                      strokeColor={Colors.accent}
+                      strokeWidth={3}
+                    />
+                  )}
+                  {trailMode === "polyline" && filteredDetailLocations.length > 0 && (
+                    <>
+                      <Marker
+                        coordinate={{
+                          latitude: filteredDetailLocations[filteredDetailLocations.length - 1].latitude,
+                          longitude: filteredDetailLocations[filteredDetailLocations.length - 1].longitude,
+                        }}
+                        pinColor="green"
+                        title="Start"
+                        description={formatDate(
+                          filteredDetailLocations[filteredDetailLocations.length - 1].captured_at
+                        )}
+                      />
+                      <Marker
+                        coordinate={{
+                          latitude: filteredDetailLocations[0].latitude,
+                          longitude: filteredDetailLocations[0].longitude,
+                        }}
+                        pinColor="red"
+                        title="End"
+                        description={formatDate(filteredDetailLocations[0].captured_at)}
+                      />
+                    </>
+                  )}
+                  {trailMode === "heatmap" &&
+                    Circle &&
+                    heatmapPoints.map((l) => (
+                      <Circle
+                        key={l.id}
+                        center={{ latitude: l.latitude, longitude: l.longitude }}
+                        radius={80}
+                        strokeColor="rgba(239,68,68,0.0)"
+                        fillColor="rgba(239,68,68,0.18)"
+                      />
+                    ))}
+                </MapView>
+                )
+              ) : (
+                <View style={styles.center}>
+                  <Text style={[styles.muted, { color: Colors.textSecondary }]}>
+                    No location pings to display.
+                  </Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <>
+              <View style={[styles.header, { borderBottomColor: Colors.border }]}>
+                <TouchableOpacity
+                  onPress={closeDetail}
+                  style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                  testID="close-detail"
+                >
+                  <X color={Colors.text} size={20} />
+                </TouchableOpacity>
+                <View style={styles.headerCenter}>
+                  <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
+                    {selected?.phone ?? "(no phone)"}
+                  </Text>
+                  <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
+                    {selected?.user_id ? `uid ${selected.user_id.slice(0, 8)}…` : "no auth uid"}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => exportDetailCsv("sessions")}
+                  style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                  testID="export-detail"
+                >
+                  <Download color={Colors.text} size={18} />
+                </TouchableOpacity>
+              </View>
+
+              {detailLoading ? (
+                <View style={styles.center}>
+                  <ActivityIndicator color={Colors.accent} />
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredDetailLocations}
+                  keyExtractor={(l) => l.id}
+                  renderItem={({ item }) => renderLocationRow(item)}
+                  ListHeaderComponent={renderDetailHeader}
+                  ListEmptyComponent={
+                    <Text style={[styles.muted, { color: Colors.textSecondary }]}>
+                      No location pings in range.
+                    </Text>
+                  }
+                  contentContainerStyle={{ padding: 16 }}
+                  initialNumToRender={15}
+                  maxToRenderPerBatch={20}
+                  windowSize={11}
+                  keyboardShouldPersistTaps="handled"
                 />
               )}
-              {trailMode === "polyline" && filteredDetailLocations.length > 0 && (
-                <>
-                  <Marker
-                    coordinate={{
-                      latitude: filteredDetailLocations[filteredDetailLocations.length - 1].latitude,
-                      longitude: filteredDetailLocations[filteredDetailLocations.length - 1].longitude,
-                    }}
-                    pinColor="green"
-                    title="Start"
-                    description={formatDate(
-                      filteredDetailLocations[filteredDetailLocations.length - 1].captured_at
-                    )}
-                  />
-                  <Marker
-                    coordinate={{
-                      latitude: filteredDetailLocations[0].latitude,
-                      longitude: filteredDetailLocations[0].longitude,
-                    }}
-                    pinColor="red"
-                    title="End"
-                    description={formatDate(filteredDetailLocations[0].captured_at)}
-                  />
-                </>
-              )}
-              {trailMode === "heatmap" &&
-                Circle &&
-                heatmapPoints.map((l) => (
-                  <Circle
-                    key={l.id}
-                    center={{ latitude: l.latitude, longitude: l.longitude }}
-                    radius={80}
-                    strokeColor="rgba(239,68,68,0.0)"
-                    fillColor="rgba(239,68,68,0.18)"
-                  />
-                ))}
-            </MapView>
-            )
-          ) : (
-            <View style={styles.center}>
-              <Text style={[styles.muted, { color: Colors.textSecondary }]}>
-                No location pings to display.
-              </Text>
-            </View>
+            </>
           )}
         </SafeAreaView>
       </Modal>
