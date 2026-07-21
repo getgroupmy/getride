@@ -1152,7 +1152,33 @@ export async function deleteUser(displayId: string): Promise<void> {
 // Push notifications
 // ---------------------------------------------------------------------------
 
-/** Register (or refresh) an Expo push token for a device. Upserts on token. */
+/** True when an RPC isn't in the live database yet (pre-0069 schema). */
+function isMissingFunctionError(err: unknown): boolean {
+  const msg = (
+    typeof err === "object" && err !== null
+      ? String((err as { message?: string }).message ?? "") +
+        " " +
+        String((err as { code?: string }).code ?? "")
+      : String(err ?? "")
+  ).toLowerCase();
+  return (
+    msg.includes("pgrst202") ||
+    msg.includes("could not find") ||
+    msg.includes("does not exist") ||
+    msg.includes("schema cache")
+  );
+}
+
+// Once the DB reports the push RPCs are missing (migration 0069 not applied
+// yet), go straight to the legacy direct writes.
+let pushRpcMissing = false;
+
+/**
+ * Register (or refresh) an Expo push token for a device. Uses the
+ * owner-scoped `push_register_token` RPC (0069 — the push_tokens table is no
+ * longer writable directly); falls back to the legacy upsert on older
+ * databases.
+ */
 export async function savePushToken(
   token: string,
   profileId: string | null,
@@ -1161,6 +1187,19 @@ export async function savePushToken(
 ): Promise<void> {
   if (!isSupabaseConfigured || !supabase || !token) return;
   try {
+    if (!pushRpcMissing) {
+      const { error } = await supabase.rpc("push_register_token", {
+        p_token: token,
+        p_platform: platform,
+        p_device_name: deviceName ?? null,
+      });
+      if (!error) return;
+      if (!isMissingFunctionError(error)) {
+        log("savePushToken rpc error", error.message);
+        return;
+      }
+      pushRpcMissing = true;
+    }
     const { error } = await supabase.from("push_tokens").upsert(
       {
         token,
@@ -1177,10 +1216,23 @@ export async function savePushToken(
   }
 }
 
-/** Remove a device's push token (e.g. on logout). */
+/**
+ * Remove a device's push token (e.g. on logout). The `push_unregister_token`
+ * RPC works even after the auth session is gone (knowing the token is the
+ * capability); falls back to the legacy delete on older databases.
+ */
 export async function removePushToken(token: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase || !token) return;
   try {
+    if (!pushRpcMissing) {
+      const { error } = await supabase.rpc("push_unregister_token", { p_token: token });
+      if (!error) return;
+      if (!isMissingFunctionError(error)) {
+        log("removePushToken rpc error", error.message);
+        return;
+      }
+      pushRpcMissing = true;
+    }
     const { error } = await supabase.from("push_tokens").delete().eq("token", token);
     if (error) log("removePushToken error", error.message);
   } catch (e) {

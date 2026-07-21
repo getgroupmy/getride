@@ -10,8 +10,11 @@ import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
  * then progress it through arrived → on_trip → completed. The passenger watches
  * their own request row for the partner's acceptance and live status.
  *
- * RLS is permissive (matches the rest of this project), so the anon/auth client
- * can read and write directly.
+ * Since migration 0069, RLS is participant-scoped: open requests are readable
+ * by everyone, but writes (and reads of active/finished rides) require an
+ * authenticated Supabase session matching the rider/partner on the row.
+ * Legacy local-PIN sessions get a permission error — surfaced via
+ * {@link isPermissionDeniedError} so screens can prompt a re-sign-in.
  */
 
 export type RideRequestStatus =
@@ -198,6 +201,44 @@ export interface PartnerOfferInput {
 }
 
 const TABLE = "ride_requests";
+
+/**
+ * True when the database rejected a ride-request write because the caller
+ * isn't an authenticated participant of the row (0069 lockdown). Legacy
+ * local-PIN sessions land here — they need a fresh Supabase sign-in.
+ */
+export function isPermissionDeniedError(err: unknown): boolean {
+  const msg = (
+    typeof err === "object" && err !== null
+      ? String((err as { message?: string }).message ?? "") +
+        " " +
+        String((err as { code?: string }).code ?? "")
+      : String(err ?? "")
+  ).toLowerCase();
+  return (
+    msg.includes("not_authorized") ||
+    msg.includes("rider_immutable") ||
+    msg.includes("42501") ||
+    msg.includes("permission denied") ||
+    msg.includes("row-level security")
+  );
+}
+
+export const RIDE_SIGN_IN_MESSAGE =
+  "Your session can't sync rides with the server. Please sign in again.";
+
+/** Uniform error logging that calls out sign-in-required failures. */
+function logRequestError(op: string, err: unknown): void {
+  const message =
+    typeof err === "object" && err !== null
+      ? String((err as { message?: string }).message ?? err)
+      : String(err);
+  if (isPermissionDeniedError(err)) {
+    console.log(`[rideRequests] ${op} rejected by RLS — ${RIDE_SIGN_IN_MESSAGE}`);
+  } else {
+    console.log(`[rideRequests] ${op} failed`, message);
+  }
+}
 
 /**
  * How long an unaccepted (still searching) request stays "ongoing" before it is
@@ -440,7 +481,7 @@ export async function createRideRequest(
       .select("*")
       .single();
     if (error) {
-      console.log("[rideRequests] create failed", error.message);
+      logRequestError("create", error);
       return null;
     }
     return data as RideRequest;
@@ -647,7 +688,7 @@ export async function acceptRideRequest(
       .select("*")
       .maybeSingle();
     if (error) {
-      console.log("[rideRequests] accept failed", error.message);
+      logRequestError("accept", error);
       return null;
     }
     return (data as RideRequest) ?? null;
@@ -693,7 +734,7 @@ export async function submitRideOffer(
       .select("*")
       .maybeSingle();
     if (error) {
-      console.log("[rideRequests] submit offer failed", error.message);
+      logRequestError("submit offer", error);
       return null;
     }
     return (data as RideRequest) ?? null;
@@ -838,7 +879,7 @@ export async function updateRideRequestStatus(
   try {
     const { error } = await supabase.from(TABLE).update(patch).eq("id", id);
     if (error) {
-      console.log("[rideRequests] status update failed", error.message);
+      logRequestError("status update", error);
       return false;
     }
     return true;
@@ -878,7 +919,7 @@ export async function cancelRideRequest(id: string, reason?: string): Promise<bo
         delete patch[missing];
         continue;
       }
-      console.log("[rideRequests] cancel failed", error.message);
+      logRequestError("cancel", error);
       return false;
     }
     return false;
