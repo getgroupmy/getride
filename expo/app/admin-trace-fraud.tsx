@@ -368,6 +368,7 @@ export default function AdminTraceFraudScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           keyExtractor={(c) => c}
+          style={styles.categoryFilterList}
           contentContainerStyle={styles.categoryFilterContent}
           renderItem={({ item: c }) => {
             const active = categoryFilter === c;
@@ -478,10 +479,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
   },
+  categoryFilterList: {
+    flexGrow: 0,
+  },
   categoryFilterContent: {
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 10,
+    alignItems: "center" as const,
   },
   filterChip: {
     paddingHorizontal: 14,
