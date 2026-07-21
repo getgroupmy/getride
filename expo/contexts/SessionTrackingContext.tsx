@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Platform, AppState, type AppStateStatus } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import * as Location from "expo-location";
 import * as Device from "expo-device";
@@ -19,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const LOCATION_PING_MS = 30_000;
 const LOCATION_DISTANCE_M = 10;
+const DEVICE_ID_STORAGE_KEY = "@session_device_id";
 
 type EventType = "login" | "app_launch" | "app_relaunch";
 
@@ -201,6 +203,52 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
   };
 }
 
+/**
+ * Stable per-device identifier, independent of the signed-in user/phone:
+ *   - Android: the device's ANDROID_ID (`Application.androidId`).
+ *   - iOS    : `identifierForVendor` (`Application.getIosIdForVendorAsync()`).
+ *   - other  : a client-generated UUID, persisted in AsyncStorage so it
+ *              survives app restarts (but not reinstalls).
+ * Resolved once per app run and cached in-memory thereafter.
+ */
+let cachedDeviceId: string | null = null;
+
+async function getOrCreateDeviceId(): Promise<string | null> {
+  if (cachedDeviceId) return cachedDeviceId;
+  try {
+    if (Platform.OS === "android") {
+      const id = Application.androidId ?? null;
+      if (id) {
+        cachedDeviceId = id;
+        return id;
+      }
+    } else if (Platform.OS === "ios") {
+      const id = await Application.getIosIdForVendorAsync();
+      if (id) {
+        cachedDeviceId = id;
+        return id;
+      }
+    }
+  } catch (e) {
+    console.log("[session] native device id lookup failed", e);
+  }
+
+  try {
+    const stored = await AsyncStorage.getItem(DEVICE_ID_STORAGE_KEY);
+    if (stored) {
+      cachedDeviceId = stored;
+      return stored;
+    }
+    const generated = uuidv4();
+    await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, generated);
+    cachedDeviceId = generated;
+    return generated;
+  } catch (e) {
+    console.log("[session] device id persistence failed", e);
+    return null;
+  }
+}
+
 export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
   () => {
     const { authState } = useAuth();
@@ -223,10 +271,11 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
           const sid = uuidv4();
           sessionIdRef.current = sid;
 
-          const [device, network, ipInfo] = await Promise.all([
+          const [device, network, ipInfo, deviceId] = await Promise.all([
             captureDeviceSnapshot(),
             captureNetworkSnapshot(),
             fetchIpLookup(),
+            getOrCreateDeviceId(),
           ]);
 
           const row = {
@@ -234,6 +283,7 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
             user_id: userId,
             phone,
             event_type: eventType,
+            device_id: deviceId,
             ...device,
             ...network,
             // Server-resolved public IP + ISP take priority over the device's
@@ -272,10 +322,12 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
       async (pos: Location.LocationObject) => {
         if (!isSupabaseConfigured || !supabase) return;
         try {
+          const deviceId = await getOrCreateDeviceId();
           const row = {
             user_id: userId,
             phone,
             session_id: sessionIdRef.current,
+            device_id: deviceId,
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
             accuracy: pos.coords.accuracy ?? null,
