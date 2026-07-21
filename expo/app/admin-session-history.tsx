@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
-  ScrollView,
   Alert,
   Platform,
   InteractionManager,
@@ -155,6 +154,15 @@ async function exportCsv(filename: string, csv: string): Promise<void> {
     Alert.alert("Export failed", e instanceof Error ? e.message : String(e));
   }
 }
+
+/**
+ * Cap how many session cards are rendered eagerly inside the detail sheet's
+ * list header. Sessions are logged on every app launch / relaunch / login, so
+ * an active account can accumulate hundreds of rows; mounting them all at once
+ * (they live in a non-virtualized header) can freeze the native UI thread. The
+ * full history is always available via the CSV export.
+ */
+const SESSION_RENDER_CAP = 40;
 
 function formatDate(iso: string): string {
   try {
@@ -617,6 +625,238 @@ export default function AdminSessionHistoryScreen() {
     );
   };
 
+  const renderSessionCard = (s: SessionRow) => (
+    <View
+      key={s.id}
+      style={[
+        styles.card,
+        { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+      ]}
+    >
+      <View style={styles.cardHeaderRow}>
+        <View style={[styles.eventPill, { backgroundColor: Colors.accent + "20" }]}>
+          <Text style={[styles.eventText, { color: Colors.accent }]}>{s.event_type}</Text>
+        </View>
+        <View style={styles.rowGap6}>
+          <Clock color={Colors.textSecondary} size={12} />
+          <Text style={[styles.metaText, { color: Colors.textSecondary }]}>
+            {formatDate(s.captured_at)}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.kvGrid}>
+        <KV
+          icon={<Smartphone color={Colors.textSecondary} size={14} />}
+          label="Device"
+          value={`${s.device_brand ?? s.device_manufacturer ?? "?"} ${s.device_model_name ?? ""}`.trim()}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Hash color={Colors.textSecondary} size={14} />}
+          label="Model ID"
+          value={s.device_model_id ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Globe color={Colors.textSecondary} size={14} />}
+          label="OS"
+          value={`${s.os_name ?? "?"}${s.os_version ? " " + s.os_version : ""}`}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Wifi color={Colors.textSecondary} size={14} />}
+          label="Network"
+          value={`${s.network_type ?? "?"}${s.network_operator ? " · " + s.network_operator : ""}`}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Smartphone color={Colors.textSecondary} size={14} />}
+          label="Connection"
+          value={s.connection_type ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Globe color={Colors.textSecondary} size={14} />}
+          label="ISP / Provider"
+          value={s.isp_provider ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Globe color={Colors.textSecondary} size={14} />}
+          label="ISP Org"
+          value={s.isp_org ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Globe color={Colors.textSecondary} size={14} />}
+          label="IP Location"
+          value={[s.ip_city, s.ip_region, s.ip_country].filter((v) => !!v).join(", ") || "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Smartphone color={Colors.textSecondary} size={14} />}
+          label="Mobile Operator"
+          value={s.mobile_operator_name ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Hash color={Colors.textSecondary} size={14} />}
+          label="ICCID"
+          value={s.iccid ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Globe color={Colors.textSecondary} size={14} />}
+          label="Local IP"
+          value={s.ip_address ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Globe color={Colors.textSecondary} size={14} />}
+          label="Public IP"
+          value={s.public_ip ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Hash color={Colors.textSecondary} size={14} />}
+          label="App"
+          value={`${s.app_version ?? "?"}${s.app_build_version ? " (" + s.app_build_version + ")" : ""}`}
+          Colors={Colors}
+        />
+      </View>
+    </View>
+  );
+
+  const renderLocationRow = (l: LocationRow) => (
+    <View
+      style={[
+        styles.locRow,
+        { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+      ]}
+    >
+      <MapPin color={Colors.accent} size={16} />
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.locCoord, { color: Colors.text }]} numberOfLines={1}>
+          {l.latitude.toFixed(6)}, {l.longitude.toFixed(6)}
+        </Text>
+        <Text style={[styles.metaText, { color: Colors.textSecondary }]} numberOfLines={1}>
+          {formatDate(l.captured_at)}
+          {l.accuracy != null ? ` · ±${Math.round(l.accuracy)}m` : ""}
+          {l.speed != null && l.speed >= 0 ? ` · ${l.speed.toFixed(1)} m/s` : ""}
+        </Text>
+      </View>
+    </View>
+  );
+
+  const renderDetailHeader = () => (
+    <View>
+      {selected?.lastLat != null && selected?.lastLng != null ? (
+        <View
+          style={[
+            styles.detailMap,
+            { borderColor: Colors.border, backgroundColor: Colors.gray[200] },
+          ]}
+        >
+          {Platform.OS === "web" ? (
+            <View style={styles.detailMapWeb}>
+              <MapPin color={Colors.accent} size={28} />
+              <Text style={[styles.kvValue, { color: Colors.text }]}>
+                {selected.lastLat.toFixed(6)}, {selected.lastLng.toFixed(6)}
+              </Text>
+              <Text style={[styles.metaText, { color: Colors.textSecondary }]}>
+                {selected.lastPingAt ? formatDate(selected.lastPingAt) : ""}
+              </Text>
+            </View>
+          ) : (
+            <MapView
+              provider={PROVIDER_DEFAULT}
+              style={styles.detailMapInner}
+              liteMode
+              region={{
+                latitude: selected.lastLat,
+                longitude: selected.lastLng,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+            >
+              <Marker
+                coordinate={{ latitude: selected.lastLat, longitude: selected.lastLng }}
+                pinColor={Colors.accent}
+                title="Last known location"
+                description={selected.lastPingAt ? formatDate(selected.lastPingAt) : undefined}
+              />
+            </MapView>
+          )}
+        </View>
+      ) : null}
+
+      {(fromDate || toDate) && (
+        <View
+          style={[
+            styles.rangePill,
+            { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" },
+          ]}
+        >
+          <Calendar color={Colors.accent} size={12} />
+          <Text style={[styles.rangePillText, { color: Colors.accent }]}>
+            {fromDate || "…"} → {toDate || "…"}
+          </Text>
+        </View>
+      )}
+
+      {filteredDetailLocations.length > 0 && Platform.OS !== "web" && (
+        <TouchableOpacity
+          onPress={() => {
+            setTrailMode("polyline");
+            setTrailVisible(true);
+          }}
+          style={[styles.trailBtn, { backgroundColor: Colors.accent, marginBottom: 14 }]}
+          testID="open-trail"
+        >
+          <MapIcon color="#000000" size={16} />
+          <Text style={styles.trailBtnText}>
+            View full trail ({filteredDetailLocations.length} pings)
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      <Text style={[styles.sectionTitle, { color: Colors.text }]}>
+        Sessions ({filteredDetailSessions.length}
+        {filteredDetailSessions.length !== detail.sessions.length
+          ? ` of ${detail.sessions.length}`
+          : ""}
+        )
+      </Text>
+      {filteredDetailSessions.length === 0 && (
+        <Text style={[styles.muted, { color: Colors.textSecondary }]}>No sessions in range.</Text>
+      )}
+      {filteredDetailSessions.slice(0, SESSION_RENDER_CAP).map(renderSessionCard)}
+      {filteredDetailSessions.length > SESSION_RENDER_CAP && (
+        <Text style={[styles.muted, { color: Colors.textSecondary, marginBottom: 10 }]}>
+          Showing the {SESSION_RENDER_CAP} most recent of {filteredDetailSessions.length} sessions —
+          export CSV for the full list.
+        </Text>
+      )}
+
+      <View style={styles.sectionHeaderRow}>
+        <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 18 }]}>
+          Location pings ({filteredDetailLocations.length}
+          {filteredDetailLocations.length !== detail.locations.length
+            ? ` of ${detail.locations.length}`
+            : ""}
+          )
+        </Text>
+        <TouchableOpacity
+          onPress={() => exportDetailCsv("locations")}
+          style={[styles.exportPill, { backgroundColor: Colors.accent + "20" }]}
+        >
+          <Download color={Colors.accent} size={12} />
+          <Text style={[styles.exportPillText, { color: Colors.accent }]}>CSV</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: Colors.background }]}
@@ -802,243 +1042,22 @@ export default function AdminSessionHistoryScreen() {
               <ActivityIndicator color={Colors.accent} />
             </View>
           ) : (
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-              {selected?.lastLat != null && selected?.lastLng != null ? (
-                <View
-                  style={[
-                    styles.detailMap,
-                    { borderColor: Colors.border, backgroundColor: Colors.gray[200] },
-                  ]}
-                >
-                  {Platform.OS === "web" ? (
-                    <View style={styles.detailMapWeb}>
-                      <MapPin color={Colors.accent} size={28} />
-                      <Text style={[styles.kvValue, { color: Colors.text }]}>
-                        {selected.lastLat.toFixed(6)}, {selected.lastLng.toFixed(6)}
-                      </Text>
-                      <Text style={[styles.metaText, { color: Colors.textSecondary }]}>
-                        {selected.lastPingAt ? formatDate(selected.lastPingAt) : ""}
-                      </Text>
-                    </View>
-                  ) : (
-                    <MapView
-                      provider={PROVIDER_DEFAULT}
-                      style={styles.detailMapInner}
-                      region={{
-                        latitude: selected.lastLat,
-                        longitude: selected.lastLng,
-                        latitudeDelta: 0.01,
-                        longitudeDelta: 0.01,
-                      }}
-                    >
-                      <Marker
-                        coordinate={{
-                          latitude: selected.lastLat,
-                          longitude: selected.lastLng,
-                        }}
-                        pinColor={Colors.accent}
-                        title="Last known location"
-                        description={
-                          selected.lastPingAt ? formatDate(selected.lastPingAt) : undefined
-                        }
-                      />
-                    </MapView>
-                  )}
-                </View>
-              ) : null}
-
-              {(fromDate || toDate) && (
-                <View
-                  style={[
-                    styles.rangePill,
-                    { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" },
-                  ]}
-                >
-                  <Calendar color={Colors.accent} size={12} />
-                  <Text style={[styles.rangePillText, { color: Colors.accent }]}>
-                    {fromDate || "…"} → {toDate || "…"}
-                  </Text>
-                </View>
-              )}
-
-              {filteredDetailLocations.length > 0 && Platform.OS !== "web" && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setTrailMode("polyline");
-                    setTrailVisible(true);
-                  }}
-                  style={[
-                    styles.trailBtn,
-                    { backgroundColor: Colors.accent, marginBottom: 14 },
-                  ]}
-                  testID="open-trail"
-                >
-                  <MapIcon color="#000000" size={16} />
-                  <Text style={styles.trailBtnText}>
-                    View full trail ({filteredDetailLocations.length} pings)
-                  </Text>
-                </TouchableOpacity>
-              )}
-
-              <Text style={[styles.sectionTitle, { color: Colors.text }]}>
-                Sessions ({filteredDetailSessions.length}
-                {filteredDetailSessions.length !== detail.sessions.length
-                  ? ` of ${detail.sessions.length}`
-                  : ""}
-                )
-              </Text>
-              {filteredDetailSessions.length === 0 && (
-                <Text style={[styles.muted, { color: Colors.textSecondary }]}>No sessions in range.</Text>
-              )}
-              {filteredDetailSessions.map((s) => (
-                <View
-                  key={s.id}
-                  style={[
-                    styles.card,
-                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
-                  ]}
-                >
-                  <View style={styles.cardHeaderRow}>
-                    <View style={[styles.eventPill, { backgroundColor: Colors.accent + "20" }]}>
-                      <Text style={[styles.eventText, { color: Colors.accent }]}>
-                        {s.event_type}
-                      </Text>
-                    </View>
-                    <View style={styles.rowGap6}>
-                      <Clock color={Colors.textSecondary} size={12} />
-                      <Text style={[styles.metaText, { color: Colors.textSecondary }]}>
-                        {formatDate(s.captured_at)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.kvGrid}>
-                    <KV
-                      icon={<Smartphone color={Colors.textSecondary} size={14} />}
-                      label="Device"
-                      value={`${s.device_brand ?? s.device_manufacturer ?? "?"} ${s.device_model_name ?? ""}`.trim()}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Hash color={Colors.textSecondary} size={14} />}
-                      label="Model ID"
-                      value={s.device_model_id ?? "—"}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Globe color={Colors.textSecondary} size={14} />}
-                      label="OS"
-                      value={`${s.os_name ?? "?"}${s.os_version ? " " + s.os_version : ""}`}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Wifi color={Colors.textSecondary} size={14} />}
-                      label="Network"
-                      value={`${s.network_type ?? "?"}${s.network_operator ? " · " + s.network_operator : ""}`}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Smartphone color={Colors.textSecondary} size={14} />}
-                      label="Connection"
-                      value={s.connection_type ?? "—"}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Globe color={Colors.textSecondary} size={14} />}
-                      label="ISP / Provider"
-                      value={s.isp_provider ?? "—"}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Globe color={Colors.textSecondary} size={14} />}
-                      label="ISP Org"
-                      value={s.isp_org ?? "—"}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Globe color={Colors.textSecondary} size={14} />}
-                      label="IP Location"
-                      value={
-                        [s.ip_city, s.ip_region, s.ip_country]
-                          .filter((v) => !!v)
-                          .join(", ") || "—"
-                      }
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Smartphone color={Colors.textSecondary} size={14} />}
-                      label="Mobile Operator"
-                      value={s.mobile_operator_name ?? "—"}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Hash color={Colors.textSecondary} size={14} />}
-                      label="ICCID"
-                      value={s.iccid ?? "—"}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Globe color={Colors.textSecondary} size={14} />}
-                      label="Local IP"
-                      value={s.ip_address ?? "—"}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Globe color={Colors.textSecondary} size={14} />}
-                      label="Public IP"
-                      value={s.public_ip ?? "—"}
-                      Colors={Colors}
-                    />
-                    <KV
-                      icon={<Hash color={Colors.textSecondary} size={14} />}
-                      label="App"
-                      value={`${s.app_version ?? "?"}${s.app_build_version ? " (" + s.app_build_version + ")" : ""}`}
-                      Colors={Colors}
-                    />
-                  </View>
-                </View>
-              ))}
-
-              <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 18 }]}>
-                  Location pings ({filteredDetailLocations.length}
-                  {filteredDetailLocations.length !== detail.locations.length
-                    ? ` of ${detail.locations.length}`
-                    : ""}
-                  )
+            <FlatList
+              data={filteredDetailLocations}
+              keyExtractor={(l) => l.id}
+              renderItem={({ item }) => renderLocationRow(item)}
+              ListHeaderComponent={renderDetailHeader}
+              ListEmptyComponent={
+                <Text style={[styles.muted, { color: Colors.textSecondary }]}>
+                  No location pings in range.
                 </Text>
-                <TouchableOpacity
-                  onPress={() => exportDetailCsv("locations")}
-                  style={[styles.exportPill, { backgroundColor: Colors.accent + "20" }]}
-                >
-                  <Download color={Colors.accent} size={12} />
-                  <Text style={[styles.exportPillText, { color: Colors.accent }]}>CSV</Text>
-                </TouchableOpacity>
-              </View>
-              {filteredDetailLocations.length === 0 && (
-                <Text style={[styles.muted, { color: Colors.textSecondary }]}>No location pings in range.</Text>
-              )}
-              {filteredDetailLocations.map((l) => (
-                <View
-                  key={l.id}
-                  style={[
-                    styles.locRow,
-                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
-                  ]}
-                >
-                  <MapPin color={Colors.accent} size={16} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.locCoord, { color: Colors.text }]} numberOfLines={1}>
-                      {l.latitude.toFixed(6)}, {l.longitude.toFixed(6)}
-                    </Text>
-                    <Text style={[styles.metaText, { color: Colors.textSecondary }]} numberOfLines={1}>
-                      {formatDate(l.captured_at)}
-                      {l.accuracy != null ? ` · ±${Math.round(l.accuracy)}m` : ""}
-                      {l.speed != null && l.speed >= 0 ? ` · ${l.speed.toFixed(1)} m/s` : ""}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
+              }
+              contentContainerStyle={{ padding: 16 }}
+              initialNumToRender={15}
+              maxToRenderPerBatch={20}
+              windowSize={11}
+              keyboardShouldPersistTaps="handled"
+            />
           )}
         </SafeAreaView>
       </Modal>
