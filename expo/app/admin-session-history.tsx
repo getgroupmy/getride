@@ -1294,203 +1294,198 @@ export default function AdminSessionHistoryScreen() {
               )}
             </>
           )}
-        </SafeAreaView>
-      </Modal>
 
-      <Modal
-        visible={trailPopupVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setTrailPopupVisible(false)}
-      >
-        <View style={styles.trailPopupOverlay}>
-          <View
-            style={[
-              styles.trailPopupCard,
-              { backgroundColor: Colors.background, borderColor: Colors.border },
-            ]}
-          >
-            <Text style={[styles.trailPopupTitle, { color: Colors.text }]}>Location trail</Text>
-            <Text style={[styles.trailPopupSubtitle, { color: Colors.textSecondary }]}>
-              Choose which pings to pull
-            </Text>
-
-            <View style={styles.trailPopupRow}>
-              {(
-                [
-                  { key: "today", label: "Today" },
-                  { key: "yesterday", label: "Yesterday" },
-                  { key: "range", label: "Date range" },
-                ] as const
-              ).map((opt) => (
-                <TouchableOpacity
-                  key={opt.key}
-                  onPress={() => setTrailScope(opt.key)}
-                  style={[
-                    styles.trailModeBtn,
-                    {
-                      flex: 1,
-                      justifyContent: "center",
-                      backgroundColor: trailScope === opt.key ? Colors.accent : Colors.gray[100],
-                      borderColor: trailScope === opt.key ? Colors.accent : Colors.border,
-                    },
-                  ]}
-                  testID={`trail-scope-${opt.key}`}
-                >
-                  <Text
-                    style={[
-                      styles.trailModeText,
-                      { color: trailScope === opt.key ? "#000000" : Colors.text },
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {trailScope === "range" && (
-              <View style={styles.dateFilterRow}>
-                <View
-                  style={[
-                    styles.dateInputWrap,
-                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
-                  ]}
-                >
-                  <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>From</Text>
-                  <TextInput
-                    value={trailRangeFrom}
-                    onChangeText={setTrailRangeFrom}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={Colors.textSecondary}
-                    style={[styles.dateInput, { color: Colors.text }]}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    testID="trail-range-from"
-                  />
-                </View>
-                <View
-                  style={[
-                    styles.dateInputWrap,
-                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
-                  ]}
-                >
-                  <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>To</Text>
-                  <TextInput
-                    value={trailRangeTo}
-                    onChangeText={setTrailRangeTo}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={Colors.textSecondary}
-                    style={[styles.dateInput, { color: Colors.text }]}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    testID="trail-range-to"
-                  />
-                </View>
-              </View>
-            )}
-
-            <Text style={[styles.trailPopupSubtitle, { color: Colors.textSecondary, marginTop: 16 }]}>
-              Time of day
-            </Text>
-            <View style={styles.trailPopupRow}>
-              {(
-                [
-                  { key: "all", label: "All" },
-                  { key: "filter", label: "Time filter" },
-                ] as const
-              ).map((opt) => (
-                <TouchableOpacity
-                  key={opt.key}
-                  onPress={() => setTrailTimeMode(opt.key)}
-                  style={[
-                    styles.trailModeBtn,
-                    {
-                      flex: 1,
-                      justifyContent: "center",
-                      backgroundColor: trailTimeMode === opt.key ? Colors.accent : Colors.gray[100],
-                      borderColor: trailTimeMode === opt.key ? Colors.accent : Colors.border,
-                    },
-                  ]}
-                  testID={`trail-timemode-${opt.key}`}
-                >
-                  <Text
-                    style={[
-                      styles.trailModeText,
-                      { color: trailTimeMode === opt.key ? "#000000" : Colors.text },
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {trailTimeMode === "filter" && (
-              <View style={styles.dateFilterRow}>
-                <View
-                  style={[
-                    styles.dateInputWrap,
-                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
-                  ]}
-                >
-                  <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>From</Text>
-                  <TextInput
-                    value={trailTimeFrom}
-                    onChangeText={setTrailTimeFrom}
-                    placeholder="HH:MM"
-                    placeholderTextColor={Colors.textSecondary}
-                    style={[styles.dateInput, { color: Colors.text }]}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    testID="trail-time-from"
-                  />
-                </View>
-                <View
-                  style={[
-                    styles.dateInputWrap,
-                    { backgroundColor: Colors.gray[100], borderColor: Colors.border },
-                  ]}
-                >
-                  <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>To</Text>
-                  <TextInput
-                    value={trailTimeTo}
-                    onChangeText={setTrailTimeTo}
-                    placeholder="HH:MM"
-                    placeholderTextColor={Colors.textSecondary}
-                    style={[styles.dateInput, { color: Colors.text }]}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    testID="trail-time-to"
-                  />
-                </View>
-              </View>
-            )}
-
-            <View style={styles.trailPopupActions}>
-              <TouchableOpacity
-                onPress={() => setTrailPopupVisible(false)}
-                style={[styles.popupBtn, { backgroundColor: Colors.gray[100] }]}
-                disabled={trailLoading}
-                testID="trail-popup-cancel"
+          {trailPopupVisible && (
+            <View style={styles.trailPopupOverlay}>
+              <View
+                style={[
+                  styles.trailPopupCard,
+                  { backgroundColor: Colors.background, borderColor: Colors.border },
+                ]}
               >
-                <Text style={[styles.popupBtnText, { color: Colors.text }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={applyTrailFilter}
-                style={[styles.popupBtn, { backgroundColor: Colors.accent }]}
-                disabled={trailLoading}
-                testID="trail-popup-apply"
-              >
-                {trailLoading ? (
-                  <ActivityIndicator color="#000000" size="small" />
-                ) : (
-                  <Text style={[styles.popupBtnText, { color: "#000000" }]}>Show trail</Text>
+                <Text style={[styles.trailPopupTitle, { color: Colors.text }]}>Location trail</Text>
+                <Text style={[styles.trailPopupSubtitle, { color: Colors.textSecondary }]}>
+                  Choose which pings to pull
+                </Text>
+
+                <View style={styles.trailPopupRow}>
+                  {(
+                    [
+                      { key: "today", label: "Today" },
+                      { key: "yesterday", label: "Yesterday" },
+                      { key: "range", label: "Date range" },
+                    ] as const
+                  ).map((opt) => (
+                    <TouchableOpacity
+                      key={opt.key}
+                      onPress={() => setTrailScope(opt.key)}
+                      style={[
+                        styles.trailModeBtn,
+                        {
+                          flex: 1,
+                          justifyContent: "center",
+                          backgroundColor: trailScope === opt.key ? Colors.accent : Colors.gray[100],
+                          borderColor: trailScope === opt.key ? Colors.accent : Colors.border,
+                        },
+                      ]}
+                      testID={`trail-scope-${opt.key}`}
+                    >
+                      <Text
+                        style={[
+                          styles.trailModeText,
+                          { color: trailScope === opt.key ? "#000000" : Colors.text },
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {trailScope === "range" && (
+                  <View style={styles.dateFilterRow}>
+                    <View
+                      style={[
+                        styles.dateInputWrap,
+                        { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+                      ]}
+                    >
+                      <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>From</Text>
+                      <TextInput
+                        value={trailRangeFrom}
+                        onChangeText={setTrailRangeFrom}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={Colors.textSecondary}
+                        style={[styles.dateInput, { color: Colors.text }]}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        testID="trail-range-from"
+                      />
+                    </View>
+                    <View
+                      style={[
+                        styles.dateInputWrap,
+                        { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+                      ]}
+                    >
+                      <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>To</Text>
+                      <TextInput
+                        value={trailRangeTo}
+                        onChangeText={setTrailRangeTo}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={Colors.textSecondary}
+                        style={[styles.dateInput, { color: Colors.text }]}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        testID="trail-range-to"
+                      />
+                    </View>
+                  </View>
                 )}
-              </TouchableOpacity>
+
+                <Text style={[styles.trailPopupSubtitle, { color: Colors.textSecondary, marginTop: 16 }]}>
+                  Time of day
+                </Text>
+                <View style={styles.trailPopupRow}>
+                  {(
+                    [
+                      { key: "all", label: "All" },
+                      { key: "filter", label: "Time filter" },
+                    ] as const
+                  ).map((opt) => (
+                    <TouchableOpacity
+                      key={opt.key}
+                      onPress={() => setTrailTimeMode(opt.key)}
+                      style={[
+                        styles.trailModeBtn,
+                        {
+                          flex: 1,
+                          justifyContent: "center",
+                          backgroundColor: trailTimeMode === opt.key ? Colors.accent : Colors.gray[100],
+                          borderColor: trailTimeMode === opt.key ? Colors.accent : Colors.border,
+                        },
+                      ]}
+                      testID={`trail-timemode-${opt.key}`}
+                    >
+                      <Text
+                        style={[
+                          styles.trailModeText,
+                          { color: trailTimeMode === opt.key ? "#000000" : Colors.text },
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {trailTimeMode === "filter" && (
+                  <View style={styles.dateFilterRow}>
+                    <View
+                      style={[
+                        styles.dateInputWrap,
+                        { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+                      ]}
+                    >
+                      <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>From</Text>
+                      <TextInput
+                        value={trailTimeFrom}
+                        onChangeText={setTrailTimeFrom}
+                        placeholder="HH:MM"
+                        placeholderTextColor={Colors.textSecondary}
+                        style={[styles.dateInput, { color: Colors.text }]}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        testID="trail-time-from"
+                      />
+                    </View>
+                    <View
+                      style={[
+                        styles.dateInputWrap,
+                        { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+                      ]}
+                    >
+                      <Text style={[styles.dateLabel, { color: Colors.textSecondary }]}>To</Text>
+                      <TextInput
+                        value={trailTimeTo}
+                        onChangeText={setTrailTimeTo}
+                        placeholder="HH:MM"
+                        placeholderTextColor={Colors.textSecondary}
+                        style={[styles.dateInput, { color: Colors.text }]}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        testID="trail-time-to"
+                      />
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.trailPopupActions}>
+                  <TouchableOpacity
+                    onPress={() => setTrailPopupVisible(false)}
+                    style={[styles.popupBtn, { backgroundColor: Colors.gray[100] }]}
+                    disabled={trailLoading}
+                    testID="trail-popup-cancel"
+                  >
+                    <Text style={[styles.popupBtnText, { color: Colors.text }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={applyTrailFilter}
+                    style={[styles.popupBtn, { backgroundColor: Colors.accent }]}
+                    disabled={trailLoading}
+                    testID="trail-popup-apply"
+                  >
+                    {trailLoading ? (
+                      <ActivityIndicator color="#000000" size="small" />
+                    ) : (
+                      <Text style={[styles.popupBtnText, { color: "#000000" }]}>Show trail</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </View>
-        </View>
+          )}
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -1714,7 +1709,13 @@ const styles = StyleSheet.create({
   },
   rangePillText: { fontSize: 11, fontWeight: "700" as const },
   trailPopupOverlay: {
-    flex: 1,
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 50,
+    elevation: 50,
     justifyContent: "center" as const,
     alignItems: "center" as const,
     backgroundColor: "rgba(0,0,0,0.5)",
