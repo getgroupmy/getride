@@ -145,6 +145,16 @@ async function fetchIpLookup(): Promise<IpLookupResult | null> {
   }
 }
 
+/**
+ * Extracts the offending column name from a PostgREST "missing column" error
+ * (e.g. the live DB hasn't had the latest migration applied yet). Returns null
+ * when the error is unrelated to a missing column.
+ */
+function missingColumnFromError(message: string): string | null {
+  const match = /Could not find the '([^']+)' column/.exec(message);
+  return match ? match[1] : null;
+}
+
 function networkTypeLabel(t: Network.NetworkStateType | undefined): string | null {
   if (!t) return null;
   // The enum values are already strings like "WIFI", "CELLULAR", etc.
@@ -274,7 +284,7 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
             getOrCreateDeviceId(),
           ]);
 
-          const row = {
+          const row: Record<string, unknown> = {
             id: sid,
             user_id: userId,
             phone,
@@ -312,9 +322,25 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
             model: device.device_model_name,
             net: network.network_type,
           });
-          const { error } = await supabase.from("user_sessions").insert(row);
-          if (error) {
+          // Retry without any column the live DB doesn't have yet (an
+          // unapplied migration — e.g. 0075's mobile_country_code /
+          // mobile_network_code). PostgREST validates the whole insert against
+          // its schema cache, so a single unknown column otherwise rejects the
+          // ENTIRE row and the session is silently lost. Every other writer in
+          // the app degrades this way; the session tracker now does too.
+          for (let attempt = 0; attempt < 8; attempt++) {
+            const { error } = await supabase.from("user_sessions").insert(row);
+            if (!error) break;
+            const missing = missingColumnFromError(error.message);
+            if (missing && missing in row && missing !== "id") {
+              console.log(
+                `[session] column '${missing}' missing in DB, retrying without it`
+              );
+              delete row[missing];
+              continue;
+            }
             console.log("[session] insert error", error.message);
+            break;
           }
         } catch (e) {
           console.log("[session] logSession threw", e);
