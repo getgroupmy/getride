@@ -24,6 +24,17 @@ values (
 )
 on conflict (key) do nothing;
 
+-- Idempotency: a later migration (0074) reshapes the RETURN columns of these
+-- functions, and CREATE OR REPLACE cannot change a function's return type. Drop
+-- every known signature first so re-running the migration set (which re-applies
+-- 0072 before 0074) never collides. 0074 re-applies the final shapes after.
+drop function if exists public.set_login_pin(text);
+drop function if exists public.set_login_pin(text, text);
+drop function if exists public.device_registration_status(text);
+drop function if exists public.device_guard_config();
+drop function if exists public.device_guard_set_config(boolean, int);
+drop function if exists public.device_guard_set_config(boolean, int, boolean);
+
 -- Effective config with safe defaults. SECURITY DEFINER so it reads the row
 -- regardless of the caller's RLS visibility.
 create or replace function public.device_guard_config()

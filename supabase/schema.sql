@@ -468,6 +468,9 @@ create trigger trg_profiles_hash_pin
 -- brand-new account (no prior pin_hash + freshly created profile). See the
 -- device_guard_* functions below and migration 0072. PIN changes / forgot-PIN
 -- resets operate on existing profiles and are never blocked.
+-- Drop the legacy single-arg signature so re-running this snapshot over an
+-- older database doesn't leave an ambiguous overload.
+drop function if exists public.set_login_pin(text);
 create or replace function public.set_login_pin(p_pin text, p_device_id text default null)
 returns boolean
 language plpgsql
@@ -721,11 +724,16 @@ $$;
 revoke all on function public.device_prior_account_count(text) from public;
 grant execute on function public.device_prior_account_count(text) to anon, authenticated;
 
--- Device-guard config (migration 0072), stored in app_settings key
--- 'device_account_guard' = { enabled, maxAccountsPerDevice }. Effective values
--- with safe defaults when the row is absent.
--- Effective config: enabled + cumulative account cap + opt-in emulator block
--- (migration 0074), with safe defaults when the app_settings row is absent.
+-- Device-guard config (migrations 0072/0074), stored in app_settings key
+-- 'device_account_guard' = { enabled, maxAccountsPerDevice, blockEmulators }.
+-- Effective config: enabled + cumulative account cap + opt-in emulator block,
+-- with safe defaults when the app_settings row is absent.
+-- These functions changed their RETURN columns across migrations, and CREATE OR
+-- REPLACE cannot change a return type, so drop prior signatures first to keep
+-- this snapshot safe to re-run over an older database.
+drop function if exists public.device_registration_status(text);
+drop function if exists public.device_guard_config();
+drop function if exists public.device_guard_set_config(boolean, int);
 create or replace function public.device_guard_config()
 returns table (enabled boolean, max_accounts int, block_emulators boolean)
 language plpgsql
