@@ -27,7 +27,7 @@ function avatarColor(id: string): string {
   return AVATAR_COLORS[sum % AVATAR_COLORS.length];
 }
 
-const PRIVACY_URL = "https://www.teksi.com/privacy";
+const PRIVACY_URL = "https://www.getride.app/privacy";
 
 export default function SafetyScreen() {
   const router = useRouter();
@@ -70,7 +70,7 @@ export default function SafetyScreen() {
           onPress: () => {
             const numbers = contacts.map((c) => c.phone.replace(/[^+\d]/g, "")).join(",");
             const body = encodeURIComponent(
-              "EMERGENCY: I need help. This is an automated SOS alert sent from the Teksi app. Please contact me immediately."
+              "EMERGENCY: I need help. This is an automated SOS alert sent from the GET.ride app. Please contact me immediately."
             );
             const sep = Platform.OS === "ios" ? "&" : "?";
             Linking.openURL(`sms:${numbers}${sep}body=${body}`).catch(() => {

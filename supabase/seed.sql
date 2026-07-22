@@ -12,7 +12,7 @@
 -- server functions default gracefully if this row is absent; seeding it just
 -- makes the baseline explicit and editable from the admin panel on day one.
 insert into public.app_settings (key, value) values
-  ('app',            jsonb_build_object('name','Teksi','supportEmail','support@teksi.app')),
+  ('app',            jsonb_build_object('name','GET.ride','supportEmail','support@getride.app')),
   ('theme.light',    jsonb_build_object('primary','#0A84FF','background','#FFFFFF','text','#0B0B0F')),
   ('theme.dark',     jsonb_build_object('primary','#0A84FF','background','#0B0B0F','text','#FFFFFF')),
   ('splash',         jsonb_build_object('background','#0B0B0F','image',null)),
@@ -45,8 +45,8 @@ insert into public.settings_entries (category, position, values) values
   ('service-settings', 5, jsonb_build_object('name','Food','description','Food ordering & delivery','displayPriority',5,'active',true,'isDefault',true)),
   ('service-settings', 6, jsonb_build_object('name','Mart','description','Grocery & mart delivery','displayPriority',6,'active',true,'isDefault',true)),
 
-  ('site-settings', 1, jsonb_build_object('name','App Name','value','Teksi')),
-  ('site-settings', 2, jsonb_build_object('name','Support Email','value','support@teksi.app')),
+  ('site-settings', 1, jsonb_build_object('name','App Name','value','GET.ride')),
+  ('site-settings', 2, jsonb_build_object('name','Support Email','value','support@getride.app')),
 
   ('payment-type', 1, jsonb_build_object('name','Cash','enabled',true)),
   ('payment-type', 2, jsonb_build_object('name','Card','enabled',true)),

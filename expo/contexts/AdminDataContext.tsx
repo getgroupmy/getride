@@ -285,8 +285,8 @@ const SEED_ENTRIES: Record<string, SettingEntry[]> = {
     }),
   ],
   "site-settings": [
-    seedEntry({ name: "App Name", value: "Teksi" }),
-    seedEntry({ name: "Support Email", value: "support@teksi.app" }),
+    seedEntry({ name: "App Name", value: "GET.ride" }),
+    seedEntry({ name: "Support Email", value: "support@getride.app" }),
   ],
   "referral-settings": [
     seedEntry({ name: "User Referral", reward: 10 }),
@@ -297,7 +297,7 @@ const SEED_ENTRIES: Record<string, SettingEntry[]> = {
     seedEntry({ name: "Level 2", percentage: 5 }),
   ],
   "sub-admin": [
-    seedEntry({ name: "Operations", email: "ops@teksi.app", role: "Manager" }),
+    seedEntry({ name: "Operations", email: "ops@getride.app", role: "Manager" }),
   ],
   "geo-fencing": [
     seedEntry({ name: "KL Central", radius: 5 }),
@@ -696,8 +696,8 @@ const SEED_ENTRIES: Record<string, SettingEntry[]> = {
     seedEntry({ title: "Welcome", body: "Thanks for joining" }),
   ],
   "social-links": [
-    seedEntry({ platform: "Facebook", url: "https://facebook.com/teksi" }),
-    seedEntry({ platform: "Instagram", url: "https://instagram.com/teksi" }),
+    seedEntry({ platform: "Facebook", url: "https://facebook.com/getride" }),
+    seedEntry({ platform: "Instagram", url: "https://instagram.com/getride" }),
   ],
   "world-currency": [
     seedEntry({ code: "MYR", symbol: "RM", rate: 1 }),

@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Location from "expo-location";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
+import { formatCurrency, getCurrencyByCode } from "@/constants/currency";
 
 /**
  * Ride requests data layer.
@@ -504,11 +505,14 @@ export async function createRideRequest(
  */
 export async function notifyPartnersOfNewRequest(row: RideRequest): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
-  const fare = row.fare != null ? String(Math.round(row.fare)) : "";
+  const fare =
+    row.fare != null
+      ? formatCurrency(Math.round(row.fare), getCurrencyByCode(row.currency))
+      : "";
   const pickup = row.pickup_name ?? row.pickup_address ?? "Pickup";
   const drop = row.drop_name ?? row.drop_address ?? "Drop-off";
   const title = "New Request";
-  const body = `${row.currency} ${fare} , ${pickup}\n${drop}`;
+  const body = `${fare} , ${pickup} -> ${drop}`;
   try {
     const { error } = await supabase.functions.invoke("send-push", {
       body: {
@@ -523,6 +527,42 @@ export async function notifyPartnersOfNewRequest(row: RideRequest): Promise<void
     }
   } catch (e) {
     console.log("[rideRequests] notify partners error", e);
+  }
+}
+
+/**
+ * Notifies online partners when a passenger raises their fare on an already-open
+ * request (a fresh, higher offer to the partner queue). Mirrors
+ * {@link notifyPartnersOfNewRequest} so partners whose app is backgrounded or
+ * whose phone is locked still get an OS push for the improved offer — not just
+ * the ones actively watching the queue in realtime.
+ *
+ * Best-effort: never throws, so raising the fare is unaffected if push fails.
+ */
+export async function notifyPartnersOfRaisedFare(row: RideRequest): Promise<void> {
+  if (!isSupabaseConfigured || !supabase) return;
+  const fare =
+    row.fare != null
+      ? formatCurrency(Math.round(row.fare), getCurrencyByCode(row.currency))
+      : "";
+  const pickup = row.pickup_name ?? row.pickup_address ?? "Pickup";
+  const drop = row.drop_name ?? row.drop_address ?? "Drop-off";
+  const title = "Fare increased";
+  const body = `${fare} , ${pickup} -> ${drop}`;
+  try {
+    const { error } = await supabase.functions.invoke("send-push", {
+      body: {
+        title,
+        body,
+        audience: "partners",
+        data: { type: "ride_request_fare_raised", requestId: row.id },
+      },
+    });
+    if (error) {
+      console.log("[rideRequests] notify raised fare failed", error.message);
+    }
+  } catch (e) {
+    console.log("[rideRequests] notify raised fare error", e);
   }
 }
 

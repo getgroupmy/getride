@@ -240,7 +240,7 @@ const CATEGORIES: ScreenCategory[] = [
         features: [
           { title: "Map snapshot", detail: "Static map image showing the route." },
           { title: "Print receipt", detail: "Send a receipt to a connected Bluetooth printer." },
-          { title: "Email receipt", detail: "Send a PDF receipt with the TEKSI logo to any email." },
+          { title: "Email receipt", detail: "Send a PDF receipt with the GET.ride logo to any email." },
           { title: "Back to home", detail: "Return to the driver TEKSI screen." },
         ],
       },
@@ -417,7 +417,7 @@ const CATEGORIES: ScreenCategory[] = [
         description: "Send a PDF copy of any receipt to an email address.",
         features: [
           { title: "Email validation", detail: "We check the email format before sending." },
-          { title: "PDF with logo", detail: "Receipt includes the TEKSI logo and fits one page." },
+          { title: "PDF with logo", detail: "Receipt includes the GET.ride logo and fits one page." },
         ],
       },
       {
@@ -517,8 +517,8 @@ export default function UserGuideScreen() {
 </head>
 <body>
   <div class="cover">
-    <div class="logo-wrap"><img src="${logoUrl}" alt="TEKSI"/></div>
-    <h1>TEKSI USER GUIDE</h1>
+    <div class="logo-wrap"><img src="${logoUrl}" alt="GET.ride"/></div>
+    <h1>GET.ride USER GUIDE</h1>
     <p>Complete walkthrough of every screen and feature</p>
     <p style="margin-top:10px;font-size:11px;opacity:.85">Generated · ${dateStr}</p>
   </div>

@@ -19,7 +19,7 @@ export default function AdminSettingsEvDeliveryAdvisorsScreen() {
         { key: "name", label: "Advisor Name", type: "text", required: true, placeholder: "Ahmad Faizal" },
         { key: "idNumber", label: "ID / Passport Number", type: "text", placeholder: "800101-10-1234" },
         { key: "contact", label: "Contact Number", type: "text", required: true, placeholder: "+60 12-345 6789" },
-        { key: "email", label: "Email Address", type: "text", required: true, placeholder: "advisor@teksi.app" },
+        { key: "email", label: "Email Address", type: "text", required: true, placeholder: "advisor@getride.app" },
         { key: "daNumber", label: "DA Number", type: "text", placeholder: "DA-0001" },
       ]}
       primaryDisplayKey="name"

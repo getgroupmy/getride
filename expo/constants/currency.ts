@@ -42,6 +42,24 @@ export function getCurrencyForCountry(countryCode: string): CurrencyInfo {
   return COUNTRY_CURRENCY_MAP[countryCode.toUpperCase()] ?? DEFAULT_CURRENCY;
 }
 
+/** ISO 4217 code -> currency info, derived from the country map. */
+const CODE_CURRENCY_MAP: Record<string, CurrencyInfo> = Object.values(
+  COUNTRY_CURRENCY_MAP
+).reduce<Record<string, CurrencyInfo>>((acc, info) => {
+  acc[info.code] = info;
+  return acc;
+}, {});
+
+/**
+ * Resolves currency info from an ISO 4217 code (e.g. "MYR" -> RM). Falls back to
+ * the default currency for unknown/empty codes. Used to turn the ISO code stored
+ * on a ride request into a human-facing symbol (e.g. in push notifications).
+ */
+export function getCurrencyByCode(code?: string | null): CurrencyInfo {
+  if (!code) return DEFAULT_CURRENCY;
+  return CODE_CURRENCY_MAP[code.toUpperCase()] ?? DEFAULT_CURRENCY;
+}
+
 export function formatCurrency(amount: number | string, currency: CurrencyInfo = DEFAULT_CURRENCY): string {
   const value = typeof amount === "string" ? amount : amount.toString();
   if (currency.position === "after") {

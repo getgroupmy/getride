@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**get.ride** is a ride-sharing mobile app (branded "Teksi") built with React Native/Expo, targeting iOS, Android, and web. It includes a full rider-facing interface, a partner (driver) onboarding and dispatch interface, and an extensive in-app admin panel for fleet/user/settings management.
+**get.ride** is a ride-sharing mobile app (branded "GET.ride"; "Teksi" — Malay for "taxi" — is the in-app name of the taxi driver mode, not the app) built with React Native/Expo, targeting iOS, Android, and web. It includes a full rider-facing interface, a partner (driver) onboarding and dispatch interface, and an extensive in-app admin panel for fleet/user/settings management.
 
 The repository has two main subdirectories:
 - `expo/` — the React Native / Expo Router application (all app code lives here)
