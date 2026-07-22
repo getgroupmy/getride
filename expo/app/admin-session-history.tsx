@@ -45,6 +45,7 @@ import * as Sharing from "expo-sharing";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 import { computeDeviceLinks } from "@/utils/deviceLinkage";
+import { formatPlmn } from "@/utils/mobileOperator";
 import {
   getDeviceGuardConfig,
   setDeviceGuardConfig,
@@ -79,6 +80,8 @@ interface SessionRow {
   ip_country: string | null;
   iccid: string | null;
   mobile_operator_name: string | null;
+  mobile_country_code: string | null;
+  mobile_network_code: string | null;
   app_version: string | null;
   app_build_version: string | null;
   app_id: string | null;
@@ -627,6 +630,8 @@ export default function AdminSessionHistoryScreen() {
       "ip_country",
       "iccid",
       "mobile_operator_name",
+      "mobile_country_code",
+      "mobile_network_code",
       "app_version",
       "app_build_version",
       "app_id",
@@ -666,6 +671,8 @@ export default function AdminSessionHistoryScreen() {
             "ip_country",
             "iccid",
             "mobile_operator_name",
+            "mobile_country_code",
+            "mobile_network_code",
             "app_version",
             "app_build_version",
             "id",
@@ -914,6 +921,12 @@ export default function AdminSessionHistoryScreen() {
           icon={<Smartphone color={Colors.textSecondary} size={14} />}
           label="Mobile Operator"
           value={s.mobile_operator_name ?? "—"}
+          Colors={Colors}
+        />
+        <KV
+          icon={<Hash color={Colors.textSecondary} size={14} />}
+          label="MCC / MNC"
+          value={formatPlmn(s.mobile_country_code, s.mobile_network_code) ?? "—"}
           Colors={Colors}
         />
         <KV
