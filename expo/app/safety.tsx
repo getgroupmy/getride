@@ -27,7 +27,7 @@ function avatarColor(id: string): string {
   return AVATAR_COLORS[sum % AVATAR_COLORS.length];
 }
 
-const PRIVACY_URL = "https://www.teksi.com/privacy";
+const PRIVACY_URL = "https://www.getride.app/privacy";
 
 export default function SafetyScreen() {
   const router = useRouter();
