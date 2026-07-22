@@ -231,7 +231,11 @@ async function getOrCreateDeviceId(): Promise<string | null> {
   if (cachedDeviceId) return cachedDeviceId;
   try {
     if (Platform.OS === "android") {
-      const id = Application.androidId ?? null;
+      // ANDROID_ID — stable across reinstalls (per signing key), the best
+      // fraud fingerprint available. The current expo-application exposes it as
+      // getAndroidId(); the old `Application.androidId` property is gone, so
+      // reading that silently yielded undefined and fell back to a random UUID.
+      const id = Application.getAndroidId?.() ?? null;
       if (id) {
         cachedDeviceId = id;
         return id;

@@ -33,12 +33,14 @@ import {
   Flame,
   Route as RouteIcon,
   AlertTriangle,
+  Users,
 } from "lucide-react-native";
 import MapView, { Marker, Polyline, Circle, PROVIDER_DEFAULT } from "react-native-maps";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
+import { computeDeviceLinks } from "@/utils/deviceLinkage";
 
 interface SessionRow {
   id: string;
@@ -339,6 +341,26 @@ export default function AdminSessionHistoryScreen() {
       (a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime()
     );
   }, [sessions, latestPingByKey]);
+
+  // Fraud / duplicate-account signal: which accounts share a physical device
+  // (same device_id) with another account. Presence in the map == flagged.
+  const deviceLinks = useMemo(
+    () => computeDeviceLinks(sessions),
+    [sessions]
+  );
+
+  // Resolve an account key (user id or "phone:+…") back to a human label.
+  const accountLabel = useCallback(
+    (key: string): string => {
+      const u = userSummaries.find((x) => x.key === key);
+      if (u) {
+        if (u.phone) return u.phone;
+        if (u.user_id) return `uid ${u.user_id.slice(0, 8)}…`;
+      }
+      return key.startsWith("phone:") ? key.slice("phone:".length) : key;
+    },
+    [userSummaries]
+  );
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -702,6 +724,19 @@ export default function AdminSessionHistoryScreen() {
               </Text>
             </View>
           ) : null}
+          {(() => {
+            const link = deviceLinks.get(item.key);
+            if (!link) return null;
+            const n = link.linkedAccounts.length;
+            return (
+              <View style={[styles.dupBadge, { backgroundColor: Colors.warning + "22" }]}>
+                <Users color={Colors.warning} size={11} />
+                <Text style={[styles.dupBadgeText, { color: Colors.warning }]} numberOfLines={1}>
+                  Shares device with {n} other account{n === 1 ? "" : "s"}
+                </Text>
+              </View>
+            );
+          })()}
         </View>
         {item.lastLat != null && item.lastLng != null ? (
           <View
@@ -922,6 +957,32 @@ export default function AdminSessionHistoryScreen() {
         </View>
       ) : null}
 
+      {selected && deviceLinks.get(selected.key) ? (
+        <View
+          style={[
+            styles.dupCard,
+            { backgroundColor: Colors.warning + "14", borderColor: Colors.warning + "55" },
+          ]}
+          testID="dup-detail-card"
+        >
+          <View style={styles.rowGap6}>
+            <Users color={Colors.warning} size={16} />
+            <Text style={[styles.dupCardTitle, { color: Colors.text }]}>
+              Possible duplicate account
+            </Text>
+          </View>
+          <Text style={[styles.dupCardBody, { color: Colors.textSecondary }]}>
+            Shares {deviceLinks.get(selected.key)!.sharedDevices.length} device
+            {deviceLinks.get(selected.key)!.sharedDevices.length === 1 ? "" : "s"} with:
+          </Text>
+          {deviceLinks.get(selected.key)!.linkedAccounts.map((k) => (
+            <Text key={k} style={[styles.dupCardAccount, { color: Colors.text }]} numberOfLines={1}>
+              • {accountLabel(k)}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+
       {(fromDate || toDate) && (
         <View
           style={[
@@ -1122,6 +1183,23 @@ export default function AdminSessionHistoryScreen() {
               supabase functions deploy ip-lookup --no-verify-jwt
             </Text>
             .
+          </Text>
+        </View>
+      )}
+
+      {deviceLinks.size > 0 && (
+        <View
+          style={[
+            styles.warningBanner,
+            { backgroundColor: Colors.warning + "18", borderColor: Colors.warning + "55" },
+          ]}
+          testID="shared-device-banner"
+        >
+          <Users color={Colors.warning} size={16} />
+          <Text style={[styles.warningText, { color: Colors.text }]}>
+            {deviceLinks.size} account{deviceLinks.size === 1 ? "" : "s"} sign in from a
+            device also used by another account — possible duplicate / multi-account
+            activity. Flagged accounts are marked below.
           </Text>
         </View>
       )}
@@ -1645,6 +1723,27 @@ const styles = StyleSheet.create({
   userMeta: { fontSize: 11, marginTop: 2 },
   ispRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 4, marginTop: 3 },
   ispText: { fontSize: 11, fontWeight: "600" as const, flexShrink: 1 },
+  dupBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    alignSelf: "flex-start" as const,
+    gap: 4,
+    marginTop: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  dupBadgeText: { fontSize: 10, fontWeight: "800" as const, flexShrink: 1 },
+  dupCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 16,
+    gap: 6,
+  },
+  dupCardTitle: { fontSize: 14, fontWeight: "800" as const },
+  dupCardBody: { fontSize: 12, fontWeight: "600" as const },
+  dupCardAccount: { fontSize: 13, fontWeight: "700" as const },
   center: { flex: 1, justifyContent: "center" as const, alignItems: "center" as const, padding: 24 },
   muted: { fontSize: 13, textAlign: "center" as const },
   sectionTitle: { fontSize: 14, fontWeight: "800" as const, marginBottom: 10 },
