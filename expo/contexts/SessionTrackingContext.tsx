@@ -8,6 +8,7 @@ import * as Network from "expo-network";
 import * as Cellular from "expo-cellular";
 import * as Application from "expo-application";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
+import { normalizeCarrierName, resolveMobileOperator } from "@/utils/mobileOperator";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
@@ -181,10 +182,13 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     ispProvider = anyState.details.carrier;
   }
 
-  // expo-cellular: carrier name / mobile operator (Android-only)
+  // expo-cellular: on-device carrier name. Unavailable on web, and iOS 16+
+  // returns the fixed placeholder "--" (Apple deprecated carrier access), so
+  // normalizeCarrierName drops both to null. The real operator for cellular
+  // sessions is filled in from the IP-resolved ISP in logSession().
   let mobileOperatorName: string | null = null;
   try {
-    const carrierName = await Cellular.getCarrierNameAsync();
+    const carrierName = normalizeCarrierName(await Cellular.getCarrierNameAsync());
     if (carrierName) {
       mobileOperatorName = carrierName;
       // Prefer cellular carrier as isp_provider when on mobile
@@ -304,6 +308,15 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
             ip_city: ipInfo?.ip_city ?? null,
             ip_region: ipInfo?.ip_region ?? null,
             ip_country: ipInfo?.ip_country ?? null,
+            // The on-device carrier name is null on web and a "--" placeholder
+            // on iOS 16+; on a cellular connection the public-IP ISP is the
+            // actual mobile operator, so fall back to it (see mobileOperator.ts).
+            mobile_operator_name: resolveMobileOperator({
+              carrierName: network.mobile_operator_name,
+              connectionType: network.connection_type,
+              ispProvider: ipInfo?.isp_provider ?? network.isp_provider,
+              ispOrg: ipInfo?.isp_org,
+            }),
             raw: {
               platform: Platform.OS,
               platformVersion: Platform.Version,
