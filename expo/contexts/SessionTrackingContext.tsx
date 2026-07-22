@@ -7,7 +7,11 @@ import * as Network from "expo-network";
 import * as Cellular from "expo-cellular";
 import * as Application from "expo-application";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
-import { normalizeCarrierName, resolveMobileOperator } from "@/utils/mobileOperator";
+import {
+  normalizeCarrierName,
+  normalizeMobileCode,
+  resolveMobileOperator,
+} from "@/utils/mobileOperator";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -94,6 +98,8 @@ interface NetworkSnapshot {
   isp_provider: string | null;
   iccid: string | null;
   mobile_operator_name: string | null;
+  mobile_country_code: string | null;
+  mobile_network_code: string | null;
 }
 
 /**
@@ -199,6 +205,27 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     console.log("[session] getCarrierNameAsync failed", e);
   }
 
+  // MCC / MNC — the numeric mobile country + network codes that identify the
+  // SIM's home operator (its PLMN id), independent of the carrier NAME. Present
+  // on Android and pre-iOS-16; null on web and returned as the "65535"
+  // placeholder on iOS 16+ (normalizeMobileCode drops it to null).
+  let mobileCountryCode: string | null = null;
+  let mobileNetworkCode: string | null = null;
+  try {
+    mobileCountryCode = normalizeMobileCode(
+      await Cellular.getMobileCountryCodeAsync()
+    );
+  } catch (e) {
+    console.log("[session] getMobileCountryCodeAsync failed", e);
+  }
+  try {
+    mobileNetworkCode = normalizeMobileCode(
+      await Cellular.getMobileNetworkCodeAsync()
+    );
+  } catch (e) {
+    console.log("[session] getMobileNetworkCodeAsync failed", e);
+  }
+
   // ICCID — best-effort. expo-cellular does not expose it directly;
   // Android-only possible via native module. Leave null for now.
   let iccid: string | null = null;
@@ -213,6 +240,8 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     isp_provider: ispProvider,
     iccid,
     mobile_operator_name: mobileOperatorName,
+    mobile_country_code: mobileCountryCode,
+    mobile_network_code: mobileNetworkCode,
   };
 }
 
