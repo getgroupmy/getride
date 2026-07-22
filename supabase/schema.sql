@@ -3335,6 +3335,36 @@ begin
 end;
 $telemetry$;
 
+-- device_attestations — Play Integrity / App Attest verdicts (migration 0073).
+-- Admin-read only; written by the attest-device edge function via the service
+-- role (which bypasses RLS). See docs/device-attestation.md.
+create table if not exists public.device_attestations (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid references auth.users(id) on delete set null,
+  device_id     text,
+  platform      text not null check (platform in ('android', 'ios')),
+  attest_key_id text,
+  passed        boolean not null default false,
+  verdict       jsonb,
+  created_at    timestamptz not null default now()
+);
+create index if not exists device_attestations_device_idx on public.device_attestations (device_id);
+create index if not exists device_attestations_key_idx on public.device_attestations (attest_key_id);
+create index if not exists device_attestations_user_idx on public.device_attestations (user_id);
+alter table public.device_attestations enable row level security;
+do $attest$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'device_attestations'
+      and policyname = 'device_attestations admin read'
+  ) then
+    create policy "device_attestations admin read" on public.device_attestations
+      for select using (public.caller_is_admin());
+  end if;
+end;
+$attest$;
+
 -- voice_protection_recordings — in-ride audio metadata. The recording device
 -- inserts/updates its own rows (upload flags); admins request uploads and
 -- review.
