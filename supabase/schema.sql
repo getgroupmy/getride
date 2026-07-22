@@ -464,7 +464,11 @@ create trigger trg_profiles_hash_pin
   for each row execute function public.hash_profile_pin();
 
 -- Client write path for setting/changing the PIN (authenticated users only).
-create or replace function public.set_login_pin(p_pin text)
+-- set_login_pin also enforces the device-based duplicate-account guard for a
+-- brand-new account (no prior pin_hash + freshly created profile). See the
+-- device_guard_* functions below and migration 0072. PIN changes / forgot-PIN
+-- resets operate on existing profiles and are never blocked.
+create or replace function public.set_login_pin(p_pin text, p_device_id text default null)
 returns boolean
 language plpgsql
 security definer
@@ -472,6 +476,12 @@ set search_path = public
 as $$
 declare
   v_uid uuid := auth.uid();
+  v_pin_hash text;
+  v_created timestamptz;
+  v_is_new boolean;
+  v_enabled boolean;
+  v_max int;
+  v_prior int;
 begin
   if v_uid is null then
     raise exception 'set_login_pin requires an authenticated session';
@@ -479,6 +489,27 @@ begin
   if p_pin !~ '^\d{6}$' then
     raise exception 'PIN must be exactly 6 digits';
   end if;
+
+  select pin_hash, created_at into v_pin_hash, v_created
+  from public.profiles where id = v_uid;
+  v_is_new := (v_pin_hash is null)
+    and (v_created is null or v_created > now() - interval '1 hour');
+
+  if v_is_new and p_device_id is not null and p_device_id <> '' then
+    select c.enabled, c.max_accounts into v_enabled, v_max
+    from public.device_guard_config() c;
+    if v_enabled then
+      select count(distinct user_id)::int into v_prior
+      from public.user_sessions
+      where device_id = p_device_id
+        and user_id is not null
+        and user_id <> v_uid;
+      if v_prior >= v_max then
+        raise exception 'DEVICE_LIMIT:%/%', v_prior, v_max;
+      end if;
+    end if;
+  end if;
+
   update public.profiles
   set pin_hash            = crypt(p_pin, gen_salt('bf', 10)),
       pin                 = null,
@@ -500,8 +531,8 @@ begin
 end;
 $$;
 
-revoke all on function public.set_login_pin(text) from public;
-grant execute on function public.set_login_pin(text) to authenticated;
+revoke all on function public.set_login_pin(text, text) from public;
+grant execute on function public.set_login_pin(text, text) to authenticated;
 
 -- Forgot-PIN reset for the signed-in user.
 create or replace function public.clear_login_pin()
@@ -675,6 +706,93 @@ $$;
 
 revoke all on function public.device_prior_account_count(text) from public;
 grant execute on function public.device_prior_account_count(text) to anon, authenticated;
+
+-- Device-guard config (migration 0072), stored in app_settings key
+-- 'device_account_guard' = { enabled, maxAccountsPerDevice }. Effective values
+-- with safe defaults when the row is absent.
+create or replace function public.device_guard_config()
+returns table (enabled boolean, max_accounts int)
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v jsonb;
+begin
+  select value into v from public.app_settings where key = 'device_account_guard';
+  enabled := coalesce((v->>'enabled')::boolean, true);
+  max_accounts := greatest(1, coalesce((v->>'maxAccountsPerDevice')::int, 3));
+  return next;
+end;
+$$;
+
+revoke all on function public.device_guard_config() from public;
+grant execute on function public.device_guard_config() to anon, authenticated;
+
+-- Client pre-check for the sign-up flow: whether a new registration is allowed
+-- on this device plus the numbers behind the decision.
+create or replace function public.device_registration_status(p_device_id text)
+returns table (allowed boolean, prior_accounts int, max_accounts int, enabled boolean)
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v_enabled boolean;
+  v_max int;
+  v_prior int := 0;
+  v_uid uuid := auth.uid();
+begin
+  select c.enabled, c.max_accounts into v_enabled, v_max
+  from public.device_guard_config() c;
+  if p_device_id is not null and p_device_id <> '' then
+    select count(distinct user_id)::int into v_prior
+    from public.user_sessions
+    where device_id = p_device_id
+      and user_id is not null
+      and user_id <> coalesce(v_uid, '00000000-0000-0000-0000-000000000000'::uuid);
+  end if;
+  allowed := (not v_enabled) or (v_prior < v_max);
+  prior_accounts := v_prior;
+  max_accounts := v_max;
+  enabled := v_enabled;
+  return next;
+end;
+$$;
+
+revoke all on function public.device_registration_status(text) from public;
+grant execute on function public.device_registration_status(text) to anon, authenticated;
+
+-- Admin-only writer for the two device-guard knobs.
+create or replace function public.device_guard_set_config(p_enabled boolean, p_max_accounts int)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.caller_is_admin() then
+    raise exception 'not_authorized';
+  end if;
+  insert into public.app_settings (key, value, updated_at)
+  values (
+    'device_account_guard',
+    jsonb_build_object(
+      'enabled', coalesce(p_enabled, true),
+      'maxAccountsPerDevice', greatest(1, coalesce(p_max_accounts, 3))
+    ),
+    now()
+  )
+  on conflict (key) do update
+    set value = excluded.value, updated_at = now();
+  return true;
+end;
+$$;
+
+revoke all on function public.device_guard_set_config(boolean, int) from public;
+grant execute on function public.device_guard_set_config(boolean, int) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Row-Level Security

@@ -13,7 +13,7 @@ import { ArrowLeft, Check } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
-import { evaluateDeviceRegistration } from "@/utils/deviceGuard";
+import { evaluateDeviceRegistration, isDeviceLimitError } from "@/utils/deviceGuard";
 
 type Step = "create" | "confirm";
 
@@ -107,7 +107,25 @@ export default function PinSetupScreen() {
               }
             }
             console.log("PIN setup successful");
-            await registerUser(phoneNumber || "", enteredPin, firstName || "");
+            try {
+              await registerUser(phoneNumber || "", enteredPin, firstName || "");
+            } catch (e) {
+              // Server-side duplicate-account guard rejected this sign-up (the
+              // client pre-check above was bypassed or raced). Show the block
+              // and stop — do not sign the user in.
+              if (isDeviceLimitError(e)) {
+                setError(
+                  "This device is already linked to too many accounts, so a new " +
+                    "account can't be created here. Please sign in to your existing " +
+                    "account, or contact support if you think this is a mistake."
+                );
+                shake();
+                setConfirmPin(["", "", "", "", "", ""]);
+                inputRefs.current[0]?.focus();
+                return;
+              }
+              throw e;
+            }
             if (!isResetFlow && isSupabaseAuth && firstName) {
               const saved = await updateProfile({ name: firstName });
               // updateProfile depends on authState.userId, which the supabase

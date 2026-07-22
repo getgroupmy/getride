@@ -9,6 +9,8 @@ import {
   SUPABASE_ANON_KEY_RESOLVED,
 } from "@/utils/supabase";
 import { parsePinLockSeconds, pinLockMessage } from "@/utils/pinLock";
+import { getOrCreateDeviceId } from "@/utils/deviceId";
+import { isDeviceLimitError } from "@/utils/deviceGuard";
 
 const AUTH_KEY = "@app_auth_state";
 const REGISTERED_USERS_KEY = "@registered_users";
@@ -551,6 +553,12 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     firstName?: string
   ): Promise<{ loginPinSaved: boolean }> => {
     let loginPinSaved = false;
+    // Set when the server's device-based duplicate-account guard rejects this
+    // new account (set_login_pin raising DEVICE_LIMIT). Re-thrown after cleanup
+    // so the sign-up screen can surface it, instead of being swallowed and the
+    // account created anyway.
+    let deviceLimitError: Error | null = null;
+    const priorRegisteredUsers = registeredUsers;
     try {
       const normalized = phoneNumber.replace(/\s/g, "");
       const idx = registeredUsers.findIndex(
@@ -636,19 +644,35 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
             // the profiles row.
             let rpcSaved = false;
             try {
-              const { data: rpcOk, error: rpcErr } = await supabase.rpc("set_login_pin", { p_pin: pin });
+              // Pass the device fingerprint so the server can enforce the
+              // duplicate-account guard for a brand-new account.
+              const deviceId = await getOrCreateDeviceId();
+              const { data: rpcOk, error: rpcErr } = await supabase.rpc("set_login_pin", {
+                p_pin: pin,
+                p_device_id: deviceId,
+              });
               if (!rpcErr && rpcOk === true) {
                 rpcSaved = true;
                 loginPinSaved = true;
                 console.log("[auth] registerUser PIN saved via set_login_pin RPC");
               } else if (rpcErr) {
-                console.log("[auth] registerUser set_login_pin RPC failed — falling back to legacy column write:", rpcErr.message);
+                if (isDeviceLimitError(rpcErr)) {
+                  // Duplicate-account block. Do NOT fall back to the legacy
+                  // column write (that would bypass the guard) — record it and
+                  // re-throw after cleanup below.
+                  console.log("[auth] registerUser blocked by device guard:", rpcErr.message);
+                  deviceLimitError = new Error(rpcErr.message);
+                } else {
+                  console.log("[auth] registerUser set_login_pin RPC failed — falling back to legacy column write:", rpcErr.message);
+                }
               }
             } catch (e) {
               console.log("[auth] registerUser set_login_pin RPC threw", e);
             }
 
-            if (rpcSaved) {
+            if (deviceLimitError) {
+              // Skip every write path; account creation is denied.
+            } else if (rpcSaved) {
               if (firstName && firstName.trim()) {
                 const { error: nameErr } = await supabase
                   .from("profiles")
@@ -780,6 +804,18 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       }
     } catch (error) {
       console.error("[auth] registerUser error", error);
+    }
+    if (deviceLimitError) {
+      // Roll back the optimistic local cache write so no half-created account
+      // lingers on this device, then surface the block to the caller.
+      try {
+        await AsyncStorage.setItem(
+          REGISTERED_USERS_KEY,
+          JSON.stringify(priorRegisteredUsers)
+        );
+        setRegisteredUsers(priorRegisteredUsers);
+      } catch {}
+      throw deviceLimitError;
     }
     return { loginPinSaved };
   };

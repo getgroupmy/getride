@@ -12,6 +12,7 @@ import {
   Alert,
   Platform,
   InteractionManager,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
@@ -34,6 +35,9 @@ import {
   Route as RouteIcon,
   AlertTriangle,
   Users,
+  ShieldCheck,
+  Minus,
+  Plus,
 } from "lucide-react-native";
 import MapView, { Marker, Polyline, Circle, PROVIDER_DEFAULT } from "react-native-maps";
 import * as FileSystem from "expo-file-system/legacy";
@@ -41,6 +45,11 @@ import * as Sharing from "expo-sharing";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 import { computeDeviceLinks } from "@/utils/deviceLinkage";
+import {
+  getDeviceGuardConfig,
+  setDeviceGuardConfig,
+  type DeviceGuardConfig,
+} from "@/utils/deviceGuard";
 
 interface SessionRow {
   id: string;
@@ -213,6 +222,10 @@ export default function AdminSessionHistoryScreen() {
   const [ipLookupHealthy, setIpLookupHealthy] = useState<boolean | null>(null);
   // When on, only accounts flagged for sharing a device are listed.
   const [flaggedOnly, setFlaggedOnly] = useState<boolean>(false);
+  // Admin-configurable duplicate-account guard.
+  const [showGuardConfig, setShowGuardConfig] = useState<boolean>(false);
+  const [guardConfig, setGuardConfig] = useState<DeviceGuardConfig | null>(null);
+  const [savingGuard, setSavingGuard] = useState<boolean>(false);
 
   useEffect(() => {
     if (!trailVisible) {
@@ -288,7 +301,28 @@ export default function AdminSessionHistoryScreen() {
   useEffect(() => {
     void loadSessions();
     void checkIpLookupHealth();
+    void getDeviceGuardConfig().then(setGuardConfig);
   }, [loadSessions, checkIpLookupHealth]);
+
+  const saveGuardConfig = useCallback(
+    async (next: DeviceGuardConfig) => {
+      const prev = guardConfig;
+      setGuardConfig(next); // optimistic
+      setSavingGuard(true);
+      const res = await setDeviceGuardConfig(next);
+      setSavingGuard(false);
+      if (!res.ok) {
+        setGuardConfig(prev); // revert
+        Alert.alert(
+          "Couldn't save",
+          res.error === "not_authorized"
+            ? "You don't have permission to change this setting."
+            : res.error ?? "Please try again."
+        );
+      }
+    },
+    [guardConfig]
+  );
 
   const latestPingByKey = useMemo(() => {
     const map = new Map<string, LocationRow>();
@@ -1085,6 +1119,16 @@ export default function AdminSessionHistoryScreen() {
           </TouchableOpacity>
         )}
         <TouchableOpacity
+          onPress={() => setShowGuardConfig((v) => !v)}
+          style={[
+            styles.iconBtn,
+            { backgroundColor: showGuardConfig ? Colors.accent + "20" : Colors.gray[100] },
+          ]}
+          testID="toggle-guard-config"
+        >
+          <ShieldCheck color={showGuardConfig ? Colors.accent : Colors.text} size={20} />
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={() => setShowDateFilter((v) => !v)}
           style={[
             styles.iconBtn,
@@ -1182,6 +1226,81 @@ export default function AdminSessionHistoryScreen() {
           testID="search"
         />
       </View>
+
+      {showGuardConfig && (
+        <View
+          style={[
+            styles.guardCard,
+            { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+          ]}
+          testID="guard-config"
+        >
+          <View style={styles.rowGap6}>
+            <ShieldCheck color={Colors.accent} size={16} />
+            <Text style={[styles.guardTitle, { color: Colors.text }]}>
+              Duplicate-account guard
+            </Text>
+          </View>
+          <Text style={[styles.guardHint, { color: Colors.textSecondary }]}>
+            Blocks a new sign-up when its device already backs this many other
+            accounts. Enforced at registration.
+          </Text>
+
+          <View style={styles.guardRow}>
+            <Text style={[styles.guardLabel, { color: Colors.text }]}>Enabled</Text>
+            <Switch
+              value={guardConfig?.enabled ?? true}
+              disabled={!guardConfig || savingGuard}
+              onValueChange={(v) => {
+                if (guardConfig) void saveGuardConfig({ ...guardConfig, enabled: v });
+              }}
+              testID="guard-enabled"
+            />
+          </View>
+
+          <View style={styles.guardRow}>
+            <Text style={[styles.guardLabel, { color: Colors.text }]}>
+              Max accounts / device
+            </Text>
+            <View style={styles.stepper}>
+              <TouchableOpacity
+                onPress={() =>
+                  guardConfig &&
+                  saveGuardConfig({
+                    ...guardConfig,
+                    maxAccountsPerDevice: Math.max(1, guardConfig.maxAccountsPerDevice - 1),
+                  })
+                }
+                disabled={!guardConfig || savingGuard || (guardConfig?.maxAccountsPerDevice ?? 1) <= 1}
+                style={[styles.stepBtn, { backgroundColor: Colors.gray[200], opacity: (guardConfig?.maxAccountsPerDevice ?? 1) <= 1 ? 0.4 : 1 }]}
+                testID="guard-dec"
+              >
+                <Minus color={Colors.text} size={16} />
+              </TouchableOpacity>
+              <Text style={[styles.stepValue, { color: Colors.text }]} testID="guard-value">
+                {guardConfig?.maxAccountsPerDevice ?? "—"}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  guardConfig &&
+                  saveGuardConfig({
+                    ...guardConfig,
+                    maxAccountsPerDevice: Math.min(50, guardConfig.maxAccountsPerDevice + 1),
+                  })
+                }
+                disabled={!guardConfig || savingGuard}
+                style={[styles.stepBtn, { backgroundColor: Colors.gray[200] }]}
+                testID="guard-inc"
+              >
+                <Plus color={Colors.text} size={16} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          {savingGuard && (
+            <Text style={[styles.guardHint, { color: Colors.textSecondary }]}>Saving…</Text>
+          )}
+        </View>
+      )}
 
       {ipLookupHealthy === false && (
         <View
@@ -1731,6 +1850,32 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }),
     fontWeight: "700" as const,
   },
+  guardCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  guardTitle: { fontSize: 14, fontWeight: "800" as const },
+  guardHint: { fontSize: 11, lineHeight: 15 },
+  guardRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginTop: 2,
+  },
+  guardLabel: { fontSize: 13, fontWeight: "600" as const },
+  stepper: { flexDirection: "row" as const, alignItems: "center" as const, gap: 10 },
+  stepBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  stepValue: { fontSize: 16, fontWeight: "800" as const, minWidth: 24, textAlign: "center" as const },
   listContent: { padding: 16 },
   userRow: {
     flexDirection: "row" as const,
