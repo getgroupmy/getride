@@ -8,8 +8,10 @@
 //
 // Audience resolution:
 //   * all      — every registered token
-//   * partners — tokens whose profile is in `partners` (auth_user_id)
-//   * users    — tokens whose profile is NOT a partner (user-mode accounts)
+//   * users    — every registered token as well: every account is a user
+//                account, whether or not it also has a partner account
+//   * partners — tokens whose profile is in `partners` (auth_user_id),
+//                whether or not the same account is also used as a user
 //
 // "drivers" is accepted as a legacy alias for "partners".
 //
@@ -97,10 +99,13 @@ Deno.serve(async (req: Request) => {
   const profileId = (payload.profileId ?? "").trim();
 
   // Resolve the audience to a set of profile ids when scoping by role.
+  // "all" and "users" both reach every registered device: every account is a
+  // user account, whether or not it also has a partner account. Only the
+  // "partners" audience narrows to profiles that hold a `partners` row.
   let profileFilter: string[] | null = null;
   if (profileId) {
     profileFilter = [profileId];
-  } else if (audience !== "all") {
+  } else if (audience === "partners") {
     const { data: partners, error: partnersErr } = await supabase
       .from("partners")
       .select("auth_user_id")
@@ -108,35 +113,17 @@ Deno.serve(async (req: Request) => {
     if (partnersErr) {
       return json({ error: `Failed to load partners: ${partnersErr.message}` }, 500);
     }
-    const partnerIds = (partners ?? [])
-      .map((p: { auth_user_id: string | null }) => p.auth_user_id)
-      .filter((v: string | null): v is string => !!v);
+    const partnerIds = Array.from(
+      new Set(
+        (partners ?? [])
+          .map((p: { auth_user_id: string | null }) => p.auth_user_id)
+          .filter((v: string | null): v is string => !!v)
+      )
+    );
 
-    if (audience === "partners") {
-      profileFilter = partnerIds;
-      if (profileFilter.length === 0) {
-        return json({ recipients: 0, sent: 0, failed: 0, tickets: [] });
-      }
-    } else {
-      // users — everyone who is not a partner (user-mode accounts)
-      const { data: rows, error } = await supabase
-        .from("push_tokens")
-        .select("profile_id")
-        .not("profile_id", "is", null);
-      if (error) {
-        return json({ error: `Failed to load tokens: ${error.message}` }, 500);
-      }
-      const partnerSet = new Set(partnerIds);
-      profileFilter = Array.from(
-        new Set(
-          (rows ?? [])
-            .map((r: { profile_id: string | null }) => r.profile_id)
-            .filter((v: string | null): v is string => !!v && !partnerSet.has(v))
-        )
-      );
-      if (profileFilter.length === 0) {
-        return json({ recipients: 0, sent: 0, failed: 0, tickets: [] });
-      }
+    profileFilter = partnerIds;
+    if (profileFilter.length === 0) {
+      return json({ recipients: 0, sent: 0, failed: 0, tickets: [] });
     }
   }
 
