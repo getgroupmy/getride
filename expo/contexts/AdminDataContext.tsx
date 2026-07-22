@@ -285,7 +285,7 @@ const SEED_ENTRIES: Record<string, SettingEntry[]> = {
     }),
   ],
   "site-settings": [
-    seedEntry({ name: "App Name", value: "Teksi" }),
+    seedEntry({ name: "App Name", value: "GET.ride" }),
     seedEntry({ name: "Support Email", value: "support@teksi.app" }),
   ],
   "referral-settings": [

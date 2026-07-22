@@ -255,7 +255,7 @@ export default function RideDetailScreen() {
   const onShare = async () => {
     try {
       await Share.share({
-        message: `Teksi Ride ${bookingNo}\nFrom: ${pickupName}\nTo: ${dropName}\nFare: ${currency.symbol}${Math.ceil(fare)}\nStatus: ${isCompleted ? "Completed" : "Ended early"}`,
+        message: `GET.ride Ride ${bookingNo}\nFrom: ${pickupName}\nTo: ${dropName}\nFare: ${currency.symbol}${Math.ceil(fare)}\nStatus: ${isCompleted ? "Completed" : "Ended early"}`,
       });
     } catch (e) {
       console.log("[ride-detail] share error", e);
@@ -474,7 +474,7 @@ export default function RideDetailScreen() {
   const buildPlainBody = () => {
     const statusLabel = isCompleted ? "Completed" : "Ended early";
     return [
-      `Teksi Receipt`,
+      `GET.ride Receipt`,
       `Booking: ${bookingNo}`,
       `Status: ${statusLabel}`,
       ``,
@@ -510,7 +510,7 @@ export default function RideDetailScreen() {
     try {
       setSendingEmail(true);
       console.log("[ride-detail] sending receipt email to", target);
-      const subject = `Teksi Receipt ${bookingNo}`;
+      const subject = `GET.ride Receipt ${bookingNo}`;
       const body = buildPlainBody();
       const html = buildReceiptHtml();
 
