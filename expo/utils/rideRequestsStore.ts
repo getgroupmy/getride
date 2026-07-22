@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Location from "expo-location";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
+import { formatCurrency, getCurrencyByCode } from "@/constants/currency";
 
 /**
  * Ride requests data layer.
@@ -504,11 +505,14 @@ export async function createRideRequest(
  */
 export async function notifyPartnersOfNewRequest(row: RideRequest): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
-  const fare = row.fare != null ? String(Math.round(row.fare)) : "";
+  const fare =
+    row.fare != null
+      ? formatCurrency(Math.round(row.fare), getCurrencyByCode(row.currency))
+      : "";
   const pickup = row.pickup_name ?? row.pickup_address ?? "Pickup";
   const drop = row.drop_name ?? row.drop_address ?? "Drop-off";
   const title = "New Request";
-  const body = `${row.currency} ${fare} , ${pickup}\n${drop}`;
+  const body = `${fare} , ${pickup}\n${drop}`;
   try {
     const { error } = await supabase.functions.invoke("send-push", {
       body: {
@@ -537,11 +541,14 @@ export async function notifyPartnersOfNewRequest(row: RideRequest): Promise<void
  */
 export async function notifyPartnersOfRaisedFare(row: RideRequest): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
-  const fare = row.fare != null ? String(Math.round(row.fare)) : "";
+  const fare =
+    row.fare != null
+      ? formatCurrency(Math.round(row.fare), getCurrencyByCode(row.currency))
+      : "";
   const pickup = row.pickup_name ?? row.pickup_address ?? "Pickup";
   const drop = row.drop_name ?? row.drop_address ?? "Drop-off";
   const title = "Fare increased";
-  const body = `${row.currency} ${fare} , ${pickup}\n${drop}`;
+  const body = `${fare} , ${pickup}\n${drop}`;
   try {
     const { error } = await supabase.functions.invoke("send-push", {
       body: {

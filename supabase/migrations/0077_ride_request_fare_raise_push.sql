@@ -16,8 +16,49 @@
 -- Still routes through the shared `send_push_webhook` helper from 0067, so it
 -- only needs the Vault `project_url` secret and never blocks the parent write.
 --
+-- Notification bodies now show the currency symbol (e.g. RM) instead of the
+-- ISO 4217 code (MYR), matching the in-app fare display — resolved via the
+-- `public.currency_symbol()` helper below.
+--
 -- Safe to re-run.
 -- ============================================================================
+
+-- Maps an ISO 4217 currency code to its display symbol (mirrors
+-- expo/constants/currency.ts). Falls back to the code itself for unknowns.
+create or replace function public.currency_symbol(p_code text)
+returns text
+language sql
+immutable
+as $$
+  select case upper(coalesce(nullif(p_code, ''), 'MYR'))
+    when 'MYR' then 'RM'
+    when 'SGD' then 'S$'
+    when 'IDR' then 'Rp'
+    when 'THB' then '฿'
+    when 'PHP' then '₱'
+    when 'VND' then '₫'
+    when 'INR' then '₹'
+    when 'USD' then '$'
+    when 'GBP' then '£'
+    when 'EUR' then '€'
+    when 'JPY' then '¥'
+    when 'KRW' then '₩'
+    when 'AUD' then 'A$'
+    when 'AED' then 'AED'
+    when 'SAR' then 'SAR'
+    when 'PKR' then 'Rs'
+    when 'BDT' then '৳'
+    when 'LKR' then 'Rs'
+    when 'MMK' then 'K'
+    when 'KHR' then '៛'
+    when 'LAK' then '₭'
+    when 'BND' then 'B$'
+    when 'CNY' then '¥'
+    when 'TWD' then 'NT$'
+    when 'HKD' then 'HK$'
+    else upper(coalesce(p_code, ''))
+  end;
+$$;
 
 create or replace function public.notify_partners_on_ride_request()
 returns trigger
@@ -46,7 +87,7 @@ begin
 
   v_pickup := coalesce(nullif(new.pickup_name, ''), nullif(new.pickup_address, ''), 'a nearby location');
   v_fare   := case when new.fare is not null
-                   then ' • ' || coalesce(new.currency, '') || ' ' || new.fare::text
+                   then ' • ' || public.currency_symbol(new.currency) || ' ' || new.fare::text
                    else '' end;
   v_title  := case when tg_op = 'UPDATE' then 'Fare increased' else 'New ride request' end;
   v_body   := case when tg_op = 'UPDATE' then 'Higher fare — pickup at ' else 'Pickup at ' end
