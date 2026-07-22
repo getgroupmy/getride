@@ -7,13 +7,18 @@
 -- ============================================================================
 
 -- ---- App settings ---------------------------------------------------------
+-- device_account_guard: sign-up device guard (migrations 0072/0074). Defaults
+-- match device_guard_config() — cumulative cap on, emulator block off. The
+-- server functions default gracefully if this row is absent; seeding it just
+-- makes the baseline explicit and editable from the admin panel on day one.
 insert into public.app_settings (key, value) values
   ('app',            jsonb_build_object('name','Teksi','supportEmail','support@teksi.app')),
   ('theme.light',    jsonb_build_object('primary','#0A84FF','background','#FFFFFF','text','#0B0B0F')),
   ('theme.dark',     jsonb_build_object('primary','#0A84FF','background','#0B0B0F','text','#FFFFFF')),
   ('splash',         jsonb_build_object('background','#0B0B0F','image',null)),
   ('icons',          jsonb_build_object('appIcon',null,'adaptiveIcon',null)),
-  ('defaultLocation',jsonb_build_object('lat',3.139,'lng',101.6869,'label','Kuala Lumpur'))
+  ('defaultLocation',jsonb_build_object('lat',3.139,'lng',101.6869,'label','Kuala Lumpur')),
+  ('device_account_guard', jsonb_build_object('enabled',true,'maxAccountsPerDevice',3,'blockEmulators',false))
 on conflict (key) do nothing;
 
 -- ---- Settings entries -----------------------------------------------------
