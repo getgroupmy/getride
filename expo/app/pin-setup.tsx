@@ -13,6 +13,10 @@ import { ArrowLeft, Check } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
+import {
+  evaluateDeviceRegistration,
+  isRegistrationBlockedError,
+} from "@/utils/deviceGuard";
 
 type Step = "create" | "confirm";
 
@@ -82,8 +86,54 @@ export default function PinSetupScreen() {
         
         setTimeout(async () => {
           if (enteredPin === originalPin) {
+            // Device-based duplicate-account guard. Only for genuine new
+            // sign-ups — the forgot-PIN reset (isResetFlow) is an existing user
+            // re-securing their account and must never be blocked. The check
+            // fails open, so infra problems never trap a legitimate user.
+            if (!isResetFlow) {
+              const guard = await evaluateDeviceRegistration();
+              if (!guard.allowed) {
+                const reason =
+                  guard.blockEmulators && guard.isEmulator
+                    ? "This device isn't supported for creating an account. Please " +
+                      "sign up on a physical phone, or contact support if you think " +
+                      "this is a mistake."
+                    : "This device is already linked to several accounts, so a new " +
+                      "account can't be created here. Please sign in to your existing " +
+                      "account, or contact support if you think this is a mistake.";
+                console.log(
+                  "[pin-setup] registration blocked — prior:",
+                  guard.priorAccounts,
+                  "emulator:",
+                  guard.isEmulator
+                );
+                setError(reason);
+                shake();
+                setConfirmPin(["", "", "", "", "", ""]);
+                inputRefs.current[0]?.focus();
+                return;
+              }
+            }
             console.log("PIN setup successful");
-            await registerUser(phoneNumber || "", enteredPin, firstName || "");
+            try {
+              await registerUser(phoneNumber || "", enteredPin, firstName || "");
+            } catch (e) {
+              // Server-side device guard rejected this sign-up (the client
+              // pre-check above was bypassed or raced). Show the block and stop
+              // — do not sign the user in.
+              if (isRegistrationBlockedError(e)) {
+                setError(
+                  "This device can't be used to create a new account. Please sign " +
+                    "in to your existing account, or contact support if you think " +
+                    "this is a mistake."
+                );
+                shake();
+                setConfirmPin(["", "", "", "", "", ""]);
+                inputRefs.current[0]?.focus();
+                return;
+              }
+              throw e;
+            }
             if (!isResetFlow && isSupabaseAuth && firstName) {
               const saved = await updateProfile({ name: firstName });
               // updateProfile depends on authState.userId, which the supabase

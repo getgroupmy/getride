@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Platform, AppState, type AppStateStatus } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import * as Location from "expo-location";
 import * as Device from "expo-device";
@@ -8,6 +7,8 @@ import * as Network from "expo-network";
 import * as Cellular from "expo-cellular";
 import * as Application from "expo-application";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
+import { normalizeCarrierName, resolveMobileOperator } from "@/utils/mobileOperator";
+import { getOrCreateDeviceId } from "@/utils/deviceId";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
@@ -20,7 +21,6 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const LOCATION_PING_MS = 30_000;
 const LOCATION_DISTANCE_M = 10;
-const DEVICE_ID_STORAGE_KEY = "@session_device_id";
 
 type EventType = "login" | "app_launch" | "app_relaunch";
 
@@ -119,7 +119,17 @@ async function fetchIpLookup(): Promise<IpLookupResult | null> {
       { body: {} }
     );
     if (error) {
-      console.log("[session] ip-lookup error", error.message);
+      // A "not found" / non-2xx here almost always means the `ip-lookup` edge
+      // function isn't deployed to this project. When that happens every
+      // server-resolved column (public_ip, isp_org, ip_city, ip_region,
+      // ip_country) stays null on every session row. Log loudly so the gap is
+      // obvious in device logs. Fix by deploying:
+      //   supabase functions deploy ip-lookup --no-verify-jwt
+      console.warn(
+        "[session] ip-lookup unavailable — public IP / ISP / geo columns will " +
+          "be null. Is the ip-lookup edge function deployed? " +
+          `(${error.message})`
+      );
       return null;
     }
     return data ?? null;
@@ -171,10 +181,13 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     ispProvider = anyState.details.carrier;
   }
 
-  // expo-cellular: carrier name / mobile operator (Android-only)
+  // expo-cellular: on-device carrier name. Unavailable on web, and iOS 16+
+  // returns the fixed placeholder "--" (Apple deprecated carrier access), so
+  // normalizeCarrierName drops both to null. The real operator for cellular
+  // sessions is filled in from the IP-resolved ISP in logSession().
   let mobileOperatorName: string | null = null;
   try {
-    const carrierName = await Cellular.getCarrierNameAsync();
+    const carrierName = normalizeCarrierName(await Cellular.getCarrierNameAsync());
     if (carrierName) {
       mobileOperatorName = carrierName;
       // Prefer cellular carrier as isp_provider when on mobile
@@ -201,52 +214,6 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     iccid,
     mobile_operator_name: mobileOperatorName,
   };
-}
-
-/**
- * Stable per-device identifier, independent of the signed-in user/phone:
- *   - Android: the device's ANDROID_ID (`Application.androidId`).
- *   - iOS    : `identifierForVendor` (`Application.getIosIdForVendorAsync()`).
- *   - other  : a client-generated UUID, persisted in AsyncStorage so it
- *              survives app restarts (but not reinstalls).
- * Resolved once per app run and cached in-memory thereafter.
- */
-let cachedDeviceId: string | null = null;
-
-async function getOrCreateDeviceId(): Promise<string | null> {
-  if (cachedDeviceId) return cachedDeviceId;
-  try {
-    if (Platform.OS === "android") {
-      const id = Application.androidId ?? null;
-      if (id) {
-        cachedDeviceId = id;
-        return id;
-      }
-    } else if (Platform.OS === "ios") {
-      const id = await Application.getIosIdForVendorAsync();
-      if (id) {
-        cachedDeviceId = id;
-        return id;
-      }
-    }
-  } catch (e) {
-    console.log("[session] native device id lookup failed", e);
-  }
-
-  try {
-    const stored = await AsyncStorage.getItem(DEVICE_ID_STORAGE_KEY);
-    if (stored) {
-      cachedDeviceId = stored;
-      return stored;
-    }
-    const generated = uuidv4();
-    await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, generated);
-    cachedDeviceId = generated;
-    return generated;
-  } catch (e) {
-    console.log("[session] device id persistence failed", e);
-    return null;
-  }
 }
 
 export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
@@ -294,6 +261,15 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
             ip_city: ipInfo?.ip_city ?? null,
             ip_region: ipInfo?.ip_region ?? null,
             ip_country: ipInfo?.ip_country ?? null,
+            // The on-device carrier name is null on web and a "--" placeholder
+            // on iOS 16+; on a cellular connection the public-IP ISP is the
+            // actual mobile operator, so fall back to it (see mobileOperator.ts).
+            mobile_operator_name: resolveMobileOperator({
+              carrierName: network.mobile_operator_name,
+              connectionType: network.connection_type,
+              ispProvider: ipInfo?.isp_provider ?? network.isp_provider,
+              ispOrg: ipInfo?.isp_org,
+            }),
             raw: {
               platform: Platform.OS,
               platformVersion: Platform.Version,

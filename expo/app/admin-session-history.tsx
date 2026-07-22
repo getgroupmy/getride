@@ -12,6 +12,7 @@ import {
   Alert,
   Platform,
   InteractionManager,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
@@ -32,12 +33,23 @@ import {
   Map as MapIcon,
   Flame,
   Route as RouteIcon,
+  AlertTriangle,
+  Users,
+  ShieldCheck,
+  Minus,
+  Plus,
 } from "lucide-react-native";
 import MapView, { Marker, Polyline, Circle, PROVIDER_DEFAULT } from "react-native-maps";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
+import { computeDeviceLinks } from "@/utils/deviceLinkage";
+import {
+  getDeviceGuardConfig,
+  setDeviceGuardConfig,
+  type DeviceGuardConfig,
+} from "@/utils/deviceGuard";
 
 interface SessionRow {
   id: string;
@@ -206,6 +218,14 @@ export default function AdminSessionHistoryScreen() {
   const [trailRangeTo, setTrailRangeTo] = useState<string>("");
   const [trailLoading, setTrailLoading] = useState<boolean>(false);
   const [trailLocations, setTrailLocations] = useState<LocationRow[]>([]);
+  // null = not checked yet, true = reachable, false = down/undeployed.
+  const [ipLookupHealthy, setIpLookupHealthy] = useState<boolean | null>(null);
+  // When on, only accounts flagged for sharing a device are listed.
+  const [flaggedOnly, setFlaggedOnly] = useState<boolean>(false);
+  // Admin-configurable duplicate-account guard.
+  const [showGuardConfig, setShowGuardConfig] = useState<boolean>(false);
+  const [guardConfig, setGuardConfig] = useState<DeviceGuardConfig | null>(null);
+  const [savingGuard, setSavingGuard] = useState<boolean>(false);
 
   useEffect(() => {
     if (!trailVisible) {
@@ -260,9 +280,49 @@ export default function AdminSessionHistoryScreen() {
     }
   }, []);
 
+  // Health probe for the `ip-lookup` edge function. The public IP / ISP / geo
+  // columns (public_ip, isp_org, ip_city, ip_region, ip_country) are ONLY ever
+  // populated by that function; if it isn't deployed those columns stay null on
+  // every session forever. We invoke it with a well-known public IP (Google DNS)
+  // so a private-network caller can't produce a false negative: a healthy
+  // deployment always resolves 8.8.8.8 to a country.
+  const checkIpLookupHealth = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const { data, error } = await supabase.functions.invoke<{
+        ip_country: string | null;
+      }>("ip-lookup", { body: { ip: "8.8.8.8" } });
+      setIpLookupHealthy(!error && !!data && !!data.ip_country);
+    } catch {
+      setIpLookupHealthy(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadSessions();
-  }, [loadSessions]);
+    void checkIpLookupHealth();
+    void getDeviceGuardConfig().then(setGuardConfig);
+  }, [loadSessions, checkIpLookupHealth]);
+
+  const saveGuardConfig = useCallback(
+    async (next: DeviceGuardConfig) => {
+      const prev = guardConfig;
+      setGuardConfig(next); // optimistic
+      setSavingGuard(true);
+      const res = await setDeviceGuardConfig(next);
+      setSavingGuard(false);
+      if (!res.ok) {
+        setGuardConfig(prev); // revert
+        Alert.alert(
+          "Couldn't save",
+          res.error === "not_authorized"
+            ? "You don't have permission to change this setting."
+            : res.error ?? "Please try again."
+        );
+      }
+    },
+    [guardConfig]
+  );
 
   const latestPingByKey = useMemo(() => {
     const map = new Map<string, LocationRow>();
@@ -318,10 +378,47 @@ export default function AdminSessionHistoryScreen() {
     );
   }, [sessions, latestPingByKey]);
 
+  // Fraud / duplicate-account signal: which accounts share a physical device
+  // (same device_id) with another account. Presence in the map == flagged.
+  const deviceLinks = useMemo(
+    () => computeDeviceLinks(sessions),
+    [sessions]
+  );
+
+  // Accounts that have at least one session from a non-physical device
+  // (emulator/simulator) — a fake-account signal.
+  const emulatorAccounts = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of sessions) {
+      if (s.is_physical_device === false) {
+        const key = s.user_id ?? (s.phone ? `phone:${s.phone}` : null);
+        if (key) set.add(key);
+      }
+    }
+    return set;
+  }, [sessions]);
+
+  // Resolve an account key (user id or "phone:+…") back to a human label.
+  const accountLabel = useCallback(
+    (key: string): string => {
+      const u = userSummaries.find((x) => x.key === key);
+      if (u) {
+        if (u.phone) return u.phone;
+        if (u.user_id) return `uid ${u.user_id.slice(0, 8)}…`;
+      }
+      return key.startsWith("phone:") ? key.slice("phone:".length) : key;
+    },
+    [userSummaries]
+  );
+
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return userSummaries;
-    return userSummaries.filter((u) => {
+    let list = userSummaries;
+    if (flaggedOnly) {
+      list = list.filter((u) => deviceLinks.has(u.key));
+    }
+    if (!q) return list;
+    return list.filter((u) => {
       return (
         (u.phone ?? "").toLowerCase().includes(q) ||
         (u.user_id ?? "").toLowerCase().includes(q) ||
@@ -329,7 +426,7 @@ export default function AdminSessionHistoryScreen() {
         (u.lastOs ?? "").toLowerCase().includes(q)
       );
     });
-  }, [query, userSummaries]);
+  }, [query, userSummaries, flaggedOnly, deviceLinks]);
 
   const openDetail = useCallback(
     async (u: UserSummary) => {
@@ -384,7 +481,8 @@ export default function AdminSessionHistoryScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     void loadSessions();
-  }, [loadSessions]);
+    void checkIpLookupHealth();
+  }, [loadSessions, checkIpLookupHealth]);
 
   const dateRange = useMemo(() => {
     const from = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
@@ -679,6 +777,27 @@ export default function AdminSessionHistoryScreen() {
               </Text>
             </View>
           ) : null}
+          {(() => {
+            const link = deviceLinks.get(item.key);
+            if (!link) return null;
+            const n = link.linkedAccounts.length;
+            return (
+              <View style={[styles.dupBadge, { backgroundColor: Colors.warning + "22" }]}>
+                <Users color={Colors.warning} size={11} />
+                <Text style={[styles.dupBadgeText, { color: Colors.warning }]} numberOfLines={1}>
+                  Shares device with {n} other account{n === 1 ? "" : "s"}
+                </Text>
+              </View>
+            );
+          })()}
+          {emulatorAccounts.has(item.key) ? (
+            <View style={[styles.dupBadge, { backgroundColor: Colors.error + "22" }]}>
+              <AlertTriangle color={Colors.error} size={11} />
+              <Text style={[styles.dupBadgeText, { color: Colors.error }]} numberOfLines={1}>
+                Emulator / simulator
+              </Text>
+            </View>
+          ) : null}
         </View>
         {item.lastLat != null && item.lastLng != null ? (
           <View
@@ -899,6 +1018,32 @@ export default function AdminSessionHistoryScreen() {
         </View>
       ) : null}
 
+      {selected && deviceLinks.get(selected.key) ? (
+        <View
+          style={[
+            styles.dupCard,
+            { backgroundColor: Colors.warning + "14", borderColor: Colors.warning + "55" },
+          ]}
+          testID="dup-detail-card"
+        >
+          <View style={styles.rowGap6}>
+            <Users color={Colors.warning} size={16} />
+            <Text style={[styles.dupCardTitle, { color: Colors.text }]}>
+              Possible duplicate account
+            </Text>
+          </View>
+          <Text style={[styles.dupCardBody, { color: Colors.textSecondary }]}>
+            Shares {deviceLinks.get(selected.key)!.sharedDevices.length} device
+            {deviceLinks.get(selected.key)!.sharedDevices.length === 1 ? "" : "s"} with:
+          </Text>
+          {deviceLinks.get(selected.key)!.linkedAccounts.map((k) => (
+            <Text key={k} style={[styles.dupCardAccount, { color: Colors.text }]} numberOfLines={1}>
+              • {accountLabel(k)}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+
       {(fromDate || toDate) && (
         <View
           style={[
@@ -982,6 +1127,28 @@ export default function AdminSessionHistoryScreen() {
             {userSummaries.length} user{userSummaries.length === 1 ? "" : "s"}
           </Text>
         </View>
+        {deviceLinks.size > 0 && (
+          <TouchableOpacity
+            onPress={() => setFlaggedOnly((v) => !v)}
+            style={[
+              styles.iconBtn,
+              { backgroundColor: flaggedOnly ? Colors.warning + "26" : Colors.gray[100] },
+            ]}
+            testID="toggle-flagged"
+          >
+            <Users color={flaggedOnly ? Colors.warning : Colors.text} size={20} />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          onPress={() => setShowGuardConfig((v) => !v)}
+          style={[
+            styles.iconBtn,
+            { backgroundColor: showGuardConfig ? Colors.accent + "20" : Colors.gray[100] },
+          ]}
+          testID="toggle-guard-config"
+        >
+          <ShieldCheck color={showGuardConfig ? Colors.accent : Colors.text} size={20} />
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setShowDateFilter((v) => !v)}
           style={[
@@ -1081,6 +1248,148 @@ export default function AdminSessionHistoryScreen() {
         />
       </View>
 
+      {showGuardConfig && (
+        <View
+          style={[
+            styles.guardCard,
+            { backgroundColor: Colors.gray[100], borderColor: Colors.border },
+          ]}
+          testID="guard-config"
+        >
+          <View style={styles.rowGap6}>
+            <ShieldCheck color={Colors.accent} size={16} />
+            <Text style={[styles.guardTitle, { color: Colors.text }]}>
+              Duplicate-account guard
+            </Text>
+          </View>
+          <Text style={[styles.guardHint, { color: Colors.textSecondary }]}>
+            Blocks a new sign-up when its device already backs this many other
+            accounts. Enforced at registration.
+          </Text>
+
+          <View style={styles.guardRow}>
+            <Text style={[styles.guardLabel, { color: Colors.text }]}>Enabled</Text>
+            <Switch
+              value={guardConfig?.enabled ?? true}
+              disabled={!guardConfig || savingGuard}
+              onValueChange={(v) => {
+                if (guardConfig) void saveGuardConfig({ ...guardConfig, enabled: v });
+              }}
+              testID="guard-enabled"
+            />
+          </View>
+
+          <View style={styles.guardRow}>
+            <Text style={[styles.guardLabel, { color: Colors.text }]}>
+              Max accounts / device
+            </Text>
+            <View style={styles.stepper}>
+              <TouchableOpacity
+                onPress={() =>
+                  guardConfig &&
+                  saveGuardConfig({
+                    ...guardConfig,
+                    maxAccountsPerDevice: Math.max(1, guardConfig.maxAccountsPerDevice - 1),
+                  })
+                }
+                disabled={!guardConfig || savingGuard || (guardConfig?.maxAccountsPerDevice ?? 1) <= 1}
+                style={[styles.stepBtn, { backgroundColor: Colors.gray[200], opacity: (guardConfig?.maxAccountsPerDevice ?? 1) <= 1 ? 0.4 : 1 }]}
+                testID="guard-dec"
+              >
+                <Minus color={Colors.text} size={16} />
+              </TouchableOpacity>
+              <Text style={[styles.stepValue, { color: Colors.text }]} testID="guard-value">
+                {guardConfig?.maxAccountsPerDevice ?? "—"}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  guardConfig &&
+                  saveGuardConfig({
+                    ...guardConfig,
+                    maxAccountsPerDevice: Math.min(50, guardConfig.maxAccountsPerDevice + 1),
+                  })
+                }
+                disabled={!guardConfig || savingGuard}
+                style={[styles.stepBtn, { backgroundColor: Colors.gray[200] }]}
+                testID="guard-inc"
+              >
+                <Plus color={Colors.text} size={16} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.guardRow}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={[styles.guardLabel, { color: Colors.text }]}>
+                Block emulators
+              </Text>
+              <Text style={[styles.guardHint, { color: Colors.textSecondary }]}>
+                Refuse sign-ups from simulators/emulators. Best-effort — a
+                modified client can spoof this.
+              </Text>
+            </View>
+            <Switch
+              value={guardConfig?.blockEmulators ?? false}
+              disabled={!guardConfig || savingGuard}
+              onValueChange={(v) => {
+                if (guardConfig) void saveGuardConfig({ ...guardConfig, blockEmulators: v });
+              }}
+              testID="guard-block-emulators"
+            />
+          </View>
+          {savingGuard && (
+            <Text style={[styles.guardHint, { color: Colors.textSecondary }]}>Saving…</Text>
+          )}
+        </View>
+      )}
+
+      {ipLookupHealthy === false && (
+        <View
+          style={[
+            styles.warningBanner,
+            { backgroundColor: Colors.warning + "18", borderColor: Colors.warning + "55" },
+          ]}
+          testID="ip-lookup-warning"
+        >
+          <AlertTriangle color={Colors.warning} size={16} />
+          <Text style={[styles.warningText, { color: Colors.text }]}>
+            IP geolocation is unavailable — the{" "}
+            <Text style={styles.warningMono}>ip-lookup</Text> edge function is not
+            reachable, so Public IP, ISP Org and IP Location won&apos;t be recorded
+            on new sessions. Deploy it with{" "}
+            <Text style={styles.warningMono}>
+              supabase functions deploy ip-lookup --no-verify-jwt
+            </Text>
+            .
+          </Text>
+        </View>
+      )}
+
+      {deviceLinks.size > 0 && (
+        <TouchableOpacity
+          onPress={() => setFlaggedOnly((v) => !v)}
+          activeOpacity={0.7}
+          style={[
+            styles.warningBanner,
+            {
+              backgroundColor: Colors.warning + (flaggedOnly ? "28" : "18"),
+              borderColor: Colors.warning + "55",
+            },
+          ]}
+          testID="shared-device-banner"
+        >
+          <Users color={Colors.warning} size={16} />
+          <Text style={[styles.warningText, { color: Colors.text }]}>
+            {deviceLinks.size} account{deviceLinks.size === 1 ? "" : "s"} sign in from a
+            device also used by another account — possible duplicate / multi-account
+            activity.{" "}
+            <Text style={{ fontWeight: "800", color: Colors.warning }}>
+              {flaggedOnly ? "Showing flagged only — tap to show all." : "Tap to show only these."}
+            </Text>
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={Colors.accent} />
@@ -1093,7 +1402,11 @@ export default function AdminSessionHistoryScreen() {
         <View style={styles.center}>
           <UserIcon color={Colors.textSecondary} size={28} />
           <Text style={[styles.muted, { color: Colors.textSecondary, marginTop: 8 }]}>
-            No session data yet. Sign in on a device to populate the tables.
+            {flaggedOnly
+              ? "No flagged accounts match. Tap the shared-device filter again to show all."
+              : query.trim()
+              ? "No users match your search."
+              : "No session data yet. Sign in on a device to populate the tables."}
           </Text>
         </View>
       ) : (
@@ -1563,6 +1876,47 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   searchInput: { flex: 1, fontSize: 14, paddingVertical: 0 },
+  warningBanner: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  warningText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "600" as const },
+  warningMono: {
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }),
+    fontWeight: "700" as const,
+  },
+  guardCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  guardTitle: { fontSize: 14, fontWeight: "800" as const },
+  guardHint: { fontSize: 11, lineHeight: 15 },
+  guardRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginTop: 2,
+  },
+  guardLabel: { fontSize: 13, fontWeight: "600" as const },
+  stepper: { flexDirection: "row" as const, alignItems: "center" as const, gap: 10 },
+  stepBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  stepValue: { fontSize: 16, fontWeight: "800" as const, minWidth: 24, textAlign: "center" as const },
   listContent: { padding: 16 },
   userRow: {
     flexDirection: "row" as const,
@@ -1585,6 +1939,27 @@ const styles = StyleSheet.create({
   userMeta: { fontSize: 11, marginTop: 2 },
   ispRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 4, marginTop: 3 },
   ispText: { fontSize: 11, fontWeight: "600" as const, flexShrink: 1 },
+  dupBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    alignSelf: "flex-start" as const,
+    gap: 4,
+    marginTop: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  dupBadgeText: { fontSize: 10, fontWeight: "800" as const, flexShrink: 1 },
+  dupCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 16,
+    gap: 6,
+  },
+  dupCardTitle: { fontSize: 14, fontWeight: "800" as const },
+  dupCardBody: { fontSize: 12, fontWeight: "600" as const },
+  dupCardAccount: { fontSize: 13, fontWeight: "700" as const },
   center: { flex: 1, justifyContent: "center" as const, alignItems: "center" as const, padding: 24 },
   muted: { fontSize: 13, textAlign: "center" as const },
   sectionTitle: { fontSize: 14, fontWeight: "800" as const, marginBottom: 10 },

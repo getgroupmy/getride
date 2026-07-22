@@ -464,7 +464,11 @@ create trigger trg_profiles_hash_pin
   for each row execute function public.hash_profile_pin();
 
 -- Client write path for setting/changing the PIN (authenticated users only).
-create or replace function public.set_login_pin(p_pin text)
+-- set_login_pin also enforces the device-based duplicate-account guard for a
+-- brand-new account (no prior pin_hash + freshly created profile). See the
+-- device_guard_* functions below and migration 0072. PIN changes / forgot-PIN
+-- resets operate on existing profiles and are never blocked.
+create or replace function public.set_login_pin(p_pin text, p_device_id text default null)
 returns boolean
 language plpgsql
 security definer
@@ -472,6 +476,14 @@ set search_path = public
 as $$
 declare
   v_uid uuid := auth.uid();
+  v_pin_hash text;
+  v_created timestamptz;
+  v_is_new boolean;
+  v_enabled boolean;
+  v_max int;
+  v_block_emu boolean;
+  v_prior int;
+  v_emu boolean;
 begin
   if v_uid is null then
     raise exception 'set_login_pin requires an authenticated session';
@@ -479,6 +491,39 @@ begin
   if p_pin !~ '^\d{6}$' then
     raise exception 'PIN must be exactly 6 digits';
   end if;
+
+  select pin_hash, created_at into v_pin_hash, v_created
+  from public.profiles where id = v_uid;
+  v_is_new := (v_pin_hash is null)
+    and (v_created is null or v_created > now() - interval '1 hour');
+
+  if v_is_new then
+    select c.enabled, c.max_accounts, c.block_emulators
+      into v_enabled, v_max, v_block_emu
+    from public.device_guard_config() c;
+
+    if v_enabled and p_device_id is not null and p_device_id <> '' then
+      select count(distinct user_id)::int into v_prior
+      from public.user_sessions
+      where device_id = p_device_id
+        and user_id is not null
+        and user_id <> v_uid;
+      if v_prior >= v_max then
+        raise exception 'DEVICE_LIMIT:%/%', v_prior, v_max;
+      end if;
+    end if;
+
+    if v_enabled and v_block_emu then
+      select coalesce(bool_or(is_physical_device is false), false) into v_emu
+      from public.user_sessions
+      where (p_device_id is not null and p_device_id <> '' and device_id = p_device_id)
+         or user_id = v_uid;
+      if v_emu then
+        raise exception 'EMULATOR_BLOCKED';
+      end if;
+    end if;
+  end if;
+
   update public.profiles
   set pin_hash            = crypt(p_pin, gen_salt('bf', 10)),
       pin                 = null,
@@ -500,8 +545,8 @@ begin
 end;
 $$;
 
-revoke all on function public.set_login_pin(text) from public;
-grant execute on function public.set_login_pin(text) to authenticated;
+revoke all on function public.set_login_pin(text, text) from public;
+grant execute on function public.set_login_pin(text, text) to authenticated;
 
 -- Forgot-PIN reset for the signed-in user.
 create or replace function public.clear_login_pin()
@@ -651,6 +696,142 @@ $$;
 
 revoke all on function public.profile_phone_lookup(text) from public;
 grant execute on function public.profile_phone_lookup(text) to anon, authenticated;
+
+-- Device-based duplicate-account guard for the sign-up flow (migration 0071).
+-- Returns how many DISTINCT accounts other than the caller have signed in from
+-- a given device_id — a bare count, never PII — so the client can block bulk
+-- multi-accounting on one physical device. SECURITY DEFINER because the 0069
+-- RLS lockdown otherwise limits a client to its own user_sessions rows.
+create or replace function public.device_prior_account_count(p_device_id text)
+returns integer
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select count(distinct user_id)::int
+  from public.user_sessions
+  where p_device_id is not null
+    and p_device_id <> ''
+    and device_id = p_device_id
+    and user_id is not null
+    and user_id <> coalesce(auth.uid(), '00000000-0000-0000-0000-000000000000'::uuid);
+$$;
+
+revoke all on function public.device_prior_account_count(text) from public;
+grant execute on function public.device_prior_account_count(text) to anon, authenticated;
+
+-- Device-guard config (migration 0072), stored in app_settings key
+-- 'device_account_guard' = { enabled, maxAccountsPerDevice }. Effective values
+-- with safe defaults when the row is absent.
+-- Effective config: enabled + cumulative account cap + opt-in emulator block
+-- (migration 0074), with safe defaults when the app_settings row is absent.
+create or replace function public.device_guard_config()
+returns table (enabled boolean, max_accounts int, block_emulators boolean)
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v jsonb;
+begin
+  select value into v from public.app_settings where key = 'device_account_guard';
+  enabled := coalesce((v->>'enabled')::boolean, true);
+  max_accounts := greatest(1, coalesce((v->>'maxAccountsPerDevice')::int, 3));
+  block_emulators := coalesce((v->>'blockEmulators')::boolean, false);
+  return next;
+end;
+$$;
+
+revoke all on function public.device_guard_config() from public;
+grant execute on function public.device_guard_config() to anon, authenticated;
+
+-- Client pre-check for the sign-up flow: whether a new registration is allowed
+-- on this device plus the signals behind the decision.
+create or replace function public.device_registration_status(p_device_id text)
+returns table (
+  allowed boolean,
+  prior_accounts int,
+  max_accounts int,
+  enabled boolean,
+  is_emulator boolean,
+  block_emulators boolean
+)
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  v_enabled boolean;
+  v_max int;
+  v_block_emu boolean;
+  v_prior int := 0;
+  v_emu boolean := false;
+  v_uid uuid := auth.uid();
+begin
+  select c.enabled, c.max_accounts, c.block_emulators
+    into v_enabled, v_max, v_block_emu
+  from public.device_guard_config() c;
+  if p_device_id is not null and p_device_id <> '' then
+    select count(distinct user_id)::int into v_prior
+    from public.user_sessions
+    where device_id = p_device_id
+      and user_id is not null
+      and user_id <> coalesce(v_uid, '00000000-0000-0000-0000-000000000000'::uuid);
+  end if;
+  select coalesce(bool_or(is_physical_device is false), false) into v_emu
+  from public.user_sessions
+  where (p_device_id is not null and p_device_id <> '' and device_id = p_device_id)
+     or (v_uid is not null and user_id = v_uid);
+  allowed := (not v_enabled)
+    or ((v_prior < v_max) and not (v_block_emu and v_emu));
+  prior_accounts := v_prior;
+  max_accounts := v_max;
+  enabled := v_enabled;
+  is_emulator := v_emu;
+  block_emulators := v_block_emu;
+  return next;
+end;
+$$;
+
+revoke all on function public.device_registration_status(text) from public;
+grant execute on function public.device_registration_status(text) to anon, authenticated;
+
+-- Admin-only writer for the device-guard knobs.
+create or replace function public.device_guard_set_config(
+  p_enabled boolean,
+  p_max_accounts int,
+  p_block_emulators boolean default false
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.caller_is_admin() then
+    raise exception 'not_authorized';
+  end if;
+  insert into public.app_settings (key, value, updated_at)
+  values (
+    'device_account_guard',
+    jsonb_build_object(
+      'enabled', coalesce(p_enabled, true),
+      'maxAccountsPerDevice', greatest(1, coalesce(p_max_accounts, 3)),
+      'blockEmulators', coalesce(p_block_emulators, false)
+    ),
+    now()
+  )
+  on conflict (key) do update
+    set value = excluded.value, updated_at = now();
+  return true;
+end;
+$$;
+
+revoke all on function public.device_guard_set_config(boolean, int, boolean) from public;
+grant execute on function public.device_guard_set_config(boolean, int, boolean) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Row-Level Security
@@ -3192,6 +3373,36 @@ begin
   end loop;
 end;
 $telemetry$;
+
+-- device_attestations — Play Integrity / App Attest verdicts (migration 0073).
+-- Admin-read only; written by the attest-device edge function via the service
+-- role (which bypasses RLS). See docs/device-attestation.md.
+create table if not exists public.device_attestations (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid references auth.users(id) on delete set null,
+  device_id     text,
+  platform      text not null check (platform in ('android', 'ios')),
+  attest_key_id text,
+  passed        boolean not null default false,
+  verdict       jsonb,
+  created_at    timestamptz not null default now()
+);
+create index if not exists device_attestations_device_idx on public.device_attestations (device_id);
+create index if not exists device_attestations_key_idx on public.device_attestations (attest_key_id);
+create index if not exists device_attestations_user_idx on public.device_attestations (user_id);
+alter table public.device_attestations enable row level security;
+do $attest$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'device_attestations'
+      and policyname = 'device_attestations admin read'
+  ) then
+    create policy "device_attestations admin read" on public.device_attestations
+      for select using (public.caller_is_admin());
+  end if;
+end;
+$attest$;
 
 -- voice_protection_recordings — in-ride audio metadata. The recording device
 -- inserts/updates its own rows (upload flags); admins request uploads and
