@@ -82,6 +82,7 @@ interface SessionRow {
   mobile_operator_name: string | null;
   mobile_country_code: string | null;
   mobile_network_code: string | null;
+  cellular_generation: string | null;
   app_version: string | null;
   app_build_version: string | null;
   app_id: string | null;
@@ -632,6 +633,7 @@ export default function AdminSessionHistoryScreen() {
       "mobile_operator_name",
       "mobile_country_code",
       "mobile_network_code",
+      "cellular_generation",
       "app_version",
       "app_build_version",
       "app_id",
@@ -673,6 +675,7 @@ export default function AdminSessionHistoryScreen() {
             "mobile_operator_name",
             "mobile_country_code",
             "mobile_network_code",
+            "cellular_generation",
             "app_version",
             "app_build_version",
             "id",
@@ -930,8 +933,14 @@ export default function AdminSessionHistoryScreen() {
           Colors={Colors}
         />
         <KV
+          icon={<Wifi color={Colors.textSecondary} size={14} />}
+          label="SIM Type"
+          value={s.cellular_generation ?? "—"}
+          Colors={Colors}
+        />
+        <KV
           icon={<Hash color={Colors.textSecondary} size={14} />}
-          label="ICCID"
+          label="SIM Serial (ICCID)"
           value={s.iccid ?? "—"}
           Colors={Colors}
         />

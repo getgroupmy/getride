@@ -60,6 +60,30 @@ function deviceTypeLabel(t: Device.DeviceType | null | undefined): string | null
   }
 }
 
+/**
+ * The cellular radio generation the SIM is currently connected on ("2G" / "3G"
+ * / "4G" / "5G"). Returns null for UNKNOWN and for non-cellular sessions (WiFi,
+ * web) so only a genuine generation is ever stored. This is the closest thing
+ * to a "SIM type" the platform exposes — the physical/eSIM distinction and the
+ * SIM serial (ICCID) are not readable by a normal app.
+ */
+function cellularGenerationLabel(
+  g: Cellular.CellularGeneration | null | undefined
+): string | null {
+  switch (g) {
+    case Cellular.CellularGeneration.CELLULAR_2G:
+      return "2G";
+    case Cellular.CellularGeneration.CELLULAR_3G:
+      return "3G";
+    case Cellular.CellularGeneration.CELLULAR_4G:
+      return "4G";
+    case Cellular.CellularGeneration.CELLULAR_5G:
+      return "5G";
+    default:
+      return null;
+  }
+}
+
 async function captureDeviceSnapshot(): Promise<DeviceSnapshot> {
   let deviceType: Device.DeviceType | null = null;
   try {
@@ -100,6 +124,7 @@ interface NetworkSnapshot {
   mobile_operator_name: string | null;
   mobile_country_code: string | null;
   mobile_network_code: string | null;
+  cellular_generation: string | null;
 }
 
 /**
@@ -145,6 +170,16 @@ async function fetchIpLookup(): Promise<IpLookupResult | null> {
   }
 }
 
+/**
+ * Extracts the offending column name from a PostgREST "missing column" error
+ * (e.g. the live DB hasn't had the latest migration applied yet). Returns null
+ * when the error is unrelated to a missing column.
+ */
+function missingColumnFromError(message: string): string | null {
+  const match = /Could not find the '([^']+)' column/.exec(message);
+  return match ? match[1] : null;
+}
+
 function networkTypeLabel(t: Network.NetworkStateType | undefined): string | null {
   if (!t) return null;
   // The enum values are already strings like "WIFI", "CELLULAR", etc.
@@ -161,7 +196,9 @@ function connectionTypeLabel(t: Network.NetworkStateType | undefined): string | 
   return "other";
 }
 
-async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
+async function captureNetworkSnapshot(
+  opts: { mayRequestPermissions?: boolean } = {}
+): Promise<NetworkSnapshot> {
   let state: Network.NetworkState | null = null;
   let ip: string | null = null;
   try {
@@ -226,8 +263,36 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     console.log("[session] getMobileNetworkCodeAsync failed", e);
   }
 
-  // ICCID — best-effort. expo-cellular does not expose it directly;
-  // Android-only possible via native module. Leave null for now.
+  // Cellular generation ("2G" / "3G" / "4G" / "5G") — the SIM's current radio
+  // type. On Android this reads getNetworkType(), which needs READ_PHONE_STATE;
+  // iOS needs no permission. Null on WiFi/web, when permission is denied, or
+  // when the OS can't determine it. We only *prompt* for the permission when a
+  // user is signed in (opts.mayRequestPermissions) so the pre-login splash
+  // doesn't fire a phone-state dialog; otherwise we read it silently if already
+  // granted.
+  let cellularGeneration: string | null = null;
+  try {
+    let hasCellularPermission = true;
+    if (Platform.OS === "android") {
+      let perm = await Cellular.getPermissionsAsync();
+      if (!perm.granted && perm.canAskAgain && opts.mayRequestPermissions) {
+        perm = await Cellular.requestPermissionsAsync();
+      }
+      hasCellularPermission = perm.granted;
+    }
+    if (hasCellularPermission) {
+      cellularGeneration = cellularGenerationLabel(
+        await Cellular.getCellularGenerationAsync()
+      );
+    }
+  } catch (e) {
+    console.log("[session] getCellularGenerationAsync failed", e);
+  }
+
+  // ICCID — the SIM card serial number. Intentionally left null: the OS blocks
+  // it (iOS never exposed it; Android 10+ gates getSimSerialNumber() behind the
+  // system-only READ_PRIVILEGED_PHONE_STATE permission), and expo-cellular has
+  // no API for it, so a normal app can never read a real value.
   let iccid: string | null = null;
 
   return {
@@ -242,6 +307,7 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     mobile_operator_name: mobileOperatorName,
     mobile_country_code: mobileCountryCode,
     mobile_network_code: mobileNetworkCode,
+    cellular_generation: cellularGeneration,
   };
 }
 
@@ -269,12 +335,14 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
 
           const [device, network, ipInfo, deviceId] = await Promise.all([
             captureDeviceSnapshot(),
-            captureNetworkSnapshot(),
+            // Only allow the Android READ_PHONE_STATE prompt once a user is
+            // signed in — never at the cold-launch splash before onboarding.
+            captureNetworkSnapshot({ mayRequestPermissions: !!userId }),
             fetchIpLookup(),
             getOrCreateDeviceId(),
           ]);
 
-          const row = {
+          const row: Record<string, unknown> = {
             id: sid,
             user_id: userId,
             phone,
@@ -312,9 +380,25 @@ export const [SessionTrackingProvider, useSessionTracking] = createContextHook(
             model: device.device_model_name,
             net: network.network_type,
           });
-          const { error } = await supabase.from("user_sessions").insert(row);
-          if (error) {
+          // Retry without any column the live DB doesn't have yet (an
+          // unapplied migration — e.g. 0075's mobile_country_code /
+          // mobile_network_code). PostgREST validates the whole insert against
+          // its schema cache, so a single unknown column otherwise rejects the
+          // ENTIRE row and the session is silently lost. Every other writer in
+          // the app degrades this way; the session tracker now does too.
+          for (let attempt = 0; attempt < 8; attempt++) {
+            const { error } = await supabase.from("user_sessions").insert(row);
+            if (!error) break;
+            const missing = missingColumnFromError(error.message);
+            if (missing && missing in row && missing !== "id") {
+              console.log(
+                `[session] column '${missing}' missing in DB, retrying without it`
+              );
+              delete row[missing];
+              continue;
+            }
             console.log("[session] insert error", error.message);
+            break;
           }
         } catch (e) {
           console.log("[session] logSession threw", e);
