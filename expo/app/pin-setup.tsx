@@ -13,7 +13,10 @@ import { ArrowLeft, Check } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
-import { evaluateDeviceRegistration, isDeviceLimitError } from "@/utils/deviceGuard";
+import {
+  evaluateDeviceRegistration,
+  isRegistrationBlockedError,
+} from "@/utils/deviceGuard";
 
 type Step = "create" | "confirm";
 
@@ -90,16 +93,21 @@ export default function PinSetupScreen() {
             if (!isResetFlow) {
               const guard = await evaluateDeviceRegistration();
               if (!guard.allowed) {
+                const reason =
+                  guard.blockEmulators && guard.isEmulator
+                    ? "This device isn't supported for creating an account. Please " +
+                      "sign up on a physical phone, or contact support if you think " +
+                      "this is a mistake."
+                    : "This device is already linked to several accounts, so a new " +
+                      "account can't be created here. Please sign in to your existing " +
+                      "account, or contact support if you think this is a mistake.";
                 console.log(
-                  "[pin-setup] registration blocked — device linked to",
+                  "[pin-setup] registration blocked — prior:",
                   guard.priorAccounts,
-                  "accounts"
+                  "emulator:",
+                  guard.isEmulator
                 );
-                setError(
-                  "This device is already linked to several accounts, so a new " +
-                    "account can't be created here. Please sign in to your existing " +
-                    "account, or contact support if you think this is a mistake."
-                );
+                setError(reason);
                 shake();
                 setConfirmPin(["", "", "", "", "", ""]);
                 inputRefs.current[0]?.focus();
@@ -110,14 +118,14 @@ export default function PinSetupScreen() {
             try {
               await registerUser(phoneNumber || "", enteredPin, firstName || "");
             } catch (e) {
-              // Server-side duplicate-account guard rejected this sign-up (the
-              // client pre-check above was bypassed or raced). Show the block
-              // and stop — do not sign the user in.
-              if (isDeviceLimitError(e)) {
+              // Server-side device guard rejected this sign-up (the client
+              // pre-check above was bypassed or raced). Show the block and stop
+              // — do not sign the user in.
+              if (isRegistrationBlockedError(e)) {
                 setError(
-                  "This device is already linked to too many accounts, so a new " +
-                    "account can't be created here. Please sign in to your existing " +
-                    "account, or contact support if you think this is a mistake."
+                  "This device can't be used to create a new account. Please sign " +
+                    "in to your existing account, or contact support if you think " +
+                    "this is a mistake."
                 );
                 shake();
                 setConfirmPin(["", "", "", "", "", ""]);

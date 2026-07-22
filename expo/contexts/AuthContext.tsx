@@ -10,7 +10,7 @@ import {
 } from "@/utils/supabase";
 import { parsePinLockSeconds, pinLockMessage } from "@/utils/pinLock";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
-import { isDeviceLimitError } from "@/utils/deviceGuard";
+import { isRegistrationBlockedError } from "@/utils/deviceGuard";
 
 const AUTH_KEY = "@app_auth_state";
 const REGISTERED_USERS_KEY = "@registered_users";
@@ -656,10 +656,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
                 loginPinSaved = true;
                 console.log("[auth] registerUser PIN saved via set_login_pin RPC");
               } else if (rpcErr) {
-                if (isDeviceLimitError(rpcErr)) {
-                  // Duplicate-account block. Do NOT fall back to the legacy
-                  // column write (that would bypass the guard) — record it and
-                  // re-throw after cleanup below.
+                if (isRegistrationBlockedError(rpcErr)) {
+                  // Device-guard block (duplicate device or emulator). Do NOT
+                  // fall back to the legacy column write (that would bypass the
+                  // guard) — record it and re-throw after cleanup below.
                   console.log("[auth] registerUser blocked by device guard:", rpcErr.message);
                   deviceLimitError = new Error(rpcErr.message);
                 } else {

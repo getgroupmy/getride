@@ -23,6 +23,8 @@ export const DEFAULT_MAX_ACCOUNTS_PER_DEVICE = 3;
 export interface DeviceGuardConfig {
   enabled: boolean;
   maxAccountsPerDevice: number;
+  /** Opt-in: block new sign-ups from emulators/simulators (default off). */
+  blockEmulators: boolean;
 }
 
 export interface DeviceGuardResult {
@@ -34,6 +36,10 @@ export interface DeviceGuardResult {
   maxAccounts: number;
   /** Whether the guard is switched on. */
   enabled: boolean;
+  /** Whether this device looks like an emulator/simulator. */
+  isEmulator: boolean;
+  /** Whether the emulator block is switched on. */
+  blockEmulators: boolean;
   /** The resolved device fingerprint (null when it couldn't be determined). */
   deviceId: string | null;
   /** True only when the server check actually ran; false means "failed open". */
@@ -65,11 +71,26 @@ export function parseDeviceLimitError(
   return { priorAccounts: Number(m[1]), maxAccounts: Number(m[2]) };
 }
 
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : typeof err === "string" ? err : "";
+}
+
 /** True when a caught error is the server's device-limit rejection. */
 export function isDeviceLimitError(err: unknown): boolean {
-  const msg =
-    err instanceof Error ? err.message : typeof err === "string" ? err : "";
-  return parseDeviceLimitError(msg) !== null;
+  return parseDeviceLimitError(errMessage(err)) !== null;
+}
+
+/** True when a caught error is the server's emulator-block rejection. */
+export function isEmulatorBlockedError(err: unknown): boolean {
+  return /EMULATOR_BLOCKED/.test(errMessage(err));
+}
+
+/**
+ * True when a caught error is ANY of the sign-up guard's hard rejections
+ * (device limit or emulator block) — i.e. the account must not be created.
+ */
+export function isRegistrationBlockedError(err: unknown): boolean {
+  return isDeviceLimitError(err) || isEmulatorBlockedError(err);
 }
 
 /**
@@ -83,6 +104,8 @@ export async function evaluateDeviceRegistration(): Promise<DeviceGuardResult> {
     priorAccounts: 0,
     maxAccounts: DEFAULT_MAX_ACCOUNTS_PER_DEVICE,
     enabled: false,
+    isEmulator: false,
+    blockEmulators: false,
     deviceId,
     checked: false,
   };
@@ -102,6 +125,8 @@ export async function evaluateDeviceRegistration(): Promise<DeviceGuardResult> {
             Number(row.max_accounts ?? DEFAULT_MAX_ACCOUNTS_PER_DEVICE) ||
             DEFAULT_MAX_ACCOUNTS_PER_DEVICE,
           enabled: row.enabled !== false,
+          isEmulator: row.is_emulator === true,
+          blockEmulators: row.block_emulators === true,
           deviceId,
           checked: true,
         };
@@ -116,11 +141,10 @@ export async function evaluateDeviceRegistration(): Promise<DeviceGuardResult> {
       if (!cntErr) {
         const priorAccounts = Number(cnt ?? 0) || 0;
         return {
+          ...open,
           allowed: isRegistrationAllowed(priorAccounts),
           priorAccounts,
-          maxAccounts: DEFAULT_MAX_ACCOUNTS_PER_DEVICE,
           enabled: true,
-          deviceId,
           checked: true,
         };
       }
@@ -137,6 +161,7 @@ export async function getDeviceGuardConfig(): Promise<DeviceGuardConfig> {
   const fallback: DeviceGuardConfig = {
     enabled: true,
     maxAccountsPerDevice: DEFAULT_MAX_ACCOUNTS_PER_DEVICE,
+    blockEmulators: false,
   };
   if (!isSupabaseConfigured || !supabase) return fallback;
   try {
@@ -149,6 +174,7 @@ export async function getDeviceGuardConfig(): Promise<DeviceGuardConfig> {
       maxAccountsPerDevice:
         Number(row.max_accounts ?? DEFAULT_MAX_ACCOUNTS_PER_DEVICE) ||
         DEFAULT_MAX_ACCOUNTS_PER_DEVICE,
+      blockEmulators: row.block_emulators === true,
     };
   } catch {
     return fallback;
@@ -166,6 +192,7 @@ export async function setDeviceGuardConfig(
     const { error } = await supabase.rpc("device_guard_set_config", {
       p_enabled: config.enabled,
       p_max_accounts: Math.max(1, Math.round(config.maxAccountsPerDevice)),
+      p_block_emulators: config.blockEmulators,
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true };

@@ -3,6 +3,8 @@ import {
   isRegistrationAllowed,
   parseDeviceLimitError,
   isDeviceLimitError,
+  isEmulatorBlockedError,
+  isRegistrationBlockedError,
 } from "@/utils/deviceGuard";
 
 describe("isRegistrationAllowed", () => {
@@ -66,5 +68,27 @@ describe("isDeviceLimitError", () => {
     expect(isDeviceLimitError(new Error("nope"))).toBe(false);
     expect(isDeviceLimitError(null)).toBe(false);
     expect(isDeviceLimitError(42)).toBe(false);
+  });
+});
+
+describe("isEmulatorBlockedError", () => {
+  it("recognises the emulator block", () => {
+    expect(isEmulatorBlockedError(new Error("EMULATOR_BLOCKED"))).toBe(true);
+    expect(isEmulatorBlockedError("ERROR: EMULATOR_BLOCKED (SQLSTATE P0001)")).toBe(true);
+  });
+  it("rejects unrelated errors", () => {
+    expect(isEmulatorBlockedError(new Error("DEVICE_LIMIT:2/3"))).toBe(false);
+    expect(isEmulatorBlockedError(null)).toBe(false);
+  });
+});
+
+describe("isRegistrationBlockedError", () => {
+  it("is true for either block type", () => {
+    expect(isRegistrationBlockedError(new Error("DEVICE_LIMIT:4/3"))).toBe(true);
+    expect(isRegistrationBlockedError(new Error("EMULATOR_BLOCKED"))).toBe(true);
+  });
+  it("is false for anything else", () => {
+    expect(isRegistrationBlockedError(new Error("PIN must be exactly 6 digits"))).toBe(false);
+    expect(isRegistrationBlockedError(undefined)).toBe(false);
   });
 });

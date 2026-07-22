@@ -385,6 +385,19 @@ export default function AdminSessionHistoryScreen() {
     [sessions]
   );
 
+  // Accounts that have at least one session from a non-physical device
+  // (emulator/simulator) — a fake-account signal.
+  const emulatorAccounts = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of sessions) {
+      if (s.is_physical_device === false) {
+        const key = s.user_id ?? (s.phone ? `phone:${s.phone}` : null);
+        if (key) set.add(key);
+      }
+    }
+    return set;
+  }, [sessions]);
+
   // Resolve an account key (user id or "phone:+…") back to a human label.
   const accountLabel = useCallback(
     (key: string): string => {
@@ -777,6 +790,14 @@ export default function AdminSessionHistoryScreen() {
               </View>
             );
           })()}
+          {emulatorAccounts.has(item.key) ? (
+            <View style={[styles.dupBadge, { backgroundColor: Colors.error + "22" }]}>
+              <AlertTriangle color={Colors.error} size={11} />
+              <Text style={[styles.dupBadgeText, { color: Colors.error }]} numberOfLines={1}>
+                Emulator / simulator
+              </Text>
+            </View>
+          ) : null}
         </View>
         {item.lastLat != null && item.lastLng != null ? (
           <View
@@ -1295,6 +1316,26 @@ export default function AdminSessionHistoryScreen() {
                 <Plus color={Colors.text} size={16} />
               </TouchableOpacity>
             </View>
+          </View>
+
+          <View style={styles.guardRow}>
+            <View style={{ flex: 1, paddingRight: 10 }}>
+              <Text style={[styles.guardLabel, { color: Colors.text }]}>
+                Block emulators
+              </Text>
+              <Text style={[styles.guardHint, { color: Colors.textSecondary }]}>
+                Refuse sign-ups from simulators/emulators. Best-effort — a
+                modified client can spoof this.
+              </Text>
+            </View>
+            <Switch
+              value={guardConfig?.blockEmulators ?? false}
+              disabled={!guardConfig || savingGuard}
+              onValueChange={(v) => {
+                if (guardConfig) void saveGuardConfig({ ...guardConfig, blockEmulators: v });
+              }}
+              testID="guard-block-emulators"
+            />
           </View>
           {savingGuard && (
             <Text style={[styles.guardHint, { color: Colors.textSecondary }]}>Saving…</Text>

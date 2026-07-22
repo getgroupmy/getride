@@ -481,7 +481,9 @@ declare
   v_is_new boolean;
   v_enabled boolean;
   v_max int;
+  v_block_emu boolean;
   v_prior int;
+  v_emu boolean;
 begin
   if v_uid is null then
     raise exception 'set_login_pin requires an authenticated session';
@@ -495,10 +497,12 @@ begin
   v_is_new := (v_pin_hash is null)
     and (v_created is null or v_created > now() - interval '1 hour');
 
-  if v_is_new and p_device_id is not null and p_device_id <> '' then
-    select c.enabled, c.max_accounts into v_enabled, v_max
+  if v_is_new then
+    select c.enabled, c.max_accounts, c.block_emulators
+      into v_enabled, v_max, v_block_emu
     from public.device_guard_config() c;
-    if v_enabled then
+
+    if v_enabled and p_device_id is not null and p_device_id <> '' then
       select count(distinct user_id)::int into v_prior
       from public.user_sessions
       where device_id = p_device_id
@@ -506,6 +510,16 @@ begin
         and user_id <> v_uid;
       if v_prior >= v_max then
         raise exception 'DEVICE_LIMIT:%/%', v_prior, v_max;
+      end if;
+    end if;
+
+    if v_enabled and v_block_emu then
+      select coalesce(bool_or(is_physical_device is false), false) into v_emu
+      from public.user_sessions
+      where (p_device_id is not null and p_device_id <> '' and device_id = p_device_id)
+         or user_id = v_uid;
+      if v_emu then
+        raise exception 'EMULATOR_BLOCKED';
       end if;
     end if;
   end if;
@@ -710,8 +724,10 @@ grant execute on function public.device_prior_account_count(text) to anon, authe
 -- Device-guard config (migration 0072), stored in app_settings key
 -- 'device_account_guard' = { enabled, maxAccountsPerDevice }. Effective values
 -- with safe defaults when the row is absent.
+-- Effective config: enabled + cumulative account cap + opt-in emulator block
+-- (migration 0074), with safe defaults when the app_settings row is absent.
 create or replace function public.device_guard_config()
-returns table (enabled boolean, max_accounts int)
+returns table (enabled boolean, max_accounts int, block_emulators boolean)
 language plpgsql
 security definer
 set search_path = public
@@ -723,6 +739,7 @@ begin
   select value into v from public.app_settings where key = 'device_account_guard';
   enabled := coalesce((v->>'enabled')::boolean, true);
   max_accounts := greatest(1, coalesce((v->>'maxAccountsPerDevice')::int, 3));
+  block_emulators := coalesce((v->>'blockEmulators')::boolean, false);
   return next;
 end;
 $$;
@@ -731,9 +748,16 @@ revoke all on function public.device_guard_config() from public;
 grant execute on function public.device_guard_config() to anon, authenticated;
 
 -- Client pre-check for the sign-up flow: whether a new registration is allowed
--- on this device plus the numbers behind the decision.
+-- on this device plus the signals behind the decision.
 create or replace function public.device_registration_status(p_device_id text)
-returns table (allowed boolean, prior_accounts int, max_accounts int, enabled boolean)
+returns table (
+  allowed boolean,
+  prior_accounts int,
+  max_accounts int,
+  enabled boolean,
+  is_emulator boolean,
+  block_emulators boolean
+)
 language plpgsql
 security definer
 set search_path = public
@@ -742,10 +766,13 @@ as $$
 declare
   v_enabled boolean;
   v_max int;
+  v_block_emu boolean;
   v_prior int := 0;
+  v_emu boolean := false;
   v_uid uuid := auth.uid();
 begin
-  select c.enabled, c.max_accounts into v_enabled, v_max
+  select c.enabled, c.max_accounts, c.block_emulators
+    into v_enabled, v_max, v_block_emu
   from public.device_guard_config() c;
   if p_device_id is not null and p_device_id <> '' then
     select count(distinct user_id)::int into v_prior
@@ -754,10 +781,17 @@ begin
       and user_id is not null
       and user_id <> coalesce(v_uid, '00000000-0000-0000-0000-000000000000'::uuid);
   end if;
-  allowed := (not v_enabled) or (v_prior < v_max);
+  select coalesce(bool_or(is_physical_device is false), false) into v_emu
+  from public.user_sessions
+  where (p_device_id is not null and p_device_id <> '' and device_id = p_device_id)
+     or (v_uid is not null and user_id = v_uid);
+  allowed := (not v_enabled)
+    or ((v_prior < v_max) and not (v_block_emu and v_emu));
   prior_accounts := v_prior;
   max_accounts := v_max;
   enabled := v_enabled;
+  is_emulator := v_emu;
+  block_emulators := v_block_emu;
   return next;
 end;
 $$;
@@ -765,8 +799,12 @@ $$;
 revoke all on function public.device_registration_status(text) from public;
 grant execute on function public.device_registration_status(text) to anon, authenticated;
 
--- Admin-only writer for the two device-guard knobs.
-create or replace function public.device_guard_set_config(p_enabled boolean, p_max_accounts int)
+-- Admin-only writer for the device-guard knobs.
+create or replace function public.device_guard_set_config(
+  p_enabled boolean,
+  p_max_accounts int,
+  p_block_emulators boolean default false
+)
 returns boolean
 language plpgsql
 security definer
@@ -781,7 +819,8 @@ begin
     'device_account_guard',
     jsonb_build_object(
       'enabled', coalesce(p_enabled, true),
-      'maxAccountsPerDevice', greatest(1, coalesce(p_max_accounts, 3))
+      'maxAccountsPerDevice', greatest(1, coalesce(p_max_accounts, 3)),
+      'blockEmulators', coalesce(p_block_emulators, false)
     ),
     now()
   )
@@ -791,8 +830,8 @@ begin
 end;
 $$;
 
-revoke all on function public.device_guard_set_config(boolean, int) from public;
-grant execute on function public.device_guard_set_config(boolean, int) to authenticated;
+revoke all on function public.device_guard_set_config(boolean, int, boolean) from public;
+grant execute on function public.device_guard_set_config(boolean, int, boolean) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Row-Level Security
