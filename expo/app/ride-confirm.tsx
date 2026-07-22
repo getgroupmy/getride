@@ -61,6 +61,7 @@ import {
   cancelRideRequest,
   subscribeToRideRequest,
   notifyPartnersOfNewRequest,
+  notifyPartnersOfRaisedFare,
   gatherRequestMetadata,
   raiseRideRequestFare,
   fetchOngoingRequestForRider,
@@ -1952,7 +1953,11 @@ export default function RideConfirmScreen() {
   const persistRaisedFare = React.useCallback((newTotal: number) => {
     const id = activeRequestIdRef.current;
     if (!id) return;
-    void raiseRideRequestFare(id, newTotal);
+    void raiseRideRequestFare(id, newTotal).then((row) => {
+      // Re-notify partners (OS push when their app is backgrounded/locked) so
+      // the higher offer reaches drivers who aren't watching the queue live.
+      if (row) void notifyPartnersOfRaisedFare(row);
+    });
   }, []);
 
   const handleRaiseFare = () => {
