@@ -512,7 +512,7 @@ export async function notifyPartnersOfNewRequest(row: RideRequest): Promise<void
   const pickup = row.pickup_name ?? row.pickup_address ?? "Pickup";
   const drop = row.drop_name ?? row.drop_address ?? "Drop-off";
   const title = "New Request";
-  const body = `${fare} , ${pickup}\n${drop}`;
+  const body = `${fare} , ${pickup} -> ${drop}`;
   try {
     const { error } = await supabase.functions.invoke("send-push", {
       body: {
@@ -548,7 +548,7 @@ export async function notifyPartnersOfRaisedFare(row: RideRequest): Promise<void
   const pickup = row.pickup_name ?? row.pickup_address ?? "Pickup";
   const drop = row.drop_name ?? row.drop_address ?? "Drop-off";
   const title = "Fare increased";
-  const body = `${fare} , ${pickup}\n${drop}`;
+  const body = `${fare} , ${pickup} -> ${drop}`;
   try {
     const { error } = await supabase.functions.invoke("send-push", {
       body: {
