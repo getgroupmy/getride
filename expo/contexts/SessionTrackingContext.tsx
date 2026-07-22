@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Platform, AppState, type AppStateStatus } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import * as Location from "expo-location";
 import * as Device from "expo-device";
@@ -9,6 +8,7 @@ import * as Cellular from "expo-cellular";
 import * as Application from "expo-application";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
 import { normalizeCarrierName, resolveMobileOperator } from "@/utils/mobileOperator";
+import { getOrCreateDeviceId } from "@/utils/deviceId";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
@@ -21,7 +21,6 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const LOCATION_PING_MS = 30_000;
 const LOCATION_DISTANCE_M = 10;
-const DEVICE_ID_STORAGE_KEY = "@session_device_id";
 
 type EventType = "login" | "app_launch" | "app_relaunch";
 
@@ -215,56 +214,6 @@ async function captureNetworkSnapshot(): Promise<NetworkSnapshot> {
     iccid,
     mobile_operator_name: mobileOperatorName,
   };
-}
-
-/**
- * Stable per-device identifier, independent of the signed-in user/phone:
- *   - Android: the device's ANDROID_ID (`Application.androidId`).
- *   - iOS    : `identifierForVendor` (`Application.getIosIdForVendorAsync()`).
- *   - other  : a client-generated UUID, persisted in AsyncStorage so it
- *              survives app restarts (but not reinstalls).
- * Resolved once per app run and cached in-memory thereafter.
- */
-let cachedDeviceId: string | null = null;
-
-async function getOrCreateDeviceId(): Promise<string | null> {
-  if (cachedDeviceId) return cachedDeviceId;
-  try {
-    if (Platform.OS === "android") {
-      // ANDROID_ID — stable across reinstalls (per signing key), the best
-      // fraud fingerprint available. The current expo-application exposes it as
-      // getAndroidId(); the old `Application.androidId` property is gone, so
-      // reading that silently yielded undefined and fell back to a random UUID.
-      const id = Application.getAndroidId?.() ?? null;
-      if (id) {
-        cachedDeviceId = id;
-        return id;
-      }
-    } else if (Platform.OS === "ios") {
-      const id = await Application.getIosIdForVendorAsync();
-      if (id) {
-        cachedDeviceId = id;
-        return id;
-      }
-    }
-  } catch (e) {
-    console.log("[session] native device id lookup failed", e);
-  }
-
-  try {
-    const stored = await AsyncStorage.getItem(DEVICE_ID_STORAGE_KEY);
-    if (stored) {
-      cachedDeviceId = stored;
-      return stored;
-    }
-    const generated = uuidv4();
-    await AsyncStorage.setItem(DEVICE_ID_STORAGE_KEY, generated);
-    cachedDeviceId = generated;
-    return generated;
-  } catch (e) {
-    console.log("[session] device id persistence failed", e);
-    return null;
-  }
 }
 
 export const [SessionTrackingProvider, useSessionTracking] = createContextHook(

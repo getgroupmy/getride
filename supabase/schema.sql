@@ -652,6 +652,30 @@ $$;
 revoke all on function public.profile_phone_lookup(text) from public;
 grant execute on function public.profile_phone_lookup(text) to anon, authenticated;
 
+-- Device-based duplicate-account guard for the sign-up flow (migration 0071).
+-- Returns how many DISTINCT accounts other than the caller have signed in from
+-- a given device_id — a bare count, never PII — so the client can block bulk
+-- multi-accounting on one physical device. SECURITY DEFINER because the 0069
+-- RLS lockdown otherwise limits a client to its own user_sessions rows.
+create or replace function public.device_prior_account_count(p_device_id text)
+returns integer
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select count(distinct user_id)::int
+  from public.user_sessions
+  where p_device_id is not null
+    and p_device_id <> ''
+    and device_id = p_device_id
+    and user_id is not null
+    and user_id <> coalesce(auth.uid(), '00000000-0000-0000-0000-000000000000'::uuid);
+$$;
+
+revoke all on function public.device_prior_account_count(text) from public;
+grant execute on function public.device_prior_account_count(text) to anon, authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Row-Level Security
 -- ---------------------------------------------------------------------------

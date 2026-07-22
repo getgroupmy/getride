@@ -211,6 +211,8 @@ export default function AdminSessionHistoryScreen() {
   const [trailLocations, setTrailLocations] = useState<LocationRow[]>([]);
   // null = not checked yet, true = reachable, false = down/undeployed.
   const [ipLookupHealthy, setIpLookupHealthy] = useState<boolean | null>(null);
+  // When on, only accounts flagged for sharing a device are listed.
+  const [flaggedOnly, setFlaggedOnly] = useState<boolean>(false);
 
   useEffect(() => {
     if (!trailVisible) {
@@ -364,8 +366,12 @@ export default function AdminSessionHistoryScreen() {
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return userSummaries;
-    return userSummaries.filter((u) => {
+    let list = userSummaries;
+    if (flaggedOnly) {
+      list = list.filter((u) => deviceLinks.has(u.key));
+    }
+    if (!q) return list;
+    return list.filter((u) => {
       return (
         (u.phone ?? "").toLowerCase().includes(q) ||
         (u.user_id ?? "").toLowerCase().includes(q) ||
@@ -373,7 +379,7 @@ export default function AdminSessionHistoryScreen() {
         (u.lastOs ?? "").toLowerCase().includes(q)
       );
     });
-  }, [query, userSummaries]);
+  }, [query, userSummaries, flaggedOnly, deviceLinks]);
 
   const openDetail = useCallback(
     async (u: UserSummary) => {
@@ -1066,6 +1072,18 @@ export default function AdminSessionHistoryScreen() {
             {userSummaries.length} user{userSummaries.length === 1 ? "" : "s"}
           </Text>
         </View>
+        {deviceLinks.size > 0 && (
+          <TouchableOpacity
+            onPress={() => setFlaggedOnly((v) => !v)}
+            style={[
+              styles.iconBtn,
+              { backgroundColor: flaggedOnly ? Colors.warning + "26" : Colors.gray[100] },
+            ]}
+            testID="toggle-flagged"
+          >
+            <Users color={flaggedOnly ? Colors.warning : Colors.text} size={20} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           onPress={() => setShowDateFilter((v) => !v)}
           style={[
@@ -1188,10 +1206,15 @@ export default function AdminSessionHistoryScreen() {
       )}
 
       {deviceLinks.size > 0 && (
-        <View
+        <TouchableOpacity
+          onPress={() => setFlaggedOnly((v) => !v)}
+          activeOpacity={0.7}
           style={[
             styles.warningBanner,
-            { backgroundColor: Colors.warning + "18", borderColor: Colors.warning + "55" },
+            {
+              backgroundColor: Colors.warning + (flaggedOnly ? "28" : "18"),
+              borderColor: Colors.warning + "55",
+            },
           ]}
           testID="shared-device-banner"
         >
@@ -1199,9 +1222,12 @@ export default function AdminSessionHistoryScreen() {
           <Text style={[styles.warningText, { color: Colors.text }]}>
             {deviceLinks.size} account{deviceLinks.size === 1 ? "" : "s"} sign in from a
             device also used by another account — possible duplicate / multi-account
-            activity. Flagged accounts are marked below.
+            activity.{" "}
+            <Text style={{ fontWeight: "800", color: Colors.warning }}>
+              {flaggedOnly ? "Showing flagged only — tap to show all." : "Tap to show only these."}
+            </Text>
           </Text>
-        </View>
+        </TouchableOpacity>
       )}
 
       {loading ? (
@@ -1216,7 +1242,11 @@ export default function AdminSessionHistoryScreen() {
         <View style={styles.center}>
           <UserIcon color={Colors.textSecondary} size={28} />
           <Text style={[styles.muted, { color: Colors.textSecondary, marginTop: 8 }]}>
-            No session data yet. Sign in on a device to populate the tables.
+            {flaggedOnly
+              ? "No flagged accounts match. Tap the shared-device filter again to show all."
+              : query.trim()
+              ? "No users match your search."
+              : "No session data yet. Sign in on a device to populate the tables."}
           </Text>
         </View>
       ) : (
