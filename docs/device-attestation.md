@@ -34,11 +34,14 @@ attestation ensures the device is real to begin with.
 - `supabase/migrations/0073_device_attestation.sql` — `device_attestations`
   log table (admin-read; service-role write), applied to the DB. Inert on its
   own.
-- `supabase/functions/attest-device/index.ts` — edge function **template** that
-  verifies a Play Integrity or App Attest token and records the verdict. The
-  request plumbing is complete; the two provider-verification steps are marked
-  `verification_not_implemented` and return `passed: false` until wired against
-  real credentials. **Not deployed.**
+- `supabase/functions/attest-device/index.ts` — edge function that verifies a
+  Play Integrity or App Attest token and records the verdict. The request
+  plumbing is complete. **Play Integrity verification is implemented** (OAuth2
+  service-account JWT → `decodeIntegrityToken` → device/app verdict checks) but
+  **untested** — it needs a real token from a signed device to exercise. **App
+  Attest is still stubbed** (returns `passed: false`) because a correct verifier
+  needs CBOR + X.509-chain validation that must be built on a vetted library and
+  tested on a real device, not hand-rolled blind. **Not deployed.**
 - `expo/utils/attestation.ts` — client wrapper. `attestAndRecord()` is a no-op
   returning `{ available: false }` because there is no native attestation
   module in the Rork/Expo-Go build. `requestNativeAttestationToken()` is the
@@ -62,8 +65,9 @@ small config-plugin/native module) and call it from
    supabase secrets set ANDROID_PACKAGE_NAME=com.getride.app
    supabase secrets set GOOGLE_SERVICE_ACCOUNT_JSON="$(cat sa.json)"
    ```
-4. Implement `verifyPlayIntegrity()` (`decodeIntegrityToken` call + verdict
-   checks — the required fields are noted inline in the function).
+4. `verifyPlayIntegrity()` is already implemented (OAuth2 + `decodeIntegrityToken`
+   + verdict checks). Deploy, send a real integrity token from a signed device,
+   and confirm the `device_attestations` verdict looks right before trusting it.
 
 ### 3. iOS — App Attest
 1. Add the **App Attest** entitlement to the app.
