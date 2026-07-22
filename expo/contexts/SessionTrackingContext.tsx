@@ -119,7 +119,17 @@ async function fetchIpLookup(): Promise<IpLookupResult | null> {
       { body: {} }
     );
     if (error) {
-      console.log("[session] ip-lookup error", error.message);
+      // A "not found" / non-2xx here almost always means the `ip-lookup` edge
+      // function isn't deployed to this project. When that happens every
+      // server-resolved column (public_ip, isp_org, ip_city, ip_region,
+      // ip_country) stays null on every session row. Log loudly so the gap is
+      // obvious in device logs. Fix by deploying:
+      //   supabase functions deploy ip-lookup --no-verify-jwt
+      console.warn(
+        "[session] ip-lookup unavailable — public IP / ISP / geo columns will " +
+          "be null. Is the ip-lookup edge function deployed? " +
+          `(${error.message})`
+      );
       return null;
     }
     return data ?? null;

@@ -32,6 +32,7 @@ import {
   Map as MapIcon,
   Flame,
   Route as RouteIcon,
+  AlertTriangle,
 } from "lucide-react-native";
 import MapView, { Marker, Polyline, Circle, PROVIDER_DEFAULT } from "react-native-maps";
 import * as FileSystem from "expo-file-system/legacy";
@@ -206,6 +207,8 @@ export default function AdminSessionHistoryScreen() {
   const [trailRangeTo, setTrailRangeTo] = useState<string>("");
   const [trailLoading, setTrailLoading] = useState<boolean>(false);
   const [trailLocations, setTrailLocations] = useState<LocationRow[]>([]);
+  // null = not checked yet, true = reachable, false = down/undeployed.
+  const [ipLookupHealthy, setIpLookupHealthy] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!trailVisible) {
@@ -260,9 +263,28 @@ export default function AdminSessionHistoryScreen() {
     }
   }, []);
 
+  // Health probe for the `ip-lookup` edge function. The public IP / ISP / geo
+  // columns (public_ip, isp_org, ip_city, ip_region, ip_country) are ONLY ever
+  // populated by that function; if it isn't deployed those columns stay null on
+  // every session forever. We invoke it with a well-known public IP (Google DNS)
+  // so a private-network caller can't produce a false negative: a healthy
+  // deployment always resolves 8.8.8.8 to a country.
+  const checkIpLookupHealth = useCallback(async () => {
+    if (!isSupabaseConfigured || !supabase) return;
+    try {
+      const { data, error } = await supabase.functions.invoke<{
+        ip_country: string | null;
+      }>("ip-lookup", { body: { ip: "8.8.8.8" } });
+      setIpLookupHealthy(!error && !!data && !!data.ip_country);
+    } catch {
+      setIpLookupHealthy(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadSessions();
-  }, [loadSessions]);
+    void checkIpLookupHealth();
+  }, [loadSessions, checkIpLookupHealth]);
 
   const latestPingByKey = useMemo(() => {
     const map = new Map<string, LocationRow>();
@@ -384,7 +406,8 @@ export default function AdminSessionHistoryScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     void loadSessions();
-  }, [loadSessions]);
+    void checkIpLookupHealth();
+  }, [loadSessions, checkIpLookupHealth]);
 
   const dateRange = useMemo(() => {
     const from = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
@@ -1081,6 +1104,28 @@ export default function AdminSessionHistoryScreen() {
         />
       </View>
 
+      {ipLookupHealthy === false && (
+        <View
+          style={[
+            styles.warningBanner,
+            { backgroundColor: Colors.warning + "18", borderColor: Colors.warning + "55" },
+          ]}
+          testID="ip-lookup-warning"
+        >
+          <AlertTriangle color={Colors.warning} size={16} />
+          <Text style={[styles.warningText, { color: Colors.text }]}>
+            IP geolocation is unavailable — the{" "}
+            <Text style={styles.warningMono}>ip-lookup</Text> edge function is not
+            reachable, so Public IP, ISP Org and IP Location won&apos;t be recorded
+            on new sessions. Deploy it with{" "}
+            <Text style={styles.warningMono}>
+              supabase functions deploy ip-lookup --no-verify-jwt
+            </Text>
+            .
+          </Text>
+        </View>
+      )}
+
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={Colors.accent} />
@@ -1563,6 +1608,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   searchInput: { flex: 1, fontSize: 14, paddingVertical: 0 },
+  warningBanner: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  warningText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "600" as const },
+  warningMono: {
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }),
+    fontWeight: "700" as const,
+  },
   listContent: { padding: 16 },
   userRow: {
     flexDirection: "row" as const,
