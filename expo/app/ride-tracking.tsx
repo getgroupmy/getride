@@ -13,6 +13,7 @@ import {
   ScrollView,
   TextInput,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, Stack } from "expo-router";
@@ -37,6 +38,7 @@ import {
   Check,
   Coins,
   Layers,
+  AlertTriangle,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -189,6 +191,9 @@ export default function RideTrackingScreen() {
   const [cancelPending, setCancelPending] = useState<boolean>(false);
   const [showCancelDeclined, setShowCancelDeclined] = useState<boolean>(false);
   const cancelPendingRef = useRef<boolean>(false);
+  // Final "are you sure?" step shown after a cancel reason is picked.
+  const [showCancelConfirm, setShowCancelConfirm] = useState<boolean>(false);
+  const [cancelling, setCancelling] = useState<boolean>(false);
 
   // Admin "Mock / Simulation" switch: when off, the car is not animated and
   // phases follow the real ride request status written by the partner.
@@ -205,6 +210,7 @@ export default function RideTrackingScreen() {
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
   const cancelAnim = useRef(new Animated.Value(0)).current;
+  const cancelConfirmAnim = useRef(new Animated.Value(0)).current;
 
   // GET.coin toast shown when the trip completes (coins earned / redeemed).
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
@@ -594,9 +600,38 @@ export default function RideTrackingScreen() {
     Linking.openURL("tel:999").catch(() => {});
   }, []);
 
+  /** Reason picked — move to the final confirmation step instead of cancelling right away. */
   const confirmCancel = useCallback(() => {
     const reason = cancelReason === "other" ? cancelOtherText.trim() : cancelReason;
     if (!reason) return;
+    if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+    closeCancel(() => {
+      // Small delay so the first modal fully dismisses before the next opens (iOS).
+      setTimeout(() => {
+        setShowCancelConfirm(true);
+        Animated.spring(cancelConfirmAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 80,
+          friction: 11,
+        }).start();
+      }, 250);
+    });
+  }, [closeCancel, cancelReason, cancelOtherText, cancelConfirmAnim]);
+
+  const closeCancelConfirm = useCallback((cb?: () => void) => {
+    Animated.timing(cancelConfirmAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      setShowCancelConfirm(false);
+      if (cb) cb();
+    });
+  }, [cancelConfirmAnim]);
+
+  /** Final confirmation — actually cancels (or requests cancellation mid-trip). */
+  const finalizeCancel = useCallback(async () => {
+    if (cancelling) return;
+    const reason = cancelReason === "other" ? cancelOtherText.trim() : cancelReason;
+    if (!reason) return;
+    setCancelling(true);
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
     // Once the trip has started the driver must approve the cancellation:
     // stamp the request and wait instead of cancelling straight away.
@@ -604,15 +639,21 @@ export default function RideTrackingScreen() {
       console.log("[ride-tracking] requesting driver-approved cancellation", requestId, reason);
       setCancelPending(true);
       void requestRideCancellation(requestId, "rider", reason);
-      closeCancel();
+      setCancelling(false);
+      closeCancelConfirm();
       return;
     }
     if (requestId) {
       console.log("[ride-tracking] cancelling request", requestId, reason);
-      void cancelRideRequest(requestId, reason);
+      try {
+        await cancelRideRequest(requestId, reason);
+      } catch (e) {
+        console.log("[ride-tracking] cancelRideRequest failed", e);
+      }
     }
-    closeCancel(() => router.replace("/" as any));
-  }, [closeCancel, router, requestId, phase, cancelReason, cancelOtherText]);
+    setCancelling(false);
+    closeCancelConfirm(() => router.replace("/" as any));
+  }, [cancelling, closeCancelConfirm, router, requestId, phase, cancelReason, cancelOtherText]);
 
   const remainingCoords = useMemo<Coord[]>(() => {
     if (routeCoords.length === 0) return [];
@@ -1263,6 +1304,71 @@ export default function RideTrackingScreen() {
             </View>
           </Animated.View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal
+        visible={showCancelConfirm}
+        transparent
+        animationType="none"
+        onRequestClose={() => {
+          if (!cancelling) closeCancelConfirm();
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <Animated.View
+            style={[
+              styles.cancelCard,
+              {
+                backgroundColor: Colors.background,
+                opacity: cancelConfirmAnim,
+                transform: [
+                  { translateY: cancelConfirmAnim.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) },
+                  { scale: cancelConfirmAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
+                ],
+              },
+            ]}
+          >
+            <View style={[styles.warnWrap, { backgroundColor: Colors.error + "1A" }]}>
+              <AlertTriangle color={Colors.error} size={32} />
+            </View>
+            <Text style={[styles.cancelTitle, { color: Colors.text }]}>
+              {phase === "onTrip" && requestId ? "Request cancellation?" : "Cancel this ride?"}
+            </Text>
+            <Text style={[styles.cancelBody, { color: Colors.textSecondary }]}>
+              {phase === "onTrip" && requestId
+                ? "Your driver will be asked to approve the cancellation. The trip continues until they respond."
+                : "This can’t be undone. Your driver will be notified and the booking will end immediately."}
+            </Text>
+            <View style={styles.cancelActions}>
+              <TouchableOpacity
+                testID="rider-cancel-confirm-keep"
+                activeOpacity={0.85}
+                disabled={cancelling}
+                onPress={() => closeCancelConfirm()}
+                style={[styles.cancelGhost, { backgroundColor: Colors.gray[100] }]}
+              >
+                <Text style={[styles.cancelGhostText, { color: Colors.text }]}>Keep ride</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="rider-cancel-confirm-final"
+                activeOpacity={0.9}
+                disabled={cancelling}
+                onPress={finalizeCancel}
+                style={[
+                  styles.cancelConfirm,
+                  { backgroundColor: Colors.error, opacity: cancelling ? 0.7 : 1 },
+                ]}
+              >
+                {cancelling ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : null}
+                <Text style={styles.cancelConfirmText}>
+                  {phase === "onTrip" && requestId ? "Yes, request" : "Yes, cancel"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
       </Modal>
 
       <AppAlertModal
