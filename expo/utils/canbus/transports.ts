@@ -31,14 +31,24 @@ import type {
   TransportAvailability,
 } from "./types";
 
-/** Best-effort optional require that never throws. */
+/**
+ * Best-effort optional module lookup that never throws.
+ *
+ * Metro cannot bundle dynamic `require(name)` calls, so optional native
+ * modules are resolved through this static registry instead. None of them
+ * ship in Expo Go / this managed build, so every lookup resolves to null and
+ * the transports simply report themselves as unavailable. In a custom
+ * dev-client build, swap an entry for a guarded static
+ * `require("<module-name>")` to enable that transport.
+ */
+const OPTIONAL_MODULES: Record<string, unknown> = {
+  "react-native-tcp-socket": null,
+  "react-native-ble-plx": null,
+  "react-native-usb-serialport-for-android": null,
+};
+
 function optionalRequire(moduleName: string): any | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require(moduleName);
-  } catch {
-    return null;
-  }
+  return (OPTIONAL_MODULES[moduleName] as any) ?? null;
 }
 
 // --- tiny base64 codec (BLE characteristics ferry base64, no Buffer in RN) ---
