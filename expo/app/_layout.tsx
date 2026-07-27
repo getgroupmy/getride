@@ -23,6 +23,7 @@ import { IpAccessProvider } from "@/contexts/IpAccessContext";
 import { AppIconChangeModal } from "@/components/AppIconChangeModal";
 import SupportCallListener from "@/components/SupportCallListener";
 import IncomingTransferPopup from "@/components/IncomingTransferPopup";
+import ReferralBonusToast from "@/components/ReferralBonusToast";
 import { RootErrorBoundary } from "@/components/RootErrorBoundary";
 import { installGlobalErrorGuard } from "@/utils/globalErrorGuard";
 import { capturePendingReferral } from "@/utils/referral";
@@ -102,6 +103,7 @@ function RootLayoutNav() {
     <AppIconChangeModal />
     <SupportCallListener />
     <IncomingTransferPopup />
+    <ReferralBonusToast />
     <ConnectionStatusModal
       visible={showConnectionModal}
       connected={isConnected}
@@ -245,6 +247,7 @@ function RootLayoutNav() {
       <Stack.Screen name="wallet-receive" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="wallet-trade" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="wallet-coin-qr" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="referral-card" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="edit-profile" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="auth-diagnostics" options={{ animation: "slide_from_right", gestureEnabled: true, presentation: "modal" }} />
       <Stack.Screen name="support" options={{ animation: "slide_from_right", gestureEnabled: false }} />

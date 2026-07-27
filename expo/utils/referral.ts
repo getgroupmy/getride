@@ -6,6 +6,15 @@ import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 const PENDING_REF_KEY = "referral:pending_code";
 
 /**
+ * AsyncStorage key holding a just-earned referral welcome bonus that still
+ * needs to be surfaced to the user as a toast. Persisted (rather than kept
+ * in memory only) so the notice survives the navigation from the PIN-setup
+ * screen to the home screen — or an app relaunch — that happens right after
+ * a fresh sign-up applies the referral.
+ */
+const BONUS_TOAST_KEY = "referral:bonus_toast";
+
+/**
  * Deterministic, human-friendly referral code derived from the user's id.
  * Strips non-alphanumerics and uppercases so the same user always shares
  * the same code (e.g. "K3F9A2QX").
@@ -73,6 +82,64 @@ export async function clearPendingReferral(): Promise<void> {
   try {
     await AsyncStorage.removeItem(PENDING_REF_KEY);
   } catch {}
+}
+
+// Referral welcome-bonus toast -----------------------------------------------
+
+type BonusListener = (coins: number) => void;
+
+/** Live listeners that show the bonus toast the instant it's earned. */
+const bonusListeners = new Set<BonusListener>();
+
+/**
+ * Subscribe to referral welcome-bonus events. Called by the globally-mounted
+ * `ReferralBonusToast`, which pops a toast naming the GET.coin credited to
+ * the new user. Returns an unsubscribe function.
+ */
+export function subscribeReferralBonus(listener: BonusListener): () => void {
+  bonusListeners.add(listener);
+  return () => {
+    bonusListeners.delete(listener);
+  };
+}
+
+/**
+ * Record a newly-earned welcome bonus and notify any live listeners. Persisted
+ * to AsyncStorage so the toast still fires if the app navigates or relaunches
+ * before a listener handles it; the listener consumes (clears) the flag when
+ * it shows the toast, so the notice appears exactly once.
+ */
+async function announceReferralBonus(coins: number): Promise<void> {
+  if (!(coins > 0)) return;
+  try {
+    await AsyncStorage.setItem(BONUS_TOAST_KEY, JSON.stringify({ coins }));
+  } catch {}
+  bonusListeners.forEach((listener) => {
+    try {
+      listener(coins);
+    } catch (e) {
+      console.log("[referral] bonus listener threw", e);
+    }
+  });
+}
+
+/**
+ * Read and clear any pending welcome-bonus amount. Returns the GC credited,
+ * or null when there's nothing to show. Used both on live events (to clear
+ * the persisted flag so it isn't shown twice) and on cold start (to surface
+ * a bonus that landed while no listener was mounted).
+ */
+export async function consumePendingReferralBonus(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(BONUS_TOAST_KEY);
+    if (!raw) return null;
+    await AsyncStorage.removeItem(BONUS_TOAST_KEY);
+    const parsed = JSON.parse(raw) as { coins?: unknown };
+    const coins = Math.max(Number(parsed?.coins) || 0, 0);
+    return coins > 0 ? coins : null;
+  } catch {
+    return null;
+  }
 }
 
 export interface MyReferrer {
@@ -163,6 +230,10 @@ export async function applyPendingReferral(): Promise<ApplyReferralResult | null
       error: errCode,
     };
     console.log("[referral] apply result", result);
+    // Surface the new user's welcome bonus as a toast once they land in the app.
+    if (result.ok && result.referredCoins > 0) {
+      await announceReferralBonus(result.referredCoins);
+    }
     return result;
   } catch (e) {
     console.log("[referral] apply failed — keeping pending code for retry", e);

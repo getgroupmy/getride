@@ -12,9 +12,7 @@ import {
   Platform,
   Image,
   useWindowDimensions,
-  Share,
 } from "react-native";
-import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -69,11 +67,6 @@ import {
   type GetCoinSettings,
 } from "@/utils/getCoinStore";
 import { consumeWalletReloadRequest } from "@/utils/walletUiFlags";
-import {
-  referralCodeForUser,
-  buildReferralLink,
-  buildReferralMessage,
-} from "@/utils/referral";
 
 /**
  * Dollar-in-circle with an incoming arrow — matches the "Reload" reference icon.
@@ -258,35 +251,6 @@ export default function WalletScreen() {
     const timer = setTimeout(() => setSuccessNote(""), 2600);
     return () => clearTimeout(timer);
   }, [successNote]);
-
-  /** Opens the native share sheet with a referral deep link and bonus-coin pitch. */
-  const handleShareReferral = useCallback(async () => {
-    const code = referralCodeForUser(userId || "guest");
-    const link = buildReferralLink(code);
-    const message = buildReferralMessage(code, link);
-    console.log("[wallet] sharing referral", { code, link });
-    try {
-      if (Platform.OS === "web") {
-        const nav = navigator as Navigator & {
-          share?: (data: { title?: string; text?: string }) => Promise<void>;
-        };
-        if (nav.share) {
-          await nav.share({ title: "GET.ride referral", text: message });
-        } else {
-          await Clipboard.setStringAsync(message);
-          setSuccessNote("Referral link copied to clipboard!");
-        }
-        return;
-      }
-      await Share.share(
-        Platform.OS === "ios"
-          ? { message, url: link }
-          : { message }
-      );
-    } catch (e) {
-      console.log("[wallet] referral share dismissed/failed", e);
-    }
-  }, [userId]);
 
   const onRefresh = useCallback(async () => {
     await loadAll();
@@ -1065,17 +1029,17 @@ export default function WalletScreen() {
               <View style={styles.referralInfo}>
                 <Text style={styles.referralTitle}>Invite friends, earn GET.coin</Text>
                 <Text style={styles.referralSub} numberOfLines={2}>
-                  Share your link — you both get bonus coins when they take their first ride.
+                  Get a shareable card with your code — you both earn bonus coins.
                 </Text>
               </View>
               <TouchableOpacity
                 style={[styles.referralBtn, { backgroundColor: Colors.accent }]}
-                onPress={handleShareReferral}
+                onPress={() => router.push("/referral-card" as any)}
                 activeOpacity={0.85}
                 testID="wallet-share-referral"
               >
                 <Share2 color={Colors.onAccent} size={15} />
-                <Text style={[styles.referralBtnText, { color: Colors.onAccent }]}>Share</Text>
+                <Text style={[styles.referralBtnText, { color: Colors.onAccent }]}>Invite</Text>
               </TouchableOpacity>
             </View>
 
