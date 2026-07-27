@@ -64,9 +64,12 @@ Defaults (host/port, BLE service/characteristic UUIDs, name hints) live in
 ## Making it run on a device (native build)
 
 The transports depend on native modules that are **not** in `package.json` and
-are **not** available in Expo Go. Until they are installed the app runs fine and
-the panel reports the transport as unavailable / shows the GPS-blue speed pill.
-To enable real hardware:
+are **not** available in Expo Go. Crucially, `transports.ts` never `require`s
+them itself: the Metro/Rork bundler fails the build if it sees a `require` for a
+package that isn't installed (and rejects dynamic `require(variable)` outright).
+Instead the host app **injects** whichever modules it has. Until it does, the
+app runs fine, the panel reports the transport as unavailable, and the speed
+pill shows GPS-blue. To enable real hardware:
 
 1. Add the optional native deps (only the transports you need):
 
@@ -77,25 +80,43 @@ To enable real hardware:
    bun add react-native-usb-serialport-for-android   # USB (Android)
    ```
 
-2. Add config plugins / permissions in `expo/app.json`:
+2. Register them once at startup from a small file that **statically** requires
+   only the packages you installed (Metro can resolve those literals now that
+   they exist). Create `expo/utils/canbus/registerTransports.ts`:
+
+   ```ts
+   import { registerCanTransportModules } from "@/utils/canbus/transports";
+
+   registerCanTransportModules({
+     tcpSocket: require("react-native-tcp-socket"),
+     ble: require("react-native-ble-plx"),
+     usbSerial: require("react-native-usb-serialport-for-android"),
+   });
+   ```
+
+   …and import it once (e.g. at the top of `app/_layout.tsx`):
+   `import "@/utils/canbus/registerTransports";`. Include only the lines for the
+   deps you actually added.
+
+3. Add config plugins / permissions in `expo/app.json`:
    - `react-native-ble-plx` config plugin (adds `NSBluetoothAlwaysUsageDescription`,
      Android `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT`).
    - iOS local-network usage description for Wi-Fi TCP
      (`NSLocalNetworkUsageDescription`).
 
-3. Build a **custom dev client** (these modules can't run in Expo Go):
+4. Build a **custom dev client** (these modules can't run in Expo Go):
 
    ```bash
    bunx expo prebuild
    bunx expo run:android   # or run:ios
    ```
 
-4. Plug in / pair the adapter and open the partner Teksi screen → System Status →
+5. Plug in / pair the adapter and open the partner Teksi screen → System Status →
    **Connect adapter**.
 
-The module names are resolved with guarded `require`s, so none of the above is
-required just to compile — `getTransportAvailability()` simply reports each
-transport's `available`/`reason` and the UI degrades gracefully.
+With nothing registered, `getTransportAvailability()` reports every transport's
+`available: false` + `reason`, and the UI degrades gracefully — so none of the
+above is needed just to compile and ship.
 
 ## Simulator
 

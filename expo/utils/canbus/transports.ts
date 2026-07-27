@@ -7,10 +7,13 @@
  *
  * The native modules these wrap (`react-native-tcp-socket`,
  * `react-native-ble-plx`, a USB-serial module) are optional peer deps that
- * only exist in a custom dev-client / production build. Every reference to
- * them goes through a guarded `require`, so the app still compiles and runs
- * (in Expo Go, on web) when they are absent — it simply reports the transport
- * as unavailable, mirroring the repo's graceful-degradation convention.
+ * only exist in a custom dev-client / production build. This file NEVER
+ * `require`s them directly — the Metro/Rork bundler cannot resolve a module
+ * that isn't installed (and forbids dynamic `require(variable)` outright), so
+ * a stray require would break the whole build. Instead the host app *injects*
+ * whichever modules it has via {@link registerCanTransportModules}; with none
+ * registered (the default in Expo Go / on web) every transport simply reports
+ * as unavailable and the UI degrades gracefully. See docs/canbus-integration.md.
  */
 
 import { Platform } from "react-native";
@@ -31,14 +34,29 @@ import type {
   TransportAvailability,
 } from "./types";
 
-/** Best-effort optional require that never throws. */
-function optionalRequire(moduleName: string): any | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require(moduleName);
-  } catch {
-    return null;
-  }
+/**
+ * Native transport modules, injected by the host app when present. Keys map to
+ * the `require(...)` result of each optional package:
+ *  - `tcpSocket`  → `react-native-tcp-socket`
+ *  - `ble`        → `react-native-ble-plx`
+ *  - `usbSerial`  → `react-native-usb-serialport-for-android`
+ */
+export interface CanTransportModules {
+  tcpSocket?: any;
+  ble?: any;
+  usbSerial?: any;
+}
+
+let injectedModules: CanTransportModules = {};
+
+/**
+ * Register the optional native modules this build actually bundles. Call once
+ * at startup from a file that statically `require`s only the packages you have
+ * installed (Metro can resolve those literals because they exist). Safe to call
+ * repeatedly; later calls merge.
+ */
+export function registerCanTransportModules(modules: CanTransportModules): void {
+  injectedModules = { ...injectedModules, ...modules };
 }
 
 // --- tiny base64 codec (BLE characteristics ferry base64, no Buffer in RN) ---
@@ -105,7 +123,7 @@ class WifiTransport implements CanTransport {
   ) {}
 
   async connect(): Promise<CanDeviceInfo> {
-    const TcpSocket = optionalRequire("react-native-tcp-socket")?.default;
+    const TcpSocket = injectedModules.tcpSocket?.default;
     if (!TcpSocket) throw new Error("react-native-tcp-socket not installed");
     const info: CanDeviceInfo = {
       name: `${this.host}:${this.port}`,
@@ -164,7 +182,7 @@ class BleTransport implements CanTransport {
   private listeners = new Set<(chunk: string) => void>();
 
   async connect(): Promise<CanDeviceInfo> {
-    const ble = optionalRequire("react-native-ble-plx");
+    const ble = injectedModules.ble;
     if (!ble?.BleManager) throw new Error("react-native-ble-plx not installed");
     this.manager = new ble.BleManager();
 
@@ -248,8 +266,8 @@ class UsbTransport implements CanTransport {
   async connect(): Promise<CanDeviceInfo> {
     // USB-serial OBD adapters are Android-host only; there is no supported
     // path on iOS. A driver module (e.g. react-native-usb-serialport-for-android)
-    // must be installed for this to resolve.
-    const usb = optionalRequire("react-native-usb-serialport-for-android");
+    // must be injected for this to resolve.
+    const usb = injectedModules.usbSerial;
     if (!usb) throw new Error("USB serial module not installed");
     const devices = await usb.UsbSerialManager.list();
     if (!devices?.length) throw new Error("no USB serial device attached");
@@ -299,9 +317,9 @@ class UsbTransport implements CanTransport {
 
 /** Report which transports this build/device can actually attempt. */
 export function getTransportAvailability(): TransportAvailability[] {
-  const hasTcp = !!optionalRequire("react-native-tcp-socket");
-  const hasBle = !!optionalRequire("react-native-ble-plx")?.BleManager;
-  const hasUsb = !!optionalRequire("react-native-usb-serialport-for-android");
+  const hasTcp = !!injectedModules.tcpSocket;
+  const hasBle = !!injectedModules.ble?.BleManager;
+  const hasUsb = !!injectedModules.usbSerial;
   return [
     {
       kind: "wifi",
