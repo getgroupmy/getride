@@ -75,6 +75,46 @@ export async function clearPendingReferral(): Promise<void> {
   } catch {}
 }
 
+export interface MyReferrer {
+  /** The inviter's display name, when it's known. */
+  name: string | null;
+  /** The referral code the user signed up with. */
+  code: string | null;
+}
+
+/**
+ * Look up who invited the signed-in user via the `get_my_referrer` RPC
+ * (migration 0079). The `referrals` row is readable by the referred user,
+ * but the inviter's `profiles` row is not (self-read RLS), so a
+ * SECURITY DEFINER RPC resolves the name server-side.
+ *
+ * Returns null when the user wasn't referred, the RPC isn't deployed yet,
+ * or Supabase is unavailable — callers should simply hide the "Referred"
+ * badge in those cases.
+ */
+export async function fetchMyReferrer(): Promise<MyReferrer | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase.rpc("get_my_referrer");
+    if (error) {
+      const msg = String(error.message ?? "");
+      // RPC not migrated yet — treat as "no badge" rather than an error.
+      if (/could not find|does not exist|schema cache|PGRST202/i.test(msg)) {
+        return null;
+      }
+      throw error;
+    }
+    if (!data) return null;
+    const row = data as Record<string, unknown>;
+    const name = typeof row.name === "string" && row.name.trim() ? row.name.trim() : null;
+    const code = typeof row.code === "string" && row.code.trim() ? row.code.trim() : null;
+    return { name, code };
+  } catch (e) {
+    console.log("[referral] fetchMyReferrer failed", e);
+    return null;
+  }
+}
+
 export interface ApplyReferralResult {
   ok: boolean;
   /** GC credited to the new (referred) user. */

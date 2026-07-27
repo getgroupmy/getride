@@ -29,12 +29,14 @@ import {
   IdCard,
   MapPin,
   Lock,
+  UserPlus,
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePushNotifications } from "@/contexts/PushNotificationContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
+import { fetchMyReferrer, type MyReferrer } from "@/utils/referral";
 
 interface ProfileData {
   name: string;
@@ -58,6 +60,7 @@ export default function ProfileScreen() {
   const { unregister } = usePushNotifications();
 
   const [data, setData] = useState<ProfileData>({ name: "", email: "", avatar: "", country: "", idNumber: "", address: "", idImage: "" });
+  const [referrer, setReferrer] = useState<MyReferrer | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
@@ -113,6 +116,10 @@ export default function ProfileScreen() {
           // side sheets (and anything else listening) update immediately.
           refreshProfile().catch(() => {});
         }
+        // Who invited this user, if anyone (drives the "Referred" badge).
+        fetchMyReferrer()
+          .then((r) => setReferrer(r))
+          .catch(() => {});
       }
     } catch (e) {
       console.log("[profile] load error", e);
@@ -254,6 +261,18 @@ export default function ProfileScreen() {
               <Text style={styles.ratingText}>4.8</Text>
               <Text style={styles.ratingSub}>· Member</Text>
             </View>
+
+            {referrer ? (
+              <View style={styles.referredBadge} testID="profile-referred-badge">
+                <UserPlus color={Colors.accent} size={13} />
+                <Text style={styles.referredBadgeText} numberOfLines={1}>
+                  Referred
+                  {referrer.name ? (
+                    <Text style={styles.referredBadgeName}> · Invited by {referrer.name}</Text>
+                  ) : null}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.section}>
@@ -450,6 +469,21 @@ const makeStyles = (Colors: ReturnType<typeof useColors>) =>
     ratingRow: { flexDirection: "row" as const, alignItems: "center" as const, marginTop: 10, gap: 4 },
     ratingText: { fontSize: 15, fontWeight: "700" as const, color: Colors.text },
     ratingSub: { fontSize: 13, color: Colors.textSecondary },
+    referredBadge: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+      marginTop: 12,
+      maxWidth: "100%" as const,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: Colors.accent + "18",
+      borderWidth: 1,
+      borderColor: Colors.accent + "33",
+    },
+    referredBadgeText: { flexShrink: 1, fontSize: 12, fontWeight: "700" as const, color: Colors.accent },
+    referredBadgeName: { fontWeight: "600" as const, color: Colors.accent },
     section: { marginTop: 24 },
     sectionLabel: {
       fontSize: 12,
