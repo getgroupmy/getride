@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Home,
   Wallet as WalletIcon,
+  Sparkles,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
@@ -411,9 +412,17 @@ export default function WalletHistoryScreen() {
                       <cat.Icon color={cat.color} size={17} strokeWidth={2.4} />
                     </View>
                     <View style={styles.txTitleWrap}>
-                      <Text style={styles.txTitle} numberOfLines={1}>
-                        {meta.label}
-                      </Text>
+                      <View style={styles.txTitleRow}>
+                        <Text style={styles.txTitle} numberOfLines={1}>
+                          {meta.label}
+                        </Text>
+                        {isReferral ? (
+                          <View style={styles.referralBadge}>
+                            <Sparkles color={REFERRAL_HIGHLIGHT.badgeText} size={9} strokeWidth={2.6} />
+                            <Text style={styles.referralBadgeText}>BONUS</Text>
+                          </View>
+                        ) : null}
+                      </View>
                       <Text style={[styles.txCategory, { color: cat.color }]} numberOfLines={1}>
                         {cat.label}
                       </Text>
@@ -694,10 +703,31 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  txTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   txTitle: {
     fontSize: 15,
     fontWeight: "700" as const,
     color: "#1C1C1E",
+    flexShrink: 1,
+  },
+  referralBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    backgroundColor: REFERRAL_HIGHLIGHT.badgeBg,
+  },
+  referralBadgeText: {
+    fontSize: 9,
+    fontWeight: "800" as const,
+    letterSpacing: 0.5,
+    color: REFERRAL_HIGHLIGHT.badgeText,
   },
   txCategory: {
     fontSize: 11,

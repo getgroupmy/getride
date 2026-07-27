@@ -106,14 +106,17 @@ export type WalletTxCategoryId =
  * other wallet activity. Shared by the wallet screen and the history screen so
  * the highlight looks identical in both places.
  * - `rowBg` tints the whole activity row/card.
- * - `border` outlines the highlighted history card.
+ * - `border` outlines the highlighted row/card.
  * - `iconBg`/`icon` colour the leading gift-icon circle.
+ * - `badgeBg`/`badgeText` colour the little "BONUS" pill.
  */
 export const REFERRAL_HIGHLIGHT = {
   rowBg: "#FFF8E1",
   border: "#F1D592",
   iconBg: "#FBE7A1",
   icon: "#B8860B",
+  badgeBg: "#F6C445",
+  badgeText: "#6B4E00",
 } as const;
 
 /** True when the transaction is a referral bonus (golden-highlighted row). */

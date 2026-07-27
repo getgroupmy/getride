@@ -37,6 +37,7 @@ import {
   TrendingUp,
   Gift,
   Share2,
+  Sparkles,
 } from "lucide-react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
@@ -1167,9 +1168,17 @@ export default function WalletScreen() {
                         <cat.Icon color={cat.color} size={18} strokeWidth={2.4} />
                       </View>
                       <View style={styles.activityInfo}>
-                        <Text style={styles.activityLabel} numberOfLines={1}>
-                          {meta.label}
-                        </Text>
+                        <View style={styles.activityLabelRow}>
+                          <Text style={styles.activityLabel} numberOfLines={1}>
+                            {meta.label}
+                          </Text>
+                          {isReferral ? (
+                            <View style={styles.referralBadge}>
+                              <Sparkles color={REFERRAL_HIGHLIGHT.badgeText} size={9} strokeWidth={2.6} />
+                              <Text style={styles.referralBadgeText}>BONUS</Text>
+                            </View>
+                          ) : null}
+                        </View>
                         <View style={styles.activityMetaRow}>
                           <View style={[styles.categoryTag, { backgroundColor: cat.bg }]}>
                             <Text style={[styles.categoryTagText, { color: cat.color }]}>
@@ -1678,16 +1687,39 @@ const styles = StyleSheet.create({
   },
   activityRowReferral: {
     backgroundColor: REFERRAL_HIGHLIGHT.rowBg,
+    borderLeftWidth: 3,
+    borderLeftColor: REFERRAL_HIGHLIGHT.border,
   },
   activityInfo: {
     flex: 1,
     minWidth: 0,
   },
+  activityLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
   activityLabel: {
     fontSize: 15,
     fontWeight: "700" as const,
     color: "#1C1C1E",
-    marginBottom: 4,
+    flexShrink: 1,
+  },
+  referralBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    backgroundColor: REFERRAL_HIGHLIGHT.badgeBg,
+  },
+  referralBadgeText: {
+    fontSize: 9,
+    fontWeight: "800" as const,
+    letterSpacing: 0.5,
+    color: REFERRAL_HIGHLIGHT.badgeText,
   },
   activityMetaRow: {
     flexDirection: "row",
