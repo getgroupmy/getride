@@ -12,7 +12,9 @@ import {
   Platform,
   Image,
   useWindowDimensions,
+  Share,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
@@ -33,6 +35,8 @@ import {
   X,
   Coins,
   TrendingUp,
+  Gift,
+  Share2,
 } from "lucide-react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
@@ -62,6 +66,11 @@ import {
   type GetCoinSettings,
 } from "@/utils/getCoinStore";
 import { consumeWalletReloadRequest } from "@/utils/walletUiFlags";
+import {
+  referralCodeForUser,
+  buildReferralLink,
+  buildReferralMessage,
+} from "@/utils/referral";
 
 /**
  * Dollar-in-circle with an incoming arrow — matches the "Reload" reference icon.
@@ -246,6 +255,35 @@ export default function WalletScreen() {
     const timer = setTimeout(() => setSuccessNote(""), 2600);
     return () => clearTimeout(timer);
   }, [successNote]);
+
+  /** Opens the native share sheet with a referral deep link and bonus-coin pitch. */
+  const handleShareReferral = useCallback(async () => {
+    const code = referralCodeForUser(userId || "guest");
+    const link = buildReferralLink(code);
+    const message = buildReferralMessage(code, link);
+    console.log("[wallet] sharing referral", { code, link });
+    try {
+      if (Platform.OS === "web") {
+        const nav = navigator as Navigator & {
+          share?: (data: { title?: string; text?: string }) => Promise<void>;
+        };
+        if (nav.share) {
+          await nav.share({ title: "GET.ride referral", text: message });
+        } else {
+          await Clipboard.setStringAsync(message);
+          setSuccessNote("Referral link copied to clipboard!");
+        }
+        return;
+      }
+      await Share.share(
+        Platform.OS === "ios"
+          ? { message, url: link }
+          : { message }
+      );
+    } catch (e) {
+      console.log("[wallet] referral share dismissed/failed", e);
+    }
+  }, [userId]);
 
   const onRefresh = useCallback(async () => {
     await loadAll();
@@ -1016,6 +1054,28 @@ export default function WalletScreen() {
               </View>
             </View>
 
+            {/* Referral — invite friends, earn bonus GET.coin */}
+            <View style={styles.referralCard} testID="wallet-referral-card">
+              <View style={styles.referralIconWrap}>
+                <Gift color={Colors.accent} size={22} />
+              </View>
+              <View style={styles.referralInfo}>
+                <Text style={styles.referralTitle}>Invite friends, earn GET.coin</Text>
+                <Text style={styles.referralSub} numberOfLines={2}>
+                  Share your link — you both get bonus coins when they take their first ride.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.referralBtn, { backgroundColor: Colors.accent }]}
+                onPress={handleShareReferral}
+                activeOpacity={0.85}
+                testID="wallet-share-referral"
+              >
+                <Share2 color={Colors.onAccent} size={15} />
+                <Text style={[styles.referralBtnText, { color: Colors.onAccent }]}>Share</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Recent Activity */}
             <View style={styles.activityHeaderRow}>
               <Text style={styles.activityTitle}>Recent Activity</Text>
@@ -1491,6 +1551,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700" as const,
     color: "#92400E",
+  },
+  referralCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#D6EBF7",
+    backgroundColor: "#F2FAFE",
+    marginBottom: 18,
+  },
+  referralIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  referralInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  referralTitle: {
+    fontSize: 14,
+    fontWeight: "800" as const,
+    color: "#111827",
+    marginBottom: 2,
+  },
+  referralSub: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#6B7280",
+  },
+  referralBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  referralBtnText: {
+    fontSize: 13,
+    fontWeight: "800" as const,
   },
   activityHeaderRow: {
     flexDirection: "row",
