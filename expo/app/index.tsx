@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { MapPin, Menu, ChevronRight, Navigation, Search, Users, X, Car, Clock, Bell, ShoppingBag, Package, Building2, Truck, Bike, Bus, Plane, type LucideIcon } from "lucide-react-native";
+import { MapPin, Menu, ChevronRight, Navigation, Search, Users, X, Car, Clock, Bell, ShoppingBag, Package, Building2, Truck, Bike, Bus, Plane, Layers, type LucideIcon } from "lucide-react-native";
 import { MapView, Marker, reverseGeocode } from "@/utils/maps";
 import WebMap from "@/components/WebMap";
 import { runWithMappingRotation } from "@/utils/mappingClient";
@@ -100,6 +100,7 @@ export default function HomeScreen() {
   const params = useLocalSearchParams();
   const { authState } = useAuth();
   const mapRef = useRef<any>(null);
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const Colors = useColors();
   const { settings: displaySettings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const { colorScheme } = useTheme();
@@ -1297,6 +1298,7 @@ export default function HomeScreen() {
             ref={mapRef}
             style={[styles.map, { height: height + displaySettings.mapHeightOffset, marginTop: -displaySettings.mapHeightOffset }]}
             initialRegion={initialRegion}
+            mapType={mapType}
             showsUserLocation
             showsMyLocationButton={false}
             customMapStyle={colorScheme === "dark" ? darkMapStyle : lightMapStyle}
@@ -1326,6 +1328,7 @@ export default function HomeScreen() {
             style={[styles.map, { height: height + displaySettings.mapHeightOffset, marginTop: -displaySettings.mapHeightOffset }]}
             initialRegion={initialRegion}
             dark={colorScheme === "dark"}
+            satellite={mapType === "satellite"}
             accentColor={Colors.accent}
             userLocation={location ? { latitude: location.coords.latitude, longitude: location.coords.longitude } : null}
             markers={visibleVehicles.map((v) => ({
@@ -1537,6 +1540,30 @@ export default function HomeScreen() {
           }
         ]}
       >
+        <TouchableOpacity
+          style={[
+            styles.mapTypeButton,
+            {
+              backgroundColor: mapType === "satellite" ? Colors.accent : Colors.secondary,
+            },
+          ]}
+          onPress={() => {
+            setMapType((prev) => (prev === "standard" ? "satellite" : "standard"));
+          }}
+          activeOpacity={0.8}
+          testID="map-type-toggle"
+        >
+          <Layers
+            color={
+              mapType === "satellite"
+                ? "#fff"
+                : colorScheme === "dark"
+                  ? Colors.accent
+                  : "#000"
+            }
+            size={22}
+          />
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.recenterButton, { backgroundColor: Colors.secondary }]}
           onPress={() => {
@@ -2194,6 +2221,19 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  mapTypeButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,

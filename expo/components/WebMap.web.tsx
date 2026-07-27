@@ -53,6 +53,8 @@ interface WebMapProps {
   polylines?: WebMapPolylineSpec[];
   userLocation?: WebMapLatLng | null;
   interactive?: boolean;
+  /** Show satellite imagery tiles instead of the street map. */
+  satellite?: boolean;
   onRegionChange?: (region: WebMapRegion) => void;
   onRegionChangeComplete?: (region: WebMapRegion) => void;
   onPanDrag?: () => void;
@@ -63,8 +65,12 @@ const LIGHT_TILES =
   "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const DARK_TILES =
   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const SATELLITE_TILES =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+const SATELLITE_ATTRIBUTION =
+  "Imagery &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics";
 
 const DEFAULT_ACCENT = "#2dabe2";
 
@@ -201,6 +207,7 @@ const WebMap = forwardRef<WebMapHandle, WebMapProps>(function WebMap(
     polylines = [],
     userLocation = null,
     interactive = true,
+    satellite = false,
     onRegionChange,
     onRegionChangeComplete,
     onPanDrag,
@@ -271,7 +278,7 @@ const WebMap = forwardRef<WebMapHandle, WebMapProps>(function WebMap(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Tile layer follows light/dark theme.
+  // Tile layer follows light/dark theme and standard/satellite mode.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -279,14 +286,19 @@ const WebMap = forwardRef<WebMapHandle, WebMapProps>(function WebMap(
       tileRef.current.remove();
       tileRef.current = null;
     }
-    const tiles = L.tileLayer(dark ? DARK_TILES : LIGHT_TILES, {
-      attribution: TILE_ATTRIBUTION,
-      maxZoom: 19,
-      subdomains: "abcd",
-    });
+    const tiles = satellite
+      ? L.tileLayer(SATELLITE_TILES, {
+          attribution: SATELLITE_ATTRIBUTION,
+          maxZoom: 19,
+        })
+      : L.tileLayer(dark ? DARK_TILES : LIGHT_TILES, {
+          attribution: TILE_ATTRIBUTION,
+          maxZoom: 19,
+          subdomains: "abcd",
+        });
     tiles.addTo(map);
     tileRef.current = tiles;
-  }, [dark]);
+  }, [dark, satellite]);
 
   // Interactivity toggles (bottom sheet expanded, menu open, static maps).
   useEffect(() => {

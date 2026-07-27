@@ -46,6 +46,8 @@ interface WebMapProps {
   polylines?: WebMapPolylineSpec[];
   userLocation?: WebMapLatLng | null;
   interactive?: boolean;
+  /** Show satellite imagery tiles instead of the street map. */
+  satellite?: boolean;
   onRegionChange?: (region: WebMapRegion) => void;
   onRegionChangeComplete?: (region: WebMapRegion) => void;
   onPanDrag?: () => void;
