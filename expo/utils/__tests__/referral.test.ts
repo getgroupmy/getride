@@ -1,5 +1,11 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createSupabaseMock, type SupabaseMock } from "@/test-utils/supabaseMock";
-import { fetchMyReferrer } from "@/utils/referral";
+import {
+  fetchMyReferrer,
+  applyPendingReferral,
+  consumePendingReferralBonus,
+  subscribeReferralBonus,
+} from "@/utils/referral";
 
 jest.mock("@/utils/supabase", () => ({
   isSupabaseConfigured: true,
@@ -47,5 +53,59 @@ describe("fetchMyReferrer", () => {
     supabaseModule.isSupabaseConfigured = false;
     expect(await fetchMyReferrer()).toBeNull();
     expect(sb.rpcCalls).toHaveLength(0);
+  });
+});
+
+describe("referral welcome-bonus toast", () => {
+  let sb: SupabaseMock;
+
+  beforeEach(async () => {
+    sb = createSupabaseMock();
+    supabaseModule.supabase = sb.client;
+    supabaseModule.isSupabaseConfigured = true;
+    await AsyncStorage.clear();
+  });
+
+  it("returns null when no bonus is pending", async () => {
+    expect(await consumePendingReferralBonus()).toBeNull();
+  });
+
+  it("announces the referred user's bonus on a successful apply", async () => {
+    await AsyncStorage.setItem("referral:pending_code", "K3F9A2QX");
+    sb.queueRpcResult({
+      data: { ok: true, referred_coins: 25, referrer_coins: 10 },
+      error: null,
+    });
+
+    const received: number[] = [];
+    const unsubscribe = subscribeReferralBonus((coins) => received.push(coins));
+
+    const result = await applyPendingReferral();
+    unsubscribe();
+
+    expect(result?.ok).toBe(true);
+    expect(result?.referredCoins).toBe(25);
+    // Live listeners are notified with the credited amount...
+    expect(received).toEqual([25]);
+    // ...and the amount is persisted so a not-yet-mounted toast can still show it.
+    expect(await consumePendingReferralBonus()).toBe(25);
+    // Consuming clears the flag — it never fires twice.
+    expect(await consumePendingReferralBonus()).toBeNull();
+  });
+
+  it("does not announce a bonus when the referred user earns 0 coins", async () => {
+    await AsyncStorage.setItem("referral:pending_code", "K3F9A2QX");
+    sb.queueRpcResult({
+      data: { ok: true, referred_coins: 0, referrer_coins: 10 },
+      error: null,
+    });
+
+    const received: number[] = [];
+    const unsubscribe = subscribeReferralBonus((coins) => received.push(coins));
+    await applyPendingReferral();
+    unsubscribe();
+
+    expect(received).toEqual([]);
+    expect(await consumePendingReferralBonus()).toBeNull();
   });
 });
