@@ -51,6 +51,10 @@ import {
   AlertCircle,
   FileText,
   CreditCard,
+  Gauge,
+  Wifi,
+  Bluetooth,
+  Usb,
 } from "lucide-react-native";
 import { Modal } from "react-native";
 import * as Location from "expo-location";
@@ -78,6 +82,10 @@ import { fetchWalletBalances } from "@/utils/walletStore";
 import PartnerSideSheet from "@/components/PartnerSideSheet";
 import HeatmapOverlay from "@/components/HeatmapOverlay";
 import { useAirportAreas, applyAirportAreaFilter, AirportArea } from "@/utils/airportAreas";
+import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { useCanbus } from "@/hooks/useCanbus";
+import { TRANSPORT_LABEL } from "@/utils/canbus/types";
+import { formatTelemetryValue } from "@/utils/canbus/obd";
 
 type PlaceSuggestion = {
   id: string;
@@ -110,6 +118,14 @@ export default function DriverTeksiScreen() {
   const { location: currentLocation, refreshLocation } = useLocation();
   const Colors = useColors();
   const isLightMode = Colors.background === "#FFFFFF";
+
+  // Live CANBus / OBD-II vehicle link. Falls back to the telemetry simulator
+  // only when partner-side simulation is enabled (honestly flagged as sim).
+  const { settings: displaySettings } = useDisplaySettings();
+  const canbus = useCanbus({
+    autoConnect: true,
+    allowSimulator: displaySettings.partnerDriveSimEnabled,
+  });
 
   const [region, setRegion] = useState<Region>({
     latitude: currentLocation?.coords?.latitude ?? 3.139,
@@ -181,9 +197,44 @@ export default function DriverTeksiScreen() {
   const [pickerVehicles, setPickerVehicles] = useState<AssignableVehicle[]>([]);
 
   type SystemStatus = "ok" | "warn" | "error";
+
+  // --- Live CANBus row, derived from the real OBD-II connection state ---
+  const canbusState = canbus.state;
+  const canbusDevice = canbusState.device;
+  const canbusOnline = canbusState.phase === "online";
+  const canbusConnecting = canbus.connecting;
+  const canbusRowStatus: SystemStatus = canbusOnline
+    ? "ok"
+    : canbusConnecting
+    ? "warn"
+    : "error";
+  const canbusIcon = canbusDevice
+    ? canbusDevice.transport === "wifi"
+      ? Wifi
+      : canbusDevice.transport === "bluetooth"
+      ? Bluetooth
+      : Usb
+    : Cpu;
+  const canbusSub = canbusDevice
+    ? `${TRANSPORT_LABEL[canbusDevice.transport]} · ${canbusDevice.name}`
+    : "Vehicle ECU telemetry";
+  const canbusDetail = canbusOnline
+    ? [
+        canbusState.bitrateKbps ? `${canbusState.bitrateKbps} kbps` : null,
+        canbusState.simulated ? "linked (sim)" : "linked",
+        typeof canbusState.telemetry.speed === "number"
+          ? formatTelemetryValue("speed", canbusState.telemetry.speed)
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : canbusConnecting
+    ? "Connecting…"
+    : canbusState.error ?? "Not connected";
+
   const systemStatuses: { id: string; label: string; sub: string; status: SystemStatus; detail: string; icon: typeof Satellite }[] = [
     { id: "gnss", label: "GNSS", sub: "GPS / GLONASS / BEIDOU", status: "ok", detail: "14 sats · ±3.2m", icon: Satellite },
-    { id: "canbus", label: "CANBus", sub: "Vehicle ECU telemetry", status: "ok", detail: "500 kbps · linked", icon: Cpu },
+    { id: "canbus", label: "CANBus", sub: canbusSub, status: canbusRowStatus, detail: canbusDetail, icon: canbusIcon },
     { id: "display", label: "Passenger Display", sub: "Sub-mirror display", status: "ok", detail: "Connected · 1080p", icon: Monitor },
     { id: "printer", label: "Wired Printer", sub: "Receipt printer", status: "warn", detail: "Low paper roll", icon: Printer },
     { id: "mobile", label: "Mobile Data", sub: "4G / 5G / LTE", status: "ok", detail: "5G · -68 dBm", icon: Signal },
@@ -196,6 +247,20 @@ export default function DriverTeksiScreen() {
     : "ok";
   const statusColor = overallStatus === "ok" ? "#22C55E" : overallStatus === "warn" ? "#F59E0B" : "#EF4444";
   const statusLabel = overallStatus === "ok" ? "All systems normal" : overallStatus === "warn" ? "Attention needed" : "Issues detected";
+
+  // --- Speed pill: prefer live CANBus speed (green), fall back to GPS (blue) ---
+  const canbusSpeed = canbusState.telemetry.speed;
+  const speedFromCanbus = canbusOnline && typeof canbusSpeed === "number";
+  const gpsSpeedMs = currentLocation?.coords?.speed;
+  const gpsSpeedKmh =
+    typeof gpsSpeedMs === "number" && gpsSpeedMs >= 0
+      ? Math.round(gpsSpeedMs * 3.6)
+      : 0;
+  const speedKmh = speedFromCanbus
+    ? Math.max(0, Math.round(canbusSpeed as number))
+    : gpsSpeedKmh;
+  const speedColor = speedFromCanbus ? "#22C55E" : "#3B82F6";
+  const speedSource = speedFromCanbus ? "CANBus" : "GPS";
 
   useEffect(() => {
     if (!heatmapVisible) return;
@@ -1579,6 +1644,24 @@ export default function DriverTeksiScreen() {
                 {statusLabel}
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.speedPill,
+                {
+                  backgroundColor: isLightMode ? "#fff" : "rgba(0,0,0,0.7)",
+                  borderColor: speedColor + "55",
+                },
+              ]}
+              onPress={() => setStatusModalVisible(true)}
+              activeOpacity={0.8}
+              testID="partner-teksi-speed"
+            >
+              <Gauge color={speedColor} size={12} />
+              <Text style={[styles.speedValue, { color: speedColor }]}>{speedKmh}</Text>
+              <Text style={[styles.speedUnit, { color: Colors.subtext }]}>km/h</Text>
+              <Text style={[styles.speedSource, { color: speedColor }]}>{speedSource}</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={[styles.walletGapSpacer, { pointerEvents: "none" }]} />
@@ -2128,6 +2211,99 @@ export default function DriverTeksiScreen() {
                   </View>
                 );
               })}
+
+              {/* CANBus / OBD-II vehicle link controls */}
+              <View
+                style={[
+                  styles.canbusPanel,
+                  { backgroundColor: isLightMode ? "#F9FAFB" : "#111", borderColor: Colors.border },
+                ]}
+                testID="canbus-panel"
+              >
+                <View style={styles.canbusPanelHeader}>
+                  <Cpu color={Colors.text} size={16} />
+                  <Text style={[styles.canbusPanelTitle, { color: Colors.text }]}>Vehicle link (CANBus)</Text>
+                </View>
+
+                <Text style={[styles.canbusPanelSub, { color: Colors.textSecondary }]}>
+                  {canbusDevice
+                    ? `Connected via ${TRANSPORT_LABEL[canbusDevice.transport]} — ${canbusDevice.name}`
+                    : canbusConnecting
+                    ? "Searching for an OBD-II adapter…"
+                    : "No adapter connected"}
+                </Text>
+                {canbusState.protocol ? (
+                  <Text style={[styles.canbusPanelSub, { color: Colors.textSecondary }]}>
+                    {canbusState.protocol}
+                  </Text>
+                ) : null}
+
+                {/* Which physical transports this build can attempt */}
+                <View style={styles.canbusTransportRow}>
+                  {canbus.availability.map((a) => {
+                    const TIcon = a.kind === "wifi" ? Wifi : a.kind === "bluetooth" ? Bluetooth : Usb;
+                    const active = canbusDevice?.transport === a.kind && canbusOnline;
+                    const tint = active ? "#22C55E" : a.available ? Colors.textSecondary : "#9CA3AF";
+                    return (
+                      <View
+                        key={a.kind}
+                        style={[styles.canbusChip, { borderColor: tint + "55", opacity: a.available ? 1 : 0.5 }]}
+                      >
+                        <TIcon color={tint} size={12} />
+                        <Text style={[styles.canbusChipText, { color: tint }]}>
+                          {TRANSPORT_LABEL[a.kind]}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* Live telemetry grid when online */}
+                {canbusOnline ? (
+                  <View style={styles.canbusTelemetryGrid}>
+                    {(Object.keys(canbusState.telemetry) as (keyof typeof canbusState.telemetry)[]).map((k) => {
+                      const v = canbusState.telemetry[k];
+                      if (typeof v !== "number") return null;
+                      return (
+                        <View key={k} style={styles.canbusTelemetryCell}>
+                          <Text style={[styles.canbusTelemetryValue, { color: Colors.text }]}>
+                            {formatTelemetryValue(k, v)}
+                          </Text>
+                          <Text style={[styles.canbusTelemetryKey, { color: Colors.textSecondary }]}>{k}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={[
+                    styles.canbusButton,
+                    { backgroundColor: canbusOnline ? "#EF444422" : Colors.accent },
+                  ]}
+                  disabled={canbusConnecting}
+                  onPress={() => {
+                    if (canbusOnline) void canbus.disconnect();
+                    else void canbus.connect();
+                  }}
+                  testID="canbus-connect-button"
+                >
+                  <Text
+                    style={[
+                      styles.canbusButtonText,
+                      { color: canbusOnline ? "#EF4444" : "#000" },
+                    ]}
+                  >
+                    {canbusConnecting
+                      ? "Connecting…"
+                      : canbusOnline
+                      ? "Disconnect"
+                      : canbus.availableTransports.length > 0
+                      ? "Connect adapter"
+                      : "Retry"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -2831,10 +3007,107 @@ const styles = StyleSheet.create({
     fontWeight: "700" as const,
     letterSpacing: 0.2,
   },
+  speedPill: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  speedValue: {
+    fontSize: 13,
+    fontWeight: "800" as const,
+    letterSpacing: 0.2,
+  },
+  speedUnit: {
+    fontSize: 10,
+    fontWeight: "600" as const,
+  },
+  speedSource: {
+    fontSize: 9,
+    fontWeight: "700" as const,
+    letterSpacing: 0.3,
+    marginLeft: 2,
+  },
   statusBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end" as const,
+  },
+  canbusPanel: {
+    marginTop: 4,
+    marginHorizontal: 16,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  canbusPanelHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    marginBottom: 6,
+  },
+  canbusPanelTitle: {
+    fontSize: 14,
+    fontWeight: "800" as const,
+  },
+  canbusPanelSub: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  canbusTransportRow: {
+    flexDirection: "row" as const,
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  canbusChip: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  canbusChipText: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+  },
+  canbusTelemetryGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 10,
+    marginTop: 10,
+  },
+  canbusTelemetryCell: {
+    minWidth: 78,
+  },
+  canbusTelemetryValue: {
+    fontSize: 13,
+    fontWeight: "800" as const,
+  },
+  canbusTelemetryKey: {
+    fontSize: 10,
+    textTransform: "capitalize" as const,
+  },
+  canbusButton: {
+    marginTop: 14,
+    paddingVertical: 11,
+    borderRadius: 12,
+    alignItems: "center" as const,
+  },
+  canbusButtonText: {
+    fontSize: 14,
+    fontWeight: "800" as const,
   },
   statusSheet: {
     borderTopLeftRadius: 24,

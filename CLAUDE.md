@@ -10,7 +10,7 @@ The repository has two main subdirectories:
 - `expo/` — the React Native / Expo Router application (all app code lives here)
 - `supabase/` — database schema, seed data, and setup scripts
 
-Design/spec documents live in `docs/`. Currently: `docs/get-wallet-mcash-flow.md`, the planned (not yet implemented) re-basing of GET.wallet onto the MCash e-money platform via an `mcash-proxy` edge function — only the MCash logo on the wallet top-up screen and the schema groundwork (migration `0068`: `profiles.mcash_*` identity columns, `wallet_transactions.status`/`mcash_ref`) exist in code today.
+Design/spec documents live in `docs/`. Currently: `docs/get-wallet-mcash-flow.md`, the planned (not yet implemented) re-basing of GET.wallet onto the MCash e-money platform via an `mcash-proxy` edge function — only the MCash logo on the wallet top-up screen and the schema groundwork (migration `0068`: `profiles.mcash_*` identity columns, `wallet_transactions.status`/`mcash_ref`) exist in code today. Also `docs/canbus-integration.md`, the real OBD-II/ELM327 vehicle link behind the partner Teksi System Status panel and speed pill (`utils/canbus/*`, `hooks/useCanbus.ts`) — pure protocol layer + Wi-Fi/Bluetooth/USB transports behind guarded requires; the native transport modules are optional peer deps that need a custom dev-client build to actually connect to hardware.
 
 ## Commands
 
