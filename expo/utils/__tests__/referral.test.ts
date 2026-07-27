@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createSupabaseMock, type SupabaseMock } from "@/test-utils/supabaseMock";
 import {
   fetchMyReferrer,
+  fetchMyReferralCount,
   applyPendingReferral,
   consumePendingReferralBonus,
   subscribeReferralBonus,
@@ -53,6 +54,51 @@ describe("fetchMyReferrer", () => {
     supabaseModule.isSupabaseConfigured = false;
     expect(await fetchMyReferrer()).toBeNull();
     expect(sb.rpcCalls).toHaveLength(0);
+  });
+});
+
+describe("fetchMyReferralCount", () => {
+  let sb: SupabaseMock;
+
+  beforeEach(() => {
+    sb = createSupabaseMock();
+    supabaseModule.supabase = sb.client;
+    supabaseModule.isSupabaseConfigured = true;
+  });
+
+  it("counts the caller's own referral rows", async () => {
+    sb.queueResult({ data: null, count: 3, error: null } as any);
+    const count = await fetchMyReferralCount("user-1");
+    expect(count).toBe(3);
+    const query = sb.queries[0];
+    expect(query.table).toBe("referrals");
+    // Scoped to this account as the referrer.
+    const eq = query.steps.find((s) => s.method === "eq");
+    expect(eq?.args).toEqual(["referrer_user_id", "user-1"]);
+  });
+
+  it("returns 0 when the account has no referrals", async () => {
+    sb.queueResult({ data: null, count: 0, error: null } as any);
+    expect(await fetchMyReferralCount("user-1")).toBe(0);
+  });
+
+  it("returns null without querying when there is no user id", async () => {
+    expect(await fetchMyReferralCount(null)).toBeNull();
+    expect(sb.queries).toHaveLength(0);
+  });
+
+  it("returns null when Supabase is not configured", async () => {
+    supabaseModule.isSupabaseConfigured = false;
+    expect(await fetchMyReferralCount("user-1")).toBeNull();
+    expect(sb.queries).toHaveLength(0);
+  });
+
+  it("returns null (no throw) when the referrals table is not migrated yet", async () => {
+    sb.queueResult({
+      data: null,
+      error: { message: 'relation "public.referrals" does not exist', code: "42P01" },
+    } as any);
+    expect(await fetchMyReferralCount("user-1")).toBeNull();
   });
 });
 

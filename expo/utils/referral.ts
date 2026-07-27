@@ -182,6 +182,43 @@ export async function fetchMyReferrer(): Promise<MyReferrer | null> {
   }
 }
 
+/**
+ * Count how many users have successfully signed up using this account's
+ * referral code. The `referrals` table records one row per referred user and
+ * is readable by the referrer under the "referrals select own" RLS policy
+ * (migration 0078), so a `head`/`count` query over the caller's own rows
+ * needs no extra RPC.
+ *
+ * Returns the count (0 or more) when it can be determined, or null when it
+ * can't — Supabase unavailable, no authenticated session, the `referrals`
+ * table not migrated yet, or a query error — so callers can hide the counter
+ * rather than show a misleading zero.
+ */
+export async function fetchMyReferralCount(
+  userId: string | null | undefined
+): Promise<number | null> {
+  if (!isSupabaseConfigured || !supabase || !userId) return null;
+  try {
+    const { count, error } = await supabase
+      .from("referrals")
+      .select("id", { count: "exact", head: true })
+      .eq("referrer_user_id", userId);
+    if (error) {
+      const msg = String(error.message ?? "");
+      // Table not migrated yet (or RLS/permission issue) — treat as "unknown"
+      // rather than an error so the counter simply hides.
+      if (/does not exist|schema cache|relation|permission|PGRST\d+/i.test(msg)) {
+        return null;
+      }
+      throw error;
+    }
+    return Math.max(Number(count) || 0, 0);
+  } catch (e) {
+    console.log("[referral] fetchMyReferralCount failed", e);
+    return null;
+  }
+}
+
 export interface ApplyReferralResult {
   ok: boolean;
   /** GC credited to the new (referred) user. */
