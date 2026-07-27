@@ -2062,6 +2062,9 @@ create table if not exists public.get_coin_settings (
   signal_minting  boolean       not null default true,
   market_max_swing numeric(6,2) not null default 50,
   max_supply      numeric(18,2) not null default 0,
+  referral_enabled boolean not null default true,
+  referral_referrer_coins numeric(12,2) not null default 0,
+  referral_referred_coins numeric(12,2) not null default 0,
   currency text not null default 'RM',
   active boolean not null default true,
   updated_at timestamptz not null default now()
@@ -2077,7 +2080,10 @@ alter table public.get_coin_settings
   add column if not exists signal_signups  boolean       not null default true,
   add column if not exists signal_minting  boolean       not null default true,
   add column if not exists market_max_swing numeric(6,2) not null default 50,
-  add column if not exists max_supply      numeric(18,2) not null default 0;
+  add column if not exists max_supply      numeric(18,2) not null default 0,
+  add column if not exists referral_enabled boolean not null default true,
+  add column if not exists referral_referrer_coins numeric(12,2) not null default 0,
+  add column if not exists referral_referred_coins numeric(12,2) not null default 0;
 
 alter table public.get_coin_settings
   drop constraint if exists get_coin_settings_earn_rate_check;
@@ -2119,6 +2125,158 @@ create policy "get_coin_settings insert" on public.get_coin_settings for insert 
 create policy "get_coin_settings update" on public.get_coin_settings for update to public using (true) with check (true);
 
 grant select, insert, update on public.get_coin_settings to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- Referrals (0078/0079): invite friends, both earn bonus GET.coin. One
+-- referral per new user; apply_referral() records it and credits both wallets,
+-- get_my_referral() lets the referred user surface "You were invited by …".
+-- ----------------------------------------------------------------------------
+create table if not exists public.referrals (
+  id uuid primary key default gen_random_uuid(),
+  referrer_user_id uuid not null references public.profiles(id) on delete cascade,
+  referred_user_id uuid not null references public.profiles(id) on delete cascade,
+  code text not null,
+  referrer_coins numeric(12,2) not null default 0,
+  referred_coins numeric(12,2) not null default 0,
+  created_at timestamptz not null default now(),
+  unique (referred_user_id),
+  check (referrer_user_id <> referred_user_id)
+);
+
+create index if not exists referrals_referrer_idx
+  on public.referrals (referrer_user_id);
+
+alter table public.referrals enable row level security;
+
+drop policy if exists "referrals select own" on public.referrals;
+create policy "referrals select own" on public.referrals
+  for select to authenticated
+  using (auth.uid() = referrer_user_id or auth.uid() = referred_user_id);
+
+-- Apply a referral code — called by the NEW user right after signup.
+create or replace function public.apply_referral(p_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_code text := upper(regexp_replace(coalesce(p_code, ''), '[^a-zA-Z0-9]', '', 'g'));
+  v_referrer uuid;
+  v_enabled boolean := true;
+  v_referrer_coins numeric := 0;
+  v_referred_coins numeric := 0;
+begin
+  if v_user is null then
+    return jsonb_build_object('ok', false, 'error', 'not_authenticated');
+  end if;
+  if length(v_code) < 4 then
+    return jsonb_build_object('ok', false, 'error', 'invalid_code');
+  end if;
+
+  select coalesce(referral_enabled, true),
+         coalesce(referral_referrer_coins, 0),
+         coalesce(referral_referred_coins, 0)
+    into v_enabled, v_referrer_coins, v_referred_coins
+    from public.get_coin_settings
+   where id = 'master';
+
+  if not coalesce(v_enabled, true) then
+    return jsonb_build_object('ok', false, 'error', 'disabled');
+  end if;
+
+  select id into v_referrer
+    from public.profiles
+   where upper(coalesce(referral_code, '')) = v_code
+   limit 1;
+  if v_referrer is null then
+    select id into v_referrer
+      from public.profiles
+     where upper(replace(id::text, '-', '')) like v_code || '%'
+     limit 1;
+  end if;
+
+  if v_referrer is null then
+    return jsonb_build_object('ok', false, 'error', 'code_not_found');
+  end if;
+  if v_referrer = v_user then
+    return jsonb_build_object('ok', false, 'error', 'self_referral');
+  end if;
+  if exists (select 1 from public.referrals where referred_user_id = v_user) then
+    return jsonb_build_object('ok', false, 'error', 'already_referred');
+  end if;
+
+  insert into public.referrals
+    (referrer_user_id, referred_user_id, code, referrer_coins, referred_coins)
+  values
+    (v_referrer, v_user, v_code, v_referrer_coins, v_referred_coins);
+
+  if v_referrer_coins > 0 then
+    insert into public.wallet_transactions (user_id, wallet_type, kind, amount, method, note)
+    values (v_referrer, 'get_coin', 'referral', v_referrer_coins, 'referral', 'Referral bonus — a friend joined with your link');
+  end if;
+  if v_referred_coins > 0 then
+    insert into public.wallet_transactions (user_id, wallet_type, kind, amount, method, note)
+    values (v_user, 'get_coin', 'referral', v_referred_coins, 'referral', 'Welcome bonus — joined with a referral link');
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'referrer_coins', v_referrer_coins,
+    'referred_coins', v_referred_coins
+  );
+end;
+$$;
+
+grant execute on function public.apply_referral(text) to authenticated;
+
+-- Surface the caller's own referral (who invited them + welcome bonus). Only
+-- ever returns the caller's record, so it can safely read the inviter's name.
+create or replace function public.get_my_referral()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_referrer uuid;
+  v_referred_coins numeric := 0;
+  v_code text;
+  v_created timestamptz;
+  v_name text := '';
+begin
+  if v_user is null then
+    return jsonb_build_object('referred', false);
+  end if;
+
+  select referrer_user_id, coalesce(referred_coins, 0), code, created_at
+    into v_referrer, v_referred_coins, v_code, v_created
+    from public.referrals
+   where referred_user_id = v_user
+   limit 1;
+
+  if v_referrer is null then
+    return jsonb_build_object('referred', false);
+  end if;
+
+  select coalesce(nullif(trim(name), ''), '')
+    into v_name
+    from public.profiles
+   where id = v_referrer;
+
+  return jsonb_build_object(
+    'referred', true,
+    'referrer_name', v_name,
+    'referred_coins', v_referred_coins,
+    'code', v_code,
+    'created_at', v_created
+  );
+end;
+$$;
+
+grant execute on function public.get_my_referral() to authenticated;
 
 -- ----------------------------------------------------------------------------
 -- Ride rewards (0062): idempotent per-ride GC reward, anchored on

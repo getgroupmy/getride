@@ -37,6 +37,7 @@ import {
   TrendingUp,
   Gift,
   Share2,
+  UserCheck,
 } from "lucide-react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
@@ -70,6 +71,8 @@ import {
   referralCodeForUser,
   buildReferralLink,
   buildReferralMessage,
+  fetchMyReferral,
+  type MyReferral,
 } from "@/utils/referral";
 
 /**
@@ -143,6 +146,7 @@ export default function WalletScreen() {
   const [balances, setBalances] = useState<WalletBalances | null>(null);
   const [coinSettings, setCoinSettings] = useState<GetCoinSettings | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [myReferral, setMyReferral] = useState<MyReferral | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -169,14 +173,16 @@ export default function WalletScreen() {
       return;
     }
     try {
-      const [b, t, coin] = await Promise.all([
+      const [b, t, coin, referral] = await Promise.all([
         fetchWalletBalances(userId),
         fetchWalletTransactions(userId),
         fetchGetCoinSettings(),
+        fetchMyReferral(),
       ]);
       setBalances(b);
       setTransactions(t.transactions);
       setCoinSettings(coin);
+      setMyReferral(referral);
       setLastUpdated(new Date());
     } catch (e) {
       console.log("[wallet-screen] load failed", e);
@@ -1054,6 +1060,35 @@ export default function WalletScreen() {
               </View>
             </View>
 
+            {/* You were invited — shown once, after signing up via a referral link */}
+            {myReferral ? (
+              <View style={styles.invitedCard} testID="wallet-invited-card">
+                <View style={styles.invitedIconWrap}>
+                  <UserCheck color="#059669" size={22} />
+                </View>
+                <View style={styles.referralInfo}>
+                  <Text style={styles.invitedTitle} numberOfLines={1}>
+                    {myReferral.referrerName
+                      ? `You were invited by ${myReferral.referrerName}`
+                      : "You joined with a referral link"}
+                  </Text>
+                  <Text style={styles.invitedSub} numberOfLines={2}>
+                    {myReferral.referredCoins > 0
+                      ? `Welcome bonus of ${formatCoins(myReferral.referredCoins)} added to your GET.coin.`
+                      : "Welcome to GET.ride — enjoy the ride!"}
+                  </Text>
+                </View>
+                {myReferral.referredCoins > 0 ? (
+                  <View style={styles.invitedBonusPill}>
+                    <Coins color="#B45309" size={13} />
+                    <Text style={styles.invitedBonusText}>
+                      +{formatCoins(myReferral.referredCoins)}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
             {/* Referral — invite friends, earn bonus GET.coin */}
             <View style={styles.referralCard} testID="wallet-referral-card">
               <View style={styles.referralIconWrap}>
@@ -1562,6 +1597,50 @@ const styles = StyleSheet.create({
     borderColor: "#D6EBF7",
     backgroundColor: "#F2FAFE",
     marginBottom: 18,
+  },
+  invitedCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    backgroundColor: "#F0FDF4",
+    marginBottom: 12,
+  },
+  invitedIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  invitedTitle: {
+    fontSize: 14,
+    fontWeight: "800" as const,
+    color: "#065F46",
+    marginBottom: 2,
+  },
+  invitedSub: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#4B7C64",
+  },
+  invitedBonusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#FEF3C7",
+  },
+  invitedBonusText: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    color: "#B45309",
   },
   referralIconWrap: {
     width: 44,

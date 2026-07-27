@@ -84,6 +84,47 @@ export interface ApplyReferralResult {
   error?: string;
 }
 
+/** Who invited the current user, if they signed up with a referral link. */
+export interface MyReferral {
+  /** Display name of the inviter (may be "" if they never set a name). */
+  referrerName: string;
+  /** Welcome bonus (GC) the current user earned for joining via the link. */
+  referredCoins: number;
+  /** The referral code that was applied. */
+  code?: string;
+}
+
+/**
+ * Fetch the current user's own referral — "You were invited by …" plus the
+ * welcome bonus — via the `get_my_referral` RPC (migration 0079). Returns null
+ * when the user wasn't referred, when Supabase is unavailable, or when the RPC
+ * isn't migrated yet (so the wallet simply hides the card on older databases).
+ */
+export async function fetchMyReferral(): Promise<MyReferral | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase.rpc("get_my_referral");
+    if (error) {
+      const msg = String(error.message ?? "");
+      if (/could not find|does not exist|schema cache|PGRST202/i.test(msg)) {
+        console.log("[referral] get_my_referral RPC missing — hiding invited card");
+        return null;
+      }
+      throw error;
+    }
+    const row = (data ?? {}) as Record<string, unknown>;
+    if (row.referred !== true) return null;
+    return {
+      referrerName: typeof row.referrer_name === "string" ? row.referrer_name : "",
+      referredCoins: Math.max(Number(row.referred_coins) || 0, 0),
+      code: typeof row.code === "string" ? row.code : undefined,
+    };
+  } catch (e) {
+    console.log("[referral] fetchMyReferral failed", e);
+    return null;
+  }
+}
+
 /**
  * Apply the pending referral code for a freshly signed-up user via the
  * `apply_referral` RPC (migration 0078). Credits bonus GET.coin to both the
