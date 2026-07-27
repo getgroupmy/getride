@@ -31,34 +31,63 @@ type GetEntries = (key: string) => SettingEntry[];
  * before the settings sync finishes), falls back to a direct Supabase
  * lookup so the vehicle picker is never silently skipped.
  */
+/**
+ * Driving partner modes that require a vehicle BY DEFAULT when the admin
+ * partner-type entry does not carry an explicit `vehicleRequired` flag.
+ * Admins can still turn the requirement off per type in
+ * Admin → Settings → Partner Type (an explicit false wins over this default).
+ */
+const DEFAULT_VEHICLE_REQUIRED_MODES = new Set<string>([
+  "teksi",
+  "ehailing",
+  "phailing",
+]);
+
+type VehicleFlagMatch = {
+  found: boolean;
+  /** True when the entry explicitly carries a vehicleRequired key. */
+  hasFlag: boolean;
+  required: boolean;
+};
+
 export async function isVehicleRequiredForMode(
   mode: string,
   getEntries: GetEntries
 ): Promise<boolean> {
   const normalized = mode.trim().toLowerCase();
+  const fallbackDefault = DEFAULT_VEHICLE_REQUIRED_MODES.has(normalized);
 
-  const findMatch = (
-    entries: SettingEntry[]
-  ): { found: boolean; required: boolean } => {
+  const findMatch = (entries: SettingEntry[]): VehicleFlagMatch => {
     const match = entries.find(
       (e) => String(e.values?.name ?? "").trim().toLowerCase() === normalized
     );
+    const hasFlag =
+      Boolean(match?.values) &&
+      Object.prototype.hasOwnProperty.call(match?.values ?? {}, "vehicleRequired");
     return {
       found: Boolean(match),
+      hasFlag,
       required: Boolean(match?.values?.vehicleRequired),
     };
   };
 
+  const resolve = (m: VehicleFlagMatch, source: string): boolean => {
+    // Explicit admin choice always wins; missing flag falls back to the
+    // driving-mode default so the vehicle picker is never silently skipped
+    // for Teksi / eHailing / pHailing.
+    const result = m.hasFlag ? m.required : fallbackDefault;
+    console.log(
+      `[partnerModeOptions] vehicleRequired (${source})`,
+      normalized,
+      result,
+      m.hasFlag ? "(explicit)" : "(default)"
+    );
+    return result;
+  };
+
   const localEntries = getEntries("partner-type");
   const local = findMatch(localEntries);
-  if (local.found) {
-    console.log(
-      "[partnerModeOptions] vehicleRequired (cache)",
-      normalized,
-      local.required
-    );
-    return local.required;
-  }
+  if (local.found) return resolve(local, "cache");
 
   console.log(
     "[partnerModeOptions] partner-type cache miss (entries:",
@@ -66,7 +95,7 @@ export async function isVehicleRequiredForMode(
     ") — falling back to Supabase for",
     normalized
   );
-  if (!isSupabaseConfigured || !supabase) return false;
+  if (!isSupabaseConfigured || !supabase) return fallbackDefault;
   try {
     const { data, error } = await supabase
       .from("settings_entries")
@@ -77,18 +106,13 @@ export async function isVehicleRequiredForMode(
         "[partnerModeOptions] vehicleRequired fallback error",
         error.message
       );
-      return false;
+      return fallbackDefault;
     }
     const remote = findMatch((data ?? []) as SettingEntry[]);
-    console.log(
-      "[partnerModeOptions] vehicleRequired (supabase)",
-      normalized,
-      remote.found ? remote.required : "(no matching partner-type)"
-    );
-    return remote.required;
+    return resolve(remote, "supabase");
   } catch (e) {
     console.log("[partnerModeOptions] vehicleRequired fallback threw", e);
-    return false;
+    return fallbackDefault;
   }
 }
 
