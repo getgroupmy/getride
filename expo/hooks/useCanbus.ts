@@ -47,6 +47,8 @@ export interface UseCanbusResult {
   availableTransports: CanTransportKind[];
   connecting: boolean;
   connect: (kind?: CanTransportKind) => Promise<void>;
+  /** Explicit user-chosen Demo Mode — virtual data, honestly flagged as sim. */
+  connectDemo: () => void;
   disconnect: () => Promise<void>;
 }
 
@@ -185,6 +187,7 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     availableTransports,
     connecting,
     connect,
+    connectDemo: startSimulated,
     disconnect,
   };
 }

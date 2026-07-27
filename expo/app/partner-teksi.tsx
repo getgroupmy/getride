@@ -55,6 +55,7 @@ import {
   Wifi,
   Bluetooth,
   Usb,
+  Check,
 } from "lucide-react-native";
 import { Modal } from "react-native";
 import * as Location from "expo-location";
@@ -84,7 +85,7 @@ import HeatmapOverlay from "@/components/HeatmapOverlay";
 import { useAirportAreas, applyAirportAreaFilter, AirportArea } from "@/utils/airportAreas";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useCanbus } from "@/hooks/useCanbus";
-import { TRANSPORT_LABEL } from "@/utils/canbus/types";
+import { TRANSPORT_LABEL, type CanTransportKind } from "@/utils/canbus/types";
 import { formatTelemetryValue } from "@/utils/canbus/obd";
 
 type PlaceSuggestion = {
@@ -94,6 +95,63 @@ type PlaceSuggestion = {
   latitude: number;
   longitude: number;
 };
+
+/** OBD-II communication types offered in the connection picker. */
+type CommOptionId = "wifi" | "ble" | "mfi" | "usb" | "demo";
+
+interface CommOption {
+  id: CommOptionId;
+  title: string;
+  lines: string[];
+  /** Underlying transport this option maps to (demo has none). */
+  kind: CanTransportKind | null;
+  iosOnly?: boolean;
+  androidOnly?: boolean;
+}
+
+const COMM_OPTIONS: CommOption[] = [
+  {
+    id: "wifi",
+    title: "Wi-Fi",
+    kind: "wifi",
+    lines: [
+      "ELM327 compatible Wi-Fi adapters",
+      "It may be necessary to configure additional settings for your Wi-Fi adapter on the preferences page.",
+    ],
+  },
+  {
+    id: "ble",
+    title: "Bluetooth LE",
+    kind: "bluetooth",
+    lines: [
+      "ELM327 compatible Bluetooth LE (Low Energy) adapters.",
+      "Do NOT pair your adapter in the Bluetooth settings app. It will be found automatically when connecting.",
+    ],
+  },
+  {
+    id: "mfi",
+    title: "Bluetooth MFi",
+    kind: "bluetooth",
+    iosOnly: true,
+    lines: [
+      "Supported Bluetooth MFi Devices such as OBDLink MX+.",
+      "You must pair your adapter in the iOS Bluetooth settings",
+    ],
+  },
+  {
+    id: "usb",
+    title: "USB",
+    kind: "usb",
+    androidOnly: true,
+    lines: ["USB serial OBD-II adapters connected with an OTG cable."],
+  },
+  {
+    id: "demo",
+    title: "Demo Mode",
+    kind: null,
+    lines: ["View virtual data without connecting to a vehicle"],
+  },
+];
 
 let MapView: any = null;
 let RegionType: any = null;
@@ -186,6 +244,8 @@ export default function DriverTeksiScreen() {
   const [startConfirmVisible, setStartConfirmVisible] = useState<boolean>(false);
   const startConfirmAnim = useRef(new Animated.Value(0)).current;
   const [statusModalVisible, setStatusModalVisible] = useState<boolean>(false);
+  const [commTypeVisible, setCommTypeVisible] = useState<boolean>(false);
+  const [commChoice, setCommChoice] = useState<CommOptionId | null>(null);
   const [docPreviewVisible, setDocPreviewVisible] = useState<boolean>(false);
   const [docPreviewLoading, setDocPreviewLoading] = useState<boolean>(true);
   const [docPreviewError, setDocPreviewError] = useState<boolean>(false);
@@ -305,6 +365,58 @@ export default function DriverTeksiScreen() {
     : gpsSpeedKmh;
   const speedColor = speedFromCanbus ? "#22C55E" : "#3B82F6";
   const speedSource = speedFromCanbus ? "CANBus" : "GPS";
+
+  // --- OBD2 connection pill + communication-type picker ---
+  const obdLinked = canbusOnline && !canbusState.simulated;
+  const obdDemo = canbusOnline && canbusState.simulated;
+  const obdColor = obdLinked
+    ? "#22C55E"
+    : obdDemo || canbusConnecting
+    ? "#F59E0B"
+    : "#EF4444";
+  const obdStatusText = obdLinked
+    ? `${TRANSPORT_LABEL[canbusDevice?.transport ?? "bluetooth"]} linked`
+    : obdDemo
+    ? "Demo"
+    : canbusConnecting
+    ? "Connecting…"
+    : "Not connected";
+
+  const commOptions = useMemo(
+    () =>
+      COMM_OPTIONS.filter(
+        (o) =>
+          (!o.iosOnly || Platform.OS === "ios") &&
+          (!o.androidOnly || Platform.OS === "android"),
+      ),
+    [],
+  );
+
+  // Checkmark: explicit user choice wins, else derive from the live connection.
+  const derivedComm: CommOptionId | null = obdDemo
+    ? "demo"
+    : obdLinked && canbusDevice
+    ? canbusDevice.transport === "wifi"
+      ? "wifi"
+      : canbusDevice.transport === "usb"
+      ? "usb"
+      : "ble"
+    : null;
+  const selectedComm = commChoice ?? derivedComm;
+
+  const handleSelectCommType = React.useCallback(
+    (opt: CommOption) => {
+      setCommChoice(opt.id);
+      setCommTypeVisible(false);
+      console.log("[partner-teksi] OBD2 comm type selected:", opt.id);
+      if (opt.kind === null) {
+        canbus.connectDemo();
+      } else {
+        void canbus.connect(opt.kind);
+      }
+    },
+    [canbus],
+  );
 
   useEffect(() => {
     if (!heatmapVisible) return;
@@ -1706,6 +1818,25 @@ export default function DriverTeksiScreen() {
               <Text style={[styles.speedUnit, { color: Colors.subtext }]}>km/h</Text>
               <Text style={[styles.speedSource, { color: speedColor }]}>{speedSource}</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.speedPill,
+                {
+                  backgroundColor: isLightMode ? "#fff" : "rgba(0,0,0,0.7)",
+                  borderColor: obdColor + "55",
+                },
+              ]}
+              onPress={() => setCommTypeVisible(true)}
+              activeOpacity={0.8}
+              testID="partner-teksi-obd2"
+            >
+              <Cpu color={obdColor} size={12} />
+              <Text style={[styles.obdPillLabel, { color: Colors.text }]}>OBD2</Text>
+              <Text style={[styles.speedSource, { color: obdColor }]} numberOfLines={1}>
+                {obdStatusText}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={[styles.walletGapSpacer, { pointerEvents: "none" }]} />
@@ -2182,6 +2313,107 @@ export default function DriverTeksiScreen() {
         visible={sideSheetVisible}
         onClose={() => setSideSheetVisible(false)}
       />
+
+      {/* OBD2 Communication Type Modal */}
+      <Modal
+        visible={commTypeVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCommTypeVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.statusBackdrop}
+          activeOpacity={1}
+          onPress={() => setCommTypeVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[
+              styles.statusSheet,
+              {
+                backgroundColor: Colors.background,
+                paddingBottom: insets.bottom + 20,
+              },
+            ]}
+          >
+            <View style={[styles.handle, { backgroundColor: Colors.border, marginTop: 12 }]} />
+            <View style={styles.commHeaderRow}>
+              <Text style={[styles.commHeaderText, { color: Colors.text }]}>COMMUNICATION TYPE</Text>
+              <TouchableOpacity
+                onPress={() => setCommTypeVisible(false)}
+                style={[styles.statusClose, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}
+                testID="comm-type-close"
+              >
+                <X color={Colors.text} size={18} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.commSubText, { color: Colors.textSecondary }]}>
+              {obdLinked && canbusDevice
+                ? `Connected via ${TRANSPORT_LABEL[canbusDevice.transport]} — ${canbusDevice.name}`
+                : obdDemo
+                ? "Demo Mode — virtual vehicle data"
+                : "No OBD-II adapter connected. Select how to connect to your vehicle."}
+            </Text>
+
+            <ScrollView
+              style={{ maxHeight: 480 }}
+              contentContainerStyle={{ paddingBottom: 8 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <View
+                style={[
+                  styles.commCard,
+                  {
+                    backgroundColor: isLightMode ? "#F9FAFB" : "#111",
+                    borderColor: Colors.border,
+                  },
+                ]}
+              >
+                {commOptions.map((opt, idx) => {
+                  const avail = opt.kind
+                    ? canbus.availability.find((a) => a.kind === opt.kind)
+                    : null;
+                  const unavailable = !!opt.kind && !(avail?.available ?? false);
+                  const isSelected = selectedComm === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      style={[
+                        styles.commRow,
+                        idx > 0 && {
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: Colors.border,
+                        },
+                      ]}
+                      onPress={() => handleSelectCommType(opt)}
+                      activeOpacity={0.7}
+                      testID={`comm-type-${opt.id}`}
+                    >
+                      <View style={{ flex: 1, opacity: unavailable ? 0.55 : 1 }}>
+                        <Text style={[styles.commTitle, { color: Colors.text }]}>{opt.title}</Text>
+                        {opt.lines.map((line, i) => (
+                          <Text
+                            key={`${opt.id}-line-${i}`}
+                            style={[styles.commLine, { color: Colors.textSecondary }]}
+                          >
+                            {line}
+                          </Text>
+                        ))}
+                        {unavailable ? (
+                          <Text style={styles.commHint}>Not available in this build</Text>
+                        ) : null}
+                      </View>
+                      <View style={styles.commCheckSlot}>
+                        {isSelected ? <Check color="#3B82F6" size={24} strokeWidth={3} /> : null}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* System Status Modal */}
       <Modal
@@ -3080,6 +3312,62 @@ const styles = StyleSheet.create({
     fontWeight: "700" as const,
     letterSpacing: 0.3,
     marginLeft: 2,
+  },
+  obdPillLabel: {
+    fontSize: 11,
+    fontWeight: "800" as const,
+    letterSpacing: 0.3,
+  },
+  commHeaderRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  commHeaderText: {
+    fontSize: 16,
+    fontWeight: "800" as const,
+    letterSpacing: 1,
+  },
+  commSubText: {
+    fontSize: 12,
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  commCard: {
+    marginHorizontal: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: "hidden" as const,
+  },
+  commRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 10,
+  },
+  commTitle: {
+    fontSize: 17,
+    fontWeight: "800" as const,
+    marginBottom: 6,
+  },
+  commLine: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  commHint: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    color: "#9CA3AF",
+    marginTop: 2,
+  },
+  commCheckSlot: {
+    width: 28,
+    alignItems: "center" as const,
   },
   statusBackdrop: {
     flex: 1,
