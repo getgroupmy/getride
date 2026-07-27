@@ -354,7 +354,11 @@ export default function DriverTeksiScreen() {
   );
 
   const canbusSpeed = canbusState.telemetry.speed;
-  const speedFromCanbus = canbusOnline && typeof canbusSpeed === "number";
+  // Only a REAL adapter link drives the speedometer. In Demo Mode the CANBus
+  // telemetry is simulated, so the speed pill silently falls back to live GPS
+  // in the background — the demo never fakes the vehicle's actual speed.
+  const speedFromCanbus =
+    canbusOnline && !canbusState.simulated && typeof canbusSpeed === "number";
   const gpsSpeedMs = watchedGpsSpeedMs ?? currentLocation?.coords?.speed;
   const gpsSpeedKmh =
     typeof gpsSpeedMs === "number" && gpsSpeedMs > 0
