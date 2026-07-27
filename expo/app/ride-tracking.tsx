@@ -89,6 +89,24 @@ const darkMapStyle = [
 ];
 
 /** Compass bearing between two coordinates, in degrees. */
+/** Great-circle distance between two coordinates in kilometres. */
+function haversineKm(a: Coord, b: Coord): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLng = toRad(b.longitude - a.longitude);
+  const s =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(a.latitude)) *
+      Math.cos(toRad(b.latitude)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+/** Average city driving speed used to convert distance into an ETA. */
+const AVG_CITY_SPEED_KMH = 26;
+
 function computeBearing(from: Coord, to: Coord): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const toDeg = (r: number) => (r * 180) / Math.PI;
@@ -607,6 +625,38 @@ export default function RideTrackingScreen() {
     longitudeDelta: Math.abs(driverStart.longitude - pickupLng) * 2.2 || 0.04,
   };
 
+  // Remaining driving distance for the current leg. Prefer summing the
+  // remaining route polyline (road distance); fall back to the straight-line
+  // distance to the leg target when no route is loaded yet.
+  const remainingKm = useMemo<number>(() => {
+    if (remainingCoords.length > 1) {
+      let sum = 0;
+      for (let i = 0; i < remainingCoords.length - 1; i++) {
+        sum += haversineKm(remainingCoords[i], remainingCoords[i + 1]);
+      }
+      return sum;
+    }
+    const target = phase === "arriving" ? pickupCoord : destCoord;
+    return haversineKm(driverPos, target);
+  }, [remainingCoords, driverPos, phase, pickupCoord, destCoord]);
+
+  // Distance-based ETA (minutes) and projected arrival clock time.
+  const distanceEtaMin = useMemo<number>(
+    () => Math.max(1, Math.ceil((remainingKm / AVG_CITY_SPEED_KMH) * 60)),
+    [remainingKm]
+  );
+  const arrivalClock = useMemo<string>(() => {
+    const d = new Date(Date.now() + distanceEtaMin * 60_000);
+    const h = d.getHours();
+    const m = d.getMinutes();
+    const hh = ((h + 11) % 12) + 1;
+    const ampm = h >= 12 ? "PM" : "AM";
+    return `${hh}:${m < 10 ? `0${m}` : m} ${ampm}`;
+  }, [distanceEtaMin]);
+  const showEtaChip = phase === "arriving" || phase === "onTrip";
+  const distanceLabel =
+    remainingKm < 1 ? `${Math.max(50, Math.round(remainingKm * 1000 / 10) * 10)} m` : `${remainingKm.toFixed(1)} km`;
+
   const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.6] });
   const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
 
@@ -707,6 +757,20 @@ export default function RideTrackingScreen() {
               : []
           }
         />
+      )}
+
+      {/* Distance-based ETA chip */}
+      {showEtaChip && (
+        <View style={[styles.etaChipWrap, { top: insets.top + 64 }]} pointerEvents="none">
+          <View style={[styles.etaChip, { backgroundColor: Colors.background }]}>
+            <View style={[styles.etaChipBadge, { backgroundColor: Colors.accent }]}>
+              <Text style={styles.etaChipBadgeText}>{distanceEtaMin} min</Text>
+            </View>
+            <Text style={[styles.etaChipText, { color: Colors.text }]} numberOfLines={1}>
+              {distanceLabel} · {phase === "arriving" ? "pickup" : "arrival"} {arrivalClock}
+            </Text>
+          </View>
+        </View>
       )}
 
       {/* Top status pill */}
@@ -1226,6 +1290,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 4,
+  },
+
+  etaChipWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 9,
+  },
+  etaChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 20,
+    paddingRight: 14,
+    paddingLeft: 4,
+    paddingVertical: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  etaChipBadge: {
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
+  },
+  etaChipBadgeText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800" as const,
+  },
+  etaChipText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
   },
 
   recenterBtn: {
