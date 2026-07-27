@@ -249,11 +249,55 @@ export default function DriverTeksiScreen() {
   const statusLabel = overallStatus === "ok" ? "All systems normal" : overallStatus === "warn" ? "Attention needed" : "Issues detected";
 
   // --- Speed pill: prefer live CANBus speed (green), fall back to GPS (blue) ---
+  // The app-wide location context only takes one-shot fixes (speed is stale/0),
+  // so while this screen is focused we run a continuous high-accuracy GPS watch
+  // purely to feed the speedometer.
+  const [watchedGpsSpeedMs, setWatchedGpsSpeedMs] = useState<number | null>(null);
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
+      let sub: Location.LocationSubscription | null = null;
+      (async () => {
+        try {
+          let { status } = await Location.getForegroundPermissionsAsync();
+          if (status !== "granted") {
+            status = (await Location.requestForegroundPermissionsAsync()).status;
+          }
+          if (status !== "granted" || cancelled) return;
+          sub = await Location.watchPositionAsync(
+            {
+              accuracy: Location.Accuracy.BestForNavigation,
+              timeInterval: 1000,
+              distanceInterval: 0,
+            },
+            (pos) => {
+              if (cancelled) return;
+              const s = pos.coords.speed;
+              setWatchedGpsSpeedMs(typeof s === "number" && Number.isFinite(s) ? s : null);
+            },
+          );
+          if (cancelled) {
+            sub.remove();
+            sub = null;
+          }
+        } catch (e) {
+          console.log("[partner-teksi] GPS speed watch failed", e);
+        }
+      })();
+      return () => {
+        cancelled = true;
+        sub?.remove();
+        sub = null;
+        setWatchedGpsSpeedMs(null);
+      };
+    }, [])
+  );
+
   const canbusSpeed = canbusState.telemetry.speed;
   const speedFromCanbus = canbusOnline && typeof canbusSpeed === "number";
-  const gpsSpeedMs = currentLocation?.coords?.speed;
+  const gpsSpeedMs = watchedGpsSpeedMs ?? currentLocation?.coords?.speed;
   const gpsSpeedKmh =
-    typeof gpsSpeedMs === "number" && gpsSpeedMs >= 0
+    typeof gpsSpeedMs === "number" && gpsSpeedMs > 0
       ? Math.round(gpsSpeedMs * 3.6)
       : 0;
   const speedKmh = speedFromCanbus
