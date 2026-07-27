@@ -116,6 +116,29 @@ export async function isVehicleRequiredForMode(
   }
 }
 
+/**
+ * Fetch partner-type entries straight from Supabase. Used as a fallback
+ * when the in-memory admin-data cache hasn't synced yet, so custom icons
+ * and descriptions are never silently dropped on a cold start.
+ */
+async function fetchPartnerTypeEntriesRemote(): Promise<SettingEntry[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("settings_entries")
+      .select("id, values")
+      .eq("category", "partner-type");
+    if (error) {
+      console.log("[partnerModeOptions] remote partner-type fetch error", error.message);
+      return [];
+    }
+    return (data ?? []) as SettingEntry[];
+  } catch (e) {
+    console.log("[partnerModeOptions] remote partner-type fetch threw", e);
+    return [];
+  }
+}
+
 export async function loadAssignedPartnerModeOptions(
   userId: string | null | undefined,
   getEntries: GetEntries
@@ -125,7 +148,11 @@ export async function loadAssignedPartnerModeOptions(
     const prof = await fetchUserProfile(userId);
     const part = await findOrCreatePartner(userId, prof);
     const assigned = part?.partner_types ?? [];
-    const entries = getEntries("partner-type");
+    let entries = getEntries("partner-type");
+    if (entries.length === 0) {
+      console.log("[partnerModeOptions] cache empty — fetching partner-type entries from Supabase");
+      entries = await fetchPartnerTypeEntriesRemote();
+    }
     const byName = new Map<string, { description?: string; iconUrl?: string }>();
     for (const e of entries) {
       const n = String(e.values?.name ?? "").trim();
