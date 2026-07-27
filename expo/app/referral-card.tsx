@@ -19,6 +19,7 @@ import {
   Gift,
   Sparkles,
   Link as LinkIcon,
+  Users,
 } from "lucide-react-native";
 import QRCodeLib from "qrcode";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -33,6 +34,7 @@ import {
   referralCodeForUser,
   buildReferralLink,
   buildReferralMessage,
+  fetchMyReferralCount,
 } from "@/utils/referral";
 
 const BRAND_BLUE = "#2dabe2";
@@ -216,6 +218,7 @@ export default function ReferralCardScreen() {
   const inviterName = (authState.profileName ?? "").trim();
 
   const [coinSettings, setCoinSettings] = useState<GetCoinSettings | null>(null);
+  const [referralCount, setReferralCount] = useState<number | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
   const [sharing, setSharing] = useState<boolean>(false);
   const posterRef = useRef<View>(null);
@@ -233,6 +236,14 @@ export default function ReferralCardScreen() {
       .then((s) => setCoinSettings(s))
       .catch((e) => console.log("[referral-card] settings load failed", e));
   }, []);
+
+  // How many friends have signed up with this account's code so far.
+  useEffect(() => {
+    if (userId === "guest") return;
+    fetchMyReferralCount(userId)
+      .then((n) => setReferralCount(n))
+      .catch((e) => console.log("[referral-card] referral count load failed", e));
+  }, [userId]);
 
   useEffect(() => {
     return () => {
@@ -330,6 +341,26 @@ export default function ReferralCardScreen() {
           Share this card on Instagram or WhatsApp. When a friend joins with your
           code, you both earn bonus GET.coin.
         </Text>
+
+        {/* Total referrals — how many friends joined with this account's code */}
+        {referralCount !== null ? (
+          <View style={styles.statCard} testID="referral-card-total">
+            <View style={styles.statIconWrap}>
+              <Users color={BRAND_BLUE_DARK} size={22} />
+            </View>
+            <View style={styles.statBody}>
+              <Text style={styles.statLabel}>Total referrals</Text>
+              <Text style={styles.statHint}>
+                {referralCount === 1
+                  ? "friend signed up with your code"
+                  : "friends signed up with your code"}
+              </Text>
+            </View>
+            <Text style={styles.statValue} testID="referral-card-total-value">
+              {referralCount}
+            </Text>
+          </View>
+        ) : null}
 
         {/* On-screen preview */}
         <View style={styles.previewWrap} testID="referral-card-preview">
@@ -440,6 +471,31 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     paddingHorizontal: 6,
   },
+  statCard: {
+    alignSelf: "stretch" as const,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#D6EBF7",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 18,
+  },
+  statIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#EAF6FD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statBody: { flex: 1 },
+  statLabel: { fontSize: 15, fontWeight: "800" as const, color: "#0F172A" },
+  statHint: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  statValue: { fontSize: 26, fontWeight: "900" as const, color: BRAND_BLUE_DARK },
   previewWrap: {
     borderRadius: 28,
     shadowColor: "#1B6E92",
