@@ -22,6 +22,7 @@ import {
   Gift,
   TrendingUp,
   Database,
+  Users,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -67,6 +68,9 @@ export default function AdminSettingsGetCoinScreen() {
   const [swingInput, setSwingInput] = useState<string>("50");
   const [supplyInput, setSupplyInput] = useState<string>("0");
   const [stats, setStats] = useState<CoinMarketStats | null>(null);
+  const [referralEnabled, setReferralEnabled] = useState<boolean>(true);
+  const [refReferrerInput, setRefReferrerInput] = useState<string>("0");
+  const [refReferredInput, setRefReferredInput] = useState<string>("0");
 
   const applySettings = useCallback((s: GetCoinSettings) => {
     setSettings(s);
@@ -80,6 +84,9 @@ export default function AdminSettingsGetCoinScreen() {
     setSigMinting(s.signalMinting);
     setSwingInput(formatRate(s.maxSwingPct));
     setSupplyInput(formatRate(s.maxSupply));
+    setReferralEnabled(s.referralEnabled);
+    setRefReferrerInput(formatRate(s.referralReferrerCoins));
+    setRefReferredInput(formatRate(s.referralReferredCoins));
   }, []);
 
   const load = useCallback(async () => {
@@ -120,6 +127,16 @@ export default function AdminSettingsGetCoinScreen() {
     return Number.isFinite(n) && n >= 0 ? n : 0;
   }, [supplyInput]);
 
+  const parsedRefReferrer = useMemo(() => {
+    const n = Number(refReferrerInput.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  }, [refReferrerInput]);
+
+  const parsedRefReferred = useMemo(() => {
+    const n = Number(refReferredInput.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  }, [refReferredInput]);
+
   const dirty =
     settings !== null &&
     parsedRate > 0 &&
@@ -132,7 +149,10 @@ export default function AdminSettingsGetCoinScreen() {
       sigSignups !== settings.signalSignups ||
       sigMinting !== settings.signalMinting ||
       parsedSwing !== settings.maxSwingPct ||
-      parsedSupply !== settings.maxSupply);
+      parsedSupply !== settings.maxSupply ||
+      referralEnabled !== settings.referralEnabled ||
+      parsedRefReferrer !== settings.referralReferrerCoins ||
+      parsedRefReferred !== settings.referralReferredCoins);
 
   /** Draft settings from the unsaved inputs, for the live market preview. */
   const draft = useMemo<GetCoinSettings | null>(() => {
@@ -189,6 +209,9 @@ export default function AdminSettingsGetCoinScreen() {
       signalMinting: sigMinting,
       maxSwingPct: parsedSwing,
       maxSupply: parsedSupply,
+      referralEnabled,
+      referralReferrerCoins: parsedRefReferrer,
+      referralReferredCoins: parsedRefReferred,
     });
     setSaving(false);
     if (!res.ok) {
@@ -494,6 +517,95 @@ export default function AdminSettingsGetCoinScreen() {
                       </Text>
                     </View>
                   ) : null}
+                </>
+              ) : null}
+            </View>
+
+            {/* Referral Rewards */}
+            <View style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+              <View style={styles.cardTitleRow}>
+                <Users color={Colors.accent} size={18} />
+                <Text style={[styles.cardTitle, { color: Colors.text }]}>Referral Rewards</Text>
+              </View>
+              <Text style={[styles.cardSub, { color: Colors.textSecondary }]}>
+                Bonus GET.coin when a new user signs up with a shared referral link. Both
+                sides are credited automatically the moment the new account is created.
+              </Text>
+
+              <View style={styles.toggleRow}>
+                <Text style={[styles.toggleLabel, { color: Colors.text }]}>Referral program</Text>
+                <Switch
+                  value={referralEnabled}
+                  onValueChange={setReferralEnabled}
+                  trackColor={{ false: Colors.gray[200], true: Colors.accent + "66" }}
+                  thumbColor={referralEnabled ? Colors.accent : "#9CA3AF"}
+                  testID="getcoin-referral-toggle"
+                />
+              </View>
+
+              {referralEnabled ? (
+                <>
+                  <View style={styles.smallInputRow}>
+                    <Text style={[styles.smallInputLabel, { color: Colors.text }]}>
+                      Inviter earns
+                    </Text>
+                    <View
+                      style={[
+                        styles.smallInputWrap,
+                        { borderColor: Colors.border, backgroundColor: Colors.background },
+                      ]}
+                    >
+                      <TextInput
+                        style={[styles.smallInput, { color: Colors.text }]}
+                        value={refReferrerInput}
+                        onChangeText={(t) => {
+                          setRefReferrerInput(t);
+                          setError("");
+                        }}
+                        keyboardType="decimal-pad"
+                        placeholder="0"
+                        placeholderTextColor={Colors.textSecondary}
+                        testID="getcoin-referral-referrer-input"
+                      />
+                      <Text style={[styles.smallInputUnit, { color: "#A16207" }]}>GC</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.smallInputRow}>
+                    <Text style={[styles.smallInputLabel, { color: Colors.text }]}>
+                      New user earns
+                    </Text>
+                    <View
+                      style={[
+                        styles.smallInputWrap,
+                        { borderColor: Colors.border, backgroundColor: Colors.background },
+                      ]}
+                    >
+                      <TextInput
+                        style={[styles.smallInput, { color: Colors.text }]}
+                        value={refReferredInput}
+                        onChangeText={(t) => {
+                          setRefReferredInput(t);
+                          setError("");
+                        }}
+                        keyboardType="decimal-pad"
+                        placeholder="0"
+                        placeholderTextColor={Colors.textSecondary}
+                        testID="getcoin-referral-referred-input"
+                      />
+                      <Text style={[styles.smallInputUnit, { color: "#A16207" }]}>GC</Text>
+                    </View>
+                  </View>
+
+                  <Text style={[styles.inverseText, { color: Colors.textSecondary }]}>
+                    {parsedRefReferrer > 0 || parsedRefReferred > 0
+                      ? `Each sign-up mints ${formatRate(parsedRefReferrer + parsedRefReferred)} GC in total${
+                          parsedRate > 0
+                            ? ` (≈ RM ${coinsToCurrency(parsedRefReferrer + parsedRefReferred, parsedRate).toFixed(2)})`
+                            : ""
+                        }.`
+                      : "Both amounts are 0 — referrals are tracked but no coins are paid."}
+                  </Text>
                 </>
               ) : null}
             </View>

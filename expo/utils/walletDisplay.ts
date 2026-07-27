@@ -85,6 +85,8 @@ export function walletTxMeta(
       return { label: "Transfer Sent", Icon: ArrowUpRight, color: colors.danger };
     case "transfer_in":
       return { label: "Transfer Received", Icon: ArrowDownLeft, color: colors.success };
+    case "referral":
+      return { label: "Referral Bonus", Icon: Gift, color: colors.success };
     default:
       return { label: tx.note ?? "Adjustment", Icon: Banknote, color: colors.textSecondary };
   }
@@ -134,6 +136,7 @@ export function walletTxCategory(tx: WalletTransaction): WalletTxCategory {
     case "redeem":
       return TX_CATEGORIES.ride;
     case "reward":
+    case "referral":
       return TX_CATEGORIES.reward;
     case "transfer_in":
     case "transfer_out":

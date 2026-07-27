@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import * as ExpoLinking from "expo-linking";
 import React, { useEffect, useRef, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ConnectionStatusModal } from "@/components/ConnectionStatusModal";
@@ -24,6 +25,7 @@ import SupportCallListener from "@/components/SupportCallListener";
 import IncomingTransferPopup from "@/components/IncomingTransferPopup";
 import { RootErrorBoundary } from "@/components/RootErrorBoundary";
 import { installGlobalErrorGuard } from "@/utils/globalErrorGuard";
+import { capturePendingReferral } from "@/utils/referral";
 
 installGlobalErrorGuard();
 SplashScreen.preventAutoHideAsync();
@@ -257,10 +259,24 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  // Referral deep links (…?ref=CODE): capture the code from the URL that
+  // opened the app AND from links received while it's running, so it can be
+  // applied as a bonus after signup.
+  const incomingUrl = ExpoLinking.useURL();
+
   useEffect(() => {
     console.log("[RootLayout] Mounted, hiding native splash");
     SplashScreen.hideAsync().catch(() => {});
+    ExpoLinking.getInitialURL()
+      .then((url) => capturePendingReferral(url))
+      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (incomingUrl) {
+      capturePendingReferral(incomingUrl).catch(() => {});
+    }
+  }, [incomingUrl]);
 
   return (
     <QueryClientProvider client={queryClient}>

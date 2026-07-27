@@ -13,6 +13,7 @@ import { ArrowLeft, Check } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
+import { applyPendingReferral } from "@/utils/referral";
 import {
   evaluateDeviceRegistration,
   isRegistrationBlockedError,
@@ -161,6 +162,20 @@ export default function PinSetupScreen() {
               // Go straight home — no profile-photo step for existing users.
               router.replace("/" as any);
             } else {
+              // New signup: apply any referral code captured from a deep link
+              // so both accounts get their bonus GET.coin. Fire-and-forget —
+              // never blocks onboarding.
+              applyPendingReferral()
+                .then((r) => {
+                  if (r?.ok) {
+                    console.log(
+                      "[pin-setup] referral applied — welcome bonus",
+                      r.referredCoins,
+                      "GC"
+                    );
+                  }
+                })
+                .catch((e) => console.log("[pin-setup] referral apply threw", e));
               await login(phoneNumber || "", firstName || undefined);
               router.replace({
                 pathname: "/profile-photo" as any,

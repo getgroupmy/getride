@@ -39,6 +39,12 @@ export interface GetCoinSettings {
   maxSwingPct: number;
   /** Hard cap on total GC in circulation. 0 = unlimited. */
   maxSupply: number;
+  /** Referral program on/off. */
+  referralEnabled: boolean;
+  /** GC the inviter earns when a friend signs up with their link. */
+  referralReferrerCoins: number;
+  /** GC the new user earns for signing up with a referral link. */
+  referralReferredCoins: number;
   currency: string;
   updatedAt: string | null;
   source: GetCoinSource;
@@ -102,6 +108,9 @@ function defaultSettings(): GetCoinSettings {
     signalMinting: true,
     maxSwingPct: DEFAULT_MAX_SWING_PCT,
     maxSupply: 0,
+    referralEnabled: true,
+    referralReferrerCoins: 0,
+    referralReferredCoins: 0,
     currency: "RM",
     updatedAt: null,
     source: "local",
@@ -128,6 +137,9 @@ async function readCached(): Promise<GetCoinSettings | null> {
           signalMinting: boolOr(parsed.signalMinting, true),
           maxSwingPct: Math.max(numOr(parsed.maxSwingPct, DEFAULT_MAX_SWING_PCT), 0),
           maxSupply: Math.max(numOr(parsed.maxSupply, 0), 0),
+          referralEnabled: boolOr(parsed.referralEnabled, true),
+          referralReferrerCoins: Math.max(numOr(parsed.referralReferrerCoins, 0), 0),
+          referralReferredCoins: Math.max(numOr(parsed.referralReferredCoins, 0), 0),
           currency: parsed.currency ?? "RM",
           updatedAt: parsed.updatedAt ?? null,
           source: "local",
@@ -176,6 +188,9 @@ export async function fetchGetCoinSettings(): Promise<GetCoinSettings> {
           signalMinting: boolOr(row.signal_minting, true),
           maxSwingPct: Math.max(numOr(row.market_max_swing, DEFAULT_MAX_SWING_PCT), 0),
           maxSupply: Math.max(numOr(row.max_supply, 0), 0),
+          referralEnabled: boolOr(row.referral_enabled, true),
+          referralReferrerCoins: Math.max(numOr(row.referral_referrer_coins, 0), 0),
+          referralReferredCoins: Math.max(numOr(row.referral_referred_coins, 0), 0),
           currency: String(row.currency ?? "RM"),
           updatedAt: (row.updated_at as string | undefined) ?? null,
           source: "supabase",
@@ -213,6 +228,9 @@ export interface SaveGetCoinInput {
   signalMinting?: boolean;
   maxSwingPct?: number;
   maxSupply?: number;
+  referralEnabled?: boolean;
+  referralReferrerCoins?: number;
+  referralReferredCoins?: number;
 }
 
 /** Save the GET.coin exchange, reward, and market settings (admin only). */
@@ -226,6 +244,8 @@ export async function saveGetCoinSettings(input: SaveGetCoinInput): Promise<Save
   }
   const swing = Math.min(Math.max(numOr(input.maxSwingPct, DEFAULT_MAX_SWING_PCT), 0), 95);
   const supply = Math.max(numOr(input.maxSupply, 0), 0);
+  const refReferrer = Math.max(numOr(input.referralReferrerCoins, 0), 0);
+  const refReferred = Math.max(numOr(input.referralReferredCoins, 0), 0);
 
   const settings: GetCoinSettings = {
     coinsPerCurrency,
@@ -238,6 +258,9 @@ export async function saveGetCoinSettings(input: SaveGetCoinInput): Promise<Save
     signalMinting: input.signalMinting ?? true,
     maxSwingPct: swing,
     maxSupply: supply,
+    referralEnabled: input.referralEnabled ?? true,
+    referralReferrerCoins: refReferrer,
+    referralReferredCoins: refReferred,
     currency: "RM",
     updatedAt: new Date().toISOString(),
     source: "local",
@@ -260,6 +283,9 @@ export async function saveGetCoinSettings(input: SaveGetCoinInput): Promise<Save
             signal_minting: settings.signalMinting,
             market_max_swing: swing,
             max_supply: supply,
+            referral_enabled: settings.referralEnabled,
+            referral_referrer_coins: refReferrer,
+            referral_referred_coins: refReferred,
           },
           { onConflict: "id" }
         );
