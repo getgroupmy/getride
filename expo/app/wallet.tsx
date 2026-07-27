@@ -58,6 +58,8 @@ import {
   walletAmountText,
   walletTxMeta,
   walletTxCategory,
+  isReferralTransaction,
+  REFERRAL_HIGHLIGHT,
 } from "@/utils/walletDisplay";
 import {
   fetchGetCoinSettings,
@@ -1150,12 +1152,14 @@ export default function WalletScreen() {
                   const meta = walletTxMeta(tx, Colors);
                   const cat = walletTxCategory(tx);
                   const positive = tx.amount >= 0;
+                  const isReferral = isReferralTransaction(tx);
                   return (
                     <View
                       key={tx.id}
                       style={[
                         styles.activityRow,
                         idx < recentTx.length - 1 ? styles.activityRowDivider : null,
+                        isReferral ? styles.activityRowReferral : null,
                       ]}
                       testID={`wallet-tx-${tx.id}`}
                     >
@@ -1671,6 +1675,9 @@ const styles = StyleSheet.create({
   activityRowDivider: {
     borderBottomWidth: 1,
     borderBottomColor: "#F1F1F4",
+  },
+  activityRowReferral: {
+    backgroundColor: REFERRAL_HIGHLIGHT.rowBg,
   },
   activityInfo: {
     flex: 1,
