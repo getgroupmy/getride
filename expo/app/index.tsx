@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { MapPin, Menu, ChevronRight, Navigation, Search, Users, X, Car, Clock, Bell, ShoppingBag, Package, Building2, Truck, Bike, Bus, Plane, type LucideIcon } from "lucide-react-native";
 import { MapView, Marker, reverseGeocode } from "@/utils/maps";
+import WebMap from "@/components/WebMap";
 import { runWithMappingRotation } from "@/utils/mappingClient";
 import NearbyVehicleMarker from "@/components/NearbyVehicleMarker";
 import { setVehicles as setVehicleStore } from "@/utils/vehicleStore";
@@ -867,7 +868,7 @@ export default function HomeScreen() {
   }, [contextAddress, currentAddress]);
 
   useEffect(() => {
-    if (location && mapRef.current && Platform.OS !== "web") {
+    if (location && mapRef.current) {
       console.log("Animating map to current location");
       mapRef.current.animateToRegion(
         {
@@ -927,7 +928,7 @@ export default function HomeScreen() {
           setCurrentAddress(newAddress);
         }
 
-        if (mapRef.current && Platform.OS !== "web") {
+        if (mapRef.current) {
           mapRef.current.animateToRegion(
             {
               latitude: newLocation.coords.latitude,
@@ -987,7 +988,7 @@ export default function HomeScreen() {
         // Move map to pickup location without animation
         // Set flag to skip region change handling during initial camera set
         skipRegionChangeRef.current = true;
-        if (mapRef.current && Platform.OS !== "web") {
+        if (mapRef.current) {
           mapRef.current.setCamera({
             center: {
               latitude: pickupLat,
@@ -1028,7 +1029,7 @@ export default function HomeScreen() {
               setCurrentAddress(newAddress);
             }
 
-            if (mapRef.current && Platform.OS !== "web") {
+            if (mapRef.current) {
               mapRef.current.animateToRegion(
                 {
                   latitude: newLocation.coords.latitude,
@@ -1319,13 +1320,24 @@ export default function HomeScreen() {
             ))}
           </MapView>
         ) : (
-          <View style={[styles.map, styles.webMapPlaceholder, { height: height + displaySettings.mapHeightOffset, marginTop: -displaySettings.mapHeightOffset, backgroundColor: colorScheme === "dark" ? "#1a1a1a" : "#e8e8e8" }]}>
-            <View style={styles.webMapContent}>
-              <MapPin color={Colors.accent} size={48} />
-              <Text style={[styles.webMapText, { color: Colors.text }]}>Map view</Text>
-              <Text style={[styles.webMapSubtext, { color: Colors.textSecondary }]}>Available on mobile</Text>
-            </View>
-          </View>
+          <WebMap
+            key={`webmap-${colorScheme}`}
+            ref={mapRef}
+            style={[styles.map, { height: height + displaySettings.mapHeightOffset, marginTop: -displaySettings.mapHeightOffset }]}
+            initialRegion={initialRegion}
+            dark={colorScheme === "dark"}
+            accentColor={Colors.accent}
+            userLocation={location ? { latitude: location.coords.latitude, longitude: location.coords.longitude } : null}
+            markers={visibleVehicles.map((v) => ({
+              id: v.id,
+              coordinate: { latitude: v.latitude, longitude: v.longitude },
+              kind: "vehicle" as const,
+              heading: v.heading,
+            }))}
+            interactive={!isBottomSheetExpanded && !menuFullyOpen}
+            onRegionChange={handleRegionChange}
+            onRegionChangeComplete={handleRegionChangeComplete}
+          />
         )}
 
         {/* Center Pin with Address Bar - positioned together */}
@@ -1528,7 +1540,7 @@ export default function HomeScreen() {
         <TouchableOpacity
           style={[styles.recenterButton, { backgroundColor: Colors.secondary }]}
           onPress={() => {
-            if (location && mapRef.current && Platform.OS !== "web") {
+            if (location && mapRef.current) {
               console.log("Recentering map to user location");
               // Move immediately to the location we already have so the pin
               // jumps without waiting for a fresh GPS fetch + reverse geocode.

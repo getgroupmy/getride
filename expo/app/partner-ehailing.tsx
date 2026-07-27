@@ -72,6 +72,7 @@ import {
 } from "@/utils/rideRequestsStore";
 import { buildPartnerRestoreTarget } from "@/utils/ongoingRequestRestore";
 import PartnerSideSheet from "@/components/PartnerSideSheet";
+import WebMap from "@/components/WebMap";
 import HeatmapOverlay from "@/components/HeatmapOverlay";
 import { runWithMappingRotation } from "@/utils/mappingClient";
 import { PlaceGatesList } from "@/components/PlaceGates";
@@ -1170,19 +1171,14 @@ export default function DriverEhailingScreen() {
           />
         </MapView>
       ) : (
-        <View
-          style={[
-            styles.map,
-            styles.webPlaceholder,
-            { backgroundColor: isLightMode ? "#e8e8e8" : "#1a1a1a" },
-          ]}
-        >
-          <MapPin color={Colors.accent} size={48} />
-          <Text style={[styles.webText, { color: Colors.text }]}>Map view</Text>
-          <Text style={[styles.webSubtext, { color: Colors.textSecondary }]}>
-            Available on mobile
-          </Text>
-        </View>
+        <WebMap
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={region}
+          dark={!isLightMode}
+          accentColor={Colors.accent}
+          userLocation={{ latitude: driverLat, longitude: driverLng }}
+        />
       )}
 
       {/* Online pulse on the map center */}

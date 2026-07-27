@@ -42,6 +42,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { MapView, Marker, Polyline, calculateRoute } from "@/utils/maps";
+import WebMap from "@/components/WebMap";
 import {
   cancelRideRequest,
   completeRideRequest,
@@ -503,7 +504,7 @@ export default function RideTrackingScreen() {
 
   // Camera follow.
   useEffect(() => {
-    if (!mapRef.current || Platform.OS === "web" || !followDriver) return;
+    if (!mapRef.current || !followDriver) return;
     mapRef.current?.animateCamera?.(
       { center: { latitude: driverPos.latitude, longitude: driverPos.longitude }, zoom: 16, heading: 0, pitch: 0 },
       { duration: 700 }
@@ -512,7 +513,7 @@ export default function RideTrackingScreen() {
 
   // Initial fit to show both driver and target.
   useEffect(() => {
-    if (!mapRef.current || routeCoords.length < 2 || Platform.OS === "web" || didFitRef.current) return;
+    if (!mapRef.current || routeCoords.length < 2 || didFitRef.current) return;
     const t = setTimeout(() => {
       mapRef.current?.fitToCoordinates?.(routeCoords, {
         edgePadding: { top: 140, right: 80, bottom: 420, left: 80 },
@@ -684,11 +685,28 @@ export default function RideTrackingScreen() {
           )}
         </MapView>
       ) : (
-        <View style={[styles.map, styles.webMap, { backgroundColor: colorScheme === "dark" ? "#1a1a1a" : "#eef2f5" }]}>
-          <Navigation color={Colors.accent} size={52} />
-          <Text style={[styles.webText, { color: Colors.text }]}>Live tracking</Text>
-          <Text style={[styles.webSub, { color: Colors.textSecondary }]}>Available on mobile</Text>
-        </View>
+        <WebMap
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={initialRegion}
+          dark={colorScheme === "dark"}
+          accentColor={Colors.accent}
+          onPanDrag={handlePanDrag}
+          markers={[
+            { id: "pickup", coordinate: pickupCoord, kind: "pickup" as const },
+            ...(phase === "onTrip" || phase === "completed"
+              ? [{ id: "dest", coordinate: destCoord, kind: "dest" as const }]
+              : []),
+            ...(phase !== "completed"
+              ? [{ id: "driver", coordinate: driverPos, kind: "driver" as const, heading }]
+              : []),
+          ]}
+          polylines={
+            remainingCoords.length > 1
+              ? [{ id: "route", coordinates: remainingCoords, color: Colors.accent, width: 6 }]
+              : []
+          }
+        />
       )}
 
       {/* Top status pill */}

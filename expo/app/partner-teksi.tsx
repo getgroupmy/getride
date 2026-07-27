@@ -63,6 +63,7 @@ import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
 import { useLocation } from "@/contexts/LocationContext";
 import { useColors } from "@/hooks/useColors";
 import { reverseGeocode as reverseGeocodeUtil, calculateRoute, calculateFare, type TariffType } from "@/utils/maps";
+import WebMap from "@/components/WebMap";
 import { POPULAR_LOCATIONS } from "@/constants/mockLocations";
 import { GOOGLE_PLACES_KEY } from "@/constants/googleKeys";
 import { runWithMappingRotation } from "@/utils/mappingClient";
@@ -1753,19 +1754,23 @@ export default function DriverTeksiScreen() {
           />
         </MapView>
       ) : (
-        <View
-          style={[
-            styles.map,
-            styles.webPlaceholder,
-            { backgroundColor: isLightMode ? "#e8e8e8" : "#1a1a1a" },
-          ]}
-        >
-          <MapPin color={Colors.accent} size={48} />
-          <Text style={[styles.webText, { color: Colors.text }]}>Map view</Text>
-          <Text style={[styles.webSubtext, { color: Colors.textSecondary }]}>
-            Available on mobile
-          </Text>
-        </View>
+        <WebMap
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={region}
+          dark={!isLightMode}
+          accentColor={Colors.accent}
+          userLocation={
+            currentLocation?.coords
+              ? {
+                  latitude: currentLocation.coords.latitude,
+                  longitude: currentLocation.coords.longitude,
+                }
+              : null
+          }
+          onRegionChange={handleRegionChange}
+          onRegionChangeComplete={handleRegionChangeComplete}
+        />
       )}
 
       {/* Header */}
