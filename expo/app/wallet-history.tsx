@@ -32,10 +32,22 @@ import {
   walletTxMeta,
   walletTxCategory,
   walletTypeLabel,
+  type WalletTxCategoryId,
 } from "@/utils/walletDisplay";
 import PullDownScrollView from "@/components/PullDownScrollView";
 
 type TxFilter = "all" | WalletType;
+type CategoryFilter = "all" | WalletTxCategoryId;
+
+const CATEGORY_FILTERS: { id: CategoryFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "ride", label: "Ride" },
+  { id: "reward", label: "Reward" },
+  { id: "transfer", label: "Transfer" },
+  { id: "reload", label: "Reload" },
+  { id: "refund", label: "Refund" },
+  { id: "other", label: "Other" },
+];
 
 interface MonthOption {
   id: string;
@@ -83,6 +95,7 @@ export default function WalletHistoryScreen() {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [txFilter, setTxFilter] = useState<TxFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detailTx, setDetailTx] = useState<WalletTransaction | null>(null);
   const [monthMenuVisible, setMonthMenuVisible] = useState<boolean>(false);
@@ -136,11 +149,14 @@ export default function WalletHistoryScreen() {
   const filteredTx = useMemo(() => {
     let list = transactions;
     if (txFilter !== "all") list = list.filter((t) => t.walletType === txFilter);
+    if (categoryFilter !== "all") {
+      list = list.filter((t) => walletTxCategory(t).id === categoryFilter);
+    }
     return list.filter((t) => {
       const d = new Date(t.createdAt);
       return d.getFullYear() === selectedMonth.year && d.getMonth() === selectedMonth.month;
     });
-  }, [transactions, txFilter, selectedMonth]);
+  }, [transactions, txFilter, categoryFilter, selectedMonth]);
 
   /** Transactions grouped by day, newest group first. */
   const groups = useMemo(() => {
@@ -303,6 +319,44 @@ export default function WalletHistoryScreen() {
           })}
       </View>
 
+      {/* Category filter chips — colour-coded to match transaction icons */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoryScroll}
+        contentContainerStyle={styles.categoryScrollContent}
+      >
+        {CATEGORY_FILTERS.map((c) => {
+          const selected = categoryFilter === c.id;
+          return (
+            <TouchableOpacity
+              key={c.id}
+              style={[
+                styles.categoryChip,
+                {
+                  backgroundColor: selected ? Colors.accent : "#FFFFFF",
+                  borderColor: selected ? Colors.accent : "#E5E7EB",
+                },
+              ]}
+              onPress={() => {
+                setCategoryFilter(c.id);
+                setExpandedId(null);
+              }}
+              testID={`wallet-history-category-${c.id}`}
+            >
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  { color: selected ? "#FFFFFF" : "#6B7280" },
+                ]}
+              >
+                {c.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       <View style={styles.filterRow}>
         <Text style={styles.filterLabel}>Filter by Month</Text>
         <TouchableOpacity
@@ -324,7 +378,11 @@ export default function WalletHistoryScreen() {
         <View style={styles.emptyCard}>
           <WalletIcon color="#9CA3AF" size={32} />
           <Text style={styles.emptyTitle}>No transactions</Text>
-          <Text style={styles.emptySub}>Nothing recorded for {selectedMonth.label.toLowerCase()}.</Text>
+          <Text style={styles.emptySub}>
+            {categoryFilter === "all"
+              ? `Nothing recorded for ${selectedMonth.label.toLowerCase()}.`
+              : `No ${CATEGORY_FILTERS.find((c) => c.id === categoryFilter)?.label.toLowerCase() ?? ""} transactions for ${selectedMonth.label.toLowerCase()}.`}
+          </Text>
         </View>
       ) : (
         groups.map(([date, txs]) => (
@@ -540,6 +598,24 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     alignSelf: "stretch",
+  },
+  categoryScroll: {
+    marginBottom: 16,
+    marginHorizontal: -16,
+  },
+  categoryScrollContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  categoryChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: "700" as const,
   },
   filterRow: {
     flexDirection: "row",
