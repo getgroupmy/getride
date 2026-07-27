@@ -47,6 +47,7 @@ import {
   Target,
   Trash2,
   Search,
+  Layers,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -232,6 +233,7 @@ export default function DriverEhailingScreen() {
   const [todayTrips] = useState<number>(0);
   const [heatmapVisible, setHeatmapVisible] = useState<boolean>(false);
   const [trafficVisible, setTrafficVisible] = useState<boolean>(false);
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [allowOfferMe, setAllowOfferMe] = useState<boolean>(true);
   const allowOfferMeRef = useRef<boolean>(true);
   const [autoAccept, setAutoAccept] = useState<boolean>(false);
@@ -1157,6 +1159,7 @@ export default function DriverEhailingScreen() {
           showsUserLocation
           showsMyLocationButton={false}
           showsTraffic={trafficVisible}
+          mapType={mapType}
           userInterfaceStyle={isLightMode ? "light" : "dark"}
           mapPadding={{ top: 0, right: 0, left: 0, bottom: bottomSheetHeight + 30 }}
         >
@@ -1176,6 +1179,7 @@ export default function DriverEhailingScreen() {
           style={styles.map}
           initialRegion={region}
           dark={!isLightMode}
+          satellite={mapType === "satellite"}
           accentColor={Colors.accent}
           userLocation={{ latitude: driverLat, longitude: driverLng }}
         />
@@ -1316,6 +1320,38 @@ export default function DriverEhailingScreen() {
       >
         <Target
           color={destinationEnabled ? "#fff" : isLightMode ? "#000" : "#fff"}
+          size={20}
+        />
+      </TouchableOpacity>
+
+      {/* Map type toggle (above My Destination) */}
+      <TouchableOpacity
+        style={[
+          styles.currentLocationButton,
+          {
+            bottom: bottomSheetHeight + 234,
+            backgroundColor:
+              mapType === "satellite"
+                ? Colors.accent
+                : isLightMode
+                ? "#fff"
+                : "rgba(0,0,0,0.7)",
+          },
+        ]}
+        onPress={() => {
+          if (Platform.OS !== "web") {
+            Haptics.selectionAsync().catch(() => {});
+          }
+          setMapType((prev) => {
+            const next = prev === "standard" ? "satellite" : "standard";
+            console.log("[partner-ehailing] map type", next);
+            return next;
+          });
+        }}
+        testID="partner-ehailing-maptype"
+      >
+        <Layers
+          color={mapType === "satellite" ? "#fff" : isLightMode ? "#000" : "#fff"}
           size={20}
         />
       </TouchableOpacity>

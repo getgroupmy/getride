@@ -56,6 +56,7 @@ import {
   Bluetooth,
   Usb,
   Check,
+  Layers,
 } from "lucide-react-native";
 import { Modal } from "react-native";
 import * as Location from "expo-location";
@@ -218,6 +219,7 @@ export default function DriverTeksiScreen() {
   const [isIdle, setIsIdle] = useState<boolean>(true);
   const [heatmapVisible, setHeatmapVisible] = useState<boolean>(false);
   const [trafficVisible, setTrafficVisible] = useState<boolean>(false);
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [creditBalance, setCreditBalance] = useState<number>(0);
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
@@ -1741,6 +1743,7 @@ export default function DriverTeksiScreen() {
           showsUserLocation
           showsMyLocationButton={false}
           showsTraffic={trafficVisible}
+          mapType={mapType}
           userInterfaceStyle={isLightMode ? "light" : "dark"}
         >
           <HeatmapOverlay
@@ -1759,6 +1762,7 @@ export default function DriverTeksiScreen() {
           style={styles.map}
           initialRegion={region}
           dark={!isLightMode}
+          satellite={mapType === "satellite"}
           accentColor={Colors.accent}
           userLocation={
             currentLocation?.coords
@@ -1953,6 +1957,35 @@ export default function DriverTeksiScreen() {
           ]}
         />
       </View>
+
+      {/* Map type toggle (above traffic) */}
+      <TouchableOpacity
+        style={[
+          styles.currentLocationButton,
+          {
+            bottom: bottomSheetHeight + 178,
+            backgroundColor:
+              mapType === "satellite"
+                ? Colors.accent
+                : isLightMode
+                ? "#fff"
+                : "rgba(0,0,0,0.7)",
+          },
+        ]}
+        onPress={() => {
+          setMapType((prev) => {
+            const next = prev === "standard" ? "satellite" : "standard";
+            console.log("[partner-teksi] map type", next);
+            return next;
+          });
+        }}
+        testID="partner-teksi-maptype"
+      >
+        <Layers
+          color={mapType === "satellite" ? "#fff" : isLightMode ? "#000" : "#fff"}
+          size={20}
+        />
+      </TouchableOpacity>
 
       {/* Traffic toggle button (above heatmap) */}
       <TouchableOpacity

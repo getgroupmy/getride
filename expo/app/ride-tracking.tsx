@@ -36,6 +36,7 @@ import {
   ShieldAlert,
   Check,
   Coins,
+  Layers,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -206,6 +207,7 @@ export default function RideTrackingScreen() {
   const cancelAnim = useRef(new Animated.Value(0)).current;
 
   // GET.coin toast shown when the trip completes (coins earned / redeemed).
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [coinToast, setCoinToast] = useState<{
     earned: number;
     redeemedCoins: number;
@@ -692,6 +694,7 @@ export default function RideTrackingScreen() {
           ref={mapRef}
           style={styles.map}
           initialRegion={initialRegion}
+          mapType={mapType}
           customMapStyle={colorScheme === "dark" ? darkMapStyle : lightMapStyle}
           showsCompass={false}
           showsMyLocationButton={false}
@@ -740,6 +743,7 @@ export default function RideTrackingScreen() {
           style={styles.map}
           initialRegion={initialRegion}
           dark={colorScheme === "dark"}
+          satellite={mapType === "satellite"}
           accentColor={Colors.accent}
           onPanDrag={handlePanDrag}
           markers={[
@@ -758,6 +762,31 @@ export default function RideTrackingScreen() {
           }
         />
       )}
+
+      {/* Map type toggle */}
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPress={() => {
+          setMapType((prev) => {
+            const next = prev === "standard" ? "satellite" : "standard";
+            console.log("[ride-tracking] map type", next);
+            return next;
+          });
+        }}
+        style={[
+          styles.mapTypeBtn,
+          {
+            top: insets.top + 116,
+            backgroundColor: mapType === "satellite" ? Colors.accent : Colors.background,
+          },
+        ]}
+        testID="ride-tracking-maptype"
+      >
+        <Layers
+          color={mapType === "satellite" ? "#FFFFFF" : Colors.text}
+          size={20}
+        />
+      </TouchableOpacity>
 
       {/* Distance-based ETA chip */}
       {showEtaChip && (
@@ -1292,6 +1321,21 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
+  mapTypeBtn: {
+    position: "absolute",
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   etaChipWrap: {
     position: "absolute",
     left: 0,
