@@ -49,7 +49,7 @@ import {
   fetchUserProfile,
   findOrCreatePartner,
 } from "@/utils/partnerOnboardingStore";
-import { loadAssignedPartnerModeOptions } from "@/utils/partnerModeOptions";
+import { loadAssignedPartnerModeOptions, isVehicleRequiredForMode } from "@/utils/partnerModeOptions";
 import { checkPartnerModeDocuments, summarizeDocIssues } from "@/utils/partnerModeDocCheck";
 import {
   computeFirstVehicleStep,
@@ -630,13 +630,12 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
 
     // If the picked partner type requires a vehicle, gate routing on the
     // partner having an assigned vehicle. Missing → run vehicle onboarding.
+    // Uses the cache-first helper with a Supabase fallback so a not-yet-synced
+    // settings cache never silently skips the vehicle picker.
     let needsVehicle = false;
     try {
-      const entries = getEntries("partner-type");
-      const match = entries.find(
-        (e) => String(e.values?.name ?? "").trim().toLowerCase() === normalized
-      );
-      needsVehicle = Boolean(match?.values?.vehicleRequired);
+      needsVehicle = await isVehicleRequiredForMode(mode, getEntries);
+      console.log("[menu-sheet] needsVehicle for", normalized, "=", needsVehicle);
     } catch (e) {
       console.log("[menu-sheet] vehicleRequired lookup failed", e);
     }
