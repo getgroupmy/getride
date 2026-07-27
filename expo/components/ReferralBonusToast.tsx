@@ -4,82 +4,131 @@ import Constants from "expo-constants";
 import { Gift } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { formatCoins } from "@/utils/getCoinStore";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   subscribeReferralBonus,
-  consumePendingReferralBonus,
+  consumePendingReferralBonuses,
+  syncReferralBonusCredits,
+  subscribeReferralBonusCredits,
+  type ReferralBonusEvent,
 } from "@/utils/referral";
 
 const BONUS_GOLD = "#EAB308";
+
+/** How long a toast stays on screen before sliding back out. */
+const VISIBLE_MS = 4200;
+const ANIM_MS = 260;
+/** Beat between consecutive toasts so they read as separate events. */
+const GAP_MS = 320;
 
 // Mounted at the app root (a sibling of the navigator), so there's no
 // SafeAreaProvider in scope for `useSafeAreaInsets`. `Constants.statusBarHeight`
 // gives a provider-free top offset that clears the status bar / notch.
 const TOP_OFFSET = (Constants.statusBarHeight ?? 0) + 10;
 
+const COPY: Record<ReferralBonusEvent["kind"], string> = {
+  welcome: "Welcome bonus unlocked! 🎉",
+  referrer: "Referral bonus earned! 🎉",
+};
+
 /**
- * Globally-mounted listener that celebrates a referral welcome bonus. When a
- * freshly signed-up user's referral code is applied (`applyPendingReferral`),
- * the bonus GET.coin credited to them is announced here and a toast slides in
- * from the top explicitly stating the amount added to their balance.
+ * Globally-mounted listener that celebrates referral bonus GET.coin, popping a
+ * toast that states the exact amount added to the user's balance. Covers both
+ * sides of a referral, which reach the client differently:
  *
- * Two paths feed it: a live in-memory event (bonus earned during this session)
- * and a persisted flag consumed on mount (bonus that landed while navigating
- * away from PIN setup, or before this component was mounted). Either way the
- * persisted flag is cleared when the toast shows, so it appears exactly once.
+ * - **Welcome bonus** — the user signed up with someone's code. Announced by
+ *   `applyPendingReferral` while they're in the app, or replayed from the
+ *   persisted queue when it landed mid-navigation or before this mounted.
+ * - **Referral bonus** — a friend joined with this user's code, crediting them
+ *   from the server with no local action to hook onto. Picked up live from the
+ *   wallet-transaction insert, or on launch for credits earned while away.
+ *
+ * Bonuses queue rather than overwrite, so two friends joining shows two toasts.
  */
 export default function ReferralBonusToast() {
-  const [coins, setCoins] = useState<number | null>(null);
-  const anim = useRef(new Animated.Value(0)).current;
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { authState, isSupabaseSession } = useAuth();
+  const userId = authState.userId ?? null;
 
-  const show = useCallback(
-    (amount: number) => {
-      if (!(amount > 0)) return;
-      setCoins(amount);
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      }
-      anim.stopAnimation();
+  const [current, setCurrent] = useState<ReferralBonusEvent | null>(null);
+  const anim = useRef(new Animated.Value(0)).current;
+  const queue = useRef<ReferralBonusEvent[]>([]);
+  const showing = useRef<boolean>(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mounted = useRef<boolean>(true);
+
+  const showNext = useCallback(() => {
+    const next = queue.current.shift();
+    if (!next || !mounted.current) {
+      showing.current = false;
+      return;
+    }
+    showing.current = true;
+    setCurrent(next);
+    if (Platform.OS !== "web") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    anim.stopAnimation();
+    anim.setValue(0);
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: ANIM_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => {
       Animated.timing(anim, {
-        toValue: 1,
-        duration: 260,
-        easing: Easing.out(Easing.cubic),
+        toValue: 0,
+        duration: ANIM_MS,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
-      }).start();
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-      hideTimer.current = setTimeout(() => {
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: true,
-        }).start(() => setCoins(null));
-      }, 4200);
+      }).start(() => {
+        if (!mounted.current) return;
+        setCurrent(null);
+        // Let the toast clear the screen before the next one slides in.
+        if (gapTimer.current) clearTimeout(gapTimer.current);
+        gapTimer.current = setTimeout(showNext, GAP_MS);
+      });
+    }, VISIBLE_MS);
+  }, [anim]);
+
+  const enqueue = useCallback(
+    (events: ReferralBonusEvent[]) => {
+      const valid = events.filter((e) => e && e.coins > 0);
+      if (!valid.length) return;
+      queue.current.push(...valid);
+      if (!showing.current) showNext();
     },
-    [anim]
+    [showNext]
   );
 
+  // Welcome bonuses: live events plus anything queued while nothing listened.
   useEffect(() => {
-    let alive = true;
-    // Cold-start / post-navigation: surface a bonus recorded while nothing was
-    // listening.
-    consumePendingReferralBonus().then((amount) => {
-      if (alive && amount) show(amount);
-    });
-    // Live: bonus earned during this session. Clear the persisted flag so the
-    // cold-start path above never re-shows it.
-    const unsubscribe = subscribeReferralBonus((amount) => {
-      void consumePendingReferralBonus();
-      show(amount);
-    });
+    mounted.current = true;
+    const unsubscribe = subscribeReferralBonus((event) => enqueue([event]));
+    consumePendingReferralBonuses()
+      .then((events) => {
+        if (mounted.current) enqueue(events);
+      })
+      .catch(() => {});
     return () => {
-      alive = false;
+      mounted.current = false;
       unsubscribe();
       if (hideTimer.current) clearTimeout(hideTimer.current);
+      if (gapTimer.current) clearTimeout(gapTimer.current);
     };
-  }, [show]);
+  }, [enqueue]);
 
-  if (coins == null) return null;
+  // Inviter-side bonuses: catch up on credits earned while away, then watch for
+  // new ones. Needs a real Supabase session — the wallet query is RLS-scoped.
+  useEffect(() => {
+    if (!userId || !isSupabaseSession) return;
+    void syncReferralBonusCredits(userId);
+    return subscribeReferralBonusCredits(userId);
+  }, [userId, isSupabaseSession]);
+
+  if (current == null) return null;
 
   return (
     <Animated.View
@@ -105,9 +154,9 @@ export default function ReferralBonusToast() {
         <Gift color="#7A5C00" size={20} />
       </View>
       <View style={styles.textWrap}>
-        <Text style={styles.title}>Welcome bonus unlocked! 🎉</Text>
+        <Text style={styles.title}>{COPY[current.kind]}</Text>
         <Text style={styles.body} testID="referral-bonus-toast-amount">
-          {formatCoins(coins)} added to your GET.coin balance
+          {formatCoins(current.coins)} added to your GET.coin balance
         </Text>
       </View>
     </Animated.View>

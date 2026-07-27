@@ -84,17 +84,31 @@ export async function clearPendingReferral(): Promise<void> {
   } catch {}
 }
 
-// Referral welcome-bonus toast -----------------------------------------------
+// Referral bonus toast -------------------------------------------------------
 
-type BonusListener = (coins: number) => void;
+/**
+ * Which side of a referral a bonus credit belongs to. `apply_referral`
+ * (migration 0078) credits GET.coin to *both* accounts, so a user can meet a
+ * bonus either by joining with someone's code or by having a friend join with
+ * theirs.
+ */
+export type ReferralBonusKind = "welcome" | "referrer";
+
+export interface ReferralBonusEvent {
+  /** GET.coin credited to this account. */
+  coins: number;
+  kind: ReferralBonusKind;
+}
+
+type BonusListener = (event: ReferralBonusEvent) => void;
 
 /** Live listeners that show the bonus toast the instant it's earned. */
 const bonusListeners = new Set<BonusListener>();
 
 /**
- * Subscribe to referral welcome-bonus events. Called by the globally-mounted
- * `ReferralBonusToast`, which pops a toast naming the GET.coin credited to
- * the new user. Returns an unsubscribe function.
+ * Subscribe to referral bonus events. Called by the globally-mounted
+ * `ReferralBonusToast`, which pops a toast naming the GET.coin credited.
+ * Returns an unsubscribe function.
  */
 export function subscribeReferralBonus(listener: BonusListener): () => void {
   bonusListeners.add(listener);
@@ -104,41 +118,253 @@ export function subscribeReferralBonus(listener: BonusListener): () => void {
 }
 
 /**
- * Record a newly-earned welcome bonus and notify any live listeners. Persisted
- * to AsyncStorage so the toast still fires if the app navigates or relaunches
- * before a listener handles it; the listener consumes (clears) the flag when
- * it shows the toast, so the notice appears exactly once.
+ * Announce a newly-earned referral bonus.
+ *
+ * When a listener is mounted it shows the toast right away and nothing is
+ * written to disk. With nothing listening (the bonus landed mid-navigation or
+ * the app was relaunched) the event is queued in AsyncStorage instead, and the
+ * toast drains the queue when it next mounts. Splitting the two paths means an
+ * event is delivered exactly once — never live *and* from the queue.
  */
-async function announceReferralBonus(coins: number): Promise<void> {
-  if (!(coins > 0)) return;
+async function announceReferralBonus(event: ReferralBonusEvent): Promise<void> {
+  if (!(event.coins > 0)) return;
+  if (bonusListeners.size > 0) {
+    let delivered = false;
+    bonusListeners.forEach((listener) => {
+      try {
+        listener(event);
+        delivered = true;
+      } catch (e) {
+        console.log("[referral] bonus listener threw", e);
+      }
+    });
+    if (delivered) return;
+  }
   try {
-    await AsyncStorage.setItem(BONUS_TOAST_KEY, JSON.stringify({ coins }));
+    const queued = await readPendingReferralBonuses();
+    queued.push(event);
+    await AsyncStorage.setItem(BONUS_TOAST_KEY, JSON.stringify(queued));
   } catch {}
-  bonusListeners.forEach((listener) => {
-    try {
-      listener(coins);
-    } catch (e) {
-      console.log("[referral] bonus listener threw", e);
-    }
-  });
+}
+
+/** Parse the persisted queue, tolerating the legacy single-`{coins}` shape. */
+async function readPendingReferralBonuses(): Promise<ReferralBonusEvent[]> {
+  try {
+    const raw = await AsyncStorage.getItem(BONUS_TOAST_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    // Pre-queue builds stored a bare object, always a welcome bonus.
+    const rows = Array.isArray(parsed) ? parsed : [parsed];
+    return rows
+      .map((row) => {
+        const r = (row ?? {}) as { coins?: unknown; kind?: unknown };
+        const coins = Math.max(Number(r.coins) || 0, 0);
+        const kind: ReferralBonusKind = r.kind === "referrer" ? "referrer" : "welcome";
+        return { coins, kind };
+      })
+      .filter((e) => e.coins > 0);
+  } catch {
+    return [];
+  }
 }
 
 /**
- * Read and clear any pending welcome-bonus amount. Returns the GC credited,
- * or null when there's nothing to show. Used both on live events (to clear
- * the persisted flag so it isn't shown twice) and on cold start (to surface
- * a bonus that landed while no listener was mounted).
+ * Read and clear every queued bonus. Returns the events to display (possibly
+ * empty). Called by the toast on mount to surface bonuses that landed while no
+ * listener was mounted; clearing on read means they never show twice.
  */
-export async function consumePendingReferralBonus(): Promise<number | null> {
+export async function consumePendingReferralBonuses(): Promise<ReferralBonusEvent[]> {
+  const events = await readPendingReferralBonuses();
   try {
-    const raw = await AsyncStorage.getItem(BONUS_TOAST_KEY);
-    if (!raw) return null;
     await AsyncStorage.removeItem(BONUS_TOAST_KEY);
-    const parsed = JSON.parse(raw) as { coins?: unknown };
-    const coins = Math.max(Number(parsed?.coins) || 0, 0);
-    return coins > 0 ? coins : null;
+  } catch {}
+  return events;
+}
+
+// Inviter-side bonus detection -----------------------------------------------
+//
+// The referred user learns about their bonus from `applyPendingReferral` below
+// — they're holding the phone when it happens. The *inviter* is not: their
+// coins are credited by a friend's signup, whenever that happens. The only
+// trace on the client is the `wallet_transactions` row `apply_referral` writes,
+// so the inviter's toast is driven off that row — live via realtime while the
+// app is open, and via a catch-up query on launch for credits earned offline.
+
+/** `wallet_transactions.kind` used for both sides of a referral payout. */
+const REFERRAL_TX_KIND = "referral";
+
+/** Per-account timestamp: referral credits at or before this were handled. */
+const BONUS_WATERMARK_KEY = "referral:bonus_watermark";
+
+/** Recently announced transaction ids, so realtime and catch-up don't overlap. */
+const BONUS_SEEN_IDS_KEY = "referral:bonus_seen_ids";
+
+const MAX_SEEN_IDS = 50;
+
+/**
+ * Classify a referral payout from the note `apply_referral` writes:
+ * "Welcome bonus — joined with a referral link" for the new user versus
+ * "Referral bonus — a friend joined with your link" for the inviter.
+ * Anything unrecognized is treated as an inviter credit — a welcome bonus only
+ * ever occurs at signup, where `applyPendingReferral` already announces it.
+ */
+function classifyReferralNote(note: unknown): ReferralBonusKind {
+  return /^\s*welcome\b/i.test(String(note ?? "")) ? "welcome" : "referrer";
+}
+
+async function readSeenBonusIds(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(BONUS_SEEN_IDS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    return Array.isArray(parsed) ? parsed.map((v) => String(v)) : [];
   } catch {
-    return null;
+    return [];
+  }
+}
+
+async function markBonusSeen(id: string): Promise<void> {
+  try {
+    const seen = await readSeenBonusIds();
+    if (seen.includes(id)) return;
+    seen.push(id);
+    await AsyncStorage.setItem(
+      BONUS_SEEN_IDS_KEY,
+      JSON.stringify(seen.slice(-MAX_SEEN_IDS))
+    );
+  } catch {}
+}
+
+async function setBonusWatermark(userId: string, at: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(`${BONUS_WATERMARK_KEY}:${userId}`, at);
+  } catch {}
+}
+
+/**
+ * Announce one `wallet_transactions` row if it's an unseen inviter-side
+ * referral credit. Returns true when a toast was raised.
+ */
+async function announceReferralCreditRow(
+  userId: string,
+  row: Record<string, unknown> | null | undefined
+): Promise<boolean> {
+  if (!row) return false;
+  const txKind = String(row.kind ?? "");
+  // Realtime hands us every wallet row for this user — only referrals qualify.
+  if (txKind && txKind !== REFERRAL_TX_KIND) return false;
+  const id = String(row.id ?? "");
+  const coins = Math.max(Number(row.amount) || 0, 0);
+  if (!id || !(coins > 0)) return false;
+  // The referred user's own welcome bonus is announced by applyPendingReferral.
+  if (classifyReferralNote(row.note) !== "referrer") return false;
+  const seen = await readSeenBonusIds();
+  if (seen.includes(id)) return false;
+  await markBonusSeen(id);
+  const createdAt = typeof row.created_at === "string" ? row.created_at : null;
+  if (createdAt) await setBonusWatermark(userId, createdAt);
+  await announceReferralBonus({ coins, kind: "referrer" });
+  return true;
+}
+
+/**
+ * Catch up on inviter-side referral bonuses credited while the app was closed,
+ * announcing each one. Call on launch once a Supabase session is available.
+ *
+ * The first call for an account only records a watermark and announces
+ * nothing: referral credits that predate this check are history, not news, and
+ * replaying them would fire a burst of toasts on upgrade. Returns how many
+ * bonuses were announced.
+ *
+ * Degrades silently (returns 0) when Supabase is unavailable or the wallet
+ * tables aren't migrated yet, per the store conventions in this codebase.
+ */
+export async function syncReferralBonusCredits(
+  userId: string | null | undefined
+): Promise<number> {
+  if (!isSupabaseConfigured || !supabase || !userId) return 0;
+  const watermarkKey = `${BONUS_WATERMARK_KEY}:${userId}`;
+  let watermark: string | null = null;
+  try {
+    watermark = await AsyncStorage.getItem(watermarkKey);
+  } catch {}
+  if (!watermark) {
+    await setBonusWatermark(userId, new Date().toISOString());
+    return 0;
+  }
+  try {
+    const { data, error } = await supabase
+      .from("wallet_transactions")
+      .select("id, kind, amount, note, created_at")
+      .eq("user_id", userId)
+      .eq("kind", REFERRAL_TX_KIND)
+      .gt("created_at", watermark)
+      .order("created_at", { ascending: true })
+      .limit(20);
+    if (error) {
+      const msg = String(error.message ?? "");
+      // Tables not migrated / RLS — nothing to show rather than an error.
+      if (/does not exist|schema cache|relation|permission|PGRST\d+/i.test(msg)) {
+        return 0;
+      }
+      throw error;
+    }
+    const rows = (data ?? []) as Record<string, unknown>[];
+    let announced = 0;
+    let newest = watermark;
+    for (const row of rows) {
+      if (await announceReferralCreditRow(userId, row)) announced += 1;
+      const createdAt = typeof row.created_at === "string" ? row.created_at : null;
+      if (createdAt && createdAt > newest) newest = createdAt;
+    }
+    // Advance past rows we deliberately skipped too, so they aren't rescanned.
+    if (newest !== watermark) await setBonusWatermark(userId, newest);
+    return announced;
+  } catch (e) {
+    console.log("[referral] syncReferralBonusCredits failed", e);
+    return 0;
+  }
+}
+
+/**
+ * Subscribe to inviter-side referral bonuses arriving while the app is open —
+ * a friend signing up credits the wallet from the server, with no client action
+ * to hang a toast off. `wallet_transactions` is in the realtime publication
+ * (migration 0059) and readable by its owner, so the insert is enough.
+ * Returns an unsubscribe function.
+ */
+export function subscribeReferralBonusCredits(
+  userId: string | null | undefined
+): () => void {
+  if (!isSupabaseConfigured || !supabase || !userId) return () => {};
+  try {
+    const channel = supabase
+      .channel(`referral-bonus-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "wallet_transactions",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          void announceReferralCreditRow(
+            userId,
+            payload.new as Record<string, unknown>
+          ).catch((e) => console.log("[referral] bonus row announce failed", e));
+        }
+      )
+      .subscribe();
+    return () => {
+      try {
+        void supabase?.removeChannel(channel);
+      } catch (e) {
+        console.log("[referral] bonus unsubscribe failed", e);
+      }
+    };
+  } catch (e) {
+    console.log("[referral] bonus subscribe failed", e);
+    return () => {};
   }
 }
 
@@ -269,7 +495,7 @@ export async function applyPendingReferral(): Promise<ApplyReferralResult | null
     console.log("[referral] apply result", result);
     // Surface the new user's welcome bonus as a toast once they land in the app.
     if (result.ok && result.referredCoins > 0) {
-      await announceReferralBonus(result.referredCoins);
+      await announceReferralBonus({ coins: result.referredCoins, kind: "welcome" });
     }
     return result;
   } catch (e) {
