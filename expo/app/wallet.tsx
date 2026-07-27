@@ -53,6 +53,7 @@ import {
   formatUpdatedStamp,
   walletAmountText,
   walletTxMeta,
+  walletTxCategory,
 } from "@/utils/walletDisplay";
 import {
   fetchGetCoinSettings,
@@ -1087,6 +1088,7 @@ export default function WalletScreen() {
               >
                 {recentTx.map((tx, idx) => {
                   const meta = walletTxMeta(tx, Colors);
+                  const cat = walletTxCategory(tx);
                   const positive = tx.amount >= 0;
                   return (
                     <View
@@ -1097,17 +1099,22 @@ export default function WalletScreen() {
                       ]}
                       testID={`wallet-tx-${tx.id}`}
                     >
+                      <View style={[styles.categoryIconWrap, { backgroundColor: cat.bg }]}>
+                        <cat.Icon color={cat.color} size={18} strokeWidth={2.4} />
+                      </View>
                       <View style={styles.activityInfo}>
                         <Text style={styles.activityLabel} numberOfLines={1}>
                           {meta.label}
                         </Text>
                         <View style={styles.activityMetaRow}>
+                          <View style={[styles.categoryTag, { backgroundColor: cat.bg }]}>
+                            <Text style={[styles.categoryTagText, { color: cat.color }]}>
+                              {cat.label}
+                            </Text>
+                          </View>
                           <Text style={styles.activityDate} numberOfLines={1}>
                             {formatActivityDate(tx.createdAt)}
                           </Text>
-                          <View style={styles.statusBadge}>
-                            <Text style={styles.statusBadgeText}>COMPLETED</Text>
-                          </View>
                         </View>
                       </View>
                       <Text
@@ -1578,6 +1585,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#8E8E93",
     flexShrink: 1,
+  },
+  categoryIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryTag: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  categoryTagText: {
+    fontSize: 10,
+    fontWeight: "800" as const,
+    letterSpacing: 0.4,
   },
   statusBadge: {
     backgroundColor: "#EEF1F6",

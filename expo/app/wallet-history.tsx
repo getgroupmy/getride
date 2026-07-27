@@ -27,7 +27,12 @@ import {
   type WalletTransaction,
   type WalletType,
 } from "@/utils/walletStore";
-import { walletAmountText, walletTxMeta, walletTypeLabel } from "@/utils/walletDisplay";
+import {
+  walletAmountText,
+  walletTxMeta,
+  walletTxCategory,
+  walletTypeLabel,
+} from "@/utils/walletDisplay";
 import PullDownScrollView from "@/components/PullDownScrollView";
 
 type TxFilter = "all" | WalletType;
@@ -173,6 +178,7 @@ export default function WalletHistoryScreen() {
 
   const renderDetails = (tx: WalletTransaction) => {
     const meta = walletTxMeta(tx, Colors);
+    const cat = walletTxCategory(tx);
     const positive = tx.amount >= 0;
     return (
       <ScrollView
@@ -183,6 +189,13 @@ export default function WalletHistoryScreen() {
       >
         <View style={styles.detailCard}>
           <Text style={styles.detailHeading}>Transaction Details</Text>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Category</Text>
+            <View style={[styles.detailCategoryTag, { backgroundColor: cat.bg }]}>
+              <cat.Icon color={cat.color} size={13} strokeWidth={2.6} />
+              <Text style={[styles.detailCategoryText, { color: cat.color }]}>{cat.label}</Text>
+            </View>
+          </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Type</Text>
             <Text style={styles.detailValue} numberOfLines={1}>
@@ -319,6 +332,7 @@ export default function WalletHistoryScreen() {
             <Text style={styles.groupDate}>{date}</Text>
             {txs.map((tx) => {
               const meta = walletTxMeta(tx, Colors);
+              const cat = walletTxCategory(tx);
               const positive = tx.amount >= 0;
               const expanded = expandedId === tx.id;
               return (
@@ -328,9 +342,17 @@ export default function WalletHistoryScreen() {
                     onPress={() => setExpandedId(expanded ? null : tx.id)}
                     testID={`wallet-history-tx-${tx.id}`}
                   >
-                    <Text style={styles.txTitle} numberOfLines={1}>
-                      {meta.label}
-                    </Text>
+                    <View style={[styles.txIconWrap, { backgroundColor: cat.bg }]}>
+                      <cat.Icon color={cat.color} size={17} strokeWidth={2.4} />
+                    </View>
+                    <View style={styles.txTitleWrap}>
+                      <Text style={styles.txTitle} numberOfLines={1}>
+                        {meta.label}
+                      </Text>
+                      <Text style={[styles.txCategory, { color: cat.color }]} numberOfLines={1}>
+                        {cat.label}
+                      </Text>
+                    </View>
                     <Text
                       style={[
                         styles.txAmount,
@@ -573,11 +595,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 17,
   },
-  txTitle: {
+  txIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  txTitleWrap: {
     flex: 1,
+    minWidth: 0,
+  },
+  txTitle: {
     fontSize: 15,
     fontWeight: "700" as const,
     color: "#1C1C1E",
+  },
+  txCategory: {
+    fontSize: 11,
+    fontWeight: "800" as const,
+    letterSpacing: 0.5,
+    textTransform: "uppercase" as const,
+    marginTop: 2,
   },
   txAmount: {
     fontSize: 15,
@@ -741,5 +780,18 @@ const styles = StyleSheet.create({
   },
   detailStatus: {
     color: "#16A34A",
+  },
+  detailCategoryTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  detailCategoryText: {
+    fontSize: 12,
+    fontWeight: "800" as const,
+    letterSpacing: 0.3,
   },
 });

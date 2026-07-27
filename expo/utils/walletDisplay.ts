@@ -6,6 +6,9 @@ import {
   Landmark,
   Banknote,
   Coins,
+  Car,
+  Gift,
+  RotateCcw,
 } from "lucide-react-native";
 import type { WalletTransaction, WalletType } from "@/utils/walletStore";
 
@@ -78,7 +81,70 @@ export function walletTxMeta(
       return { label: "Ride Reward", Icon: Coins, color: colors.success };
     case "redeem":
       return { label: "Paid with GET.coin", Icon: Coins, color: colors.danger };
+    case "transfer_out":
+      return { label: "Transfer Sent", Icon: ArrowUpRight, color: colors.danger };
+    case "transfer_in":
+      return { label: "Transfer Received", Icon: ArrowDownLeft, color: colors.success };
     default:
       return { label: tx.note ?? "Adjustment", Icon: Banknote, color: colors.textSecondary };
+  }
+}
+
+export type WalletTxCategoryId =
+  | "ride"
+  | "reward"
+  | "transfer"
+  | "reload"
+  | "refund"
+  | "other";
+
+export interface WalletTxCategory {
+  id: WalletTxCategoryId;
+  label: string;
+  Icon: typeof Plus;
+  /** Icon / label colour for the category. */
+  color: string;
+  /** Soft tinted background for the icon circle. */
+  bg: string;
+}
+
+const TX_CATEGORIES: Record<WalletTxCategoryId, WalletTxCategory> = {
+  ride: { id: "ride", label: "Ride", Icon: Car, color: "#2DABE2", bg: "#E4F3FB" },
+  reward: { id: "reward", label: "Reward", Icon: Gift, color: "#D97706", bg: "#FEF3C7" },
+  transfer: {
+    id: "transfer",
+    label: "Transfer",
+    Icon: ArrowRightLeft,
+    color: "#0D9488",
+    bg: "#CCFBF1",
+  },
+  reload: { id: "reload", label: "Reload", Icon: Plus, color: "#16A34A", bg: "#DCFCE7" },
+  refund: { id: "refund", label: "Refund", Icon: RotateCcw, color: "#0891B2", bg: "#CFFAFE" },
+  other: { id: "other", label: "Other", Icon: Banknote, color: "#6B7280", bg: "#F3F4F6" },
+};
+
+/**
+ * Groups a wallet transaction into a display category (Ride, Reward,
+ * Transfer, Reload, Refund, Other) with a distinct colour-coded icon.
+ */
+export function walletTxCategory(tx: WalletTransaction): WalletTxCategory {
+  switch (tx.kind) {
+    case "payment":
+    case "commission":
+    case "redeem":
+      return TX_CATEGORIES.ride;
+    case "reward":
+      return TX_CATEGORIES.reward;
+    case "transfer_in":
+    case "transfer_out":
+    case "recharge_in":
+    case "recharge_out":
+      return TX_CATEGORIES.transfer;
+    case "topup":
+      return TX_CATEGORIES.reload;
+    case "refund":
+      return TX_CATEGORIES.refund;
+    default:
+      return TX_CATEGORIES.other;
   }
 }
