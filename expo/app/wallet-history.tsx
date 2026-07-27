@@ -32,6 +32,8 @@ import {
   walletTxMeta,
   walletTxCategory,
   walletTypeLabel,
+  isReferralTransaction,
+  REFERRAL_HIGHLIGHT,
   type WalletTxCategoryId,
 } from "@/utils/walletDisplay";
 import PullDownScrollView from "@/components/PullDownScrollView";
@@ -43,6 +45,7 @@ const CATEGORY_FILTERS: { id: CategoryFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "ride", label: "Ride" },
   { id: "reward", label: "Reward" },
+  { id: "referral", label: "Referral" },
   { id: "transfer", label: "Transfer" },
   { id: "reload", label: "Reload" },
   { id: "refund", label: "Refund" },
@@ -393,8 +396,12 @@ export default function WalletHistoryScreen() {
               const cat = walletTxCategory(tx);
               const positive = tx.amount >= 0;
               const expanded = expandedId === tx.id;
+              const isReferral = isReferralTransaction(tx);
               return (
-                <View key={tx.id} style={styles.txCard}>
+                <View
+                  key={tx.id}
+                  style={[styles.txCard, isReferral ? styles.txCardReferral : null]}
+                >
                   <TouchableOpacity
                     style={styles.txRow}
                     onPress={() => setExpandedId(expanded ? null : tx.id)}
@@ -663,6 +670,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
+  },
+  txCardReferral: {
+    backgroundColor: REFERRAL_HIGHLIGHT.rowBg,
+    borderWidth: 1,
+    borderColor: REFERRAL_HIGHLIGHT.border,
   },
   txRow: {
     flexDirection: "row",

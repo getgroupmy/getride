@@ -95,10 +95,31 @@ export function walletTxMeta(
 export type WalletTxCategoryId =
   | "ride"
   | "reward"
+  | "referral"
   | "transfer"
   | "reload"
   | "refund"
   | "other";
+
+/**
+ * Golden accent used to make the "Referral Bonus" row stand out from every
+ * other wallet activity. Shared by the wallet screen and the history screen so
+ * the highlight looks identical in both places.
+ * - `rowBg` tints the whole activity row/card.
+ * - `border` outlines the highlighted history card.
+ * - `iconBg`/`icon` colour the leading gift-icon circle.
+ */
+export const REFERRAL_HIGHLIGHT = {
+  rowBg: "#FFF8E1",
+  border: "#F1D592",
+  iconBg: "#FBE7A1",
+  icon: "#B8860B",
+} as const;
+
+/** True when the transaction is a referral bonus (golden-highlighted row). */
+export function isReferralTransaction(tx: WalletTransaction): boolean {
+  return tx.kind === "referral";
+}
 
 export interface WalletTxCategory {
   id: WalletTxCategoryId;
@@ -113,6 +134,13 @@ export interface WalletTxCategory {
 const TX_CATEGORIES: Record<WalletTxCategoryId, WalletTxCategory> = {
   ride: { id: "ride", label: "Ride", Icon: Car, color: "#2DABE2", bg: "#E4F3FB" },
   reward: { id: "reward", label: "Reward", Icon: Gift, color: "#D97706", bg: "#FEF3C7" },
+  referral: {
+    id: "referral",
+    label: "Referral",
+    Icon: Gift,
+    color: REFERRAL_HIGHLIGHT.icon,
+    bg: REFERRAL_HIGHLIGHT.iconBg,
+  },
   transfer: {
     id: "transfer",
     label: "Transfer",
@@ -136,8 +164,9 @@ export function walletTxCategory(tx: WalletTransaction): WalletTxCategory {
     case "redeem":
       return TX_CATEGORIES.ride;
     case "reward":
-    case "referral":
       return TX_CATEGORIES.reward;
+    case "referral":
+      return TX_CATEGORIES.referral;
     case "transfer_in":
     case "transfer_out":
     case "recharge_in":
