@@ -406,14 +406,30 @@ export default function DriverTeksiScreen() {
 
   const handleSelectCommType = React.useCallback(
     (opt: CommOption) => {
-      setCommChoice(opt.id);
-      setCommTypeVisible(false);
       console.log("[partner-teksi] OBD2 comm type selected:", opt.id);
       if (opt.kind === null) {
+        setCommChoice(opt.id);
+        setCommTypeVisible(false);
         canbus.connectDemo();
-      } else {
-        void canbus.connect(opt.kind);
+        return;
       }
+      const avail = canbus.availability.find((a) => a.kind === opt.kind);
+      if (!avail?.available) {
+        // Be honest instead of silently failing: this build (Expo Go) has no
+        // Bluetooth/TCP/USB native modules, so a real adapter link is impossible.
+        Alert.alert(
+          `${opt.title} not available`,
+          `Connecting to a real OBD-II adapter over ${opt.title} needs a native module that isn't included in this preview build (Expo Go). It will work in a production/dev-client build with the adapter drivers installed.\n\nUse Demo Mode to preview live vehicle data in the meantime.`,
+          [
+            { text: "Use Demo Mode", onPress: () => handleSelectCommType(COMM_OPTIONS[COMM_OPTIONS.length - 1]) },
+            { text: "OK", style: "cancel" },
+          ],
+        );
+        return;
+      }
+      setCommChoice(opt.id);
+      setCommTypeVisible(false);
+      void canbus.connect(opt.kind);
     },
     [canbus],
   );
