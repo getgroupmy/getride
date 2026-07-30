@@ -28,8 +28,12 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/utils/canbus/transports.ts` | Wi-Fi (TCP), Bluetooth (BLE), and USB-serial transport implementations + availability detection. |
 | `expo/utils/canbus/canbusClient.ts` | ELM327 session: runs the handshake, detects the CAN protocol, polls PIDs, emits decoded telemetry. Transport-blind. |
 | `expo/utils/canbus/simulator.ts` | Dev-only fake telemetry stream (honestly flagged `simulated: true`). |
-| `expo/hooks/useCanbus.ts` | React hook exposing live connection state + `connect`/`disconnect`, with a simulator fallback. |
+| `expo/utils/canbusAdapterStore.ts` | The driver's saved readers: draft validation, de-duplication, selection, AsyncStorage persistence. Device-local. |
+| `expo/hooks/useCanbus.ts` | React hook exposing live connection state + `connect`/`disconnect`, the saved-reader list, and a simulator fallback. |
+| `expo/hooks/useIsPartner.ts` | Read-only "is this rider also a partner?" check that gates the user-side reader screen. |
+| `expo/app/obd2-reader.tsx` | Settings → OBD-II (CANBus) reader: add / select / remove readers, connect, live telemetry. |
 | `expo/utils/__tests__/obd.test.ts` | Unit tests for the protocol layer (`bun run test utils/__tests__/obd.test.ts`). |
+| `expo/utils/__tests__/canbusAdapterStore.test.ts` | Unit tests for the saved-reader logic. |
 
 ### UI consumption
 
@@ -42,6 +46,39 @@ isolated behind guarded requires so the app still builds and runs without them.
 - **Speed pill** — a small header pill shows current speed. It is **green** when
   the value comes from the CANBus link and **blue** when it falls back to the
   device GPS (`expo-location` `coords.speed`, converted m/s → km/h).
+- **Settings → OBD-II (CANBus) reader** — the user-side setup screen, described
+  below.
+
+## Adding a reader from user settings
+
+A driver sets the dongle up once, from the ordinary rider-side Settings screen.
+The row **"OBD-II (CANBus) reader"** appears there only when the signed-in
+account is *also* a partner (`useIsPartner` → a `partners` row for this
+`auth_user_id` that has picked at least one partner type or cleared its
+documents check — the stub row `findOrCreatePartner` writes on a stray
+"Partner mode" tap does not count). The row's value shows the selected reader,
+e.g. `Wi-Fi · 192.168.0.10:35000`, or `Not set up`.
+
+`app/obd2-reader.tsx` is the screen behind it:
+
+- **Add reader** — pick the connection (Wi-Fi / Bluetooth LE / USB on Android),
+  name it, and for Wi-Fi enter the dongle's `host` + `port` (pre-filled with the
+  near-universal `192.168.0.10:35000`). Drafts are validated by
+  `normalizeAdapterDraft`; re-adding the same endpoint updates the existing
+  entry rather than stacking duplicates.
+- **Select / remove** — tap a reader to make it the default, trash-icon (or long
+  press) to remove it. Only the entry is removed; the hardware is untouched.
+- **Connect / Disconnect** and a live telemetry grid, plus a **Demo Mode**
+  button that appears only when the admin `partnerDriveSimEnabled` flag is on.
+- **Supported connections** — an honest per-transport availability list, so a
+  driver on Expo Go sees *why* a real link can't be attempted instead of a
+  silent failure.
+
+Readers are stored **device-local** in AsyncStorage (`@canbus_adapters_v1`,
+`@canbus_selected_adapter_v1`) — a dongle belongs to one phone, so no migration
+or Supabase table is involved. `useCanbus` loads the selection before
+auto-connecting, so the partner Teksi / e-hailing screens link to the reader
+configured here, using its saved Wi-Fi endpoint.
 
 ## Supported PIDs
 

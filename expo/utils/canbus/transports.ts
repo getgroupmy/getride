@@ -343,11 +343,28 @@ export function getTransportAvailability(): TransportAvailability[] {
   ];
 }
 
+/**
+ * Per-connection overrides. Wi-Fi dongles are the only transport with an
+ * address the driver can change (some clones ship on 192.168.0.10:35000,
+ * others on 192.168.1.5:35000), so a saved adapter can supply its own
+ * endpoint; Bluetooth and USB readers are always found by scan.
+ */
+export interface CreateTransportOptions {
+  host?: string;
+  port?: number;
+}
+
 /** Instantiate the transport for a given kind. */
-export function createTransport(kind: CanTransportKind): CanTransport {
+export function createTransport(
+  kind: CanTransportKind,
+  options?: CreateTransportOptions,
+): CanTransport {
   switch (kind) {
     case "wifi":
-      return new WifiTransport();
+      return new WifiTransport(
+        options?.host || WIFI_ADAPTER_HOST,
+        options?.port || WIFI_ADAPTER_PORT,
+      );
     case "bluetooth":
       return new BleTransport();
     case "usb":

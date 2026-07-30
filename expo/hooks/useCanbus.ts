@@ -16,6 +16,14 @@ import {
   getTransportAvailability,
 } from "@/utils/canbus/transports";
 import { startSimulator, type Simulator } from "@/utils/canbus/simulator";
+import {
+  adapterTransportOptions,
+  loadCanbusAdapters,
+  loadSelectedAdapterId,
+  markAdapterConnected,
+  pickDefaultAdapter,
+  type SavedCanAdapter,
+} from "@/utils/canbusAdapterStore";
 import type {
   CanConnectionState,
   CanTransportKind,
@@ -38,6 +46,20 @@ export interface UseCanbusOptions {
   autoConnect?: boolean;
   /** Allow the simulator fallback (gated by an admin sim flag upstream). */
   allowSimulator?: boolean;
+  /**
+   * Use the reader saved from Settings → OBD-II (CANBus) reader as the default
+   * target (its transport and, for Wi-Fi, its endpoint). Set false to always
+   * fall back to the first transport this build supports.
+   */
+  preferSavedAdapter?: boolean;
+}
+
+export interface ConnectOptions {
+  /**
+   * Saved reader to link with. Supplies the Wi-Fi host/port; when omitted the
+   * hook uses the adapter selected in Settings (if any).
+   */
+  adapter?: SavedCanAdapter | null;
 }
 
 export interface UseCanbusResult {
@@ -45,19 +67,34 @@ export interface UseCanbusResult {
   availability: TransportAvailability[];
   /** Transports this build can actually attempt right now. */
   availableTransports: CanTransportKind[];
+  /** Readers saved on this device, newest-selected first. */
+  savedAdapters: SavedCanAdapter[];
+  /** The reader auto-connect targets, or null when none has been added. */
+  defaultAdapter: SavedCanAdapter | null;
+  /** Re-read the saved reader list (call after adding/removing one). */
+  reloadAdapters: () => Promise<SavedCanAdapter[]>;
   connecting: boolean;
-  connect: (kind?: CanTransportKind) => Promise<void>;
+  connect: (kind?: CanTransportKind, options?: ConnectOptions) => Promise<void>;
   /** Explicit user-chosen Demo Mode — virtual data, honestly flagged as sim. */
   connectDemo: () => void;
   disconnect: () => Promise<void>;
 }
 
 export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
-  const { autoConnect = true, allowSimulator = false } = options;
+  const {
+    autoConnect = true,
+    allowSimulator = false,
+    preferSavedAdapter = true,
+  } = options;
   const [state, setState] = useState<CanConnectionState>(INITIAL_STATE);
+  const [savedAdapters, setSavedAdapters] = useState<SavedCanAdapter[]>([]);
+  const [defaultAdapter, setDefaultAdapter] = useState<SavedCanAdapter | null>(null);
   const clientRef = useRef<CanbusClient | null>(null);
   const simRef = useRef<Simulator | null>(null);
   const mountedRef = useRef(true);
+  // Read inside connect() without making the callback depend on state, so the
+  // identity of `connect` stays stable for callers that memoise on it.
+  const defaultAdapterRef = useRef<SavedCanAdapter | null>(null);
 
   const availability = useMemo(() => getTransportAvailability(), []);
   const availableTransports = useMemo(
@@ -103,10 +140,30 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     );
   }, [patch, teardown]);
 
+  const reloadAdapters = useCallback(async () => {
+    const [list, selectedId] = await Promise.all([
+      loadCanbusAdapters(),
+      loadSelectedAdapterId(),
+    ]);
+    const preferred = pickDefaultAdapter(list, selectedId);
+    defaultAdapterRef.current = preferred;
+    if (mountedRef.current) {
+      setSavedAdapters(list);
+      setDefaultAdapter(preferred);
+    }
+    return list;
+  }, []);
+
   const connect = useCallback(
-    async (kind?: CanTransportKind) => {
+    async (kind?: CanTransportKind, connectOptions?: ConnectOptions) => {
       await teardown();
-      const target = kind ?? availableTransports[0];
+      // An explicitly passed reader wins; otherwise fall back to the one saved
+      // in Settings, but only when it matches the transport being attempted.
+      const saved = preferSavedAdapter ? defaultAdapterRef.current : null;
+      const adapter =
+        connectOptions?.adapter ??
+        (saved && (!kind || saved.transport === kind) ? saved : null);
+      const target = kind ?? adapter?.transport ?? availableTransports[0];
 
       if (!target) {
         if (allowSimulator) {
@@ -123,7 +180,7 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
 
       patch({ phase: "connecting", error: null, simulated: false });
       try {
-        const transport = createTransport(target);
+        const transport = createTransport(target, adapterTransportOptions(adapter));
         const device = await transport.connect();
         if (!mountedRef.current) {
           await transport.disconnect();
@@ -140,6 +197,11 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
         clientRef.current = client;
         await client.start();
         patch({ phase: "online" });
+        if (adapter) {
+          void markAdapterConnected(adapter.id).then((list) => {
+            if (mountedRef.current) setSavedAdapters(list);
+          });
+        }
       } catch (e: any) {
         await teardown();
         if (allowSimulator) {
@@ -152,7 +214,14 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
         }
       }
     },
-    [allowSimulator, availableTransports, patch, startSimulated, teardown],
+    [
+      allowSimulator,
+      availableTransports,
+      patch,
+      preferSavedAdapter,
+      startSimulated,
+      teardown,
+    ],
   );
 
   const disconnect = useCallback(async () => {
@@ -162,13 +231,16 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
 
   useEffect(() => {
     mountedRef.current = true;
-    if (autoConnect) {
+    // Load the saved reader first so auto-connect targets it (and its Wi-Fi
+    // endpoint) instead of blindly picking the first supported transport.
+    void reloadAdapters().finally(() => {
+      if (!mountedRef.current || !autoConnect) return;
       if (availableTransports.length > 0) {
         void connect();
       } else if (allowSimulator) {
         startSimulated();
       }
-    }
+    });
     return () => {
       mountedRef.current = false;
       void teardown();
@@ -185,6 +257,9 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     state,
     availability,
     availableTransports,
+    savedAdapters,
+    defaultAdapter,
+    reloadAdapters,
     connecting,
     connect,
     connectDemo: startSimulated,

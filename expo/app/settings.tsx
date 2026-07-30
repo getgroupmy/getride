@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -8,17 +8,47 @@ import {
   StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Menu, ChevronRight } from "lucide-react-native";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useIsPartner } from "@/hooks/useIsPartner";
+import { describeAdapter, loadCanbusAdapters, loadSelectedAdapterId, pickDefaultAdapter } from "@/utils/canbusAdapterStore";
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { themeMode } = useTheme();
   const { authState } = useAuth();
   const Colors = useColors();
+  // The OBD-II reader row is partner-only: it links the app to the vehicle's
+  // diagnostics port, which is meaningless in plain rider mode.
+  const { isPartner } = useIsPartner();
+  const [obdSummary, setObdSummary] = useState<string | null>(null);
+
+  // Refresh on focus so the row reflects a reader added/removed on the
+  // OBD-II screen the moment the user comes back here.
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!isPartner) {
+        setObdSummary(null);
+        return;
+      }
+      let cancelled = false;
+      (async () => {
+        const [adapters, selectedId] = await Promise.all([
+          loadCanbusAdapters(),
+          loadSelectedAdapterId(),
+        ]);
+        if (cancelled) return;
+        const adapter = pickDefaultAdapter(adapters, selectedId);
+        setObdSummary(adapter ? describeAdapter(adapter) : "Not set up");
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [isPartner])
+  );
 
   const phoneDisplay = useMemo(() => {
     const raw = authState.phoneNumber?.trim();
@@ -36,14 +66,25 @@ export default function SettingsScreen() {
     return "System";
   }, [themeMode]);
 
-  const settingsOptions = [
-    { id: "phone", label: "Phone number", value: phoneDisplay, hasChevron: true },
-    { id: "language", label: "Language", value: null, hasChevron: true },
-    { id: "distances", label: "Distances", value: null, hasChevron: true },
-    { id: "darkMode", label: "Dark mode", value: themeModeLabel, hasChevron: true },
-    { id: "navigation", label: "Navigation", value: null, hasChevron: true },
-    { id: "rules", label: "Rules and terms", value: null, hasChevron: true },
-  ];
+  const settingsOptions = useMemo(() => {
+    const options: { id: string; label: string; value: string | null; hasChevron: boolean }[] = [
+      { id: "phone", label: "Phone number", value: phoneDisplay, hasChevron: true },
+      { id: "language", label: "Language", value: null, hasChevron: true },
+      { id: "distances", label: "Distances", value: null, hasChevron: true },
+      { id: "darkMode", label: "Dark mode", value: themeModeLabel, hasChevron: true },
+      { id: "navigation", label: "Navigation", value: null, hasChevron: true },
+    ];
+    if (isPartner) {
+      options.push({
+        id: "obd2",
+        label: "OBD-II (CANBus) reader",
+        value: obdSummary,
+        hasChevron: true,
+      });
+    }
+    options.push({ id: "rules", label: "Rules and terms", value: null, hasChevron: true });
+    return options;
+  }, [isPartner, obdSummary, phoneDisplay, themeModeLabel]);
 
   const handleBack = () => {
     router.back();
@@ -70,6 +111,8 @@ export default function SettingsScreen() {
       router.push("/rules-terms");
     } else if (id === "phone") {
       router.push("/change-number");
+    } else if (id === "obd2") {
+      router.push("/obd2-reader");
     }
     console.log("Setting pressed:", id);
   };
@@ -100,10 +143,17 @@ export default function SettingsScreen() {
               onPress={() => handleSettingPress(option.id)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.settingLabel, { color: Colors.text }]}>{option.label}</Text>
+              <Text style={[styles.settingLabel, { color: Colors.text }]} numberOfLines={1}>
+                {option.label}
+              </Text>
               <View style={styles.settingRight}>
                 {option.value && (
-                  <Text style={[styles.settingValue, { color: Colors.textSecondary }]}>{option.value}</Text>
+                  <Text
+                    style={[styles.settingValue, { color: Colors.textSecondary }]}
+                    numberOfLines={1}
+                  >
+                    {option.value}
+                  </Text>
                 )}
                 {option.hasChevron && (
                   <ChevronRight color={Colors.textSecondary} size={20} />
@@ -178,16 +228,20 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "400",
     color: "#FFFFFF",
+    flexShrink: 1,
+    marginRight: 12,
   },
   settingRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flexShrink: 0,
   },
   settingValue: {
     fontSize: 17,
     fontWeight: "400",
     color: "#6B7280",
+    maxWidth: 190,
   },
   bottomContainer: {
     paddingHorizontal: 20,
