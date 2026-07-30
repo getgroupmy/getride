@@ -85,6 +85,48 @@ export function computeFirstStep(
   return "done";
 }
 
+/**
+ * Whether a partner row belongs to someone actually operating as a partner.
+ *
+ * `findOrCreatePartner` inserts a stub the moment anyone taps "Partner mode",
+ * so the mere existence of a row proves nothing. A partner has committed once
+ * they have picked at least one partner type — or once an admin has approved
+ * them / issued a permit.
+ */
+export function isActivePartner(partner: PartnerProfileRow | null): boolean {
+  if (!partner) return false;
+  if ((partner.partner_types?.length ?? 0) > 0) return true;
+  return partner.documents_ok === true;
+}
+
+/**
+ * Read-only partner lookup for the current user. Unlike
+ * {@link findOrCreatePartner} this never inserts a stub row, so it is safe to
+ * call from screens that merely need to know whether the user is a partner.
+ */
+export async function fetchPartnerForUser(
+  userId: string
+): Promise<PartnerProfileRow | null> {
+  if (!isSupabaseConfigured || !supabase || !userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from("partners")
+      .select(
+        "id, display_id, auth_user_id, name, phone, email, ic, address, avatar_url, partner_types, service_countries, service_states, service_cities, documents_ok, onboarding_step"
+      )
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+    if (error) {
+      console.log("[partner-onboarding] partner lookup error", error.message);
+      return null;
+    }
+    return (data as PartnerProfileRow | null) ?? null;
+  } catch (e) {
+    console.log("[partner-onboarding] partner lookup threw", e);
+    return null;
+  }
+}
+
 export async function fetchUserProfile(userId: string): Promise<UserProfileRow | null> {
   if (!isSupabaseConfigured || !supabase || !userId) return null;
   try {
