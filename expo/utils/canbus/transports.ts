@@ -5,13 +5,14 @@
  * Bluetooth MFi (Apple External Accessory), and USB serial — behind the single
  * {@link CanTransport} interface so the session client stays transport-blind.
  *
- * `react-native-ble-plx` is a real dependency, so Bluetooth LE works in any
- * build that ships its native side (a dev client or a store build) — in Expo Go
- * and on web the JS loads but the native module is absent, which the transport
- * reports honestly instead of failing mid-connect. The other three modules
- * (`react-native-tcp-socket`, `react-native-bluetooth-classic`, a USB-serial
- * driver) are still optional peer deps resolved through a guarded lookup,
- * mirroring the repo's graceful-degradation convention.
+ * `react-native-ble-plx` (Bluetooth LE) and `react-native-bluetooth-classic`
+ * (Bluetooth MFi) are real dependencies, so both work in any build that ships
+ * their native side — in Expo Go, on web, and in a store build made before the
+ * dependency shipped, the JS loads but the native module is absent, which the
+ * transports report honestly instead of failing mid-connect. The remaining two
+ * modules (`react-native-tcp-socket`, a USB-serial driver) are still optional
+ * peer deps resolved through a guarded lookup, mirroring the repo's
+ * graceful-degradation convention.
  */
 
 import { PermissionsAndroid, Platform } from "react-native";
@@ -30,9 +31,11 @@ import {
   accessoryLabel,
   describeMfiAvailability,
   describeMfiSelectionFailure,
+  mfiConnectionOptions,
   pickMfiAccessory,
   type MfiAccessoryLike,
 } from "./mfi";
+import { isMfiNativeLinked, loadMfiModule } from "./mfiModule";
 import {
   BLE_POWER_ON_TIMEOUT_MS,
   BLE_SCAN_TIMEOUT_MS,
@@ -57,10 +60,13 @@ import type {
  * Expo Go / this managed build, so the lookup resolves to null and those
  * transports report themselves as unavailable. In a custom dev-client build,
  * swap an entry for a guarded static `require("<module-name>")` to enable it.
+ *
+ * Bluetooth LE and MFi are deliberately *not* here — their packages are real
+ * dependencies loaded through `bleModule.ts` / `mfiModule.ts`, which is what
+ * makes them work in a store build rather than only in a bespoke one.
  */
 const OPTIONAL_MODULES: Record<string, unknown> = {
   "react-native-tcp-socket": null,
-  "react-native-bluetooth-classic": null,
   "react-native-usb-serialport-for-android": null,
 };
 
@@ -84,22 +90,20 @@ function bleAvailability(): { available: boolean; reason?: string; guidance?: st
   });
 }
 
-/** The `react-native-bluetooth-classic` default export, when it is installed. */
-function loadMfiModule(): any | null {
-  const mod = optionalRequire("react-native-bluetooth-classic");
-  return mod?.default ?? mod ?? null;
-}
-
 /**
- * MFi availability. The module ships its own native side, so "installed" and
- * "linked" collapse into one check here — an unlinked build cannot resolve the
- * accessory list at all.
+ * Bluetooth MFi availability, on the same two axes as BLE.
+ *
+ * The JS half of `react-native-bluetooth-classic` always resolves — it is a
+ * real dependency — and exposes `getBondedDevices` whether or not a native
+ * module is behind it, so "the package is here" says nothing about whether this
+ * binary can reach an accessory. Only the native-module lookup does, and
+ * without it every call would reject (or crash) mid-connect.
  */
 function mfiAvailability(): { available: boolean; reason?: string; guidance?: string } {
   const mod = loadMfiModule();
   return describeMfiAvailability({
-    moduleInstalled: !!mod,
-    nativeModuleLinked: typeof mod?.getBondedDevices === "function",
+    moduleInstalled: typeof mod?.getBondedDevices === "function",
+    nativeModuleLinked: isMfiNativeLinked(),
     platform: Platform.OS,
     runtime: getAppRuntime(),
   });
@@ -448,10 +452,9 @@ class BleTransport implements CanTransport {
  * in `UISupportedExternalAccessoryProtocols`, so connecting is "list the
  * paired accessories, pick ours, open a session".
  *
- * Framing note: the session client reads a response as everything up to the
- * ELM327 prompt, so the stream is delimited on `>` rather than on CR. A CR
- * delimiter would strand the trailing prompt — the ELM327 does not terminate
- * it — and every command would time out.
+ * The session's framing and character set come from {@link mfiConnectionOptions},
+ * which documents why the stream is delimited on the ELM327 prompt and why the
+ * charset has to be a number.
  */
 class MfiTransport implements CanTransport {
   readonly kind: CanTransportKind = "mfi";
@@ -499,10 +502,7 @@ class MfiTransport implements CanTransport {
 
     this.connection = await withTimeout(
       Promise.resolve(
-        this.module.connectToDevice(this.address, {
-          delimiter: ELM_PROMPT,
-          charset: "ascii",
-        }),
+        this.module.connectToDevice(this.address, mfiConnectionOptions(ELM_PROMPT)),
       ),
       CONNECT_TIMEOUT_MS,
       "MFi connect",
@@ -530,14 +530,15 @@ class MfiTransport implements CanTransport {
   async write(data: string): Promise<void> {
     if (!this.connection) throw new Error("not connected");
     const payload = data + ELM_CR;
-    // The native contract takes base64; the device-level `write` helper only
-    // exists on newer versions and needs a Buffer polyfill, so it is the
-    // fallback rather than the primary path.
-    if (typeof this.module?.writeToDevice === "function") {
-      await this.module.writeToDevice(this.address, asciiToBase64(payload));
+    // Hand both paths the *plain* command and let the library encode it. Its
+    // `writeToDevice` already does `Buffer.from(text, encoding).toString("base64")`
+    // before it reaches the native side, so base64-ing first would send the
+    // dongle a double-encoded string it can only answer with `?`.
+    if (typeof this.connection.write === "function") {
+      await this.connection.write(payload, "ascii");
       return;
     }
-    await this.connection.write(payload, "ascii");
+    await this.module.writeToDevice(this.address, payload, "ascii");
   }
 
   onData(listener: (chunk: string) => void): () => void {
