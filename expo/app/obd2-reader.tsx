@@ -183,11 +183,11 @@ export default function Obd2ReaderScreen() {
       }
       const avail = availabilityFor(target.transport);
       if (!avail?.available) {
-        // Be honest rather than failing silently: Expo Go / web builds have no
-        // Bluetooth, TCP or USB native module, so a real link is impossible.
+        // Be honest rather than failing silently: the native driver behind a
+        // transport is missing in Expo Go / on web, so a real link is impossible.
         Alert.alert(
           `${TRANSPORT_LABEL[target.transport]} not available`,
-          `${avail?.reason ?? "This transport is unavailable"}.\n\nConnecting to a real OBD-II reader over ${TRANSPORT_LABEL[target.transport]} needs a native module that isn't in this preview build. It works in a dev-client or production build with the adapter drivers installed.`
+          `${avail?.reason ?? "This transport is unavailable"}.\n\nConnecting to a real OBD-II reader over ${TRANSPORT_LABEL[target.transport]} needs the adapter's native driver, which ships in a development or production build — not in Expo Go or the web preview.`
         );
         return;
       }

@@ -81,6 +81,13 @@
           "icon": "./assets/images/icon.png",
           "color": "#FFD400"
         }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to your OBD-II (CANBus) reader to show live vehicle data."
+        }
       ]
     ],
     "experiments": {

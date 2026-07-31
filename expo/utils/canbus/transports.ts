@@ -5,20 +5,27 @@
  * serial — behind the single {@link CanTransport} interface so the session
  * client stays transport-blind.
  *
- * The native modules these wrap (`react-native-tcp-socket`,
- * `react-native-ble-plx`, a USB-serial module) are optional peer deps that
- * only exist in a custom dev-client / production build. Every reference to
- * them goes through a guarded `require`, so the app still compiles and runs
- * (in Expo Go, on web) when they are absent — it simply reports the transport
- * as unavailable, mirroring the repo's graceful-degradation convention.
+ * `react-native-ble-plx` is a real dependency, so Bluetooth works in any build
+ * that ships its native side (a dev client or a store build) — in Expo Go and
+ * on web the JS loads but the native module is absent, which the transport
+ * reports honestly instead of failing mid-connect. The other two modules
+ * (`react-native-tcp-socket`, a USB-serial driver) are still optional peer
+ * deps resolved through a guarded lookup, mirroring the repo's
+ * graceful-degradation convention.
  */
 
-import { Platform } from "react-native";
+import { PermissionsAndroid, Platform } from "react-native";
+import { isBleNativeLinked, loadBleModule } from "./bleModule";
 import {
-  BLE_ELM_NOTIFY_CHAR,
-  BLE_ELM_SERVICE,
-  BLE_ELM_WRITE_CHAR,
-  BLE_NAME_HINTS,
+  describeBleAvailability,
+  matchesElmAdvertisement,
+  resolveBleProfile,
+  type BleServiceLike,
+  type ResolvedBleProfile,
+} from "./ble";
+import {
+  BLE_POWER_ON_TIMEOUT_MS,
+  BLE_SCAN_TIMEOUT_MS,
   CONNECT_TIMEOUT_MS,
   WIFI_ADAPTER_HOST,
   WIFI_ADAPTER_PORT,
@@ -35,20 +42,31 @@ import type {
  * Best-effort optional module lookup that never throws.
  *
  * Metro cannot bundle dynamic `require(name)` calls, so optional native
- * modules are resolved through this static registry instead. None of them
- * ship in Expo Go / this managed build, so every lookup resolves to null and
- * the transports simply report themselves as unavailable. In a custom
- * dev-client build, swap an entry for a guarded static
- * `require("<module-name>")` to enable that transport.
+ * modules are resolved through this static registry instead. Neither ships in
+ * Expo Go / this managed build, so the lookup resolves to null and those
+ * transports report themselves as unavailable. In a custom dev-client build,
+ * swap an entry for a guarded static `require("<module-name>")` to enable it.
  */
 const OPTIONAL_MODULES: Record<string, unknown> = {
   "react-native-tcp-socket": null,
-  "react-native-ble-plx": null,
   "react-native-usb-serialport-for-android": null,
 };
 
 function optionalRequire(moduleName: string): any | null {
   return (OPTIONAL_MODULES[moduleName] as any) ?? null;
+}
+
+/**
+ * Bluetooth availability: the package is installed, but its native side only
+ * exists in a prebuilt binary — Expo Go loads the JS and has no `BlePlx`
+ * native module, so every manager call there would throw mid-connect.
+ */
+function bleAvailability(): { available: boolean; reason?: string } {
+  return describeBleAvailability({
+    moduleInstalled: !!loadBleModule()?.BleManager,
+    nativeModuleLinked: isBleNativeLinked(),
+    platform: Platform.OS,
+  });
 }
 
 // --- tiny base64 codec (BLE characteristics ferry base64, no Buffer in RN) ---
@@ -165,43 +183,122 @@ class WifiTransport implements CanTransport {
 
 // ------------------------------- Bluetooth -------------------------------
 
+/**
+ * Ask for the runtime permissions a BLE scan needs. Android 12+ has dedicated
+ * Bluetooth permissions; below that a scan counts as a location fix and needs
+ * ACCESS_FINE_LOCATION. iOS handles this through the Info.plist usage string.
+ */
+async function requestBlePermissions(): Promise<void> {
+  if (Platform.OS !== "android") return;
+  const apiLevel =
+    typeof Platform.Version === "number"
+      ? Platform.Version
+      : parseInt(String(Platform.Version), 10) || 0;
+  const needed: string[] =
+    apiLevel >= 31
+      ? [
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        ]
+      : [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
+  const granted: Record<string, string> = await PermissionsAndroid.requestMultiple(
+    needed as any,
+  );
+  const denied = needed.filter(
+    (p) => granted[p] !== PermissionsAndroid.RESULTS.GRANTED,
+  );
+  if (denied.length > 0) {
+    throw new Error(
+      apiLevel >= 31
+        ? "Bluetooth permission denied — allow nearby-device access to use the reader"
+        : "Location permission denied — Android needs it to scan for Bluetooth readers",
+    );
+  }
+}
+
+/**
+ * Wait for the radio to report `PoweredOn`. iOS reports `Unknown` for a beat
+ * after the manager is created, so a bare state check would spuriously fail;
+ * the terminal states get their own actionable message instead.
+ */
+async function waitForBlePoweredOn(manager: any): Promise<void> {
+  const state = await manager.state();
+  if (state === "PoweredOn") return;
+  if (state === "PoweredOff") {
+    throw new Error("Bluetooth is turned off — turn it on and try again");
+  }
+  if (state === "Unsupported") {
+    throw new Error("This device has no Bluetooth LE radio");
+  }
+  if (state === "Unauthorized") {
+    throw new Error("Bluetooth access is not allowed for this app");
+  }
+  let subscription: any = null;
+  try {
+    await withTimeout(
+      new Promise<void>((resolve, reject) => {
+        subscription = manager.onStateChange((next: string) => {
+          if (next === "PoweredOn") resolve();
+          else if (next === "PoweredOff") {
+            reject(new Error("Bluetooth is turned off — turn it on and try again"));
+          } else if (next === "Unsupported") {
+            reject(new Error("This device has no Bluetooth LE radio"));
+          } else if (next === "Unauthorized") {
+            reject(new Error("Bluetooth access is not allowed for this app"));
+          }
+        }, true);
+      }),
+      BLE_POWER_ON_TIMEOUT_MS,
+      "Bluetooth power-on",
+    );
+  } finally {
+    subscription?.remove?.();
+  }
+}
+
 class BleTransport implements CanTransport {
   readonly kind: CanTransportKind = "bluetooth";
   device: CanDeviceInfo | null = null;
   private manager: any = null;
   private peripheral: any = null;
   private sub: any = null;
+  private profile: ResolvedBleProfile | null = null;
   private listeners = new Set<(chunk: string) => void>();
 
   async connect(): Promise<CanDeviceInfo> {
-    const ble = optionalRequire("react-native-ble-plx");
-    if (!ble?.BleManager) throw new Error("react-native-ble-plx not installed");
+    try {
+      return await this.openLink();
+    } catch (error) {
+      // A half-open link would leave the manager (and possibly a running scan)
+      // alive; the caller only ever sees the error, so clean up before it.
+      await this.releaseHardware();
+      throw error;
+    }
+  }
+
+  private async openLink(): Promise<CanDeviceInfo> {
+    const availability = bleAvailability();
+    if (!availability.available) {
+      throw new Error(availability.reason ?? "Bluetooth is unavailable");
+    }
+    const ble = loadBleModule();
+    await requestBlePermissions();
     this.manager = new ble.BleManager();
+    await waitForBlePoweredOn(this.manager);
 
-    const found = await withTimeout(
-      new Promise<any>((resolve, reject) => {
-        this.manager.startDeviceScan(null, null, (error: any, device: any) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          const name = (device?.name ?? device?.localName ?? "").toUpperCase();
-          if (name && BLE_NAME_HINTS.some((h) => name.includes(h))) {
-            this.manager.stopDeviceScan();
-            resolve(device);
-          }
-        });
-      }),
-      CONNECT_TIMEOUT_MS,
-      "BLE scan",
-    );
-
-    this.peripheral = await found.connect();
+    const found = await this.scanForAdapter();
+    this.peripheral = await this.manager.connectToDevice(found.id);
     await this.peripheral.discoverAllServicesAndCharacteristics();
+    this.profile = await this.resolveProfile();
+    if (!this.profile) {
+      throw new Error(
+        "Connected, but this device exposes no ELM327 serial characteristic",
+      );
+    }
 
     this.sub = this.peripheral.monitorCharacteristicForService(
-      BLE_ELM_SERVICE,
-      BLE_ELM_NOTIFY_CHAR,
+      this.profile.serviceUuid,
+      this.profile.notifyUuid,
       (error: any, characteristic: any) => {
         if (error || !characteristic?.value) return;
         const text = base64ToAscii(characteristic.value);
@@ -217,13 +314,64 @@ class BleTransport implements CanTransport {
     return this.device;
   }
 
-  async write(data: string): Promise<void> {
-    if (!this.peripheral) throw new Error("not connected");
-    await this.peripheral.writeCharacteristicWithResponseForService(
-      BLE_ELM_SERVICE,
-      BLE_ELM_WRITE_CHAR,
-      asciiToBase64(data + ELM_CR),
+  /** Resolve on the first advertisement that looks like an ELM327 dongle. */
+  private async scanForAdapter(): Promise<any> {
+    try {
+      return await withTimeout(
+        new Promise<any>((resolve, reject) => {
+          this.manager.startDeviceScan(
+            null,
+            { allowDuplicates: false },
+            (error: any, device: any) => {
+              if (error) {
+                reject(error);
+                return;
+              }
+              if (matchesElmAdvertisement(device)) resolve(device);
+            },
+          );
+        }),
+        BLE_SCAN_TIMEOUT_MS,
+        "Bluetooth scan",
+      );
+    } finally {
+      // Always stop the radio scanning — on the timeout path nothing else will.
+      try {
+        this.manager?.stopDeviceScan?.();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  /** Map the peripheral's discovered GATT tree onto a known serial profile. */
+  private async resolveProfile(): Promise<ResolvedBleProfile | null> {
+    const services = await this.peripheral.services();
+    const described: BleServiceLike[] = await Promise.all(
+      services.map(async (service: any) => ({
+        uuid: service.uuid,
+        characteristics: await service.characteristics(),
+      })),
     );
+    return resolveBleProfile(described);
+  }
+
+  async write(data: string): Promise<void> {
+    if (!this.peripheral || !this.profile) throw new Error("not connected");
+    const payload = asciiToBase64(data + ELM_CR);
+    if (this.profile.writeWithResponse) {
+      await this.peripheral.writeCharacteristicWithResponseForService(
+        this.profile.serviceUuid,
+        this.profile.writeUuid,
+        payload,
+      );
+    } else {
+      await this.peripheral.writeCharacteristicWithoutResponseForService(
+        this.profile.serviceUuid,
+        this.profile.writeUuid,
+        payload,
+      );
+    }
   }
 
   onData(listener: (chunk: string) => void): () => void {
@@ -231,9 +379,11 @@ class BleTransport implements CanTransport {
     return () => this.listeners.delete(listener);
   }
 
-  async disconnect(): Promise<void> {
+  /** Drop the subscription, scan, connection and manager — listeners survive. */
+  private async releaseHardware(): Promise<void> {
     try {
       this.sub?.remove?.();
+      this.manager?.stopDeviceScan?.();
       await this.peripheral?.cancelConnection?.();
       this.manager?.destroy?.();
     } catch {
@@ -242,7 +392,12 @@ class BleTransport implements CanTransport {
     this.sub = null;
     this.peripheral = null;
     this.manager = null;
+    this.profile = null;
     this.device = null;
+  }
+
+  async disconnect(): Promise<void> {
+    await this.releaseHardware();
     this.listeners.clear();
   }
 }
@@ -310,7 +465,7 @@ class UsbTransport implements CanTransport {
 /** Report which transports this build/device can actually attempt. */
 export function getTransportAvailability(): TransportAvailability[] {
   const hasTcp = !!optionalRequire("react-native-tcp-socket");
-  const hasBle = !!optionalRequire("react-native-ble-plx")?.BleManager;
+  const ble = bleAvailability();
   const hasUsb = !!optionalRequire("react-native-usb-serialport-for-android");
   return [
     {
@@ -322,15 +477,7 @@ export function getTransportAvailability(): TransportAvailability[] {
           ? "not supported on web"
           : undefined,
     },
-    {
-      kind: "bluetooth",
-      available: hasBle && Platform.OS !== "web",
-      reason: !hasBle
-        ? "react-native-ble-plx not installed"
-        : Platform.OS === "web"
-          ? "not supported on web"
-          : undefined,
-    },
+    { kind: "bluetooth", ...ble },
     {
       kind: "usb",
       available: hasUsb && Platform.OS === "android",
