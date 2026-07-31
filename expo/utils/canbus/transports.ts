@@ -5,19 +5,19 @@
  * Bluetooth MFi (Apple External Accessory), and USB serial — behind the single
  * {@link CanTransport} interface so the session client stays transport-blind.
  *
- * `react-native-ble-plx` (Bluetooth LE) and `react-native-bluetooth-classic`
- * (Bluetooth MFi) are real dependencies, so both work in any build that ships
- * their native side — in Expo Go, on web, and in a store build made before the
- * dependency shipped, the JS loads but the native module is absent, which the
- * transports report honestly instead of failing mid-connect. The remaining two
- * modules (`react-native-tcp-socket`, a USB-serial driver) are still optional
- * peer deps resolved through a guarded lookup, mirroring the repo's
+ * `react-native-tcp-socket` (Wi-Fi), `react-native-ble-plx` (Bluetooth LE) and
+ * `react-native-bluetooth-classic` (Bluetooth MFi) are real dependencies, so
+ * all three work in any build that ships their native side — in Expo Go, on
+ * web, and in a store build made before the dependency shipped, the JS loads
+ * but the native module is absent, which the transports report honestly instead
+ * of failing mid-connect. Only the USB-serial driver is still an optional peer
+ * dep resolved through a guarded lookup, mirroring the repo's
  * graceful-degradation convention.
  */
 
 import { PermissionsAndroid, Platform } from "react-native";
 import { getAppRuntime } from "./appRuntime";
-import { describeMissingNativeModule, describeWebUnsupported } from "./availability";
+import { describeMissingNativeModule } from "./availability";
 import { isBleNativeLinked, loadBleModule } from "./bleModule";
 import {
   describeBleAvailability,
@@ -36,6 +36,8 @@ import {
   type MfiAccessoryLike,
 } from "./mfi";
 import { isMfiNativeLinked, loadMfiModule } from "./mfiModule";
+import { isTcpNativeLinked, loadTcpModule } from "./tcpModule";
+import { describeWifiAvailability } from "./wifi";
 import {
   BLE_POWER_ON_TIMEOUT_MS,
   BLE_SCAN_TIMEOUT_MS,
@@ -56,22 +58,43 @@ import type {
  * Best-effort optional module lookup that never throws.
  *
  * Metro cannot bundle dynamic `require(name)` calls, so optional native
- * modules are resolved through this static registry instead. Neither ships in
- * Expo Go / this managed build, so the lookup resolves to null and those
- * transports report themselves as unavailable. In a custom dev-client build,
- * swap an entry for a guarded static `require("<module-name>")` to enable it.
+ * modules are resolved through this static registry instead. The USB driver
+ * does not ship in this build, so the lookup resolves to null and that
+ * transport reports itself as unavailable. In a custom dev-client build, swap
+ * the entry for a guarded static `require("<module-name>")` to enable it.
  *
- * Bluetooth LE and MFi are deliberately *not* here — their packages are real
- * dependencies loaded through `bleModule.ts` / `mfiModule.ts`, which is what
- * makes them work in a store build rather than only in a bespoke one.
+ * Wi-Fi, Bluetooth LE and MFi are deliberately *not* here — their packages are
+ * real dependencies loaded through `tcpModule.ts` / `bleModule.ts` /
+ * `mfiModule.ts`, which is what makes them work in a store build rather than
+ * only in a bespoke one. A `null` entry here is indistinguishable from "no such
+ * build exists", which is exactly how Wi-Fi came to tell TestFlight drivers to
+ * install a newer build that could never have contained the driver.
  */
 const OPTIONAL_MODULES: Record<string, unknown> = {
-  "react-native-tcp-socket": null,
   "react-native-usb-serialport-for-android": null,
 };
 
 function optionalRequire(moduleName: string): any | null {
   return (OPTIONAL_MODULES[moduleName] as any) ?? null;
+}
+
+/**
+ * Wi-Fi availability, on the same two axes as the Bluetooth transports.
+ *
+ * `react-native-tcp-socket` is a real dependency, so the JS resolves wherever
+ * the bundle runs; only the native-module lookup says whether this binary can
+ * actually open a socket. Both are needed before a connect is attempted,
+ * because the package throws at import time when its native side is missing
+ * (see `tcpModule.ts`).
+ */
+function wifiAvailability(): { available: boolean; reason?: string; guidance?: string } {
+  const mod = loadTcpModule();
+  return describeWifiAvailability({
+    moduleInstalled: typeof mod?.createConnection === "function",
+    nativeModuleLinked: isTcpNativeLinked(),
+    platform: Platform.OS,
+    runtime: getAppRuntime(),
+  });
 }
 
 /**
@@ -173,8 +196,23 @@ class WifiTransport implements CanTransport {
   ) {}
 
   async connect(): Promise<CanDeviceInfo> {
-    const TcpSocket = optionalRequire("react-native-tcp-socket")?.default;
-    if (!TcpSocket) throw new Error("react-native-tcp-socket not installed");
+    try {
+      return await this.openLink();
+    } catch (error) {
+      // A refused or timed-out connect still leaves a socket object behind with
+      // its listeners attached; the caller only sees the error, so the next
+      // attempt would stack a second socket on top of a live one.
+      await this.releaseHardware();
+      throw error;
+    }
+  }
+
+  private async openLink(): Promise<CanDeviceInfo> {
+    const availability = wifiAvailability();
+    if (!availability.available) {
+      throw new Error(availability.reason ?? "Wi-Fi is unavailable");
+    }
+    const TcpSocket = loadTcpModule();
     const info: CanDeviceInfo = {
       name: `${this.host}:${this.port}`,
       id: `${this.host}:${this.port}`,
@@ -209,14 +247,20 @@ class WifiTransport implements CanTransport {
     return () => this.listeners.delete(listener);
   }
 
-  async disconnect(): Promise<void> {
+  /** Tear the socket down — listeners survive, as on the BLE/MFi side. */
+  private async releaseHardware(): Promise<void> {
     try {
+      this.socket?.removeAllListeners?.();
       this.socket?.destroy();
     } catch {
       /* ignore */
     }
     this.socket = null;
     this.device = null;
+  }
+
+  async disconnect(): Promise<void> {
+    await this.releaseHardware();
     this.listeners.clear();
   }
 }
@@ -631,21 +675,9 @@ class UsbTransport implements CanTransport {
 /** Report which transports this build/device can actually attempt. */
 export function getTransportAvailability(): TransportAvailability[] {
   const runtime = getAppRuntime();
-  const hasTcp = !!optionalRequire("react-native-tcp-socket");
   const hasUsb = !!optionalRequire("react-native-usb-serialport-for-android");
   return [
-    {
-      kind: "wifi",
-      ...(Platform.OS === "web"
-        ? describeWebUnsupported("Wi-Fi")
-        : hasTcp
-          ? { available: true }
-          : describeMissingNativeModule({
-              runtime,
-              transport: "Wi-Fi",
-              packageName: "react-native-tcp-socket",
-            })),
-    },
+    { kind: "wifi", ...wifiAvailability() },
     { kind: "bluetooth", ...bleAvailability() },
     { kind: "mfi", ...mfiAvailability() },
     {

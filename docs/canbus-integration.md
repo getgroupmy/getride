@@ -25,8 +25,10 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/utils/canbus/obd.ts` | ELM327 init sequence, OBD-II PID table, command builders, response parsing/decoders, protocol naming. Pure. |
 | `expo/utils/canbus/types.ts` | Shared types: `CanTransportKind` (`wifi`/`bluetooth`/`mfi`/`usb`), `CanDeviceInfo`, `CanConnectionState`, the `CanTransport` interface. |
 | `expo/utils/canbus/config.ts` | Adapter defaults (Wi-Fi host/port, BLE serial profiles, MFi accessory protocols/name hints), poll/timeout tunables. |
+| `expo/utils/canbus/wifi.ts` | Pure Wi-Fi helpers: availability copy for the TCP transport. |
 | `expo/utils/canbus/ble.ts` | Pure BLE helpers: UUID normalisation, ELM327 advertisement matching, serial-profile (write/notify characteristic) selection, availability copy. |
 | `expo/utils/canbus/mfi.ts` | Pure MFi helpers: accessory-key normalisation, paired-accessory selection, failure/availability copy. |
+| `expo/utils/canbus/tcpModule.ts` (+ `.web.ts`) | The single `react-native-tcp-socket` entry point — loads the package behind a guard (it builds a `NativeEventEmitter` at import time) and reports whether `TcpSockets` is linked into this binary. |
 | `expo/utils/canbus/bleModule.ts` (+ `.web.ts`) | The single `react-native-ble-plx` entry point — loads the package and reports whether its native side is linked. The web override keeps it out of the browser bundle. |
 | `expo/utils/canbus/mfiModule.ts` (+ `.web.ts`) | The same for `react-native-bluetooth-classic` (Bluetooth MFi): loads the package and reports whether `RNBluetoothClassic` is linked into this binary. |
 | `expo/utils/canbus/transports.ts` | Wi-Fi (TCP), Bluetooth LE (GATT), Bluetooth MFi (External Accessory), and USB-serial transport implementations + availability detection. |
@@ -37,6 +39,7 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/hooks/useIsPartner.ts` | Read-only "is this rider also a partner?" check that gates the user-side reader screen. |
 | `expo/app/obd2-reader.tsx` | Settings → OBD-II (CANBus) reader: add / select / remove readers, connect, live telemetry. |
 | `expo/utils/__tests__/obd.test.ts` | Unit tests for the protocol layer (`bun run test utils/__tests__/obd.test.ts`). |
+| `expo/utils/__tests__/wifi.test.ts` | Unit tests for the Wi-Fi availability rules. |
 | `expo/utils/__tests__/ble.test.ts` | Unit tests for the BLE helpers (scan matching, profile selection, availability). |
 | `expo/utils/__tests__/mfi.test.ts` | Unit tests for the MFi helpers (accessory matching, availability). |
 | `expo/utils/__tests__/canbusAdapterStore.test.ts` | Unit tests for the saved-reader logic. |
@@ -227,36 +230,58 @@ On Android the same dongles are reachable over plain SPP with no certification
 involved, so the MFi row is hidden there and `describeMfiAvailability` points
 the driver at Bluetooth LE / USB instead.
 
-## Making Wi-Fi / USB run on a device (native build)
+## Making USB run on a device (native build)
 
-Bluetooth LE (`react-native-ble-plx`) and Bluetooth MFi
-(`react-native-bluetooth-classic`) are installed dependencies — they need a
-native build, not a package install. Wi-Fi and USB still depend on native
-modules that are **not** in `package.json`; until they are installed the app
-runs fine and the panel reports them as unavailable / shows the GPS-blue speed
-pill. To enable them:
+Wi-Fi (`react-native-tcp-socket`), Bluetooth LE (`react-native-ble-plx`) and
+Bluetooth MFi (`react-native-bluetooth-classic`) are installed dependencies —
+they need a native build, not a package install. A build made *before* one of
+them landed cannot use that transport at all, and no OTA update will change
+that; `describeMissingNativeModule` says so in the runtime's own terms.
 
-1. Add the optional native deps (only the transports you need):
+USB still depends on a native module that is **not** in `package.json`; until
+it is installed the app runs fine and the panel reports USB as unavailable. To
+enable it:
+
+1. Add the optional native dep:
 
    ```bash
    cd expo
-   bun add react-native-tcp-socket                   # Wi-Fi
    bun add react-native-usb-serialport-for-android   # USB (Android)
    ```
 
-2. Swap the matching `null` entry in `OPTIONAL_MODULES` (`transports.ts`) for a
-   guarded static `require("<module-name>")` — Metro cannot bundle a dynamic
+2. Swap its `null` entry in `OPTIONAL_MODULES` (`transports.ts`) for a guarded
+   static `require("<module-name>")` — Metro cannot bundle a dynamic
    `require(name)`.
 
-3. Add the iOS local-network usage description for Wi-Fi TCP
-   (`NSLocalNetworkUsageDescription`) in `expo/app.json`.
+3. Prebuild and run a dev client as above, then plug in the adapter and open
+   the partner Teksi screen → System Status → **Connect adapter**.
 
-4. Prebuild and run a dev client as above, then plug in / pair the adapter and
-   open the partner Teksi screen → System Status → **Connect adapter**.
-
-Those module names are resolved through a guarded lookup, so none of the above
-is required just to compile — `getTransportAvailability()` simply reports each
+That module name is resolved through a guarded lookup, so none of the above is
+required just to compile — `getTransportAvailability()` simply reports each
 transport's `available`/`reason` and the UI degrades gracefully.
+
+A `null` entry is indistinguishable from "no such build exists", which is how
+Wi-Fi ended up telling TestFlight drivers to install a newer build that could
+never have contained the driver. Promoting a transport out of `OPTIONAL_MODULES`
+means: a real dependency, an entry-point module reporting "package resolves" and
+"native module linked" separately, a null `.web.ts` override, and pure
+availability rules that a unit test can pin down.
+
+### Wi-Fi specifics
+
+- **iOS local network.** A Wi-Fi ELM327 runs its own soft-AP, so the socket to
+  `192.168.0.10:35000` is local-network traffic. iOS 14+ blocks it outright
+  without `NSLocalNetworkUsageDescription` in `expo/app.json` — the driver never
+  even sees a permission prompt, just a connect timeout.
+- **Guarded require.** `react-native-tcp-socket/src/Globals.js` runs
+  `new NativeEventEmitter(NativeModules.TcpSockets)` at *import* time. Without
+  the native module that argument is null, which RN rejects with an invariant,
+  so an unguarded top-level import would take down the reader screen instead of
+  reporting Wi-Fi as unavailable. `tcpModule.ts` owns that guard.
+- **Autolinking.** Unlike `react-native-bluetooth-classic`, no platform needs
+  excluding: the library's `android/build.gradle` resolves React Native through
+  `safeExtGet` + a dynamic version, so it picks up the host project's SDK and
+  RNGP's `react-native` → `react-android` substitution.
 
 ## Simulator
 
