@@ -24,7 +24,9 @@ isolated behind guarded requires so the app still builds and runs without them.
 | --- | --- |
 | `expo/utils/canbus/obd.ts` | ELM327 init sequence, OBD-II PID table, command builders, response parsing/decoders, protocol naming. Pure. |
 | `expo/utils/canbus/types.ts` | Shared types: `CanTransportKind` (`wifi`/`bluetooth`/`usb`), `CanDeviceInfo`, `CanConnectionState`, the `CanTransport` interface. |
-| `expo/utils/canbus/config.ts` | Adapter defaults (Wi-Fi host/port, BLE UUIDs), poll/timeout tunables. |
+| `expo/utils/canbus/config.ts` | Adapter defaults (Wi-Fi host/port, BLE serial profiles), poll/timeout tunables. |
+| `expo/utils/canbus/ble.ts` | Pure BLE helpers: UUID normalisation, ELM327 advertisement matching, serial-profile (write/notify characteristic) selection, availability copy. |
+| `expo/utils/canbus/bleModule.ts` (+ `.web.ts`) | The single `react-native-ble-plx` entry point — loads the package and reports whether its native side is linked. The web override keeps it out of the browser bundle. |
 | `expo/utils/canbus/transports.ts` | Wi-Fi (TCP), Bluetooth (BLE), and USB-serial transport implementations + availability detection. |
 | `expo/utils/canbus/canbusClient.ts` | ELM327 session: runs the handshake, detects the CAN protocol, polls PIDs, emits decoded telemetry. Transport-blind. |
 | `expo/utils/canbus/simulator.ts` | Dev-only fake telemetry stream (honestly flagged `simulated: true`). |
@@ -33,6 +35,7 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/hooks/useIsPartner.ts` | Read-only "is this rider also a partner?" check that gates the user-side reader screen. |
 | `expo/app/obd2-reader.tsx` | Settings → OBD-II (CANBus) reader: add / select / remove readers, connect, live telemetry. |
 | `expo/utils/__tests__/obd.test.ts` | Unit tests for the protocol layer (`bun run test utils/__tests__/obd.test.ts`). |
+| `expo/utils/__tests__/ble.test.ts` | Unit tests for the BLE helpers (scan matching, profile selection, availability). |
 | `expo/utils/__tests__/canbusAdapterStore.test.ts` | Unit tests for the saved-reader logic. |
 
 ### UI consumption
@@ -98,40 +101,68 @@ voltage (`42`), intake air temp (`0F`). Add more by extending that table with a
 Defaults (host/port, BLE service/characteristic UUIDs, name hints) live in
 `config.ts` and can be overridden per fleet if needed.
 
-## Making it run on a device (native build)
+## Bluetooth (BLE)
 
-The transports depend on native modules that are **not** in `package.json` and
-are **not** available in Expo Go. Until they are installed the app runs fine and
-the panel reports the transport as unavailable / shows the GPS-blue speed pill.
-To enable real hardware:
+`react-native-ble-plx` **is** a dependency of the app, and its Expo config
+plugin is registered in `expo/app.json`, so Bluetooth readers work in any build
+produced from this repo (dev client, EAS/store build) — nothing extra to
+install. What the transport does on connect:
+
+1. **Permissions** — Android 12+ requests `BLUETOOTH_SCAN` + `BLUETOOTH_CONNECT`
+   at runtime, Android ≤ 11 requests `ACCESS_FINE_LOCATION` (a BLE scan counts
+   as a location fix there). iOS uses the `NSBluetoothAlwaysUsageDescription`
+   string the config plugin writes.
+2. **Radio state** — waits for `PoweredOn`, with a distinct message for
+   "Bluetooth is off", "not allowed", and "no BLE radio" instead of a timeout.
+3. **Scan** — accepts the first peripheral whose name matches a hint
+   (`OBD`/`ELM`/`VLINK`/`VGATE`/`ICAR`) *or* that advertises a known serial
+   service, then always stops the scan (including on the timeout path).
+4. **Profile discovery** — walks `BLE_ELM_PROFILES` (ELM327 `FFF0`, HM-10
+   `FFE0`, Nordic UART) against the peripheral's GATT tree, falling back to the
+   first non-standard service exposing a writable + notifiable characteristic,
+   so uncatalogued clones still link. Writes use with/without-response
+   according to the characteristic's own flags.
+
+The matching, UUID-normalising and profile-picking logic is pure and lives in
+`utils/canbus/ble.ts` (unit tested); only `transports.ts` touches the manager.
+
+**Expo Go**: the JS loads but the `BlePlx` native module isn't in that binary,
+so the panel reports *"needs a development or production build (not available
+in Expo Go)"* rather than failing mid-connect. Build a dev client to use real
+hardware:
+
+```bash
+cd expo
+bunx expo prebuild
+bunx expo run:android   # or run:ios
+```
+
+## Making Wi-Fi / USB run on a device (native build)
+
+Those two transports still depend on native modules that are **not** in
+`package.json`. Until they are installed the app runs fine and the panel reports
+them as unavailable / shows the GPS-blue speed pill. To enable them:
 
 1. Add the optional native deps (only the transports you need):
 
    ```bash
    cd expo
    bun add react-native-tcp-socket        # Wi-Fi
-   bun add react-native-ble-plx           # Bluetooth
    bun add react-native-usb-serialport-for-android   # USB (Android)
    ```
 
-2. Add config plugins / permissions in `expo/app.json`:
-   - `react-native-ble-plx` config plugin (adds `NSBluetoothAlwaysUsageDescription`,
-     Android `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT`).
-   - iOS local-network usage description for Wi-Fi TCP
-     (`NSLocalNetworkUsageDescription`).
+2. Swap the matching `null` entry in `OPTIONAL_MODULES` (`transports.ts`) for a
+   guarded static `require("<module-name>")` — Metro cannot bundle a dynamic
+   `require(name)`.
 
-3. Build a **custom dev client** (these modules can't run in Expo Go):
+3. Add the iOS local-network usage description for Wi-Fi TCP
+   (`NSLocalNetworkUsageDescription`) in `expo/app.json`.
 
-   ```bash
-   bunx expo prebuild
-   bunx expo run:android   # or run:ios
-   ```
+4. Prebuild and run a dev client as above, then plug in / pair the adapter and
+   open the partner Teksi screen → System Status → **Connect adapter**.
 
-4. Plug in / pair the adapter and open the partner Teksi screen → System Status →
-   **Connect adapter**.
-
-The module names are resolved with guarded `require`s, so none of the above is
-required just to compile — `getTransportAvailability()` simply reports each
+Those module names are resolved through a guarded lookup, so none of the above
+is required just to compile — `getTransportAvailability()` simply reports each
 transport's `available`/`reason` and the UI degrades gracefully.
 
 ## Simulator
