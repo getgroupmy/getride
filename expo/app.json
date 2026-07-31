@@ -24,6 +24,7 @@
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to use the camera to capture your ID for verification.",
         "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone for voice messages in support chat and to record trip audio when VoiceProtection is on.",
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos to share images in support chat.",
+        "NSLocalNetworkUsageDescription": "Allow $(PRODUCT_NAME) to reach your Wi-Fi OBD-II (CANBus) reader, which runs its own Wi-Fi network, to show live vehicle data.",
         "UIBackgroundModes": [
           "location"
         ],
