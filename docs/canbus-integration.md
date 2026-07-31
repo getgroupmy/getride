@@ -23,11 +23,12 @@ isolated behind guarded requires so the app still builds and runs without them.
 | File | Responsibility |
 | --- | --- |
 | `expo/utils/canbus/obd.ts` | ELM327 init sequence, OBD-II PID table, command builders, response parsing/decoders, protocol naming. Pure. |
-| `expo/utils/canbus/types.ts` | Shared types: `CanTransportKind` (`wifi`/`bluetooth`/`usb`), `CanDeviceInfo`, `CanConnectionState`, the `CanTransport` interface. |
-| `expo/utils/canbus/config.ts` | Adapter defaults (Wi-Fi host/port, BLE serial profiles), poll/timeout tunables. |
+| `expo/utils/canbus/types.ts` | Shared types: `CanTransportKind` (`wifi`/`bluetooth`/`mfi`/`usb`), `CanDeviceInfo`, `CanConnectionState`, the `CanTransport` interface. |
+| `expo/utils/canbus/config.ts` | Adapter defaults (Wi-Fi host/port, BLE serial profiles, MFi accessory protocols/name hints), poll/timeout tunables. |
 | `expo/utils/canbus/ble.ts` | Pure BLE helpers: UUID normalisation, ELM327 advertisement matching, serial-profile (write/notify characteristic) selection, availability copy. |
+| `expo/utils/canbus/mfi.ts` | Pure MFi helpers: accessory-key normalisation, paired-accessory selection, failure/availability copy. |
 | `expo/utils/canbus/bleModule.ts` (+ `.web.ts`) | The single `react-native-ble-plx` entry point — loads the package and reports whether its native side is linked. The web override keeps it out of the browser bundle. |
-| `expo/utils/canbus/transports.ts` | Wi-Fi (TCP), Bluetooth (BLE), and USB-serial transport implementations + availability detection. |
+| `expo/utils/canbus/transports.ts` | Wi-Fi (TCP), Bluetooth LE (GATT), Bluetooth MFi (External Accessory), and USB-serial transport implementations + availability detection. |
 | `expo/utils/canbus/canbusClient.ts` | ELM327 session: runs the handshake, detects the CAN protocol, polls PIDs, emits decoded telemetry. Transport-blind. |
 | `expo/utils/canbus/simulator.ts` | Dev-only fake telemetry stream (honestly flagged `simulated: true`). |
 | `expo/utils/canbusAdapterStore.ts` | The driver's saved readers: draft validation, de-duplication, selection, AsyncStorage persistence. Device-local. |
@@ -36,16 +37,19 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/app/obd2-reader.tsx` | Settings → OBD-II (CANBus) reader: add / select / remove readers, connect, live telemetry. |
 | `expo/utils/__tests__/obd.test.ts` | Unit tests for the protocol layer (`bun run test utils/__tests__/obd.test.ts`). |
 | `expo/utils/__tests__/ble.test.ts` | Unit tests for the BLE helpers (scan matching, profile selection, availability). |
+| `expo/utils/__tests__/mfi.test.ts` | Unit tests for the MFi helpers (accessory matching, availability). |
 | `expo/utils/__tests__/canbusAdapterStore.test.ts` | Unit tests for the saved-reader logic. |
 
 ### UI consumption
 
 - **System Status modal** — the `canbus` row now shows the live transport and
-  device (e.g. `Wi-Fi · 192.168.0.10:35000` or `Bluetooth · Vgate iCar Pro`),
+  device (e.g. `Wi-Fi · 192.168.0.10:35000` or `Bluetooth LE · Vgate iCar Pro`),
   the negotiated CAN protocol/bitrate, and a live telemetry grid
   (speed, RPM, coolant, voltage, fuel…). A "Vehicle link (CANBus)" control
   block lets the driver Connect / Disconnect / Retry and shows which transports
-  this build supports.
+  this build supports. Its connection picker lists Wi-Fi, Bluetooth LE,
+  Bluetooth MFi (iOS), USB (Android) and Demo Mode — each row wired to the
+  matching transport.
 - **Speed pill** — a small header pill shows current speed. It is **green** when
   the value comes from the CANBus link and **blue** when it falls back to the
   device GPS (`expo-location` `coords.speed`, converted m/s → km/h).
@@ -64,11 +68,13 @@ e.g. `Wi-Fi · 192.168.0.10:35000`, or `Not set up`.
 
 `app/obd2-reader.tsx` is the screen behind it:
 
-- **Add reader** — pick the connection (Wi-Fi / Bluetooth LE / USB on Android),
-  name it, and for Wi-Fi enter the dongle's `host` + `port` (pre-filled with the
-  near-universal `192.168.0.10:35000`). Drafts are validated by
-  `normalizeAdapterDraft`; re-adding the same endpoint updates the existing
-  entry rather than stacking duplicates.
+- **Add reader** — pick the connection (Wi-Fi / Bluetooth LE, plus Bluetooth MFi
+  on iOS and USB on Android), name it, and fill in the one detail that transport
+  needs: for Wi-Fi the dongle's `host` + `port` (pre-filled with the
+  near-universal `192.168.0.10:35000`), for MFi the accessory's paired name
+  (optional — blank means "the first paired OBD-II accessory"). Drafts are
+  validated by `normalizeAdapterDraft`; re-adding the same endpoint or the same
+  paired accessory updates the existing entry rather than stacking duplicates.
 - **Select / remove** — tap a reader to make it the default, trash-icon (or long
   press) to remove it. Only the entry is removed; the hardware is untouched.
 - **Connect / Disconnect** and a live telemetry grid, plus a **Demo Mode**
@@ -95,7 +101,8 @@ voltage (`42`), intake air temp (`0F`). Add more by extending that table with a
 | Transport | Adapter example | Pairing | Notes |
 | --- | --- | --- | --- |
 | **Wi-Fi** | WiFi ELM327 (e.g. "OBDLink MX+ WiFi", generic ELM327 WiFi) | Phone joins the dongle's soft-AP, app connects to `192.168.0.10:35000` | Simplest, no OS pairing. Recommended default. |
-| **Bluetooth** | BLE ELM327 (Vgate iCar Pro BLE, "IOS-Vlink") | BLE scan by name hint (`OBD`/`ELM`/`VGATE`…) | Use **BLE** (not classic SPP) modules on iOS — classic Bluetooth SPP is not accessible without MFi. |
+| **Bluetooth LE** | BLE ELM327 (Vgate iCar Pro BLE, "IOS-Vlink") | BLE scan by name hint (`OBD`/`ELM`/`VGATE`…) | Works on both platforms. On iOS a plain classic-SPP dongle is *not* an option — it must be BLE or MFi. |
+| **Bluetooth MFi** | MFi-certified classic dongle (OBDLink MX+/LX, STN-based readers) | Paired in iOS Settings → Bluetooth, then opened via the ExternalAccessory framework | iOS only. Needs the accessory's protocol string in `UISupportedExternalAccessoryProtocols`. |
 | **USB** | USB-serial ELM327 (FTDI/CH340) | Android USB-host only | No supported iOS path. |
 
 Defaults (host/port, BLE service/characteristic UUIDs, name hints) live in
@@ -137,9 +144,44 @@ bunx expo prebuild
 bunx expo run:android   # or run:ios
 ```
 
-## Making Wi-Fi / USB run on a device (native build)
+## Bluetooth MFi (Apple External Accessory)
 
-Those two transports still depend on native modules that are **not** in
+MFi is the *other* Bluetooth family, and the reason it needs a transport of its
+own rather than a flag on the BLE one: an MFi dongle is a **classic-Bluetooth
+(SPP)** device carrying Apple's authentication coprocessor. iOS never exposes it
+over a socket or a GATT scan — the app reaches it only through the
+**ExternalAccessory** framework, and only when three things line up:
+
+1. The driver has paired the adapter in **iOS Settings → Bluetooth** (the exact
+   opposite of the BLE rule, where pairing in Settings breaks the scan).
+2. The app declares the accessory's protocol string in
+   `UISupportedExternalAccessoryProtocols` (`expo/app.json` → `ios.infoPlist`),
+   mirrored by `MFI_ACCESSORY_PROTOCOLS` in `config.ts`. Only strings published
+   by the accessory vendor work — a guessed one yields an adapter that never
+   appears. `com.obdlink` (ScanTool's OBDLink MX+/LX) ships by default; add the
+   vendor's string to **both** lists for any other certified dongle.
+3. The native module is in the binary (see below).
+
+Because iOS can hand back several paired accessories, a saved MFi reader may
+carry a **paired name** (`SavedCanAdapter.accessory`). Left blank the transport
+takes the first paired accessory whose name matches a reader hint
+(`OBD`/`ELM`/`SCANTOOL`/`STN`…); filled in, only that accessory is acceptable —
+`pickMfiAccessory` never silently falls back to a different dongle, since that
+would stream another vehicle's telemetry. The matching and the failure copy are
+pure and unit tested in `utils/canbus/mfi.ts`.
+
+Framing differs from the other transports: the session client reads a response
+as everything up to the ELM327 prompt, so the MFi stream is delimited on `>`
+rather than on CR. A CR delimiter would strand the trailing prompt — the ELM327
+does not terminate it — and every command would time out.
+
+On Android the same dongles are reachable over plain SPP with no certification
+involved, so the MFi row is hidden there and `describeMfiAvailability` points
+the driver at Bluetooth LE / USB instead.
+
+## Making Wi-Fi / MFi / USB run on a device (native build)
+
+Those three transports still depend on native modules that are **not** in
 `package.json`. Until they are installed the app runs fine and the panel reports
 them as unavailable / shows the GPS-blue speed pill. To enable them:
 
@@ -148,6 +190,7 @@ them as unavailable / shows the GPS-blue speed pill. To enable them:
    ```bash
    cd expo
    bun add react-native-tcp-socket        # Wi-Fi
+   bun add react-native-bluetooth-classic # Bluetooth MFi (iOS)
    bun add react-native-usb-serialport-for-android   # USB (Android)
    ```
 

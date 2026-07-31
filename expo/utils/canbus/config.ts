@@ -55,6 +55,28 @@ export const BLE_ELM_PROFILES: BleElmProfile[] = [
   },
 ];
 
+/**
+ * Apple External-Accessory protocol strings for MFi-certified ELM327 dongles.
+ *
+ * iOS only hands an app the accessories whose protocol string it declares in
+ * `UISupportedExternalAccessoryProtocols` (see `expo/app.json`), so this list
+ * and that Info.plist array must stay in step — an accessory missing from
+ * either one is invisible to the app no matter how it is paired. Only strings
+ * published by the accessory vendor belong here; guessing one silently yields
+ * a dongle that never appears.
+ */
+export const MFI_ACCESSORY_PROTOCOLS = ["com.obdlink"];
+
+/**
+ * Name fragments that identify a paired accessory as an OBD-II reader. MFi
+ * dongles are paired in iOS Settings under their marketing name, so the BLE
+ * hints apply here too, plus the MFi-only vendor names.
+ */
+export const MFI_NAME_HINTS = [...BLE_NAME_HINTS, "SCANTOOL", "STN"];
+
+/** How long to wait for iOS to enumerate the paired accessories, in ms. */
+export const MFI_DISCOVERY_TIMEOUT_MS = 8000;
+
 /** How often to poll the vehicle for a fresh telemetry sweep, in ms. */
 export const POLL_INTERVAL_MS = 1000;
 

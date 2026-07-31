@@ -54,6 +54,7 @@ import {
   Gauge,
   Wifi,
   Bluetooth,
+  BluetoothConnected,
   Usb,
   Check,
   Layers,
@@ -98,6 +99,14 @@ type PlaceSuggestion = {
   longitude: number;
 };
 
+/** Glyph per transport — MFi gets its own so it reads as a separate link. */
+const TRANSPORT_ICON: Record<CanTransportKind, typeof Wifi> = {
+  wifi: Wifi,
+  bluetooth: Bluetooth,
+  mfi: BluetoothConnected,
+  usb: Usb,
+};
+
 /** OBD-II communication types offered in the connection picker. */
 type CommOptionId = "wifi" | "ble" | "mfi" | "usb" | "demo";
 
@@ -133,7 +142,7 @@ const COMM_OPTIONS: CommOption[] = [
   {
     id: "mfi",
     title: "Bluetooth MFi",
-    kind: "bluetooth",
+    kind: "mfi",
     iosOnly: true,
     lines: [
       "Supported Bluetooth MFi Devices such as OBDLink MX+.",
@@ -271,13 +280,7 @@ export default function DriverTeksiScreen() {
     : canbusConnecting
     ? "warn"
     : "error";
-  const canbusIcon = canbusDevice
-    ? canbusDevice.transport === "wifi"
-      ? Wifi
-      : canbusDevice.transport === "bluetooth"
-      ? Bluetooth
-      : Usb
-    : Cpu;
+  const canbusIcon = canbusDevice ? TRANSPORT_ICON[canbusDevice.transport] : Cpu;
   const canbusSub = canbusDevice
     ? `${TRANSPORT_LABEL[canbusDevice.transport]} · ${canbusDevice.name}`
     : "Vehicle ECU telemetry";
@@ -407,6 +410,8 @@ export default function DriverTeksiScreen() {
       ? "wifi"
       : canbusDevice.transport === "usb"
       ? "usb"
+      : canbusDevice.transport === "mfi"
+      ? "mfi"
       : "ble"
     : null;
   const selectedComm = commChoice ?? derivedComm;
@@ -2575,7 +2580,7 @@ export default function DriverTeksiScreen() {
                 {/* Which physical transports this build can attempt */}
                 <View style={styles.canbusTransportRow}>
                   {canbus.availability.map((a) => {
-                    const TIcon = a.kind === "wifi" ? Wifi : a.kind === "bluetooth" ? Bluetooth : Usb;
+                    const TIcon = TRANSPORT_ICON[a.kind];
                     const active = canbusDevice?.transport === a.kind && canbusOnline;
                     const tint = active ? "#22C55E" : a.available ? Colors.textSecondary : "#9CA3AF";
                     return (

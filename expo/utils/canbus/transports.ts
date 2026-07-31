@@ -1,17 +1,17 @@
 /**
  * Transport implementations for the CANBus / OBD-II adapter.
  *
- * Three physical links are modelled — Wi-Fi (TCP), Bluetooth (BLE), and USB
- * serial — behind the single {@link CanTransport} interface so the session
- * client stays transport-blind.
+ * Four physical links are modelled — Wi-Fi (TCP), Bluetooth LE (GATT),
+ * Bluetooth MFi (Apple External Accessory), and USB serial — behind the single
+ * {@link CanTransport} interface so the session client stays transport-blind.
  *
- * `react-native-ble-plx` is a real dependency, so Bluetooth works in any build
- * that ships its native side (a dev client or a store build) — in Expo Go and
- * on web the JS loads but the native module is absent, which the transport
- * reports honestly instead of failing mid-connect. The other two modules
- * (`react-native-tcp-socket`, a USB-serial driver) are still optional peer
- * deps resolved through a guarded lookup, mirroring the repo's
- * graceful-degradation convention.
+ * `react-native-ble-plx` is a real dependency, so Bluetooth LE works in any
+ * build that ships its native side (a dev client or a store build) — in Expo Go
+ * and on web the JS loads but the native module is absent, which the transport
+ * reports honestly instead of failing mid-connect. The other three modules
+ * (`react-native-tcp-socket`, `react-native-bluetooth-classic`, a USB-serial
+ * driver) are still optional peer deps resolved through a guarded lookup,
+ * mirroring the repo's graceful-degradation convention.
  */
 
 import { PermissionsAndroid, Platform } from "react-native";
@@ -24,13 +24,22 @@ import {
   type ResolvedBleProfile,
 } from "./ble";
 import {
+  accessoryAddress,
+  accessoryLabel,
+  describeMfiAvailability,
+  describeMfiSelectionFailure,
+  pickMfiAccessory,
+  type MfiAccessoryLike,
+} from "./mfi";
+import {
   BLE_POWER_ON_TIMEOUT_MS,
   BLE_SCAN_TIMEOUT_MS,
   CONNECT_TIMEOUT_MS,
+  MFI_DISCOVERY_TIMEOUT_MS,
   WIFI_ADAPTER_HOST,
   WIFI_ADAPTER_PORT,
 } from "./config";
-import { ELM_CR } from "./obd";
+import { ELM_CR, ELM_PROMPT } from "./obd";
 import type {
   CanDeviceInfo,
   CanTransport,
@@ -49,6 +58,7 @@ import type {
  */
 const OPTIONAL_MODULES: Record<string, unknown> = {
   "react-native-tcp-socket": null,
+  "react-native-bluetooth-classic": null,
   "react-native-usb-serialport-for-android": null,
 };
 
@@ -57,14 +67,34 @@ function optionalRequire(moduleName: string): any | null {
 }
 
 /**
- * Bluetooth availability: the package is installed, but its native side only
- * exists in a prebuilt binary — Expo Go loads the JS and has no `BlePlx`
+ * Bluetooth LE availability: the package is installed, but its native side
+ * only exists in a prebuilt binary — Expo Go loads the JS and has no `BlePlx`
  * native module, so every manager call there would throw mid-connect.
  */
 function bleAvailability(): { available: boolean; reason?: string } {
   return describeBleAvailability({
     moduleInstalled: !!loadBleModule()?.BleManager,
     nativeModuleLinked: isBleNativeLinked(),
+    platform: Platform.OS,
+  });
+}
+
+/** The `react-native-bluetooth-classic` default export, when it is installed. */
+function loadMfiModule(): any | null {
+  const mod = optionalRequire("react-native-bluetooth-classic");
+  return mod?.default ?? mod ?? null;
+}
+
+/**
+ * MFi availability. The module ships its own native side, so "installed" and
+ * "linked" collapse into one check here — an unlinked build cannot resolve the
+ * accessory list at all.
+ */
+function mfiAvailability(): { available: boolean; reason?: string } {
+  const mod = loadMfiModule();
+  return describeMfiAvailability({
+    moduleInstalled: !!mod,
+    nativeModuleLinked: typeof mod?.getBondedDevices === "function",
     platform: Platform.OS,
   });
 }
@@ -402,6 +432,135 @@ class BleTransport implements CanTransport {
   }
 }
 
+// ----------------------------- Bluetooth MFi -----------------------------
+
+/**
+ * Apple External Accessory (MFi) link to a classic-Bluetooth ELM327.
+ *
+ * Unlike BLE there is no scan: iOS only ever exposes accessories the driver
+ * has already paired in Settings *and* whose protocol string the app declares
+ * in `UISupportedExternalAccessoryProtocols`, so connecting is "list the
+ * paired accessories, pick ours, open a session".
+ *
+ * Framing note: the session client reads a response as everything up to the
+ * ELM327 prompt, so the stream is delimited on `>` rather than on CR. A CR
+ * delimiter would strand the trailing prompt — the ELM327 does not terminate
+ * it — and every command would time out.
+ */
+class MfiTransport implements CanTransport {
+  readonly kind: CanTransportKind = "mfi";
+  device: CanDeviceInfo | null = null;
+  private module: any = null;
+  private connection: any = null;
+  private sub: any = null;
+  private address = "";
+  private listeners = new Set<(chunk: string) => void>();
+
+  /** Name/address of the paired accessory to use; empty = first match. */
+  constructor(private preferredAccessory?: string | null) {}
+
+  async connect(): Promise<CanDeviceInfo> {
+    try {
+      return await this.openLink();
+    } catch (error) {
+      // Never leave a half-open accessory session behind — iOS keeps it open
+      // until the app closes it, and the next attempt would then be refused.
+      await this.releaseHardware();
+      throw error;
+    }
+  }
+
+  private async openLink(): Promise<CanDeviceInfo> {
+    const availability = mfiAvailability();
+    if (!availability.available) {
+      throw new Error(availability.reason ?? "Bluetooth MFi is unavailable");
+    }
+    this.module = loadMfiModule();
+
+    const paired: MfiAccessoryLike[] = await withTimeout(
+      Promise.resolve(this.module.getBondedDevices()),
+      MFI_DISCOVERY_TIMEOUT_MS,
+      "MFi accessory lookup",
+    );
+    const target = pickMfiAccessory(paired, this.preferredAccessory);
+    if (!target) {
+      throw new Error(describeMfiSelectionFailure(paired, this.preferredAccessory));
+    }
+    this.address = accessoryAddress(target);
+    if (!this.address) {
+      throw new Error("The paired accessory reported no address");
+    }
+
+    this.connection = await withTimeout(
+      Promise.resolve(
+        this.module.connectToDevice(this.address, {
+          delimiter: ELM_PROMPT,
+          charset: "ascii",
+        }),
+      ),
+      CONNECT_TIMEOUT_MS,
+      "MFi connect",
+    );
+    if (!this.connection) {
+      throw new Error(`Could not open a session with ${accessoryLabel(target)}`);
+    }
+
+    this.sub = this.connection.onDataReceived?.((event: any) => {
+      const text = typeof event?.data === "string" ? event.data : "";
+      if (!text) return;
+      // The library strips the delimiter it split on; the client frames
+      // responses by it, so put it back.
+      this.listeners.forEach((l) => l(text + ELM_PROMPT));
+    });
+
+    this.device = {
+      name: accessoryLabel(target),
+      id: this.address,
+      transport: "mfi",
+    };
+    return this.device;
+  }
+
+  async write(data: string): Promise<void> {
+    if (!this.connection) throw new Error("not connected");
+    const payload = data + ELM_CR;
+    // The native contract takes base64; the device-level `write` helper only
+    // exists on newer versions and needs a Buffer polyfill, so it is the
+    // fallback rather than the primary path.
+    if (typeof this.module?.writeToDevice === "function") {
+      await this.module.writeToDevice(this.address, asciiToBase64(payload));
+      return;
+    }
+    await this.connection.write(payload, "ascii");
+  }
+
+  onData(listener: (chunk: string) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  /** Close the accessory session — listeners survive, as on the BLE side. */
+  private async releaseHardware(): Promise<void> {
+    try {
+      this.sub?.remove?.();
+      if (this.connection?.disconnect) await this.connection.disconnect();
+      else if (this.address) await this.module?.disconnectFromDevice?.(this.address);
+    } catch {
+      /* ignore */
+    }
+    this.sub = null;
+    this.connection = null;
+    this.module = null;
+    this.address = "";
+    this.device = null;
+  }
+
+  async disconnect(): Promise<void> {
+    await this.releaseHardware();
+    this.listeners.clear();
+  }
+}
+
 // ---------------------------------- USB ----------------------------------
 
 class UsbTransport implements CanTransport {
@@ -478,6 +637,7 @@ export function getTransportAvailability(): TransportAvailability[] {
           : undefined,
     },
     { kind: "bluetooth", ...ble },
+    { kind: "mfi", ...mfiAvailability() },
     {
       kind: "usb",
       available: hasUsb && Platform.OS === "android",
@@ -491,14 +651,19 @@ export function getTransportAvailability(): TransportAvailability[] {
 }
 
 /**
- * Per-connection overrides. Wi-Fi dongles are the only transport with an
- * address the driver can change (some clones ship on 192.168.0.10:35000,
- * others on 192.168.1.5:35000), so a saved adapter can supply its own
- * endpoint; Bluetooth and USB readers are always found by scan.
+ * Per-connection overrides for the two transports a driver can pin down.
+ *
+ * Wi-Fi dongles have an address that varies by clone (some ship on
+ * 192.168.0.10:35000, others on 192.168.1.5:35000). MFi accessories are chosen
+ * out of the phone's paired list, which may hold more than one, so a saved
+ * reader can name the one it means. BLE and USB readers are always found by
+ * scan and take no options.
  */
 export interface CreateTransportOptions {
   host?: string;
   port?: number;
+  /** MFi only: name or address of the paired accessory to link with. */
+  accessory?: string;
 }
 
 /** Instantiate the transport for a given kind. */
@@ -514,6 +679,8 @@ export function createTransport(
       );
     case "bluetooth":
       return new BleTransport();
+    case "mfi":
+      return new MfiTransport(options?.accessory);
     case "usb":
       return new UsbTransport();
   }

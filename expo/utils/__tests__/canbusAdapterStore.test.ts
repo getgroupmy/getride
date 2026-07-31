@@ -77,7 +77,7 @@ describe("normalizeAdapterDraft", () => {
     const ble = normalizeAdapterDraft({ transport: "bluetooth" });
     expect(ble.ok).toBe(true);
     expect(ble.value).toEqual({
-      name: "Bluetooth OBD-II reader",
+      name: "Bluetooth LE OBD-II reader",
       transport: "bluetooth",
       lastConnectedAt: null,
     });
@@ -87,8 +87,38 @@ describe("normalizeAdapterDraft", () => {
     expect(usb.value).not.toHaveProperty("host");
   });
 
+  it("keeps an MFi reader's paired accessory name, and omits a blank one", () => {
+    const named = normalizeAdapterDraft({
+      transport: "mfi",
+      accessory: "  OBDLink MX+  ",
+    });
+    expect(named.value).toEqual({
+      // No name typed, so the paired name becomes the label.
+      name: "OBDLink MX+",
+      transport: "mfi",
+      accessory: "OBDLink MX+",
+      lastConnectedAt: null,
+    });
+
+    const anyAccessory = normalizeAdapterDraft({ transport: "mfi", accessory: "   " });
+    expect(anyAccessory.value).toEqual({
+      name: "Bluetooth MFi OBD-II reader",
+      transport: "mfi",
+      lastConnectedAt: null,
+    });
+    expect(anyAccessory.value).not.toHaveProperty("accessory");
+  });
+
+  it("rejects an over-long MFi paired name", () => {
+    const res = normalizeAdapterDraft({ transport: "mfi", accessory: "x".repeat(61) });
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/Paired name/i);
+  });
+
   it("rejects an unknown transport and an over-long name", () => {
     expect(normalizeAdapterDraft({ transport: "serial" as never }).ok).toBe(false);
+    // Inherited Object.prototype keys are not transports either.
+    expect(normalizeAdapterDraft({ transport: "toString" as never }).ok).toBe(false);
     expect(normalizeAdapterDraft({ transport: "wifi", name: "x".repeat(61) }).ok).toBe(false);
   });
 });
@@ -97,7 +127,14 @@ describe("describeAdapter", () => {
   it("shows the endpoint for Wi-Fi and the discovery mode otherwise", () => {
     expect(describeAdapter(adapter())).toBe("Wi-Fi · 192.168.0.10:35000");
     expect(describeAdapter(adapter({ transport: "bluetooth", host: undefined, port: undefined })))
-      .toBe("Bluetooth · discovered by scan");
+      .toBe("Bluetooth LE · discovered by scan");
+  });
+
+  it("names the paired accessory for MFi readers", () => {
+    const mfi = { transport: "mfi" as const, host: undefined, port: undefined };
+    expect(describeAdapter(adapter({ ...mfi, accessory: "OBDLink MX+" })))
+      .toBe("Bluetooth MFi · OBDLink MX+");
+    expect(describeAdapter(adapter(mfi))).toBe("Bluetooth MFi · paired accessory");
   });
 });
 
@@ -124,6 +161,23 @@ describe("upsertAdapter", () => {
     const next = upsertAdapter([ble], { ...ble, id: "b2", name: "Other BLE" });
     expect(next).toHaveLength(1);
     expect(next[0]).toMatchObject({ id: "b1", name: "Other BLE" });
+  });
+
+  it("keys MFi readers on the paired accessory so two dongles coexist", () => {
+    const mx = adapter({
+      id: "m1",
+      transport: "mfi",
+      host: undefined,
+      port: undefined,
+      accessory: "OBDLink MX+",
+    });
+    const other = { ...mx, id: "m2", name: "Spare", accessory: "obdlink lx" };
+    expect(upsertAdapter([mx], other)).toHaveLength(2);
+    // The same accessory under a different spelling is the same dongle.
+    const renamed = { ...mx, id: "m3", name: "Renamed", accessory: "obdlink  mx+" };
+    const merged = upsertAdapter([mx], renamed);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({ id: "m1", name: "Renamed" });
   });
 
   it("findSameDevice reports the colliding entry", () => {
@@ -160,13 +214,21 @@ describe("removeAdapter / pickDefaultAdapter", () => {
 });
 
 describe("adapterTransportOptions", () => {
-  it("passes the endpoint through for Wi-Fi only", () => {
+  it("passes the endpoint through for Wi-Fi", () => {
     expect(adapterTransportOptions(adapter())).toEqual({
       host: "192.168.0.10",
       port: 35000,
     });
     expect(adapterTransportOptions(adapter({ transport: "bluetooth" }))).toBeUndefined();
+    expect(adapterTransportOptions(adapter({ transport: "usb" }))).toBeUndefined();
     expect(adapterTransportOptions(null)).toBeUndefined();
+  });
+
+  it("passes the paired accessory through for MFi, when one was named", () => {
+    expect(
+      adapterTransportOptions(adapter({ transport: "mfi", accessory: "OBDLink MX+" }))
+    ).toEqual({ accessory: "OBDLink MX+" });
+    expect(adapterTransportOptions(adapter({ transport: "mfi" }))).toBeUndefined();
   });
 });
 

@@ -26,6 +26,9 @@
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos to share images in support chat.",
         "UIBackgroundModes": [
           "location"
+        ],
+        "UISupportedExternalAccessoryProtocols": [
+          "com.obdlink"
         ]
       }
     },

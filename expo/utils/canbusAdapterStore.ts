@@ -17,7 +17,10 @@ import {
   WIFI_ADAPTER_HOST,
   WIFI_ADAPTER_PORT,
 } from "@/utils/canbus/config";
+import { normalizeAccessoryKey } from "@/utils/canbus/mfi";
+import type { CreateTransportOptions } from "@/utils/canbus/transports";
 import {
+  TRANSPORT_KINDS,
   TRANSPORT_LABEL,
   type CanTransportKind,
 } from "@/utils/canbus/types";
@@ -34,6 +37,13 @@ export interface SavedCanAdapter {
   /** Wi-Fi adapters only: the dongle's TCP endpoint. */
   host?: string;
   port?: number;
+  /**
+   * Bluetooth MFi only: which paired accessory this reader is, by the name it
+   * carries in iOS Settings (or its address). Optional — left blank the
+   * transport takes the first paired accessory that looks like an OBD-II
+   * reader, which is all a driver with one dongle needs.
+   */
+  accessory?: string;
   createdAt: string;
   /** Epoch-ms of the last successful link, used to sort the list. */
   lastConnectedAt?: number | null;
@@ -45,6 +55,7 @@ export interface CanAdapterDraft {
   transport: CanTransportKind;
   host?: string;
   port?: string | number;
+  accessory?: string;
 }
 
 export interface AdapterValidationResult {
@@ -61,20 +72,39 @@ const HOSTNAME_RE = /^[A-Za-z0-9._-]+$/;
  * Validate + normalise an "Add adapter" draft.
  *
  * Wi-Fi dongles need a reachable `host:port` (defaulted to the near-universal
- * ELM327 soft-AP endpoint); Bluetooth and USB adapters are discovered by scan,
- * so they only carry a label.
+ * ELM327 soft-AP endpoint); MFi accessories may name which paired device they
+ * are; Bluetooth LE and USB adapters are discovered by scan, so they only
+ * carry a label.
  */
 export function normalizeAdapterDraft(
   draft: CanAdapterDraft
 ): AdapterValidationResult {
   const transport = draft.transport;
-  if (transport !== "wifi" && transport !== "bluetooth" && transport !== "usb") {
+  if (!TRANSPORT_KINDS.includes(transport)) {
     return { ok: false, error: "Pick how the reader connects." };
   }
 
   const name = (draft.name ?? "").trim();
   if (name.length > 60) {
     return { ok: false, error: "Name must be 60 characters or fewer." };
+  }
+
+  if (transport === "mfi") {
+    const accessory = (draft.accessory ?? "").trim();
+    if (accessory.length > 60) {
+      return { ok: false, error: "Paired name must be 60 characters or fewer." };
+    }
+    return {
+      ok: true,
+      value: {
+        name: name || accessory || `${TRANSPORT_LABEL[transport]} OBD-II reader`,
+        transport,
+        // Omit rather than store "" so the transport's "any reader will do"
+        // path is a missing value, not an empty string to guard against.
+        ...(accessory ? { accessory } : {}),
+        lastConnectedAt: null,
+      },
+    };
   }
 
   if (transport !== "wifi") {
@@ -117,19 +147,28 @@ export function describeAdapter(adapter: SavedCanAdapter): string {
   if (adapter.transport === "wifi" && adapter.host) {
     return `${label} · ${adapter.host}:${adapter.port ?? WIFI_ADAPTER_PORT}`;
   }
+  if (adapter.transport === "mfi") {
+    return adapter.accessory
+      ? `${label} · ${adapter.accessory}`
+      : `${label} · paired accessory`;
+  }
   return `${label} · discovered by scan`;
 }
 
 /**
  * Two entries describe the same physical dongle when they share a transport
- * and — for Wi-Fi — the same endpoint. Bluetooth/USB readers are found by
- * scan, so one entry per transport is all the link needs.
+ * and — for Wi-Fi — the same endpoint, or — for MFi — the same paired
+ * accessory. Bluetooth LE/USB readers are found by scan, so one entry per
+ * transport is all the link needs.
  */
 function isSameDevice(a: SavedCanAdapter, b: SavedCanAdapter): boolean {
   if (a.id === b.id) return true;
   if (a.transport !== b.transport) return false;
-  if (b.transport !== "wifi") return true;
-  return a.host === b.host && a.port === b.port;
+  if (b.transport === "wifi") return a.host === b.host && a.port === b.port;
+  if (b.transport === "mfi") {
+    return normalizeAccessoryKey(a.accessory) === normalizeAccessoryKey(b.accessory);
+  }
+  return true;
 }
 
 /** The existing entry for the same physical dongle, if the list has one. */
@@ -187,9 +226,13 @@ export function pickDefaultAdapter(
 /** Connection options for `createTransport`, derived from a saved adapter. */
 export function adapterTransportOptions(
   adapter: SavedCanAdapter | null | undefined
-): { host?: string; port?: number } | undefined {
-  if (!adapter || adapter.transport !== "wifi") return undefined;
-  return { host: adapter.host, port: adapter.port };
+): CreateTransportOptions | undefined {
+  if (!adapter) return undefined;
+  if (adapter.transport === "wifi") return { host: adapter.host, port: adapter.port };
+  if (adapter.transport === "mfi" && adapter.accessory) {
+    return { accessory: adapter.accessory };
+  }
+  return undefined;
 }
 
 // ----------------------------- persistence -----------------------------
