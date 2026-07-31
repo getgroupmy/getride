@@ -427,11 +427,13 @@ export default function DriverTeksiScreen() {
       }
       const avail = canbus.availability.find((a) => a.kind === opt.kind);
       if (!avail?.available) {
-        // Be honest instead of silently failing: this build (Expo Go) has no
-        // Bluetooth/TCP/USB native modules, so a real adapter link is impossible.
+        // Be honest instead of silently failing. `guidance` knows which build
+        // this is — Expo Go, web, or an installed one that predates the
+        // transport — so it never sends a TestFlight tester hunting for a
+        // "preview build" setting that does not exist.
         Alert.alert(
           `${opt.title} not available`,
-          `Connecting to a real OBD-II adapter over ${opt.title} needs a native module that isn't included in this preview build (Expo Go). It will work in a production/dev-client build with the adapter drivers installed.\n\nUse Demo Mode to preview live vehicle data in the meantime.`,
+          `${avail?.guidance ?? `Connecting to a real OBD-II adapter over ${opt.title} needs a native module this build does not have.`}\n\nUse Demo Mode to preview live vehicle data in the meantime.`,
           [
             { text: "Use Demo Mode", onPress: () => handleSelectCommType(COMM_OPTIONS[COMM_OPTIONS.length - 1]) },
             { text: "OK", style: "cancel" },

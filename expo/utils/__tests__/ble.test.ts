@@ -159,28 +159,50 @@ describe("describeBleAvailability", () => {
         moduleInstalled: true,
         nativeModuleLinked: true,
         platform: "ios",
+        runtime: "standalone",
       }),
     ).toEqual({ available: true });
   });
 
-  it("distinguishes Expo Go from a build without the dependency", () => {
+  it("tells an Expo Go driver to use a real build", () => {
     expect(
       describeBleAvailability({
         moduleInstalled: true,
         nativeModuleLinked: false,
         platform: "android",
+        runtime: "expo-go",
       }),
-    ).toEqual({
+    ).toMatchObject({
       available: false,
       reason: "needs a development or production build (not available in Expo Go)",
+      guidance: expect.stringMatching(/Expo Go/),
     });
-    expect(
-      describeBleAvailability({
-        moduleInstalled: false,
-        nativeModuleLinked: false,
-        platform: "android",
-      }),
-    ).toEqual({ available: false, reason: "react-native-ble-plx not installed" });
+  });
+
+  it("tells an installed build to update, however the module went missing", () => {
+    // The TestFlight case: the binary predates the dependency, so the JS
+    // package is absent too. Either half missing means the same fix.
+    const notInstalled = describeBleAvailability({
+      moduleInstalled: false,
+      nativeModuleLinked: false,
+      platform: "ios",
+      runtime: "standalone",
+    });
+    const notLinked = describeBleAvailability({
+      moduleInstalled: true,
+      nativeModuleLinked: false,
+      platform: "ios",
+      runtime: "standalone",
+    });
+
+    expect(notInstalled).toEqual(notLinked);
+    expect(notInstalled).toMatchObject({
+      available: false,
+      reason: expect.stringMatching(/not included in this build/i),
+      guidance: expect.stringMatching(/TestFlight or the App Store/i),
+    });
+    // Never sends an installed-build tester looking for Expo Go.
+    expect(notInstalled.guidance).not.toMatch(/Expo Go/);
   });
 
   it("reports web as unsupported regardless of what resolved", () => {
@@ -189,7 +211,8 @@ describe("describeBleAvailability", () => {
         moduleInstalled: true,
         nativeModuleLinked: true,
         platform: "web",
+        runtime: "standalone",
       }),
-    ).toEqual({ available: false, reason: "not supported on web" });
+    ).toMatchObject({ available: false, reason: "not supported on web" });
   });
 });

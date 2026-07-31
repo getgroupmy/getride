@@ -9,7 +9,13 @@
  * which one is missing.
  */
 
-import { NativeModules } from "react-native";
+import { NativeModules, TurboModuleRegistry } from "react-native";
+
+/**
+ * `react-native-ble-plx` registers its iOS/Android module under this name
+ * (`NativeModules.BlePlx` is what its own `BleModule.js` reads).
+ */
+const BLE_NATIVE_MODULE = "BlePlx";
 
 let cache: any | null | undefined;
 
@@ -25,7 +31,19 @@ export function loadBleModule(): any | null {
   return cache;
 }
 
-/** True when the BLE native module is linked into this binary. */
+/**
+ * True when the BLE native module is linked into this binary.
+ *
+ * Checked both ways on purpose: the app runs the New Architecture, where a
+ * legacy module like this one is reached through the TurboModule interop, and
+ * `NativeModules` is only a compatibility proxy over it. Trusting a single
+ * lookup risks reporting "Bluetooth unavailable" in a build that has it.
+ */
 export function isBleNativeLinked(): boolean {
-  return !!(NativeModules as any)?.BlePlx;
+  if ((NativeModules as any)?.[BLE_NATIVE_MODULE]) return true;
+  try {
+    return !!TurboModuleRegistry?.get?.(BLE_NATIVE_MODULE);
+  } catch {
+    return false;
+  }
 }

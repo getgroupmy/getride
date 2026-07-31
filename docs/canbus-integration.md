@@ -80,8 +80,9 @@ e.g. `Wi-Fi · 192.168.0.10:35000`, or `Not set up`.
 - **Connect / Disconnect** and a live telemetry grid, plus a **Demo Mode**
   button that appears only when the admin `partnerDriveSimEnabled` flag is on.
 - **Supported connections** — an honest per-transport availability list, so a
-  driver on Expo Go sees *why* a real link can't be attempted instead of a
-  silent failure.
+  driver sees *why* a real link can't be attempted instead of a silent failure,
+  phrased for the build they are actually on (Expo Go vs. an installed build
+  that predates the transport).
 
 Readers are stored **device-local** in AsyncStorage (`@canbus_adapters_v1`,
 `@canbus_selected_adapter_v1`) — a dongle belongs to one phone, so no migration
@@ -133,10 +134,32 @@ install. What the transport does on connect:
 The matching, UUID-normalising and profile-picking logic is pure and lives in
 `utils/canbus/ble.ts` (unit tested); only `transports.ts` touches the manager.
 
-**Expo Go**: the JS loads but the `BlePlx` native module isn't in that binary,
-so the panel reports *"needs a development or production build (not available
-in Expo Go)"* rather than failing mid-connect. Build a dev client to use real
-hardware:
+### When the native module is missing
+
+BLE only works in a binary that was **prebuilt with the `react-native-ble-plx`
+config plugin**. Two different builds can be missing it, and they need opposite
+advice, so `describeMissingNativeModule` (`utils/canbus/availability.ts`) phrases
+the answer from `getAppRuntime()` rather than from which half is absent:
+
+| Runtime | What's missing | What the driver is told |
+| --- | --- | --- |
+| Expo Go | the native side (`NativeModules.BlePlx`); the JS loads | *"needs a development or production build (not available in Expo Go)"* |
+| Installed build (TestFlight / App Store / dev client) | usually **both** — the binary was compiled before the dependency existed, so `require("react-native-ble-plx")` fails too | *"not included in this build of the app"* + install the latest build |
+
+That second row is the one that bites: a TestFlight build cut before the BLE
+work shipped reports Bluetooth as unavailable no matter what the driver does,
+and no OTA JS update can fix it — **BLE support requires a new native build**
+(`eas build -p ios --profile production` → submit → new TestFlight build).
+
+Availability entries carry both a short `reason` (list rows) and a longer
+`guidance` string (alerts), so no screen hardcodes build-specific copy.
+
+`isBleNativeLinked()` checks `NativeModules.BlePlx` *and*
+`TurboModuleRegistry.get("BlePlx")`: the app runs the New Architecture, where
+this legacy module is reached through the TurboModule interop, and a single
+lookup could report "unavailable" in a build that actually has BLE.
+
+To use real hardware from a local checkout, build a dev client:
 
 ```bash
 cd expo

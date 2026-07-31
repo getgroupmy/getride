@@ -8,6 +8,11 @@
  * `react-native-ble-plx` calls and feeds plain objects in here.
  */
 
+import {
+  describeMissingNativeModule,
+  describeWebUnsupported,
+  type AppRuntime,
+} from "./availability";
 import { BLE_ELM_PROFILES, BLE_NAME_HINTS } from "./config";
 
 /** Suffix of the Bluetooth SIG base UUID that 16/32-bit UUIDs expand into. */
@@ -160,30 +165,30 @@ export interface BleAvailabilityInput {
   /** Its native side is linked into this binary (false in Expo Go). */
   nativeModuleLinked: boolean;
   platform: string;
+  /** Expo Go vs. an installed binary — changes what the driver should do. */
+  runtime: AppRuntime;
 }
 
 /**
  * Why the Bluetooth transport can (or cannot) be attempted, phrased for the
- * driver rather than for a bundler: the difference between "this build has no
- * BLE at all" and "Bluetooth is there, it just needs a dev build" is the one
- * thing they can act on.
+ * driver rather than for a bundler.
+ *
+ * Which half is missing (the JS package or its linked native side) is a build
+ * detail, not something a driver can act on: in an installed build both mean
+ * "this binary is older than the feature", and in Expo Go both mean "use a real
+ * build". So the runtime, not the missing half, decides what we say.
  */
 export function describeBleAvailability({
   moduleInstalled,
   nativeModuleLinked,
   platform,
-}: BleAvailabilityInput): { available: boolean; reason?: string } {
-  if (platform === "web") {
-    return { available: false, reason: "not supported on web" };
-  }
-  if (!moduleInstalled) {
-    return { available: false, reason: "react-native-ble-plx not installed" };
-  }
-  if (!nativeModuleLinked) {
-    return {
-      available: false,
-      reason: "needs a development or production build (not available in Expo Go)",
-    };
-  }
-  return { available: true };
+  runtime,
+}: BleAvailabilityInput): { available: boolean; reason?: string; guidance?: string } {
+  if (platform === "web") return describeWebUnsupported("Bluetooth LE");
+  if (moduleInstalled && nativeModuleLinked) return { available: true };
+  return describeMissingNativeModule({
+    runtime,
+    transport: "Bluetooth LE",
+    packageName: "react-native-ble-plx",
+  });
 }
