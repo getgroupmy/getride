@@ -15,6 +15,8 @@
  */
 
 import { PermissionsAndroid, Platform } from "react-native";
+import { getAppRuntime } from "./appRuntime";
+import { describeMissingNativeModule, describeWebUnsupported } from "./availability";
 import { isBleNativeLinked, loadBleModule } from "./bleModule";
 import {
   describeBleAvailability,
@@ -68,14 +70,17 @@ function optionalRequire(moduleName: string): any | null {
 
 /**
  * Bluetooth LE availability: the package is installed, but its native side
- * only exists in a prebuilt binary — Expo Go loads the JS and has no `BlePlx`
- * native module, so every manager call there would throw mid-connect.
+ * only exists in a binary prebuilt with the config plugin. Expo Go loads the JS
+ * and has no `BlePlx` native module, and a store/TestFlight build made before
+ * the dependency was added has neither — every manager call would throw
+ * mid-connect, so both are reported up front.
  */
-function bleAvailability(): { available: boolean; reason?: string } {
+function bleAvailability(): { available: boolean; reason?: string; guidance?: string } {
   return describeBleAvailability({
     moduleInstalled: !!loadBleModule()?.BleManager,
     nativeModuleLinked: isBleNativeLinked(),
     platform: Platform.OS,
+    runtime: getAppRuntime(),
   });
 }
 
@@ -90,12 +95,13 @@ function loadMfiModule(): any | null {
  * "linked" collapse into one check here — an unlinked build cannot resolve the
  * accessory list at all.
  */
-function mfiAvailability(): { available: boolean; reason?: string } {
+function mfiAvailability(): { available: boolean; reason?: string; guidance?: string } {
   const mod = loadMfiModule();
   return describeMfiAvailability({
     moduleInstalled: !!mod,
     nativeModuleLinked: typeof mod?.getBondedDevices === "function",
     platform: Platform.OS,
+    runtime: getAppRuntime(),
   });
 }
 
@@ -623,29 +629,43 @@ class UsbTransport implements CanTransport {
 
 /** Report which transports this build/device can actually attempt. */
 export function getTransportAvailability(): TransportAvailability[] {
+  const runtime = getAppRuntime();
   const hasTcp = !!optionalRequire("react-native-tcp-socket");
-  const ble = bleAvailability();
   const hasUsb = !!optionalRequire("react-native-usb-serialport-for-android");
   return [
     {
       kind: "wifi",
-      available: hasTcp && Platform.OS !== "web",
-      reason: !hasTcp
-        ? "react-native-tcp-socket not installed"
-        : Platform.OS === "web"
-          ? "not supported on web"
-          : undefined,
+      ...(Platform.OS === "web"
+        ? describeWebUnsupported("Wi-Fi")
+        : hasTcp
+          ? { available: true }
+          : describeMissingNativeModule({
+              runtime,
+              transport: "Wi-Fi",
+              packageName: "react-native-tcp-socket",
+            })),
     },
-    { kind: "bluetooth", ...ble },
+    { kind: "bluetooth", ...bleAvailability() },
     { kind: "mfi", ...mfiAvailability() },
     {
       kind: "usb",
-      available: hasUsb && Platform.OS === "android",
-      reason: !hasUsb
-        ? "USB serial module not installed"
-        : Platform.OS !== "android"
-          ? "USB host only supported on Android"
-          : undefined,
+      ...(Platform.OS !== "android"
+        ? {
+            available: false as const,
+            reason:
+              Platform.OS === "web"
+                ? "not supported on web"
+                : "USB host only supported on Android",
+            guidance:
+              "USB OBD-II readers need Android's USB host mode. On this device, connect the reader over Bluetooth or Wi-Fi instead.",
+          }
+        : hasUsb
+          ? { available: true }
+          : describeMissingNativeModule({
+              runtime,
+              transport: "USB",
+              packageName: "react-native-usb-serialport-for-android",
+            })),
     },
   ];
 }

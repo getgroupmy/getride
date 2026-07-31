@@ -91,7 +91,11 @@ describe("describeMfiSelectionFailure", () => {
 });
 
 describe("describeMfiAvailability", () => {
-  const linked = { moduleInstalled: true, nativeModuleLinked: true };
+  const linked = {
+    moduleInstalled: true,
+    nativeModuleLinked: true,
+    runtime: "standalone" as const,
+  };
 
   it("is available only on iOS with the native module linked", () => {
     expect(describeMfiAvailability({ ...linked, platform: "ios" })).toEqual({
@@ -110,22 +114,27 @@ describe("describeMfiAvailability", () => {
     });
   });
 
-  it("separates a missing package from a missing native build", () => {
+  it("phrases the missing driver for the runtime the driver is in", () => {
     expect(
       describeMfiAvailability({
         moduleInstalled: false,
         nativeModuleLinked: false,
         platform: "ios",
-      }),
-    ).toMatchObject({ reason: expect.stringMatching(/not installed/i) });
-    expect(
-      describeMfiAvailability({
-        moduleInstalled: true,
-        nativeModuleLinked: false,
-        platform: "ios",
+        runtime: "expo-go",
       }),
     ).toMatchObject({
       reason: expect.stringMatching(/development or production build/i),
+    });
+    expect(
+      describeMfiAvailability({
+        moduleInstalled: false,
+        nativeModuleLinked: false,
+        platform: "ios",
+        runtime: "standalone",
+      }),
+    ).toMatchObject({
+      reason: expect.stringMatching(/not included in this build/i),
+      guidance: expect.stringMatching(/react-native-bluetooth-classic/),
     });
   });
 });

@@ -14,6 +14,11 @@
  * why it is a transport of its own rather than a flavour of the BLE one.
  */
 
+import {
+  describeMissingNativeModule,
+  describeWebUnsupported,
+  type AppRuntime,
+} from "./availability";
 import { MFI_NAME_HINTS } from "./config";
 
 /**
@@ -113,6 +118,8 @@ export interface MfiAvailabilityInput {
   /** Its native side is linked into this binary (false in Expo Go). */
   nativeModuleLinked: boolean;
   platform: string;
+  /** Expo Go vs. an installed binary — changes what the driver should do. */
+  runtime: AppRuntime;
 }
 
 /**
@@ -126,27 +133,22 @@ export function describeMfiAvailability({
   moduleInstalled,
   nativeModuleLinked,
   platform,
-}: MfiAvailabilityInput): { available: boolean; reason?: string } {
+  runtime,
+}: MfiAvailabilityInput): { available: boolean; reason?: string; guidance?: string } {
+  if (platform === "web") return describeWebUnsupported("Bluetooth MFi");
   if (platform !== "ios") {
     return {
       available: false,
-      reason:
-        platform === "web"
-          ? "not supported on web"
-          : "MFi accessories are iOS-only — use Bluetooth LE or USB here",
+      reason: "MFi accessories are iOS-only — use Bluetooth LE or USB here",
+      guidance:
+        "Apple's External Accessory programme only exists on iOS. On Android the same classic dongles " +
+        "are reachable over Bluetooth LE or USB — add the reader with one of those transports instead.",
     };
   }
-  if (!moduleInstalled) {
-    return {
-      available: false,
-      reason: "react-native-bluetooth-classic not installed",
-    };
-  }
-  if (!nativeModuleLinked) {
-    return {
-      available: false,
-      reason: "needs a development or production build (not available in Expo Go)",
-    };
-  }
-  return { available: true };
+  if (moduleInstalled && nativeModuleLinked) return { available: true };
+  return describeMissingNativeModule({
+    runtime,
+    transport: "Bluetooth MFi",
+    packageName: "react-native-bluetooth-classic",
+  });
 }

@@ -44,6 +44,11 @@ export interface TransportAvailability {
   available: boolean;
   /** Why it is unavailable (missing native module, unsupported platform…). */
   reason?: string;
+  /**
+   * The longer, driver-facing version of `reason` for alerts: what is missing
+   * and what they can actually do about it (e.g. install a newer build).
+   */
+  guidance?: string;
 }
 
 /**

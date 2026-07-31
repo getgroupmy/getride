@@ -211,11 +211,13 @@ export default function Obd2ReaderScreen() {
       }
       const avail = availabilityFor(target.transport);
       if (!avail?.available) {
-        // Be honest rather than failing silently: the native driver behind a
-        // transport is missing in Expo Go / on web, so a real link is impossible.
+        // Be honest rather than failing silently, and say the thing the driver
+        // can act on: `guidance` already knows whether this is Expo Go, the web
+        // preview, or an installed build that predates the transport.
         Alert.alert(
           `${TRANSPORT_LABEL[target.transport]} not available`,
-          `${avail?.reason ?? "This transport is unavailable"}.\n\nConnecting to a real OBD-II reader over ${TRANSPORT_LABEL[target.transport]} needs the adapter's native driver, which ships in a development or production build — not in Expo Go or the web preview.`
+          avail?.guidance ??
+            `${avail?.reason ?? "This transport is unavailable"}.`
         );
         return;
       }
@@ -417,7 +419,7 @@ export default function Obd2ReaderScreen() {
                         </Text>
                         {!avail?.available && avail?.reason ? (
                           <Text style={styles.adapterWarn} numberOfLines={2}>
-                            Unavailable in this build — {avail.reason}
+                            Unavailable — {avail.reason}
                           </Text>
                         ) : null}
                       </View>
