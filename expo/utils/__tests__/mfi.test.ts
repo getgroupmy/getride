@@ -4,9 +4,12 @@ import {
   describeMfiAvailability,
   describeMfiSelectionFailure,
   isLikelyMfiAccessory,
+  MFI_ISO_LATIN1_ENCODING,
+  mfiConnectionOptions,
   normalizeAccessoryKey,
   pickMfiAccessory,
 } from "@/utils/canbus/mfi";
+import { ELM_PROMPT } from "@/utils/canbus/obd";
 
 describe("normalizeAccessoryKey", () => {
   it("compares names and MAC spellings blind to case and separators", () => {
@@ -87,6 +90,27 @@ describe("describeMfiSelectionFailure", () => {
     expect(describeMfiSelectionFailure([{ name: "AirPods" }], "OBDLink MX+")).toMatch(
       /was not among the paired accessories/i,
     );
+  });
+});
+
+describe("mfiConnectionOptions", () => {
+  it("frames the stream on the ELM327 prompt rather than on CR", () => {
+    // A CR delimiter strands the trailing prompt, which the ELM327 never
+    // terminates, so every command would time out waiting for it.
+    expect(mfiConnectionOptions(ELM_PROMPT)).toMatchObject({
+      CONNECTION_TYPE: "delimited",
+      delimiter: ELM_PROMPT,
+    });
+  });
+
+  it("sends the charset as a number, never as an encoding name", () => {
+    // iOS reads this option as `value as! CFStringEncoding` — a UInt32
+    // force-cast — so a string here is a hard crash on Connect, not a
+    // tolerated argument.
+    const { charset } = mfiConnectionOptions(ELM_PROMPT);
+    expect(typeof charset).toBe("number");
+    expect(Number.isInteger(charset)).toBe(true);
+    expect(charset).toBe(MFI_ISO_LATIN1_ENCODING);
   });
 });
 

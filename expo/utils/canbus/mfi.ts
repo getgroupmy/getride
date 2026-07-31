@@ -111,6 +111,47 @@ export function describeMfiSelectionFailure(
     : "None of the paired accessories look like an OBD-II reader — add the reader again with the adapter's exact paired name";
 }
 
+/**
+ * `CFStringBuiltInEncodings.isoLatin1`, the value iOS wants for the connection's
+ * character set.
+ *
+ * This is a raw number on purpose. The native side reads the option as
+ * `value as! CFStringEncoding` — a `UInt32` force-cast — so handing it the
+ * *name* of an encoding ("ascii") is not a wrong-but-tolerated argument, it is
+ * an unconditional Swift crash the moment a driver taps Connect.
+ *
+ * Latin-1 rather than strict ASCII because every byte maps to a character:
+ * ELM327 traffic is 7-bit, but a noisy line that emits one high byte would make
+ * an ASCII decode return nil and silently drop the whole read, stalling the
+ * session until the command times out. The response parser already tolerates
+ * junk — it frames on the prompt and parses hex — so a decodable frame is
+ * strictly better than a dropped one.
+ */
+export const MFI_ISO_LATIN1_ENCODING = 0x0201;
+
+/** The delimiter/charset/connection-type bag handed to `connectToDevice`. */
+export interface MfiConnectionOptions {
+  CONNECTION_TYPE: "delimited";
+  delimiter: string;
+  charset: number;
+}
+
+/**
+ * Options for opening the accessory session.
+ *
+ * The session client reads a response as everything up to the ELM327 prompt, so
+ * the stream is delimited on `>` rather than on CR: a CR delimiter would strand
+ * the trailing prompt — the ELM327 does not terminate it — and every command
+ * would time out.
+ */
+export function mfiConnectionOptions(delimiter: string): MfiConnectionOptions {
+  return {
+    CONNECTION_TYPE: "delimited",
+    delimiter,
+    charset: MFI_ISO_LATIN1_ENCODING,
+  };
+}
+
 /** Inputs to {@link describeMfiAvailability} — kept plain so it stays pure. */
 export interface MfiAvailabilityInput {
   /** `react-native-bluetooth-classic` resolved as a JS module. */

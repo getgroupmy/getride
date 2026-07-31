@@ -28,6 +28,7 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/utils/canbus/ble.ts` | Pure BLE helpers: UUID normalisation, ELM327 advertisement matching, serial-profile (write/notify characteristic) selection, availability copy. |
 | `expo/utils/canbus/mfi.ts` | Pure MFi helpers: accessory-key normalisation, paired-accessory selection, failure/availability copy. |
 | `expo/utils/canbus/bleModule.ts` (+ `.web.ts`) | The single `react-native-ble-plx` entry point — loads the package and reports whether its native side is linked. The web override keeps it out of the browser bundle. |
+| `expo/utils/canbus/mfiModule.ts` (+ `.web.ts`) | The same for `react-native-bluetooth-classic` (Bluetooth MFi): loads the package and reports whether `RNBluetoothClassic` is linked into this binary. |
 | `expo/utils/canbus/transports.ts` | Wi-Fi (TCP), Bluetooth LE (GATT), Bluetooth MFi (External Accessory), and USB-serial transport implementations + availability detection. |
 | `expo/utils/canbus/canbusClient.ts` | ELM327 session: runs the handshake, detects the CAN protocol, polls PIDs, emits decoded telemetry. Transport-blind. |
 | `expo/utils/canbus/simulator.ts` | Dev-only fake telemetry stream (honestly flagged `simulated: true`). |
@@ -183,7 +184,31 @@ over a socket or a GATT scan — the app reaches it only through the
    by the accessory vendor work — a guessed one yields an adapter that never
    appears. `com.obdlink` (ScanTool's OBDLink MX+/LX) ships by default; add the
    vendor's string to **both** lists for any other certified dongle.
-3. The native module is in the binary (see below).
+3. The native module is in the binary. `react-native-bluetooth-classic` is a
+   real dependency, so this holds for any build prebuilt since it shipped — but
+   *not* for a TestFlight/App Store build made before that, which needs a new
+   native build rather than an OTA update. `mfiModule.ts` checks for the linked
+   `RNBluetoothClassic` module (not merely for the JS package, which always
+   resolves) so the app can say which of the two is missing.
+
+Two details of the accessory session are easy to get wrong and are pinned down
+by `mfiConnectionOptions` in `mfi.ts`:
+
+- **`charset` must be a number.** iOS reads the option as
+  `value as! CFStringEncoding` — a `UInt32` force-cast — so passing the name of
+  an encoding (`"ascii"`) crashes the app the moment a driver taps Connect. The
+  value sent is `CFStringBuiltInEncodings.isoLatin1`, chosen over strict ASCII
+  because every byte decodes: one noise byte above 0x7F would make an ASCII
+  decode return nil and drop the whole read.
+- **Writes go in as plain text.** The library's `writeToDevice` already does
+  `Buffer.from(text, encoding).toString("base64")` before the native call, so
+  base64-encoding first sends the dongle a double-encoded command it can only
+  answer with `?`.
+
+Android is not autolinked for this package (`expo/react-native.config.js`): MFi
+is iOS-only by design, and the library's `android/build.gradle` still compiles
+against `com.facebook.react:react-native:0.71.0-rc.0` with an AGP 3.4
+buildscript, which has no business in an RN 0.81 / Expo SDK 54 build.
 
 Because iOS can hand back several paired accessories, a saved MFi reader may
 carry a **paired name** (`SavedCanAdapter.accessory`). Left blank the transport
@@ -202,18 +227,20 @@ On Android the same dongles are reachable over plain SPP with no certification
 involved, so the MFi row is hidden there and `describeMfiAvailability` points
 the driver at Bluetooth LE / USB instead.
 
-## Making Wi-Fi / MFi / USB run on a device (native build)
+## Making Wi-Fi / USB run on a device (native build)
 
-Those three transports still depend on native modules that are **not** in
-`package.json`. Until they are installed the app runs fine and the panel reports
-them as unavailable / shows the GPS-blue speed pill. To enable them:
+Bluetooth LE (`react-native-ble-plx`) and Bluetooth MFi
+(`react-native-bluetooth-classic`) are installed dependencies — they need a
+native build, not a package install. Wi-Fi and USB still depend on native
+modules that are **not** in `package.json`; until they are installed the app
+runs fine and the panel reports them as unavailable / shows the GPS-blue speed
+pill. To enable them:
 
 1. Add the optional native deps (only the transports you need):
 
    ```bash
    cd expo
-   bun add react-native-tcp-socket        # Wi-Fi
-   bun add react-native-bluetooth-classic # Bluetooth MFi (iOS)
+   bun add react-native-tcp-socket                   # Wi-Fi
    bun add react-native-usb-serialport-for-android   # USB (Android)
    ```
 
