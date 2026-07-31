@@ -2,14 +2,31 @@
 
 import type { Telemetry } from "./obd";
 
-/** How the phone/tablet is physically linked to the OBD adapter. */
-export type CanTransportKind = "wifi" | "bluetooth" | "usb";
+/**
+ * How the phone/tablet is physically linked to the OBD adapter.
+ *
+ * `bluetooth` is Bluetooth **Low Energy** (GATT). `mfi` is the other Bluetooth
+ * family: Apple's External Accessory / iAP2 path used by MFi-certified classic
+ * (SPP) dongles such as the OBDLink MX+, which iOS refuses to expose over a
+ * plain socket. They are separate transports because nothing about them is
+ * shared — different pairing model, different native API, different hardware.
+ */
+export type CanTransportKind = "wifi" | "bluetooth" | "mfi" | "usb";
 
 export const TRANSPORT_LABEL: Record<CanTransportKind, string> = {
   wifi: "Wi-Fi",
-  bluetooth: "Bluetooth",
+  bluetooth: "Bluetooth LE",
+  mfi: "Bluetooth MFi",
   usb: "USB",
 };
+
+/** Every transport kind, in the order the connection pickers list them. */
+export const TRANSPORT_KINDS: CanTransportKind[] = [
+  "wifi",
+  "bluetooth",
+  "mfi",
+  "usb",
+];
 
 /** Identity of the connected adapter, surfaced in the System Status panel. */
 export interface CanDeviceInfo {

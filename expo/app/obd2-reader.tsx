@@ -2,9 +2,10 @@
  * Settings → OBD-II (CANBus) reader.
  *
  * User-side management of the vehicle link: add a reader (Wi-Fi / Bluetooth LE
- * / USB), pick which one to use, connect, and watch live telemetry. The saved
- * reader is what the partner Teksi/e-hailing screens auto-connect to, so this
- * screen is the single place a driver sets the dongle up.
+ * / Bluetooth MFi / USB), pick which one to use, connect, and watch live
+ * telemetry. The saved reader is what the partner Teksi/e-hailing screens
+ * auto-connect to, so this screen is the single place a driver sets the
+ * dongle up.
  *
  * Only shown to accounts that are also partners — see `useIsPartner`.
  */
@@ -29,6 +30,7 @@ import { useRouter } from "expo-router";
 import {
   ArrowLeft,
   Bluetooth,
+  BluetoothConnected,
   Check,
   Cpu,
   Plus,
@@ -55,6 +57,9 @@ import {
 const TRANSPORT_ICON: Record<CanTransportKind, typeof Wifi> = {
   wifi: Wifi,
   bluetooth: Bluetooth,
+  // A distinct glyph for MFi: the two Bluetooth rows sit next to each other and
+  // pair very differently, so they should not look interchangeable.
+  mfi: BluetoothConnected,
   usb: Usb,
 };
 
@@ -64,6 +69,7 @@ const TRANSPORT_CHOICES: {
   title: string;
   hint: string;
   androidOnly?: boolean;
+  iosOnly?: boolean;
 }[] = [
   {
     kind: "wifi",
@@ -74,6 +80,12 @@ const TRANSPORT_CHOICES: {
     kind: "bluetooth",
     title: "Bluetooth LE",
     hint: "ELM327 Bluetooth Low Energy dongle. Do not pair it in the phone's Bluetooth settings — it is found automatically.",
+  },
+  {
+    kind: "mfi",
+    title: "Bluetooth MFi",
+    hint: "Apple-certified (MFi) adapter such as the OBDLink MX+. Pair it in iOS Settings → Bluetooth first — unlike a BLE dongle, it is not found by scanning.",
+    iosOnly: true,
   },
   {
     kind: "usb",
@@ -103,6 +115,7 @@ export default function Obd2ReaderScreen() {
   const [draftName, setDraftName] = useState<string>("");
   const [draftHost, setDraftHost] = useState<string>(WIFI_ADAPTER_HOST);
   const [draftPort, setDraftPort] = useState<string>(String(WIFI_ADAPTER_PORT));
+  const [draftAccessory, setDraftAccessory] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
 
   const state = canbus.state;
@@ -111,7 +124,12 @@ export default function Obd2ReaderScreen() {
   const device = state.device;
 
   const transportChoices = useMemo(
-    () => TRANSPORT_CHOICES.filter((t) => !t.androidOnly || Platform.OS === "android"),
+    () =>
+      TRANSPORT_CHOICES.filter(
+        (t) =>
+          (!t.androidOnly || Platform.OS === "android") &&
+          (!t.iosOnly || Platform.OS === "ios")
+      ),
     []
   );
 
@@ -125,6 +143,7 @@ export default function Obd2ReaderScreen() {
     setDraftName("");
     setDraftHost(WIFI_ADAPTER_HOST);
     setDraftPort(String(WIFI_ADAPTER_PORT));
+    setDraftAccessory("");
   }, []);
 
   const handleSaveAdapter = useCallback(async () => {
@@ -134,6 +153,7 @@ export default function Obd2ReaderScreen() {
       transport: draftKind,
       host: draftHost,
       port: draftPort,
+      accessory: draftAccessory,
     });
     setSaving(false);
     if (res.error) {
@@ -143,7 +163,15 @@ export default function Obd2ReaderScreen() {
     await canbus.reloadAdapters();
     setAddVisible(false);
     resetDraft();
-  }, [canbus, draftHost, draftKind, draftName, draftPort, resetDraft]);
+  }, [
+    canbus,
+    draftAccessory,
+    draftHost,
+    draftKind,
+    draftName,
+    draftPort,
+    resetDraft,
+  ]);
 
   const handleSelect = useCallback(
     async (adapter: SavedCanAdapter) => {
@@ -566,6 +594,28 @@ export default function Obd2ReaderScreen() {
                     Most ELM327 Wi-Fi dongles run their own Wi-Fi network and listen on{" "}
                     {WIFI_ADAPTER_HOST}:{WIFI_ADAPTER_PORT}. Join that network on your phone
                     before connecting.
+                  </Text>
+                </>
+              ) : draftKind === "mfi" ? (
+                <>
+                  <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
+                    PAIRED NAME (OPTIONAL)
+                  </Text>
+                  <TextInput
+                    style={[styles.input, { color: Colors.text, borderColor: Colors.border }]}
+                    value={draftAccessory}
+                    onChangeText={setDraftAccessory}
+                    placeholder="e.g. OBDLink MX+"
+                    placeholderTextColor={Colors.textSecondary}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={60}
+                    testID="obd2-accessory-input"
+                  />
+                  <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
+                    Pair the adapter in iOS Settings → Bluetooth first. Leave the name blank
+                    and the first paired OBD-II accessory is used; fill it in exactly as iOS
+                    shows it when you have more than one paired.
                   </Text>
                 </>
               ) : (
