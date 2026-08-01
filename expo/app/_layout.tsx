@@ -143,6 +143,7 @@ function RootLayoutNav() {
       <Stack.Screen name="partner-documents" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="vehicle-onboarding" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="partner-teksi" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="meter-digital" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="partner-ehailing" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="ride-running" options={{ animation: "slide_from_bottom", gestureEnabled: false }} />
       <Stack.Screen name="ride-detail" options={{ animation: "slide_from_right", gestureEnabled: false }} />
