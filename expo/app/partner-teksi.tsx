@@ -1445,6 +1445,35 @@ export default function DriverTeksiScreen() {
         >
           <TouchableOpacity
             style={[
+              styles.meterDigitalBtn,
+              {
+                backgroundColor: isLightMode ? "#fff" : "#1a1a1a",
+                borderColor: Colors.accent,
+              },
+            ]}
+            onPress={() => {
+              console.log("[partner-teksi] Meter Digital pressed");
+              router.push({
+                pathname: "/meter-digital",
+                params: {
+                  tariff,
+                  ...(permit.vehiclePlate && permit.vehiclePlate !== "—"
+                    ? { plate: permit.vehiclePlate }
+                    : {}),
+                },
+              } as never);
+            }}
+            activeOpacity={0.85}
+            testID="partner-teksi-meter-digital"
+          >
+            <Gauge color={Colors.accent} size={18} />
+            <Text style={[styles.meterDigitalText, { color: Colors.accent }]}>
+              Meter Digital
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
               styles.startPickupBtn,
               { backgroundColor: Colors.accent },
               !permitLoaded && styles.startPickupBtnDisabled,
@@ -4287,6 +4316,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  meterDigitalBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 15,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    marginBottom: 10,
+  },
+  meterDigitalText: {
+    fontSize: 15,
+    fontWeight: "800" as const,
+    letterSpacing: 0.3,
   },
   startPickupBtn: {
     flexDirection: "row",
