@@ -13,6 +13,12 @@
  *
  * All accrual and tariff maths live in `utils/taxiMeter.ts` (pure + tested);
  * this screen only owns the 1 Hz clock, the sensors, and the display.
+ *
+ * The screen is landscape-only. It is read at a glance off a dash mount, so it
+ * pins the device to landscape while it is focused (`useLandscapeLock`) and
+ * hands rotation back on the way out. Where that pin cannot happen — the web
+ * build, or a binary made before `expo-screen-orientation` shipped — a portrait
+ * viewport gets the rotate notice instead of a squeezed meter.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,6 +30,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -45,8 +52,11 @@ import {
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useCanbus } from "@/hooks/useCanbus";
+import { useLandscapeLock } from "@/hooks/useLandscapeLock";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import RotateDeviceNotice from "@/components/RotateDeviceNotice";
 import { TRANSPORT_LABEL } from "@/utils/canbus/types";
+import { isLandscapeSize, shouldPromptRotate } from "@/utils/orientationLock";
 import {
   applyMeterSample,
   computeMeterFare,
@@ -84,6 +94,13 @@ export default function MeterDigitalScreen() {
   const Colors = useColors();
   const isLightMode = Colors.background === "#FFFFFF";
   const params = useLocalSearchParams<{ tariff?: string; plate?: string }>();
+
+  // Landscape-only: pinned while focused, with the rotate notice as the cover
+  // for every platform/build where the pin cannot happen.
+  const lockState = useLandscapeLock();
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const isLandscape = isLandscapeSize(winWidth, winHeight);
+  const promptRotate = shouldPromptRotate(lockState, winWidth, winHeight);
 
   const { settings: displaySettings } = useDisplaySettings();
   // Same link the Teksi screen uses: auto-connect to the saved reader, and only
@@ -284,11 +301,248 @@ export default function MeterDigitalScreen() {
     },
   ];
 
+  /* --- Fare --- */
+  const fareCard = (
+    <View
+      style={[styles.fareCard, { backgroundColor: Colors.accent }]}
+      testID="meter-digital-fare"
+    >
+      <View style={styles.fareTopRow}>
+        <View style={styles.fareBadge}>
+          <Text style={styles.fareBadgeText}>
+            {tariff === "new" ? "NEW TARIFF" : "OLD TARIFF"}
+          </Text>
+        </View>
+        <View style={[styles.sourcePill, { backgroundColor: sourceColor }]}>
+          {meter.source === "obd" ? (
+            <Cpu color="#fff" size={12} />
+          ) : (
+            <Satellite color="#fff" size={12} />
+          )}
+          <Text style={styles.sourcePillText}>{sourceLabel}</Text>
+        </View>
+      </View>
+
+      <View style={styles.fareAmountRow}>
+        <Text style={styles.fareCurrency}>RM</Text>
+        <Text
+          style={[styles.fareAmount, isLandscape && styles.fareAmountLandscape]}
+          testID="meter-digital-total"
+        >
+          {fare.total.toFixed(2)}
+        </Text>
+      </View>
+
+      <Text style={styles.fareBreakdown}>
+        {tariff === "new"
+          ? `Base RM ${fare.flagFall.toFixed(2)} + RM ${fare.variable.toFixed(
+              2,
+            )} for ${fare.distanceKm.toFixed(2)} km / ${Math.floor(
+              fare.durationMin,
+            )} min`
+          : `Flag fall RM ${fare.flagFall.toFixed(2)} + ${fare.units} × RM 0.35 (${
+              fare.distanceUnits
+            } distance / ${fare.timeUnits} time)`}
+      </Text>
+    </View>
+  );
+
+  /* --- Live stats --- */
+  const statsGrid = (
+    <View style={styles.statsGrid}>
+      {stats.map((s) => (
+        <View key={s.id} style={[styles.statCard, cardStyle]}>
+          <s.icon color={Colors.textSecondary} size={16} />
+          <Text style={[styles.statValue, { color: Colors.text }]}>{s.value}</Text>
+          <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>
+            {s.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+
+  /* --- Source / vehicle link --- */
+  const sourceCard = (
+    <View style={[styles.card, cardStyle]} testID="meter-digital-link">
+      <View style={styles.cardHeader}>
+        <Cpu color={Colors.text} size={18} />
+        <Text style={[styles.cardTitle, { color: Colors.text }]}>Fare source</Text>
+      </View>
+      <Text
+        style={[
+          styles.statusLine,
+          { color: obdLinked ? "#22C55E" : canbus.connecting ? "#F59E0B" : Colors.textSecondary },
+        ]}
+      >
+        {linkLine}
+      </Text>
+      <Text style={[styles.cardBody, { color: Colors.textSecondary }]}>
+        The meter bills on the vehicle&apos;s OBD-II speed when the reader is
+        linked, and switches to GPS the moment it isn&apos;t. This trip so far:{" "}
+        {meter.obdSamples} OBD / {meter.gpsSamples} GPS samples.
+      </Text>
+      {gpsDenied ? (
+        <View style={styles.warnRow}>
+          <MapPin color="#EF4444" size={14} />
+          <Text style={[styles.warnText, { color: "#EF4444" }]}>
+            Location permission is off — without the reader the meter cannot
+            measure distance.
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={[
+            styles.secondaryButton,
+            { borderColor: Colors.border },
+            canbus.connecting && styles.buttonDisabled,
+          ]}
+          disabled={canbus.connecting}
+          onPress={() => {
+            if (online) void canbus.disconnect();
+            else void canbus.connect();
+          }}
+          testID="meter-digital-link-toggle"
+        >
+          {canbus.connecting ? (
+            <ActivityIndicator color={Colors.text} size="small" />
+          ) : (
+            <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
+              {online ? "Disconnect reader" : "Connect reader"}
+            </Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.secondaryButton, { borderColor: Colors.border }]}
+          onPress={() => router.push("/obd2-reader" as never)}
+          testID="meter-digital-reader-settings"
+        >
+          <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
+            Reader settings
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  /* --- Tariff --- */
+  const tariffCard = (
+    <View style={[styles.card, cardStyle]}>
+      <View style={styles.cardHeader}>
+        <Text style={[styles.cardTitle, { color: Colors.text }]}>Tariff</Text>
+      </View>
+      <View style={styles.tariffRow}>
+        {(
+          [
+            { key: "old" as const, title: "Old", hint: "RM4 first km, then RM0.35 / 200 m or 36 s" },
+            { key: "new" as const, title: "New", hint: "RM4 + RM1 / km + RM0.30 / min" },
+          ]
+        ).map((opt) => {
+          const active = tariff === opt.key;
+          return (
+            <TouchableOpacity
+              key={opt.key}
+              style={[
+                styles.tariffChip,
+                {
+                  borderColor: active ? Colors.accent : Colors.border,
+                  backgroundColor: active ? Colors.accent + "1A" : "transparent",
+                },
+              ]}
+              onPress={() => setTariff(opt.key)}
+              activeOpacity={0.85}
+              testID={`meter-digital-tariff-${opt.key}`}
+            >
+              <Text
+                style={[
+                  styles.tariffChipTitle,
+                  { color: active ? Colors.accent : Colors.text },
+                ]}
+              >
+                {opt.title}
+              </Text>
+              <Text style={[styles.tariffChipHint, { color: Colors.textSecondary }]}>
+                {opt.hint}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  /* --- Controls: the footer in portrait, the left column in landscape --- */
+  const controls = (
+    <>
+      <TouchableOpacity
+        style={[
+          styles.primaryButton,
+          { backgroundColor: meter.running ? "#F59E0B" : Colors.accent },
+        ]}
+        onPress={meter.running ? handlePause : handleStart}
+        activeOpacity={0.9}
+        testID="meter-digital-toggle"
+      >
+        {meter.running ? (
+          <>
+            <Pause color="#fff" size={18} fill="#fff" />
+            <Text style={styles.primaryButtonText}>Pause meter</Text>
+          </>
+        ) : (
+          <>
+            <Play color="#fff" size={18} fill="#fff" />
+            <Text style={styles.primaryButtonText}>
+              {started ? "Resume meter" : "Start meter"}
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
+
+      <View style={styles.footerRow}>
+        <TouchableOpacity
+          style={[
+            styles.footerButton,
+            { borderColor: Colors.border },
+            !started && styles.buttonDisabled,
+          ]}
+          disabled={!started}
+          onPress={handleStop}
+          activeOpacity={0.85}
+          testID="meter-digital-stop"
+        >
+          <Square color={Colors.text} size={16} />
+          <Text style={[styles.footerButtonText, { color: Colors.text }]}>
+            Stop &amp; total
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.footerButton,
+            { borderColor: Colors.border },
+            !started && styles.buttonDisabled,
+          ]}
+          disabled={!started}
+          onPress={handleReset}
+          activeOpacity={0.85}
+          testID="meter-digital-reset"
+        >
+          <RotateCcw color={Colors.text} size={16} />
+          <Text style={[styles.footerButtonText, { color: Colors.text }]}>Clear</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: Colors.background }]}>
       <StatusBar barStyle={isLightMode ? "dark-content" : "light-content"} />
 
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.background }}>
+      <SafeAreaView
+        edges={["top", "left", "right"]}
+        style={{ backgroundColor: Colors.background }}
+      >
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.headerButton}
@@ -309,244 +563,71 @@ export default function MeterDigitalScreen() {
         </View>
       </SafeAreaView>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 32 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* --- Fare --- */}
+      {isLandscape ? (
+        // Landscape: the fare and the controls stay put on the left, everything
+        // that can be read at a stop scrolls on the right.
         <View
-          style={[styles.fareCard, { backgroundColor: Colors.accent }]}
-          testID="meter-digital-fare"
-        >
-          <View style={styles.fareTopRow}>
-            <View style={styles.fareBadge}>
-              <Text style={styles.fareBadgeText}>
-                {tariff === "new" ? "NEW TARIFF" : "OLD TARIFF"}
-              </Text>
-            </View>
-            <View style={[styles.sourcePill, { backgroundColor: sourceColor }]}>
-              {meter.source === "obd" ? (
-                <Cpu color="#fff" size={12} />
-              ) : (
-                <Satellite color="#fff" size={12} />
-              )}
-              <Text style={styles.sourcePillText}>{sourceLabel}</Text>
-            </View>
-          </View>
-
-          <View style={styles.fareAmountRow}>
-            <Text style={styles.fareCurrency}>RM</Text>
-            <Text style={styles.fareAmount} testID="meter-digital-total">
-              {fare.total.toFixed(2)}
-            </Text>
-          </View>
-
-          <Text style={styles.fareBreakdown}>
-            {tariff === "new"
-              ? `Base RM ${fare.flagFall.toFixed(2)} + RM ${fare.variable.toFixed(
-                  2,
-                )} for ${fare.distanceKm.toFixed(2)} km / ${Math.floor(
-                  fare.durationMin,
-                )} min`
-              : `Flag fall RM ${fare.flagFall.toFixed(2)} + ${fare.units} × RM 0.35 (${
-                  fare.distanceUnits
-                } distance / ${fare.timeUnits} time)`}
-          </Text>
-        </View>
-
-        {/* --- Live stats --- */}
-        <View style={styles.statsGrid}>
-          {stats.map((s) => (
-            <View key={s.id} style={[styles.statCard, cardStyle]}>
-              <s.icon color={Colors.textSecondary} size={16} />
-              <Text style={[styles.statValue, { color: Colors.text }]}>{s.value}</Text>
-              <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>
-                {s.label}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* --- Source / vehicle link --- */}
-        <View style={[styles.card, cardStyle]} testID="meter-digital-link">
-          <View style={styles.cardHeader}>
-            <Cpu color={Colors.text} size={18} />
-            <Text style={[styles.cardTitle, { color: Colors.text }]}>Fare source</Text>
-          </View>
-          <Text
-            style={[
-              styles.statusLine,
-              { color: obdLinked ? "#22C55E" : canbus.connecting ? "#F59E0B" : Colors.textSecondary },
-            ]}
-          >
-            {linkLine}
-          </Text>
-          <Text style={[styles.cardBody, { color: Colors.textSecondary }]}>
-            The meter bills on the vehicle&apos;s OBD-II speed when the reader is
-            linked, and switches to GPS the moment it isn&apos;t. This trip so far:{" "}
-            {meter.obdSamples} OBD / {meter.gpsSamples} GPS samples.
-          </Text>
-          {gpsDenied ? (
-            <View style={styles.warnRow}>
-              <MapPin color="#EF4444" size={14} />
-              <Text style={[styles.warnText, { color: "#EF4444" }]}>
-                Location permission is off — without the reader the meter cannot
-                measure distance.
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[
-                styles.secondaryButton,
-                { borderColor: Colors.border },
-                canbus.connecting && styles.buttonDisabled,
-              ]}
-              disabled={canbus.connecting}
-              onPress={() => {
-                if (online) void canbus.disconnect();
-                else void canbus.connect();
-              }}
-              testID="meter-digital-link-toggle"
-            >
-              {canbus.connecting ? (
-                <ActivityIndicator color={Colors.text} size="small" />
-              ) : (
-                <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
-                  {online ? "Disconnect reader" : "Connect reader"}
-                </Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.secondaryButton, { borderColor: Colors.border }]}
-              onPress={() => router.push("/obd2-reader" as never)}
-              testID="meter-digital-reader-settings"
-            >
-              <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
-                Reader settings
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* --- Tariff --- */}
-        <View style={[styles.card, cardStyle]}>
-          <View style={styles.cardHeader}>
-            <Text style={[styles.cardTitle, { color: Colors.text }]}>Tariff</Text>
-          </View>
-          <View style={styles.tariffRow}>
-            {(
-              [
-                { key: "old" as const, title: "Old", hint: "RM4 first km, then RM0.35 / 200 m or 36 s" },
-                { key: "new" as const, title: "New", hint: "RM4 + RM1 / km + RM0.30 / min" },
-              ]
-            ).map((opt) => {
-              const active = tariff === opt.key;
-              return (
-                <TouchableOpacity
-                  key={opt.key}
-                  style={[
-                    styles.tariffChip,
-                    {
-                      borderColor: active ? Colors.accent : Colors.border,
-                      backgroundColor: active ? Colors.accent + "1A" : "transparent",
-                    },
-                  ]}
-                  onPress={() => setTariff(opt.key)}
-                  activeOpacity={0.85}
-                  testID={`meter-digital-tariff-${opt.key}`}
-                >
-                  <Text
-                    style={[
-                      styles.tariffChipTitle,
-                      { color: active ? Colors.accent : Colors.text },
-                    ]}
-                  >
-                    {opt.title}
-                  </Text>
-                  <Text style={[styles.tariffChipHint, { color: Colors.textSecondary }]}>
-                    {opt.hint}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* --- Controls --- */}
-      <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: Colors.background,
-            borderTopColor: Colors.border,
-            paddingBottom: insets.bottom + 12,
-          },
-        ]}
-      >
-        <TouchableOpacity
           style={[
-            styles.primaryButton,
-            { backgroundColor: meter.running ? "#F59E0B" : Colors.accent },
+            styles.landscapeBody,
+            {
+              paddingLeft: insets.left + 16,
+              paddingRight: insets.right + 16,
+              paddingBottom: insets.bottom + 12,
+            },
           ]}
-          onPress={meter.running ? handlePause : handleStart}
-          activeOpacity={0.9}
-          testID="meter-digital-toggle"
         >
-          {meter.running ? (
-            <>
-              <Pause color="#fff" size={18} fill="#fff" />
-              <Text style={styles.primaryButtonText}>Pause meter</Text>
-            </>
-          ) : (
-            <>
-              <Play color="#fff" size={18} fill="#fff" />
-              <Text style={styles.primaryButtonText}>
-                {started ? "Resume meter" : "Start meter"}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.footerRow}>
-          <TouchableOpacity
-            style={[
-              styles.footerButton,
-              { borderColor: Colors.border },
-              !started && styles.buttonDisabled,
-            ]}
-            disabled={!started}
-            onPress={handleStop}
-            activeOpacity={0.85}
-            testID="meter-digital-stop"
+          <View style={styles.landscapeLeft}>
+            {fareCard}
+            <View style={styles.landscapeControls}>{controls}</View>
+          </View>
+          <ScrollView
+            style={styles.landscapeRight}
+            contentContainerStyle={styles.landscapeRightContent}
+            showsVerticalScrollIndicator={false}
           >
-            <Square color={Colors.text} size={16} />
-            <Text style={[styles.footerButtonText, { color: Colors.text }]}>
-              Stop &amp; total
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.footerButton,
-              { borderColor: Colors.border },
-              !started && styles.buttonDisabled,
-            ]}
-            disabled={!started}
-            onPress={handleReset}
-            activeOpacity={0.85}
-            testID="meter-digital-reset"
-          >
-            <RotateCcw color={Colors.text} size={16} />
-            <Text style={[styles.footerButtonText, { color: Colors.text }]}>Clear</Text>
-          </TouchableOpacity>
+            {statsGrid}
+            {sourceCard}
+            {tariffCard}
+          </ScrollView>
         </View>
-      </View>
+      ) : (
+        <>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: insets.bottom + 32 },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            {fareCard}
+            {statsGrid}
+            {sourceCard}
+            {tariffCard}
+          </ScrollView>
+
+          <View
+            style={[
+              styles.footer,
+              {
+                backgroundColor: Colors.background,
+                borderTopColor: Colors.border,
+                paddingBottom: insets.bottom + 12,
+              },
+            ]}
+          >
+            {controls}
+          </View>
+        </>
+      )}
+
+      {promptRotate ? (
+        <RotateDeviceNotice
+          state={lockState}
+          onBack={() => router.back()}
+          testID="meter-digital-rotate"
+        />
+      ) : null}
     </View>
   );
 }
@@ -573,6 +654,13 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 12, fontWeight: "600" as const, marginTop: 2 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
+
+  /* Landscape: fare + controls pinned left, the readable detail scrolls right. */
+  landscapeBody: { flex: 1, flexDirection: "row", gap: 14, paddingTop: 4 },
+  landscapeLeft: { flex: 1, gap: 12 },
+  landscapeControls: { flex: 1, justifyContent: "flex-end", gap: 10 },
+  landscapeRight: { flex: 1 },
+  landscapeRightContent: { gap: 12, paddingBottom: 8 },
 
   fareCard: {
     borderRadius: 20,
@@ -624,6 +712,7 @@ const styles = StyleSheet.create({
     fontWeight: "900" as const,
     letterSpacing: -1,
   },
+  fareAmountLandscape: { fontSize: 46 },
   fareBreakdown: { color: "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: "600" as const },
 
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
