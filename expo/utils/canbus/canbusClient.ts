@@ -36,6 +36,17 @@ export class CanbusClient {
   private unsub: (() => void) | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private stopped = false;
+  /**
+   * An ELM327 answers one command at a time and the response is matched purely
+   * by arrival order, so every command — the poll sweep's and any the UI sends
+   * through `request` — is chained onto this tail rather than issued
+   * concurrently. Two in flight at once would swap each other's replies.
+   */
+  private tail: Promise<unknown> = Promise.resolve();
+  /** A sweep is mid-flight — the next tick is skipped rather than stacked. */
+  private polling = false;
+  /** Telemetry sweeps are suspended (see {@link setPollingPaused}). */
+  private paused = false;
 
   constructor(
     private transport: CanTransport,
@@ -68,28 +79,73 @@ export class CanbusClient {
   }
 
   private async pollOnce(): Promise<void> {
-    if (this.stopped) return;
-    const telemetry: Telemetry = {};
-    let any = false;
-    for (const key of Object.keys(OBD_PIDS) as (keyof typeof OBD_PIDS)[]) {
-      if (this.stopped) return;
-      const pid = OBD_PIDS[key];
-      try {
-        const raw = await this.command(buildPidCommand(pid));
-        const decoded = decodePidResponse(raw, pid);
-        if (decoded) {
-          telemetry[key] = decoded.value;
-          any = true;
+    if (this.stopped || this.paused || this.polling) return;
+    this.polling = true;
+    try {
+      const telemetry: Telemetry = {};
+      let any = false;
+      for (const key of Object.keys(OBD_PIDS) as (keyof typeof OBD_PIDS)[]) {
+        if (this.stopped) return;
+        const pid = OBD_PIDS[key];
+        try {
+          const raw = await this.command(buildPidCommand(pid));
+          const decoded = decodePidResponse(raw, pid);
+          if (decoded) {
+            telemetry[key] = decoded.value;
+            any = true;
+          }
+        } catch {
+          // A single PID timing out shouldn't abort the whole sweep.
         }
-      } catch {
-        // A single PID timing out shouldn't abort the whole sweep.
       }
+      if (any) this.events.onTelemetry?.(telemetry, Date.now());
+    } finally {
+      this.polling = false;
     }
-    if (any) this.events.onTelemetry?.(telemetry, Date.now());
+  }
+
+  /**
+   * Suspend/resume the telemetry sweep.
+   *
+   * A bulk read (the Vehicle Information scan walks every PID the vehicle
+   * supports) shares the same single-command-at-a-time adapter, so letting the
+   * 1 Hz sweep interleave would roughly double how long it takes. Pausing is
+   * safe: the sweep resumes from the next tick, and the live state simply goes
+   * stale in the meantime.
+   */
+  setPollingPaused(paused: boolean): void {
+    this.paused = paused;
+  }
+
+  /**
+   * Send an arbitrary command to the adapter and resolve with its raw reply.
+   *
+   * The public escape hatch used by the Vehicle Information screen to read the
+   * PIDs the poll loop does not cover and to issue writes. It queues behind
+   * whatever the poll sweep is doing, so it is safe to call at any time.
+   */
+  request(cmd: string): Promise<string> {
+    return this.command(cmd);
+  }
+
+  /** Is this session still usable? */
+  get active(): boolean {
+    return !this.stopped;
   }
 
   /** Send a command and resolve with the raw response up to the prompt. */
   private command(cmd: string): Promise<string> {
+    const run = this.tail.then(
+      () => this.sendNow(cmd),
+      () => this.sendNow(cmd),
+    );
+    // Keep the chain alive after a rejection so one timeout doesn't poison
+    // every later command.
+    this.tail = run.catch(() => undefined);
+    return run;
+  }
+
+  private sendNow(cmd: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       if (this.stopped) {
         reject(new Error("client stopped"));

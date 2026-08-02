@@ -8,9 +8,10 @@
  * reported honestly via `simulated: true`, never as a live vehicle link.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { CanbusClient } from "@/utils/canbus/canbusClient";
 import { SIMULATOR_TRANSPORT_KIND } from "@/utils/canbus/config";
+import { publishCanbusSession } from "@/utils/canbus/liveStatus";
 import {
   createTransport,
   getTransportAvailability,
@@ -78,6 +79,18 @@ export interface UseCanbusResult {
   /** Explicit user-chosen Demo Mode — virtual data, honestly flagged as sim. */
   connectDemo: () => void;
   disconnect: () => Promise<void>;
+  /**
+   * Send a raw command on the open session and resolve with the adapter's
+   * reply. Rejects when there is no live session (Demo Mode included — the
+   * simulator has no adapter to talk to). Commands queue behind the telemetry
+   * sweep, so this is safe to call at any time.
+   */
+  sendCommand: (command: string) => Promise<string>;
+  /**
+   * Suspend the 1 Hz telemetry sweep so a bulk read gets the adapter to
+   * itself. Always pair with a `false` call — a paused sweep stays paused.
+   */
+  setPollingPaused: (paused: boolean) => void;
 }
 
 export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
@@ -86,6 +99,7 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     allowSimulator = false,
     preferSavedAdapter = true,
   } = options;
+  const sourceId = useId();
   const [state, setState] = useState<CanConnectionState>(INITIAL_STATE);
   const [savedAdapters, setSavedAdapters] = useState<SavedCanAdapter[]>([]);
   const [defaultAdapter, setDefaultAdapter] = useState<SavedCanAdapter | null>(null);
@@ -229,6 +243,31 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     patch({ ...INITIAL_STATE });
   }, [patch, teardown]);
 
+  const sendCommand = useCallback(async (command: string) => {
+    const client = clientRef.current;
+    if (!client || !client.active) {
+      throw new Error("No OBD-II session is open");
+    }
+    return client.request(command);
+  }, []);
+
+  const setPollingPaused = useCallback((paused: boolean) => {
+    clientRef.current?.setPollingPaused(paused);
+  }, []);
+
+  // Broadcast this session so read-only consumers (the side menu) can tell the
+  // reader is linked, and screens like Vehicle Information can borrow the open
+  // link, without opening a competing connection of their own.
+  useEffect(() => {
+    publishCanbusSession(sourceId, { state, sendCommand, setPollingPaused });
+  }, [sourceId, state, sendCommand, setPollingPaused]);
+
+  useEffect(() => {
+    return () => {
+      publishCanbusSession(sourceId, null);
+    };
+  }, [sourceId]);
+
   useEffect(() => {
     mountedRef.current = true;
     // Load the saved reader first so auto-connect targets it (and its Wi-Fi
@@ -264,5 +303,7 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     connect,
     connectDemo: startSimulated,
     disconnect,
+    sendCommand,
+    setPollingPaused,
   };
 }

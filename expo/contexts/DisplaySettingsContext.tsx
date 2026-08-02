@@ -84,6 +84,16 @@ export const PASSENGER_MODE_MENU_ITEM_ID = "passenger-mode-button" as const;
 export const PARTNER_MODE_DEFAULT_LABEL = "Partner mode" as const;
 export const PASSENGER_MODE_DEFAULT_LABEL = "Passenger Mode" as const;
 
+/**
+ * Stable id for the partner "Vehicle information" row.
+ *
+ * Unlike the rest of the partner menu this row is *conditional*: it only
+ * appears while the OBD-II reader is actually linked, because there is nothing
+ * to show without one. Admins can still rename, reorder, hide or "Coming Soon"
+ * it through the usual sets — the connection check is applied on top.
+ */
+export const VEHICLE_INFO_MENU_ITEM_ID = "vehicle-information" as const;
+
 export const DEFAULT_USER_MENU_ITEMS: { id: string; label: string }[] = [
   { id: "teksi-ev", label: "Book TEKSI EV" },
   { id: "city", label: "City" },
@@ -105,6 +115,9 @@ export const DEFAULT_PARTNER_MENU_ITEMS: { id: string; label: string }[] = [
   { id: "wallet", label: "Wallet" },
   { id: "trip-history", label: "Trip history" },
   { id: "vehicle", label: "Vehicle" },
+  // Only rendered while the OBD-II reader is connected — see
+  // VEHICLE_INFO_MENU_ITEM_ID and components/PartnerSideSheet.tsx.
+  { id: VEHICLE_INFO_MENU_ITEM_ID, label: "Vehicle information" },
   { id: "documents", label: "Documents" },
   { id: "notifications", label: "Notifications" },
   { id: "support", label: "Support" },

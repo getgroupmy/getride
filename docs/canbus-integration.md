@@ -32,17 +32,25 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/utils/canbus/bleModule.ts` (+ `.web.ts`) | The single `react-native-ble-plx` entry point — loads the package and reports whether its native side is linked. The web override keeps it out of the browser bundle. |
 | `expo/utils/canbus/mfiModule.ts` (+ `.web.ts`) | The same for `react-native-bluetooth-classic` (Bluetooth MFi): loads the package and reports whether `RNBluetoothClassic` is linked into this binary. |
 | `expo/utils/canbus/transports.ts` | Wi-Fi (TCP), Bluetooth LE (GATT), Bluetooth MFi (External Accessory), and USB-serial transport implementations + availability detection. |
-| `expo/utils/canbus/canbusClient.ts` | ELM327 session: runs the handshake, detects the CAN protocol, polls PIDs, emits decoded telemetry. Transport-blind. |
+| `expo/utils/canbus/canbusClient.ts` | ELM327 session: runs the handshake, detects the CAN protocol, polls PIDs, emits decoded telemetry, and serialises every command (poll sweep and UI alike) onto one queue. Transport-blind. |
 | `expo/utils/canbus/simulator.ts` | Dev-only fake telemetry stream (honestly flagged `simulated: true`). |
+| `expo/utils/canbus/liveStatus.ts` | Registry of open sessions. Lets read-only UI ask "is a reader linked?" and lets Vehicle Information *borrow* the live session instead of opening a second one. Pure summarisation + a tiny pub/sub. |
+| `expo/utils/canbus/pidCatalog.ts` | The extended mode-01 parameter catalog (~70 PIDs) used by Vehicle Information, kept out of `OBD_PIDS` so the 1 Hz poll stays cheap. Pure. |
+| `expo/utils/canbus/vehicleInfo.ts` | Read/write protocol layer: multi-frame reassembly, mode-01 support bitmasks, mode-09 identity, mode 03/07/0A DTCs, readiness monitors, VIN decoding, write-availability rules, raw-command validation. Pure. |
+| `expo/utils/canbus/vehicleScan.ts` | Drives a full interrogation through a `send(command)` function and returns a `VehicleScanReport`. Pure (no transport, no React). |
 | `expo/utils/canbusAdapterStore.ts` | The driver's saved readers: draft validation, de-duplication, selection, AsyncStorage persistence. Device-local. |
-| `expo/hooks/useCanbus.ts` | React hook exposing live connection state + `connect`/`disconnect`, the saved-reader list, and a simulator fallback. |
+| `expo/hooks/useCanbus.ts` | React hook exposing live connection state + `connect`/`disconnect`/`sendCommand`, the saved-reader list, and a simulator fallback. Publishes its session to `liveStatus.ts`. |
+| `expo/hooks/useCanbusStatus.ts` | Read-only "is a reader linked?" — subscribes to `liveStatus.ts` and never opens a connection. Used by the partner side menu. |
 | `expo/hooks/useIsPartner.ts` | Read-only "is this rider also a partner?" check that gates the user-side reader screen. |
 | `expo/app/obd2-reader.tsx` | Settings → OBD-II (CANBus) reader: add / select / remove readers, connect, live telemetry. |
+| `expo/app/vehicle-information.tsx` | Everything the linked reader can read about the vehicle, plus the guarded write section. Borrows the live session; never opens its own. |
 | `expo/utils/__tests__/obd.test.ts` | Unit tests for the protocol layer (`bun run test utils/__tests__/obd.test.ts`). |
 | `expo/utils/__tests__/wifi.test.ts` | Unit tests for the Wi-Fi availability rules. |
 | `expo/utils/__tests__/ble.test.ts` | Unit tests for the BLE helpers (scan matching, profile selection, availability). |
 | `expo/utils/__tests__/mfi.test.ts` | Unit tests for the MFi helpers (accessory matching, availability). |
 | `expo/utils/__tests__/canbusAdapterStore.test.ts` | Unit tests for the saved-reader logic. |
+| `expo/utils/__tests__/vehicleInfo.test.ts` | Unit tests for the extended parsers, the PID catalog and the write rules. |
+| `expo/utils/__tests__/vehicleScan.test.ts` | Unit tests for the scan orchestration (against a stub adapter) and the session registry. |
 
 ### UI consumption
 
@@ -94,12 +102,88 @@ or Supabase table is involved. `useCanbus` loads the selection before
 auto-connecting, so the partner Teksi / e-hailing screens link to the reader
 configured here, using its saved Wi-Fi endpoint.
 
+## Vehicle information
+
+The partner side menu grows a **Vehicle information** row *only while a real
+reader is linked* — Demo Mode deliberately does not count, since there is no
+vehicle behind it to report on. The gate is
+`useCanbusStatus().linked`, read from the shared session registry; the row is
+otherwise an ordinary admin-configurable menu item
+(`VEHICLE_INFO_MENU_ITEM_ID` in `DisplaySettingsContext`), so it can still be
+renamed, reordered, hidden or marked "Coming Soon".
+
+`app/vehicle-information.tsx` **borrows the session the Teksi screen already
+owns** rather than calling `useCanbus` itself. This matters: a dongle serves one
+client at a time (a Wi-Fi dongle accepts a single TCP socket, a BLE peripheral a
+single central), so a second `useCanbus` mount would race the first. The screen
+takes `sendCommand` from `getActiveCanbusSession()` and pauses the owner's 1 Hz
+sweep for the duration of a scan — the adapter answers one command at a time, so
+interleaving would roughly double how long the scan takes.
+
+What one pass reads (`scanVehicle`):
+
+1. **The adapter** — `ATI`, `AT@1`, `ATRV`, `ATDP`.
+2. **Which parameters exist** — the mode-01 support bitmasks (`0100`, `0120`, …),
+   following the chain only while each mask's last bit says the next range is
+   implemented.
+3. **Readiness monitors** — mode 01 PID 01: MIL state, stored-fault count, and
+   the per-monitor supported/complete matrix (the spark or diesel set, chosen by
+   the compression-ignition bit).
+4. **Every supported parameter** — decoded through `PID_CATALOG` where it is
+   known, and rendered as raw bytes where it is not, so a PID the car implements
+   is never silently dropped just because this app has no label for it.
+5. **Identity** — mode 09: VIN, calibration ID, CVN, ECU name, reassembled from
+   the ISO-TP multi-frame block the ELM327 prints as `014` / `0:` / `1:` lines.
+   The VIN is further split into its ISO 3779 fields (WMI, model year, plant,
+   serial); a partial read is reported as-is and never dressed up as a VIN.
+6. **Fault codes** — modes 03, 07 and 0A (stored, pending, permanent). The count
+   byte CAN vehicles prefix is detected from the payload length rather than
+   assumed. Codes get a *family* description (`describeDtc`) — full fault text is
+   manufacturer-specific, so nothing invents a specific diagnosis.
+
+### Writes
+
+The write section is separate, and short on purpose: generic OBD-II defines
+exactly one write every vehicle must accept — mode 04, clear diagnostic
+information. `VEHICLE_WRITE_ACTIONS` carries that plus three adapter-level
+operations (set protocol, reset reader, send raw command), each tagged
+`target: "vehicle" | "adapter"` and shown with an **ECU** or **Reader** badge.
+
+Every action opens a warning popup before anything is sent, spelling out what it
+touches and what it costs (clearing codes also wipes the emissions readiness
+data, so the car can fail an inspection until it has completed a drive cycle).
+`evaluateWriteAvailability` gates them, in the order a driver hits them:
+
+- no link → blocked;
+- Demo Mode → blocked (simulated telemetry must never be presented as having
+  written to a car);
+- `target: "vehicle"` while `speed > 0` → blocked, "Stop the vehicle first".
+  This is re-checked against the live session at confirm time, not just when the
+  row rendered.
+
+Raw commands go through `validateRawCommand`, which normalises them, routes
+`AT`/`ST` prefixes to the adapter, rejects half-byte or non-hex OBD-II requests,
+and flags the writing services (`04`, `08`, `2E`, `2F`, `31`, `3E`, …) so the
+popup can say plainly that this one will change something in the vehicle.
+
+"Reset reader" (`ATZ`) re-runs `ELM_INIT_COMMANDS` afterwards — without that the
+adapter comes back with echo on and every later reply is unparseable.
+
 ## Supported PIDs
 
-`OBD_PIDS` in `obd.ts`: engine RPM (`0C`), vehicle speed (`0D`), coolant temp
-(`05`), engine load (`04`), throttle (`11`), fuel level (`2F`), control-module
-voltage (`42`), intake air temp (`0F`). Add more by extending that table with a
-`decode` function — the poll loop and telemetry UI pick them up automatically.
+Two tables, deliberately:
+
+- `OBD_PIDS` in `obd.ts` is the **live telemetry** set the 1 Hz loop sweeps every
+  tick: engine RPM (`0C`), vehicle speed (`0D`), coolant temp (`05`), engine load
+  (`04`), throttle (`11`), fuel level (`2F`), control-module voltage (`42`),
+  intake air temp (`0F`). Add more by extending that table with a `decode`
+  function — the poll loop and telemetry UI pick them up automatically. Keep it
+  small: every entry costs a command on every sweep, which the taxi meter feels.
+- `PID_CATALOG` in `pidCatalog.ts` is the **read-once** catalog Vehicle
+  Information uses (~70 mode-01 parameters: fuel trims, O2 sensors, catalyst
+  temperatures, EGR/evap, torque, odometer, hybrid battery life…). Entries carry
+  either a numeric `decode` or a `decodeText` for enumerated values, plus a
+  `group` for sectioning. Nothing here is polled continuously.
 
 ## Hardware options
 
