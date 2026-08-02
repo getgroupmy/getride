@@ -44,6 +44,7 @@ describe("decodeReading", () => {
       value: "1726 rpm",
       group: "engine",
       known: true,
+      numeric: 1726,
     });
   });
 

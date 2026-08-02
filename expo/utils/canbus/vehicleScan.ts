@@ -45,6 +45,12 @@ export interface VehicleReading {
   group: PidGroup;
   /** False when the PID is supported by the car but absent from the catalog. */
   known: boolean;
+  /**
+   * The engineering value behind `value`, for the panels that do arithmetic on
+   * a reading rather than print it (see fuelRange.ts). Absent for enumerated
+   * parameters and for raw fallbacks, which have no number.
+   */
+  numeric?: number;
 }
 
 export interface LabelledValue {
@@ -246,12 +252,14 @@ export function decodeReading(pid: string, raw: string): VehicleReading | null {
     if (bytes) {
       const value = formatCatalogValue(known, bytes);
       if (value) {
+        const numeric = known.decode ? known.decode(bytes) : undefined;
         return {
           pid: key,
           label: known.label,
           value,
           group: known.group,
           known: true,
+          ...(typeof numeric === "number" && Number.isFinite(numeric) ? { numeric } : {}),
         };
       }
     }

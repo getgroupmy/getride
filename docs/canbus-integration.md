@@ -38,7 +38,9 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/utils/canbus/pidCatalog.ts` | The extended mode-01 parameter catalog (~70 PIDs) used by Vehicle Information, kept out of `OBD_PIDS` so the 1 Hz poll stays cheap. Pure. |
 | `expo/utils/canbus/vehicleInfo.ts` | Read/write protocol layer: multi-frame reassembly, mode-01 support bitmasks, mode-09 identity, mode 03/07/0A DTCs, readiness monitors, VIN decoding, write-availability rules, raw-command validation. Pure. |
 | `expo/utils/canbus/vehicleScan.ts` | Drives a full interrogation through a `send(command)` function and returns a `VehicleScanReport`. Pure (no transport, no React). |
+| `expo/utils/canbus/fuelRange.ts` | Odometer / fuel level / distance-to-empty maths: snapshot extraction, consumption resolution, the measured-burn learner, display formatting. Pure. |
 | `expo/utils/canbusAdapterStore.ts` | The driver's saved readers: draft validation, de-duplication, selection, AsyncStorage persistence. Device-local. |
+| `expo/utils/vehicleFuelStore.ts` | The vehicle's fuel profile (tank capacity, entered average, measured consumption, measurement baseline) in AsyncStorage. Device-local. |
 | `expo/hooks/useCanbus.ts` | React hook exposing live connection state + `connect`/`disconnect`/`sendCommand`, the saved-reader list, and a simulator fallback. Publishes its session to `liveStatus.ts`. |
 | `expo/hooks/useCanbusStatus.ts` | Read-only "is a reader linked?" — subscribes to `liveStatus.ts` and never opens a connection. Used by the partner side menu. |
 | `expo/hooks/useIsPartner.ts` | Read-only "is this rider also a partner?" check that gates the user-side reader screen. |
@@ -51,6 +53,7 @@ isolated behind guarded requires so the app still builds and runs without them.
 | `expo/utils/__tests__/canbusAdapterStore.test.ts` | Unit tests for the saved-reader logic. |
 | `expo/utils/__tests__/vehicleInfo.test.ts` | Unit tests for the extended parsers, the PID catalog and the write rules. |
 | `expo/utils/__tests__/vehicleScan.test.ts` | Unit tests for the scan orchestration (against a stub adapter) and the session registry. |
+| `expo/utils/__tests__/fuelRange.test.ts` | Unit tests for the odometer/fuel/range maths, the consumption learner and the profile validation. |
 
 ### UI consumption
 
@@ -140,6 +143,54 @@ What one pass reads (`scanVehicle`):
    byte CAN vehicles prefix is detected from the payload length rather than
    assumed. Codes get a *family* description (`describeDtc`) — full fault text is
    manufacturer-specific, so nothing invents a specific diagnosis.
+
+### Odometer, fuel level and range
+
+The three numbers a driver actually asks for lead the screen, in their own card
+above the identity block. Two of them come straight off the bus — the odometer
+(mode 01 PID **A6**, 0.1 km/bit) and the fuel tank level (PID **2F**) — and both
+are already in the scan; the card only picks them out of `report.readings` by
+PID, which is why `VehicleReading` carries a `numeric` field alongside its
+formatted `value`. The fuel level and the speed are also in the 1 Hz telemetry
+sweep, so the card lays the live values over the scan's snapshot and stays
+current without a re-scan.
+
+The third — **how far the remaining fuel will go** — is not an OBD-II parameter
+at all. Generic OBD-II publishes neither tank capacity nor distance to empty
+(the dashboard figure is computed inside the car from data it never puts on the
+bus), so `utils/canbus/fuelRange.ts` reconstructs it:
+
+```
+litres remaining = tank capacity × fuel level %
+range            = litres remaining ÷ consumption
+```
+
+Tank capacity is a property of the car, so it comes from the driver
+(Tank & consumption popup, defaulting to 45 L). Consumption is resolved in
+priority order by `estimateConsumption`, and every result names its source so
+the card never presents an assumption as a measurement:
+
+1. **measured** — the running figure learned from this vehicle's own fuel burn;
+2. **fuel-rate** — live PID `5E` ÷ speed, only at ≥ 10 km/h (at a standstill the
+   burn is real but the distance is zero, which would put the range at zero);
+3. **maf** — live PID `10` converted through the stoichiometric ratio and fuel
+   density (the diesel figures when PID `51` says diesel), ÷ speed;
+4. **configured** — the driver's entered average.
+
+`learnConsumption` is the measurement: each scan that sees both an odometer and
+a fuel level is folded against the stored baseline, and a pair only counts when
+the odometer moved forward at least 20 km (below that the coarse level gauge
+cannot resolve the burn) and the level dropped by a believable amount. A refuel,
+a different vehicle, or an out-of-band result re-baselines instead of poisoning
+the average, and accepted samples are smoothed into the running figure rather
+than replacing it. The profile is keyed to the VIN where the vehicle reports
+one — a different VIN is a different tank, so it starts fresh rather than
+computing one car's range from another car's numbers.
+
+A vehicle that does not implement PID A6 is told so plainly (most cars built
+before the late 2010s keep the odometer on the instrument cluster and never put
+it on the diagnostic bus), with "distance since codes cleared" (PID `31`) shown
+instead where it exists — it is not an odometer and is not labelled as one.
 
 ### Writes
 
