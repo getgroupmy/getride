@@ -16,6 +16,13 @@
  * something rather than read it. Each one is behind a warning popup that says
  * plainly what it touches, and writes that reach the ECUs are refused while
  * the vehicle is moving or when the link is the simulator.
+ *
+ * The three numbers a driver actually asks for — odometer, fuel level and how
+ * far the fuel left will go — lead the screen. The first two come off the bus;
+ * the third cannot (OBD-II publishes neither tank capacity nor distance to
+ * empty) and is computed in `utils/canbus/fuelRange.ts` from the tank size the
+ * driver enters and a consumption figure that is measured from their own fuel
+ * burn where possible. The card always says which it used.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -42,7 +49,9 @@ import {
   ChevronRight,
   Cpu,
   Eraser,
+  Fuel,
   Gauge,
+  Navigation,
   Pencil,
   RefreshCw,
   RotateCcw,
@@ -75,6 +84,26 @@ import {
   type ScanProgress,
   type VehicleScanReport,
 } from "@/utils/canbus/vehicleScan";
+import {
+  CONSUMPTION_SOURCE_LABEL,
+  computeFuelRange,
+  defaultFuelProfile,
+  formatConsumption,
+  formatKm,
+  formatLitres,
+  formatPercent,
+  fuelBarFraction,
+  fuelLevelColor,
+  readFuelSnapshot,
+  validateFuelProfileInput,
+  type FuelProfile,
+} from "@/utils/canbus/fuelRange";
+import {
+  loadFuelProfile,
+  recordFuelSample,
+  resetMeasuredConsumption,
+  saveFuelProfile,
+} from "@/utils/vehicleFuelStore";
 
 const WRITE_ICON: Record<VehicleWriteId, typeof Eraser> = {
   "clear-dtc": Eraser,
@@ -105,6 +134,12 @@ export default function VehicleInformationScreen() {
   const [scanning, setScanning] = useState<boolean>(false);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+
+  const [fuelProfile, setFuelProfile] = useState<FuelProfile>(() => defaultFuelProfile());
+  const [fuelEditOpen, setFuelEditOpen] = useState<boolean>(false);
+  const [tankInput, setTankInput] = useState<string>("");
+  const [consumptionInput, setConsumptionInput] = useState<string>("");
+  const [fuelEditError, setFuelEditError] = useState<string | null>(null);
 
   const [pendingWrite, setPendingWrite] = useState<VehicleWriteAction | null>(null);
   const [rawCommand, setRawCommand] = useState<string>("");
@@ -149,6 +184,25 @@ export default function VehicleInformationScreen() {
         shouldContinue: () => mountedRef.current,
       });
       if (mountedRef.current) setReport(next);
+      // Odometer + fuel level together are one measurement of this vehicle's
+      // real fuel burn: hand them to the profile so the range stops resting on
+      // an assumed consumption once the driver has covered enough ground.
+      const snapshot = readFuelSnapshot(next.readings);
+      const sample =
+        snapshot.odometerKm !== null && snapshot.fuelLevelPercent !== null
+          ? {
+              odometerKm: snapshot.odometerKm,
+              fuelLevelPercent: snapshot.fuelLevelPercent,
+              at: Date.now(),
+            }
+          : null;
+      try {
+        const { profile } = await recordFuelSample(next.vin, sample);
+        if (mountedRef.current) setFuelProfile(profile);
+      } catch (e) {
+        // A device-storage failure is not a failed scan — the vehicle answered.
+        console.log("[vehicle-info] fuel profile update failed", e);
+      }
     } catch (e: any) {
       if (mountedRef.current) {
         setScanError(e?.message ?? "Could not read from the vehicle.");
@@ -171,24 +225,77 @@ export default function VehicleInformationScreen() {
     }
   }, [status.linked, report, runScan]);
 
+  // The stored profile is what the range maths rests on, so it is needed
+  // whether or not a scan has run — the settings popup opens on it too.
+  useEffect(() => {
+    void loadFuelProfile().then((profile) => {
+      if (mountedRef.current) setFuelProfile(profile);
+    });
+  }, []);
+
   // Writes that reach the ECUs are refused while the car is rolling, so the
   // rows need a reasonably fresh speed. Sampling every two seconds is enough:
   // React bails out when the value is unchanged, so a parked vehicle costs no
   // re-renders at all, and the authoritative check happens again at write time.
+  // The fuel gauge rides along on the same tick — it is already in the 1 Hz
+  // telemetry sweep, so the level and range stay live without a re-scan.
   const [liveSpeed, setLiveSpeed] = useState<number | null>(null);
+  const [liveFuelLevel, setLiveFuelLevel] = useState<number | null>(null);
   useEffect(() => {
     if (!status.linked) {
       setLiveSpeed(null);
+      setLiveFuelLevel(null);
       return;
     }
     const sample = () => {
-      const speed = getActiveCanbusSession()?.state.telemetry.speed;
+      const telemetry = getActiveCanbusSession()?.state.telemetry;
+      const speed = telemetry?.speed;
+      const fuelLevel = telemetry?.fuelLevel;
       setLiveSpeed(typeof speed === "number" ? Math.round(speed) : null);
+      setLiveFuelLevel(typeof fuelLevel === "number" ? fuelLevel : null);
     };
     sample();
     const timer = setInterval(sample, 2000);
     return () => clearInterval(timer);
   }, [status.linked]);
+
+  // What the fuel card renders: the scan's snapshot, with the two values the
+  // telemetry loop keeps fresh laid over the top.
+  const fuel = useMemo(() => {
+    const snapshot = readFuelSnapshot(report?.readings ?? []);
+    return computeFuelRange(
+      {
+        ...snapshot,
+        fuelLevelPercent: liveFuelLevel ?? snapshot.fuelLevelPercent,
+        speedKmh: liveSpeed ?? snapshot.speedKmh,
+      },
+      fuelProfile,
+    );
+  }, [report?.readings, liveFuelLevel, liveSpeed, fuelProfile]);
+
+  const openFuelEditor = useCallback(() => {
+    setTankInput(String(fuelProfile.tankCapacityL));
+    setConsumptionInput(formatConsumption(fuelProfile.consumptionL100));
+    setFuelEditError(null);
+    setFuelEditOpen(true);
+  }, [fuelProfile]);
+
+  const saveFuelEditor = useCallback(async () => {
+    const check = validateFuelProfileInput(tankInput, consumptionInput);
+    if (!check.ok || !check.value) {
+      setFuelEditError(check.error ?? "Check the values and try again.");
+      return;
+    }
+    const saved = await saveFuelProfile({ ...fuelProfile, ...check.value });
+    if (!mountedRef.current) return;
+    setFuelProfile(saved);
+    setFuelEditOpen(false);
+  }, [tankInput, consumptionInput, fuelProfile]);
+
+  const clearMeasuredConsumption = useCallback(async () => {
+    const saved = await resetMeasuredConsumption();
+    if (mountedRef.current) setFuelProfile(saved);
+  }, []);
 
   const writeContext = useMemo(
     () => ({
@@ -442,6 +549,128 @@ export default function VehicleInformationScreen() {
 
         {report ? (
           <>
+            {/* --- Odometer & fuel --- */}
+            {sectionHeader("ODOMETER & FUEL")}
+            <View style={[styles.card, cardStyle]} testID="vehicle-info-fuel">
+              <View style={styles.cardHeader}>
+                <Fuel color={Colors.text} size={18} />
+                <Text style={[styles.cardTitle, { color: Colors.text }]}>
+                  Odometer &amp; fuel
+                </Text>
+                <TouchableOpacity
+                  style={styles.inlineEdit}
+                  onPress={openFuelEditor}
+                  testID="vehicle-info-fuel-edit"
+                >
+                  <Pencil color={Colors.textSecondary} size={13} />
+                  <Text style={[styles.inlineEditText, { color: Colors.textSecondary }]}>
+                    Tank
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.statRow}>
+                <View style={styles.stat}>
+                  <Gauge color={Colors.textSecondary} size={15} />
+                  <Text
+                    style={[styles.statValue, { color: Colors.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    testID="vehicle-info-odometer"
+                  >
+                    {formatKm(fuel.odometerKm)}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>
+                    km odometer
+                  </Text>
+                </View>
+                <View style={[styles.stat, styles.statDivider, { borderLeftColor: Colors.border }]}>
+                  <Fuel color={fuelLevelColor(fuel.fuelLevelPercent)} size={15} />
+                  <Text
+                    style={[styles.statValue, { color: Colors.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    testID="vehicle-info-fuel-level"
+                  >
+                    {formatPercent(fuel.fuelLevelPercent)}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>
+                    % in the tank
+                  </Text>
+                </View>
+                <View style={[styles.stat, styles.statDivider, { borderLeftColor: Colors.border }]}>
+                  <Navigation color={Colors.textSecondary} size={15} />
+                  <Text
+                    style={[styles.statValue, { color: Colors.text }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    testID="vehicle-info-range"
+                  >
+                    {fuel.rangeKm === null
+                      ? "—"
+                      : `${fuel.estimated ? "≈" : ""}${formatKm(fuel.rangeKm)}`}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>
+                    km remaining
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.fuelTrack, { backgroundColor: Colors.border }]}>
+                <View
+                  style={[
+                    styles.fuelFill,
+                    {
+                      backgroundColor: fuelLevelColor(fuel.fuelLevelPercent),
+                      width: `${Math.round(fuelBarFraction(fuel.fuelLevelPercent) * 100)}%`,
+                    },
+                  ]}
+                />
+              </View>
+
+              {fuel.fuelLevelPercent === null
+                ? renderRow(
+                    "Fuel level",
+                    "Not reported by this vehicle",
+                    "fuel-level-missing",
+                  )
+                : renderRow(
+                    "Fuel remaining",
+                    `${formatLitres(fuel.litresRemaining)} L of ${formatLitres(
+                      fuelProfile.tankCapacityL,
+                    )} L`,
+                    "fuel-remaining",
+                  )}
+              {renderRow(
+                "Consumption used",
+                `${formatConsumption(fuel.consumption.l100)} L/100 km`,
+                "fuel-consumption",
+              )}
+              <Text style={[styles.cardBody, { color: Colors.textSecondary, marginTop: 8 }]}>
+                Range is worked out from a {formatLitres(fuelProfile.tankCapacityL)} L tank
+                at {formatConsumption(fuel.consumption.l100)} L/100 km —{" "}
+                {CONSUMPTION_SOURCE_LABEL[fuel.consumption.source]}. OBD-II publishes
+                neither tank size nor distance to empty, so this is the app&apos;s own
+                estimate, not the figure on your dashboard.
+              </Text>
+              {fuel.odometerKm === null ? (
+                <>
+                  <Text style={[styles.cardBody, { color: Colors.textSecondary, marginTop: 8 }]}>
+                    This vehicle does not answer the odometer parameter (mode 01 PID A6).
+                    Most cars built before the late 2010s keep the odometer on the
+                    instrument cluster and never put it on the diagnostic bus.
+                  </Text>
+                  {fuel.distanceSinceClearedKm !== null
+                    ? renderRow(
+                        "Distance since codes cleared",
+                        `${formatKm(fuel.distanceSinceClearedKm)} km`,
+                        "distance-since-cleared",
+                      )
+                    : null}
+                </>
+              ) : null}
+            </View>
+
             {/* --- Identity --- */}
             {sectionHeader("VEHICLE IDENTITY")}
             <View style={[styles.card, cardStyle]} testID="vehicle-info-identity">
@@ -875,6 +1104,133 @@ export default function VehicleInformationScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* --- Tank & consumption --- */}
+      <Modal
+        visible={fuelEditOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFuelEditOpen(false)}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalRoot}
+        >
+          <View style={styles.modalBackdrop} />
+          <View style={[styles.warnCard, { backgroundColor: Colors.secondary }]}>
+            <View style={styles.warnHeader}>
+              <View style={styles.warnHeaderLeft}>
+                <Fuel color={Colors.accent} size={22} />
+                <Text style={[styles.warnTitle, { color: Colors.text }]}>
+                  Tank &amp; consumption
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setFuelEditOpen(false)}
+                style={[
+                  styles.sheetClose,
+                  { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" },
+                ]}
+                testID="vehicle-info-fuel-close"
+              >
+                <X color={Colors.text} size={18} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.warnScroll}>
+              <Text style={[styles.warnBody, { color: Colors.textSecondary }]}>
+                The vehicle reports how full the tank is, but never how big it is or
+                how much fuel it takes to move — so the remaining kilometres need these
+                two numbers. Both are in your owner&apos;s manual.
+              </Text>
+
+              <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
+                TANK CAPACITY (LITRES)
+              </Text>
+              <TextInput
+                style={[styles.input, { color: Colors.text, borderColor: Colors.border }]}
+                value={tankInput}
+                onChangeText={setTankInput}
+                placeholder="e.g. 45"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="decimal-pad"
+                maxLength={6}
+                testID="vehicle-info-tank-input"
+              />
+
+              <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
+                AVERAGE CONSUMPTION (L/100 KM)
+              </Text>
+              <TextInput
+                style={[styles.input, { color: Colors.text, borderColor: Colors.border }]}
+                value={consumptionInput}
+                onChangeText={setConsumptionInput}
+                placeholder="e.g. 8.0"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="decimal-pad"
+                maxLength={5}
+                testID="vehicle-info-consumption-input"
+              />
+
+              {fuelProfile.measuredL100 !== null ? (
+                <View style={[styles.measuredBox, { borderColor: Colors.border }]}>
+                  <Text style={[styles.cardBody, { color: Colors.textSecondary }]}>
+                    Measured from your own driving:{" "}
+                    <Text style={{ color: Colors.text, fontWeight: "700" }}>
+                      {formatConsumption(fuelProfile.measuredL100)} L/100 km
+                    </Text>
+                    . This is used instead of the average above.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => void clearMeasuredConsumption()}
+                    style={styles.measuredReset}
+                    testID="vehicle-info-reset-measured"
+                  >
+                    <RotateCcw color={Colors.accent} size={14} />
+                    <Text style={[styles.measuredResetText, { color: Colors.accent }]}>
+                      Start measuring again
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={[styles.warnHint, { color: Colors.textSecondary, marginTop: 12 }]}>
+                  Once this reader has seen the odometer and the fuel gauge across a
+                  long enough stretch of driving, the app measures your real
+                  consumption and uses that instead.
+                </Text>
+              )}
+
+              {fuelEditError ? (
+                <Text style={styles.writeBlocked} testID="vehicle-info-fuel-error">
+                  {fuelEditError}
+                </Text>
+              ) : null}
+            </ScrollView>
+
+            <View style={styles.warnActions}>
+              <TouchableOpacity
+                style={[styles.secondaryButton, { borderColor: Colors.border }]}
+                onPress={() => setFuelEditOpen(false)}
+                testID="vehicle-info-fuel-cancel"
+              >
+                <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.primaryButton, { backgroundColor: Colors.accent }]}
+                onPress={() => void saveFuelEditor()}
+                testID="vehicle-info-fuel-save"
+              >
+                <Text style={[styles.primaryButtonText, { color: Colors.onAccent }]}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -914,6 +1270,30 @@ const styles = StyleSheet.create({
   },
   dataLabel: { fontSize: 13, flex: 1 },
   dataValue: { fontSize: 13, fontWeight: "600", flexShrink: 0, maxWidth: "52%", textAlign: "right" },
+  inlineEdit: {
+    marginLeft: "auto",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 4,
+    paddingLeft: 8,
+  },
+  inlineEditText: { fontSize: 12, fontWeight: "600" },
+  statRow: { flexDirection: "row", alignItems: "stretch", marginTop: 4, marginBottom: 12 },
+  stat: { flex: 1, alignItems: "center", gap: 4, paddingHorizontal: 4 },
+  statDivider: { borderLeftWidth: StyleSheet.hairlineWidth },
+  statValue: { fontSize: 22, fontWeight: "800" },
+  statLabel: { fontSize: 11, textAlign: "center" },
+  fuelTrack: { height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 4 },
+  fuelFill: { height: 6, borderRadius: 3 },
+  measuredBox: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+  },
+  measuredReset: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
+  measuredResetText: { fontSize: 13, fontWeight: "600" },
   progressBlock: { marginTop: 14 },
   progressRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
   progressLabel: { fontSize: 12, flex: 1 },
