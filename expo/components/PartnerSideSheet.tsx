@@ -37,11 +37,13 @@ import {
   Tag,
   User,
   Zap,
+  Gauge,
   type LucideIcon,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/useColors";
-import { useDisplaySettings, DEFAULT_PARTNER_MENU_ITEMS, getMenuItemOrder, PROFILE_MENU_ITEM_ID, PASSENGER_MODE_MENU_ITEM_ID, PASSENGER_MODE_DEFAULT_LABEL } from "@/contexts/DisplaySettingsContext";
+import { useCanbusStatus } from "@/hooks/useCanbusStatus";
+import { useDisplaySettings, DEFAULT_PARTNER_MENU_ITEMS, getMenuItemOrder, PROFILE_MENU_ITEM_ID, PASSENGER_MODE_MENU_ITEM_ID, PASSENGER_MODE_DEFAULT_LABEL, VEHICLE_INFO_MENU_ITEM_ID } from "@/contexts/DisplaySettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 
@@ -78,6 +80,10 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
   const insets = useSafeAreaInsets();
   const { settings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const { authState, profile, refreshProfile } = useAuth();
+  // Read-only: tells us whether the Teksi screen's OBD-II session is live so
+  // the Vehicle Information row can appear, without opening a second link to
+  // the dongle (see utils/canbus/liveStatus.ts).
+  const canbusStatus = useCanbusStatus();
   const [liveProfile, setLiveProfile] = React.useState<{ name: string; avatar: string } | null>(null);
 
   // Mirror profile.tsx exactly: fetch name/avatar directly from public.profiles
@@ -260,6 +266,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     "wallet": Wallet,
     "trip-history": Clock,
     "vehicle": Car,
+    [VEHICLE_INFO_MENU_ITEM_ID]: Gauge,
     "documents": FileText,
     "notifications": Bell,
     "safety": Shield,
@@ -280,6 +287,10 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
     },
     "trip-history": () => handleNavigate("Trip history"),
     "vehicle": () => handleNavigate("Vehicle"),
+    [VEHICLE_INFO_MENU_ITEM_ID]: () => {
+      onClose();
+      setTimeout(() => router.push("/vehicle-information" as any), 200);
+    },
     "documents": () => {
       onClose();
       setTimeout(() => router.push("/partner-documents" as any), 200);
@@ -309,6 +320,10 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
   const menuItems = [
     ...getMenuItemOrder(DEFAULT_PARTNER_MENU_ITEMS, partnerCfg)
       .filter((o) => !partnerHiddenSet.has(o.id))
+      // Vehicle Information reads the car through the OBD-II dongle, so there
+      // is nothing behind the row until one is genuinely linked. Demo Mode
+      // deliberately does not count — it has no vehicle to report on.
+      .filter((o) => o.id !== VEHICLE_INFO_MENU_ITEM_ID || canbusStatus.linked)
       .map((o) => {
         const isComingSoon = partnerComingSoonSet.has(o.id);
         if (o.isCustom) {
