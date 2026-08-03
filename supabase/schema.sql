@@ -4133,3 +4133,80 @@ create policy "support-media admin delete"
 -- dashboard (Auth → Providers → Password) to clear the remaining advisor
 -- warning. This project signs in via phone OTP + PIN, so impact is minimal.
 -- ============================================================================
+
+-- ============================================================================
+-- TEKSI EV orders (migration 0080)
+-- ============================================================================
+-- Customer-owned rows, not admin configuration: the EV wizard creates an order
+-- when the customer pays the order fee, so `settings_entries` (admin-write-only
+-- since the lockdown above) could never hold them. Same shape as the dedicated
+-- settings tables plus `user_id`, with owner-or-admin policies.
+
+create table if not exists public.ev_orders (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid default auth.uid() references auth.users(id) on delete set null,
+  values      jsonb not null default '{}'::jsonb,
+  position    integer not null default 0,
+  active      boolean not null default true,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create index if not exists ev_orders_user_id_idx  on public.ev_orders(user_id);
+create index if not exists ev_orders_position_idx on public.ev_orders(position);
+
+drop trigger if exists trg_ev_orders_updated_at on public.ev_orders;
+create trigger trg_ev_orders_updated_at
+  before update on public.ev_orders
+  for each row execute function public.set_updated_at();
+
+-- user_id is immutable after insert (same guard as ride_requests.rider_id).
+create or replace function public.ev_orders_freeze_owner()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.user_id is distinct from old.user_id and not public.caller_is_admin() then
+    raise exception 'ev_orders.user_id is immutable';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_ev_orders_freeze_owner on public.ev_orders;
+create trigger trg_ev_orders_freeze_owner
+  before update on public.ev_orders
+  for each row execute function public.ev_orders_freeze_owner();
+
+alter table public.ev_orders enable row level security;
+
+drop policy if exists "ev_orders read"   on public.ev_orders;
+drop policy if exists "ev_orders insert" on public.ev_orders;
+drop policy if exists "ev_orders update" on public.ev_orders;
+drop policy if exists "ev_orders delete" on public.ev_orders;
+
+create policy "ev_orders read" on public.ev_orders
+  for select
+  using (user_id = auth.uid() or public.caller_is_admin());
+
+create policy "ev_orders insert" on public.ev_orders
+  for insert to public
+  with check (
+    (auth.uid() is not null and user_id = auth.uid())
+    or public.caller_is_admin()
+  );
+
+create policy "ev_orders update" on public.ev_orders
+  for update to public
+  using (user_id = auth.uid() or public.caller_is_admin())
+  with check (user_id = auth.uid() or public.caller_is_admin());
+
+-- A paid order is a record; only the back office removes one.
+create policy "ev_orders delete" on public.ev_orders
+  for delete to public
+  using (public.caller_is_admin());
+
+grant select, insert, update, delete on public.ev_orders to authenticated;
+revoke all on public.ev_orders from anon;

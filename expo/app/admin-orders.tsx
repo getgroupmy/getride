@@ -47,26 +47,38 @@ import {
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useAdminData, type SettingEntry } from "@/contexts/AdminDataContext";
+import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
+import {
+  buildChecklistDraft,
+  evOrderStatusLabel,
+  evOrderStatusTone,
+  EV_ORDER_STATUSES,
+  isChecklistAccepted,
+  isChecklistSubmitted,
+  normalizeEvOrderStatus,
+  serializeChecklistResults,
+  type EvChecklistResult,
+  type EvOrderStatus,
+} from "@/utils/evOrders";
 
-type FilterKey = "all" | "pending" | "assigned" | "in-progress" | "delivered" | "refit";
+type FilterKey = EvOrderStatus | "all" | "refit";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All" },
   { key: "refit", label: "Re-fit" },
-  { key: "pending", label: "Pending DA" },
-  { key: "assigned", label: "Assigned" },
-  { key: "in-progress", label: "In progress" },
-  { key: "delivered", label: "Delivered" },
+  ...EV_ORDER_STATUSES.map((s) => ({ key: s as FilterKey, label: evOrderStatusLabel(s) })),
 ];
 
 export default function AdminOrdersScreen() {
   const router = useRouter();
   const Colors = useColors();
   const { getEntries, updateEntry } = useAdminData();
+  const { guard } = useReadOnlyGuard();
 
   const orders = getEntries("ev-orders");
   const advisors = getEntries("ev-delivery-advisors");
   const vehicleDetails = getEntries("ev-vehicle-details");
+  const checklistTemplate = getEntries("ev-delivery-checklist");
 
   const vehicleById = useMemo<Map<string, SettingEntry>>(() => {
     const m = new Map<string, SettingEntry>();
@@ -88,6 +100,8 @@ export default function AdminOrdersScreen() {
   const [query, setQuery] = useState<string>("");
   const [selected, setSelected] = useState<SettingEntry | null>(null);
   const [assignVisible, setAssignVisible] = useState<boolean>(false);
+  const [checklistVisible, setChecklistVisible] = useState<boolean>(false);
+  const [checklistDraft, setChecklistDraft] = useState<EvChecklistResult[]>([]);
 
   const orderGallery = useMemo<{ uri: string; label: string }[]>(() => {
     if (!selected) return [];
@@ -106,7 +120,7 @@ export default function AdminOrdersScreen() {
     if (filter === "refit") {
       list = list.filter((o) => !!o.values.wheelsSwapped);
     } else if (filter !== "all") {
-      list = list.filter((o) => String(o.values.status ?? "pending") === filter);
+      list = list.filter((o) => normalizeEvOrderStatus(o.values.status) === filter);
     }
     if (query.trim()) {
       const q = query.trim().toLowerCase();
@@ -119,54 +133,54 @@ export default function AdminOrdersScreen() {
   }, [orders, filter, query]);
 
   const stats = useMemo(() => {
-    const counts: Record<string, number> = {
-      total: orders.length,
-      pending: 0,
-      assigned: 0,
-      "in-progress": 0,
-      delivered: 0,
-      refit: 0,
-    };
+    const counts: Record<string, number> = { total: orders.length, refit: 0 };
+    EV_ORDER_STATUSES.forEach((s) => {
+      counts[s] = 0;
+    });
     orders.forEach((o) => {
-      const s = String(o.values.status ?? "pending");
+      const s = normalizeEvOrderStatus(o.values.status);
       counts[s] = (counts[s] ?? 0) + 1;
       if (o.values.wheelsSwapped) counts.refit += 1;
     });
     return counts;
   }, [orders]);
 
+  /** Palette for the shared status tones (see utils/evOrders). */
   const statusColor = (s: string): string => {
-    switch (s) {
-      case "delivered":
+    switch (evOrderStatusTone(s)) {
+      case "success":
         return Colors.success;
-      case "in-progress":
+      case "accent":
         return Colors.accent;
-      case "assigned":
+      case "info":
         return "#3B82F6";
-      case "pending":
+      case "error":
+        return Colors.error;
+      case "warning":
       default:
         return Colors.warning ?? "#F59E0B";
     }
   };
 
-  const statusLabel = (s: string): string => {
-    switch (s) {
-      case "delivered":
-        return "Delivered";
-      case "in-progress":
-        return "In progress";
-      case "assigned":
-        return "DA assigned";
-      case "pending":
-      default:
-        return "Pending DA";
-    }
+  const statusLabel = (s: string): string => evOrderStatusLabel(s);
+
+  /**
+   * Merge a patch into the selected order. Reads the freshest copy from the
+   * entry list rather than the (possibly stale) selection snapshot, because
+   * `updateEntry` replaces `values` wholesale.
+   */
+  const patchOrder = (patch: Record<string, string | number | boolean>): boolean => {
+    if (!selected) return false;
+    if (!guard()) return false;
+    const current = orders.find((o) => o.id === selected.id) ?? selected;
+    const merged = { ...current.values, ...patch };
+    updateEntry("ev-orders", selected.id, merged);
+    setSelected({ ...current, values: merged });
+    return true;
   };
 
   const assignAdvisor = (advisor: SettingEntry) => {
-    if (!selected) return;
-    updateEntry("ev-orders", selected.id, {
-      ...selected.values,
+    const ok = patchOrder({
       advisorId: advisor.id,
       advisorName: String(advisor.values.name ?? ""),
       advisorContact: String(advisor.values.contact ?? ""),
@@ -179,23 +193,79 @@ export default function AdminOrdersScreen() {
       status: "assigned",
       assignedAt: new Date().toISOString(),
     });
-    setSelected({
-      ...selected,
-      values: {
-        ...selected.values,
-        advisorId: advisor.id,
-        advisorName: String(advisor.values.name ?? ""),
-        status: "assigned",
-      },
-    });
+    if (!ok) return;
     setAssignVisible(false);
     Alert.alert("DA assigned", `${String(advisor.values.name ?? "Advisor")} has been assigned to this order.`);
   };
 
-  const setOrderStatus = (status: string) => {
+  const setOrderStatus = (status: EvOrderStatus) => {
+    patchOrder({ status });
+  };
+
+  // ----- Delivery checklist submission (Delivery Advisor) -----
+
+  const openChecklist = () => {
     if (!selected) return;
-    updateEntry("ev-orders", selected.id, { ...selected.values, status });
-    setSelected({ ...selected, values: { ...selected.values, status } });
+    const current = orders.find((o) => o.id === selected.id) ?? selected;
+    setChecklistDraft(
+      buildChecklistDraft(
+        checklistTemplate.map((c) => String(c.values.name ?? c.values.title ?? "Item")),
+        current.values,
+      ),
+    );
+    setChecklistVisible(true);
+  };
+
+  const toggleChecklistItem = (index: number) => {
+    setChecklistDraft((prev) =>
+      prev.map((it, i) => (i === index ? { ...it, done: !it.done } : it)),
+    );
+  };
+
+  const setChecklistNote = (index: number, note: string) => {
+    setChecklistDraft((prev) => prev.map((it, i) => (i === index ? { ...it, note } : it)));
+  };
+
+  const submitChecklist = () => {
+    if (checklistDraft.length === 0) {
+      Alert.alert(
+        "No checklist items",
+        "Add handover items in Settings → TEKSI EV → Delivery Checklist first.",
+      );
+      return;
+    }
+    const outstanding = checklistDraft.filter((x) => !x.done).length;
+    const send = () => {
+      const ok = patchOrder({
+        checklistResults: serializeChecklistResults(checklistDraft),
+        checklistSubmitted: true,
+        checklistSubmittedAt: new Date().toISOString(),
+        // Submitting the checklist is what makes an order ready to hand over;
+        // the customer's acceptance is what marks it delivered.
+        status:
+          normalizeEvOrderStatus(selected?.values.status) === "delivered"
+            ? "delivered"
+            : "ready_for_delivery",
+      });
+      if (!ok) return;
+      setChecklistVisible(false);
+      Alert.alert(
+        "Checklist submitted",
+        "The customer can now review the checklist and accept handover in the app.",
+      );
+    };
+    if (outstanding > 0) {
+      Alert.alert(
+        "Submit with open items?",
+        `${outstanding} item${outstanding === 1 ? " is" : "s are"} still unticked. The customer will see them as pending.`,
+        [
+          { text: "Keep editing", style: "cancel" },
+          { text: "Submit anyway", style: "destructive", onPress: send },
+        ],
+      );
+      return;
+    }
+    send();
   };
 
   return (
@@ -544,28 +614,18 @@ export default function AdminOrdersScreen() {
 
                 {(() => {
                   const v = selected.values;
-                  const submittedRaw = String(v.checklistSubmitted ?? "");
-                  const submitted = submittedRaw === "true" || submittedRaw === "1";
-                  const accepted = v.checklistAccepted === true || String(v.checklistAccepted) === "true";
-                  let items: { name: string; done: boolean; note: string }[] = [];
-                  try {
-                    const raw = String(v.checklistResults ?? "");
-                    if (raw) {
-                      const parsed = JSON.parse(raw);
-                      if (Array.isArray(parsed)) {
-                        items = parsed.map((x: { name?: unknown; done?: unknown; note?: unknown }) => ({
-                          name: String(x?.name ?? ""),
-                          done: x?.done !== false,
-                          note: String(x?.note ?? ""),
-                        }));
-                      }
-                    }
-                  } catch {
-                    items = [];
-                  }
-                  if (!submitted && !accepted && items.length === 0) return null;
+                  const submitted = isChecklistSubmitted(v);
+                  const accepted = isChecklistAccepted(v);
+                  const items = buildChecklistDraft(
+                    checklistTemplate.map((c) => String(c.values.name ?? c.values.title ?? "Item")),
+                    v,
+                  );
                   const accentColor = accepted ? Colors.success : submitted ? Colors.accent : Colors.warning ?? "#F59E0B";
-                  const statusTxt = accepted ? "Customer accepted" : submitted ? "Submitted — awaiting customer" : "Not submitted";
+                  const statusTxt = accepted
+                    ? "Customer accepted"
+                    : submitted
+                    ? "Submitted — awaiting customer"
+                    : "Not submitted";
                   return (
                     <>
                       <Text style={[styles.sectionTitle, { color: Colors.text }]}>Delivery Checklist</Text>
@@ -574,15 +634,32 @@ export default function AdminOrdersScreen() {
                           {accepted ? <ClipboardCheck color={accentColor} size={14} /> : <ClipboardList color={accentColor} size={14} />}
                           <Text style={[styles.refitBadgeText, { color: accentColor }]} numberOfLines={2}>{statusTxt}</Text>
                         </View>
-                        {items.map((it, i) => (
-                          <View key={`${it.name}-${i}`} style={styles.row} testID={`order-checklist-${i}`}>
-                            <View style={[styles.rowIcon, { backgroundColor: (it.done ? Colors.success : Colors.warning ?? "#F59E0B") + "20" }]}>
-                              {it.done ? <Check color={Colors.success} size={14} /> : <X color={Colors.warning ?? "#F59E0B"} size={14} />}
+                        {items.length === 0 ? (
+                          <Text style={[styles.rowValue, { color: Colors.textSecondary }]} numberOfLines={3}>
+                            No checklist items configured. Add them in Settings → TEKSI EV → Delivery Checklist.
+                          </Text>
+                        ) : (
+                          items.map((it, i) => (
+                            <View key={`${it.name}-${i}`} style={styles.row} testID={`order-checklist-${i}`}>
+                              <View style={[styles.rowIcon, { backgroundColor: (it.done ? Colors.success : Colors.warning ?? "#F59E0B") + "20" }]}>
+                                {it.done ? <Check color={Colors.success} size={14} /> : <X color={Colors.warning ?? "#F59E0B"} size={14} />}
+                              </View>
+                              <Text style={[styles.rowLabel, { color: Colors.textSecondary, width: 100 }]} numberOfLines={2}>{it.name}</Text>
+                              <Text style={[styles.rowValue, { color: Colors.text }]} numberOfLines={2}>{it.note || (it.done ? "OK" : "Pending")}</Text>
                             </View>
-                            <Text style={[styles.rowLabel, { color: Colors.textSecondary, width: 100 }]} numberOfLines={2}>{it.name}</Text>
-                            <Text style={[styles.rowValue, { color: Colors.text }]} numberOfLines={2}>{it.note || (it.done ? "OK" : "Pending")}</Text>
-                          </View>
-                        ))}
+                          ))
+                        )}
+                        {!accepted && (
+                          <TouchableOpacity
+                            onPress={openChecklist}
+                            style={[styles.secondaryBtn, { borderColor: Colors.accent }]}
+                            testID="order-checklist-open"
+                          >
+                            <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>
+                              {submitted ? "Update checklist" : "Complete checklist"}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </>
                   );
@@ -623,8 +700,8 @@ export default function AdminOrdersScreen() {
 
                 <Text style={[styles.sectionTitle, { color: Colors.text }]}>Update status</Text>
                 <View style={styles.statusRow}>
-                  {(["pending", "assigned", "in-progress", "delivered"] as const).map((s) => {
-                    const sel = String(selected.values.status ?? "pending") === s;
+                  {EV_ORDER_STATUSES.map((s) => {
+                    const sel = normalizeEvOrderStatus(selected.values.status) === s;
                     return (
                       <TouchableOpacity
                         key={s}
@@ -726,6 +803,104 @@ export default function AdminOrdersScreen() {
                   );
                 })
               )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delivery checklist — completed by the DA, then accepted by the customer */}
+      <Modal
+        visible={checklistVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setChecklistVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalSheet, { backgroundColor: Colors.background, maxHeight: "88%" }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: Colors.border }]} />
+            <View style={styles.sheetHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sheetTitle, { color: Colors.text }]}>Delivery Checklist</Text>
+                <Text style={[styles.sheetSub, { color: Colors.textSecondary }]}>
+                  Tick each item and add any notes, then submit for the customer to accept.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setChecklistVisible(false)}
+                style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                testID="checklist-close"
+              >
+                <X color={Colors.text} size={20} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={{ paddingBottom: 24, gap: 10 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {checklistDraft.length === 0 ? (
+                <View style={[styles.empty, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
+                  <Text style={[styles.emptyText, { color: Colors.textSecondary }]}>
+                    No checklist items configured. Add them in Settings → TEKSI EV → Delivery Checklist.
+                  </Text>
+                </View>
+              ) : (
+                checklistDraft.map((it, i) => (
+                  <View
+                    key={`${it.name}-${i}`}
+                    style={[
+                      styles.checkItem,
+                      {
+                        backgroundColor: Colors.gray[100],
+                        borderColor: it.done ? Colors.success : Colors.border,
+                      },
+                    ]}
+                    testID={`checklist-item-${i}`}
+                  >
+                    <TouchableOpacity
+                      onPress={() => toggleChecklistItem(i)}
+                      style={styles.checkItemHead}
+                      testID={`checklist-toggle-${i}`}
+                    >
+                      <View
+                        style={[
+                          styles.checkBox,
+                          {
+                            backgroundColor: it.done ? Colors.success : "transparent",
+                            borderColor: it.done ? Colors.success : Colors.border,
+                          },
+                        ]}
+                      >
+                        {it.done && <Check color={Colors.onAccent} size={14} />}
+                      </View>
+                      <Text style={[styles.checkItemName, { color: Colors.text }]}>{it.name}</Text>
+                    </TouchableOpacity>
+                    <TextInput
+                      value={it.note}
+                      onChangeText={(t) => setChecklistNote(i, t)}
+                      placeholder="Note (optional)"
+                      placeholderTextColor={Colors.textSecondary}
+                      style={[
+                        styles.checkItemNote,
+                        { color: Colors.text, backgroundColor: Colors.background, borderColor: Colors.border },
+                      ]}
+                      testID={`checklist-note-${i}`}
+                    />
+                  </View>
+                ))
+              )}
+
+              <TouchableOpacity
+                onPress={submitChecklist}
+                style={[styles.assignCta, { backgroundColor: Colors.accent }]}
+                testID="checklist-submit"
+              >
+                <ClipboardCheck color={Colors.onAccent} size={18} />
+                <Text style={[styles.assignCtaText, { color: Colors.onAccent }]}>
+                  Submit to customer
+                </Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -976,6 +1151,33 @@ const styles = StyleSheet.create({
     justifyContent: "center" as const,
   },
   secondaryBtnText: { fontSize: 13, fontWeight: "800" as const },
+  checkItem: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 12,
+    gap: 10,
+  },
+  checkItemHead: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+  },
+  checkBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  checkItemName: { flex: 1, fontSize: 14, fontWeight: "700" as const },
+  checkItemNote: {
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    fontSize: 13,
+  },
   statusRow: {
     flexDirection: "row" as const,
     flexWrap: "wrap" as const,

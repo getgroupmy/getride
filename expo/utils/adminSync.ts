@@ -90,6 +90,20 @@ const log = (...args: unknown[]) => console.log("[adminSync]", ...args);
 // ---------------------------------------------------------------------------
 
 /**
+ * Categories whose rows belong to the signed-in customer rather than to the
+ * admin panel. They live in tables with owner-or-admin RLS (migration 0080),
+ * so a customer fetch returns only their own rows and an admin fetch returns
+ * everything. They cannot live in `settings_entries`, whose writes have been
+ * admin-only since 0069.
+ */
+export const OWNER_SCOPED_CATEGORY_TABLE_MAP: Record<string, string> = {
+  "ev-orders": "ev_orders",
+};
+
+/** Category names from {@link OWNER_SCOPED_CATEGORY_TABLE_MAP}. */
+export const OWNER_SCOPED_CATEGORIES = Object.keys(OWNER_SCOPED_CATEGORY_TABLE_MAP);
+
+/**
  * Categories that live in their own typed Supabase table instead of the shared
  * `settings_entries` table. Each table mirrors the settings_entries shape
  * (id / values / position / timestamps) so SettingEntry can be reused.
@@ -108,7 +122,24 @@ export const CATEGORY_TABLE_MAP: Record<string, string> = {
   "ev-order-fee": "ev_order_fee",
   "ev-vehicle-details": "ev_vehicle_details",
   "ev-vehicle-inventory": "ev_vehicle_inventory",
+  ...OWNER_SCOPED_CATEGORY_TABLE_MAP,
 };
+
+/**
+ * True when the database has no such table — i.e. it predates the migration
+ * that introduced it. Callers fall back to the legacy `settings_entries`
+ * storage so the app keeps working against an older database.
+ */
+export function isMissingTableError(
+  error: { message?: string | null; code?: string | null } | null | undefined
+): boolean {
+  if (!error) return false;
+  const code = String(error.code ?? "");
+  if (code === "42P01" || code === "PGRST205") return true;
+  const msg = String(error.message ?? "").toLowerCase();
+  if (msg.includes("could not find the table")) return true;
+  return msg.includes("relation") && msg.includes("does not exist");
+}
 
 /**
  * Categories that share a single physical table via a `kind` discriminator
@@ -253,8 +284,15 @@ export async function upsertSetting(
         },
         { onConflict: "id" }
       );
-      if (error) log("upsertSetting (dedicated) error", category, error.message);
-      return;
+      // A database that predates this category's table still holds the rows in
+      // settings_entries — fall through to the legacy write instead of losing
+      // the change.
+      if (error && !isMissingTableError(error)) {
+        log("upsertSetting (dedicated) error", category, error.message);
+        return;
+      }
+      if (!error) return;
+      log("upsertSetting (dedicated) table missing, using settings_entries", category);
     }
     const kindCfg = CATEGORY_KIND_TABLE_MAP[category];
     if (kindCfg) {
@@ -293,7 +331,14 @@ export async function deleteSetting(id: string, category?: string): Promise<void
         .from(CATEGORY_TABLE_MAP[category])
         .delete()
         .eq("id", id);
-      if (error) log("deleteSetting (dedicated) error", category, error.message);
+      if (error && !isMissingTableError(error)) {
+        log("deleteSetting (dedicated) error", category, error.message);
+        return;
+      }
+      if (!error) return;
+      log("deleteSetting (dedicated) table missing, using settings_entries", category);
+      const legacy = await supabase.from("settings_entries").delete().eq("id", id);
+      if (legacy.error) log("deleteSetting error", category, legacy.error.message);
       return;
     }
     if (category && CATEGORY_KIND_TABLE_MAP[category]) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,6 @@ import {
   Image,
   Alert,
   Platform,
-  Dimensions,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
   ActivityIndicator,
   Modal,
   KeyboardAvoidingView,
@@ -63,36 +60,36 @@ import {
 import {
   resolveDefaultGateway,
   PAYMENT_GATEWAY_STORAGE_KEY,
+  type ResolvedGateway,
 } from "@/app/admin-settings-payment-gateway";
+import {
+  buildChecklistDraft,
+  deriveEvOrderStep,
+  evFlag,
+  evOrderStatusAtLeast,
+  isChecklistAccepted,
+  isChecklistSubmitted,
+  mapAdminTypeToFinanceType,
+  normalizeEvOrderStatus,
+  type EvFinanceType,
+  type EvOrderValues,
+  type EvStepKey,
+} from "@/utils/evOrders";
+import {
+  clearActiveEvOrderId,
+  loadActiveEvOrderId,
+  saveActiveEvOrderId,
+} from "@/utils/evOrderStore";
 
-type StepKey =
-  | "model"
-  | "specification"
-  | "deposit"
-  | "ownership"
-  | "plate"
-  | "financing"
-  | "advisor"
-  | "schedule"
-  | "delivery";
+type StepKey = EvStepKey;
 
-type FinanceType = "cash" | "hp" | "leasing" | "rental";
+type FinanceType = EvFinanceType;
 
 const FINANCE_TYPE_LABELS: Record<FinanceType, string> = {
   cash: "Cash",
   leasing: "Leasing",
   hp: "Hire Purchase",
   rental: "Rental",
-};
-
-const mapAdminTypeToFinanceType = (raw: string): FinanceType | null => {
-  const t = raw.trim().toLowerCase();
-  if (!t) return null;
-  if (t === "cash") return "cash";
-  if (t === "leasing" || t.startsWith("leas")) return "leasing";
-  if (t === "hire purchase" || t === "hp" || t.includes("hire")) return "hp";
-  if (t === "rental" || t.includes("rent")) return "rental";
-  return null;
 };
 
 type OwnerType = "self" | "other" | "company";
@@ -132,14 +129,10 @@ const ID_COUNTRIES: string[] = [
   "Other",
 ];
 
-
-const SCREEN_W = Dimensions.get("window").width;
-const HERO_SLIDE_W = SCREEN_W - 32;
-
 export default function TeksiEvScreen() {
   const router = useRouter();
   const Colors = useColors();
-  const { getEntries, addEntry, updateEntry } = useAdminData();
+  const { getEntries, addEntry, updateEntry, isHydrated } = useAdminData();
   const { authState } = useAuth();
 
   const vehicleDetails = getEntries("ev-vehicle-details");
@@ -149,6 +142,13 @@ export default function TeksiEvScreen() {
   const orderFeeEntries = getEntries(ORDER_FEE_STORAGE_KEY);
   const gatewayEntries = getEntries(PAYMENT_GATEWAY_STORAGE_KEY);
   const orders = getEntries("ev-orders");
+
+  /**
+   * Whether an order created here can reach the server. `ev_orders` rows are
+   * owner-scoped (RLS keys off `auth.uid()`), so a legacy local-PIN session
+   * can only hold the order on this device until the customer signs in.
+   */
+  const canSyncOrder = authState.isSupabaseSession === true;
 
   const [stepIdx, setStepIdx] = useState<number>(0);
   const step = STEPS[stepIdx];
@@ -180,6 +180,14 @@ export default function TeksiEvScreen() {
   const [deliveryDate, setDeliveryDate] = useState<string>("");
   const [checklistAccepted, setChecklistAccepted] = useState<boolean>(false);
   const [myOrderId, setMyOrderId] = useState<string>("");
+
+  /**
+   * Restore state for the order this device already has in flight. The order
+   * row is the source of truth; the device only remembers which row is ours.
+   */
+  const hydratedOrderRef = useRef<string>("");
+  /** Suppresses the inventory wheel-sync effect for one run during restore. */
+  const skipWheelSyncRef = useRef<boolean>(false);
 
   // ----- Agent / DA code lookup (collected after model selection) -----
   const [agentCodeModalOpen, setAgentCodeModalOpen] = useState<boolean>(false);
@@ -360,6 +368,12 @@ export default function TeksiEvScreen() {
   // that unit's record so we can detect swaps. Falls back to the design default.
   useEffect(() => {
     if (orderMode !== "inventory") return;
+    // A restored order already carries the wheels the customer chose — don't
+    // reset them back to the factory fitment on the way in.
+    if (skipWheelSyncRef.current) {
+      if (selectedInventory) skipWheelSyncRef.current = false;
+      return;
+    }
     const factory =
       (selectedInventory?.values.wheels ? String(selectedInventory.values.wheels) : "") ||
       "19\" Aero";
@@ -398,10 +412,14 @@ export default function TeksiEvScreen() {
   const DEPOSIT_AMOUNT = orderFee.amount;
   const DEPOSIT_CURRENCY = orderFee.currency;
 
-  /** Active default payment gateway shown during checkout. */
-  const defaultGateway = useMemo(
-    () => resolveDefaultGateway(gatewayEntries),
-    [gatewayEntries],
+  /**
+   * Gateway used at checkout: the account the admin attached to this
+   * country's order fee, falling back to the platform default when the fee
+   * row doesn't name one.
+   */
+  const checkoutGateway = useMemo<ResolvedGateway | null>(
+    () => orderFee.gateway ?? resolveDefaultGateway(gatewayEntries),
+    [orderFee, gatewayEntries],
   );
 
   const parsePriced = (raw: string | number | boolean | undefined): { id: string; name: string; price: number; enabled: boolean }[] => {
@@ -454,6 +472,120 @@ export default function TeksiEvScreen() {
     return advisors.find((a) => a.id === advisorId) ?? null;
   }, [myOrder, advisors]);
 
+  // ----- Resume an order this device already started -----
+
+  /** Put the wizard back into the state the stored order describes. */
+  const applyOrderToWizard = useCallback((values: EvOrderValues) => {
+    const s = (k: string): string => String(values[k] ?? "");
+    const mode = s("mode") === "inventory" ? "inventory" : "custom";
+    skipWheelSyncRef.current = mode === "inventory";
+    setOrderMode(mode);
+    setSelectedVehicleId(s("vehicleId"));
+    setSelectedInventoryId(s("inventoryId"));
+    setSelectedColorExt(s("exteriorColor"));
+    setSelectedColorInt(s("interiorColor"));
+    if (s("wheels")) setSelectedWheel(s("wheels"));
+    if (s("factoryWheels")) setFactoryWheels(s("factoryWheels"));
+    setWheelsUnlocked(evFlag(values.wheelsSwapped));
+    setAccessories(
+      mode === "custom"
+        ? s("accessories").split(",").map((a) => a.trim()).filter(Boolean)
+        : [],
+    );
+    setPayMethod(s("paymentMethod") === "fpx" ? "fpx" : "card");
+    setDepositPaid(evFlag(values.depositPaid));
+
+    setOwnerType(s("ownerType") === "other" || s("ownerType") === "company" ? (s("ownerType") as OwnerType) : "self");
+    setIdType(s("ownerIdType").includes("passport") ? "passport" : "national");
+    if (s("ownerIdCountry")) setIdCountry(s("ownerIdCountry"));
+    setIdImageUri(s("ownerIdImage"));
+    setExtractedPhoto(s("ownerPhoto"));
+    setFullName(s("ownerFullName"));
+    setIdNumber(s("ownerIdNumber"));
+    setOwnerAddress(s("ownerAddress"));
+    setRelationship(s("ownerRelationship"));
+    setCompanyName(s("companyName"));
+    setCompanyRegNo(s("companyRegNo"));
+    setCompanyAddress(s("companyAddress"));
+    const ownershipDone = !!s("ownerFullName") && !!s("ownerIdNumber") && !!s("ownerAddress");
+    setExtracted(ownershipDone || !!s("ownerIdImage"));
+    setOwnershipConfirmed(ownershipDone);
+
+    const plate = s("plateTransfer");
+    setPlateTransfer(plate === "yes" || plate === "no" ? plate : "");
+    setPlateNumber(s("plateNumber"));
+
+    setFinanceType(mapAdminTypeToFinanceType(values.financeType) ?? "");
+    setFinanceChoice(s("financeChoice"));
+    setCashBalancePaid(evFlag(values.cashBalancePaid));
+    const addon = s("leasingAddonRequired");
+    setLeasingAddonRequired(addon === "yes" || addon === "no" ? addon : "");
+    setLeasingAddonAmount(s("leasingAddonAmount"));
+    setLeasingAddonPaid(evFlag(values.leasingAddonPaid));
+
+    setDeliveryDate(s("deliveryDate"));
+    setChecklistAccepted(isChecklistAccepted(values));
+
+    // A restored order never re-prompts for the agent code — the advisor it
+    // resolved to is already on the row.
+    setAgentPromptedForId(mode === "inventory" ? `i:${s("inventoryId")}` : `v:${s("vehicleId")}`);
+
+    const stepIndex = STEPS.findIndex((st) => st.key === deriveEvOrderStep(values));
+    if (stepIndex >= 0) setStepIdx(stepIndex);
+  }, []);
+
+  // Adopt the device's in-flight order id on mount. State, not a ref, so the
+  // adoption pass below re-runs once the stored id has actually been read.
+  const [storedOrderChecked, setStoredOrderChecked] = useState<boolean>(false);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const id = await loadActiveEvOrderId();
+      if (cancelled) return;
+      if (id) setMyOrderId(id);
+      setStoredOrderChecked(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Nothing stored on this device? Adopt this account's newest unfinished
+  // order, so a customer who switched phones lands back in their order rather
+  // than starting (and paying) a second time.
+  useEffect(() => {
+    if (myOrderId || !isHydrated || !storedOrderChecked) return;
+    const phone = String(authState.phoneNumber ?? "").trim();
+    if (!phone) return;
+    const mine = orders.filter((o) => {
+      if (String(o.values.customerPhone ?? "").trim() !== phone) return false;
+      const status = normalizeEvOrderStatus(o.values.status);
+      return status !== "delivered" && status !== "cancelled" && !isChecklistAccepted(o.values);
+    });
+    if (mine.length === 0) return;
+    const newest = mine.reduce((a, b) => (a.createdAt >= b.createdAt ? a : b));
+    setMyOrderId(newest.id);
+    void saveActiveEvOrderId(newest.id);
+  }, [myOrderId, isHydrated, storedOrderChecked, orders, authState.phoneNumber]);
+
+  // ...then hydrate from it once the admin data cache has the row. Entries
+  // load asynchronously, so this waits rather than assuming it is missing.
+  useEffect(() => {
+    if (!myOrderId || hydratedOrderRef.current === myOrderId) return;
+    const order = orders.find((o) => o.id === myOrderId);
+    if (!order) {
+      // The row is genuinely gone (deleted admin-side) — stop pointing at it.
+      if (isHydrated) {
+        hydratedOrderRef.current = "";
+        setMyOrderId("");
+        void clearActiveEvOrderId();
+      }
+      return;
+    }
+    hydratedOrderRef.current = myOrderId;
+    applyOrderToWizard(order.values);
+  }, [myOrderId, orders, isHydrated, applyOrderToWizard]);
+
   const exteriorColors = useMemo<string[]>(() => {
     // Try structured colours from EV details first, fall back to legacy CSV.
     const structured = parsePriced(selectedVehicle?.values.exteriorColors);
@@ -496,7 +628,23 @@ export default function TeksiEvScreen() {
   const goNext = () => {
     // After financing, if user keyed in a valid agent code, auto-assign DA and skip advisor step.
     if (step.key === "financing" && matchedAdvisor && myOrderId) {
-      updateEntry("ev-orders", myOrderId, { advisorId: matchedAdvisor.id, status: "ready_for_delivery" });
+      // Patch, never replace: the order row carries every answer collected so
+      // far and `updateEntry` overwrites `values` wholesale.
+      persistOrder({
+        advisorId: matchedAdvisor.id,
+        advisorName: String(matchedAdvisor.values.name ?? ""),
+        advisorContact: String(matchedAdvisor.values.contact ?? ""),
+        advisorEmail: String(matchedAdvisor.values.email ?? ""),
+        advisorDealership: String(matchedAdvisor.values.dealership ?? ""),
+        advisorDaNumber: String(matchedAdvisor.values.daNumber ?? matchedAdvisor.id),
+        advisorCountry: String(matchedAdvisor.values.country ?? ""),
+        advisorState: String(matchedAdvisor.values.state ?? ""),
+        advisorCity: String(matchedAdvisor.values.city ?? ""),
+        assignedAt: new Date().toISOString(),
+        // The advisor is linked, not the vehicle: only the back office moves
+        // an order on to `ready_for_delivery`.
+        status: "assigned",
+      });
       const scheduleIdx = STEPS.findIndex((s) => s.key === "schedule");
       if (scheduleIdx >= 0) {
         setStepIdx(scheduleIdx);
@@ -551,7 +699,10 @@ export default function TeksiEvScreen() {
     // Create an order so admin can review and assign a Delivery Advisor.
     const v = orderMode === "custom" ? selectedVehicle : selectedInventory;
     const created = addEntry("ev-orders", {
-      customerName: cardName || "TEKSI Customer",
+      // The signed-in account names the customer; the cardholder name is only
+      // a fallback, and FPX checkouts never collect one at all.
+      customerName:
+        String(authState.profileName ?? "").trim() || cardName.trim() || "TEKSI Customer",
       customerPhone: String(authState.phoneNumber ?? ""),
       customerEmail: "",
       mode: orderMode,
@@ -582,18 +733,28 @@ export default function TeksiEvScreen() {
       depositPaid: true,
       depositAmount: DEPOSIT_AMOUNT,
       paymentMethod: payMethod,
-      gatewayId: defaultGateway?.id ?? "",
-      gatewayProvider: defaultGateway?.providerName ?? "",
-      gatewayAccount: defaultGateway?.accountName ?? "",
-      gatewayMode: defaultGateway?.mode ?? "",
+      gatewayId: checkoutGateway?.id ?? "",
+      gatewayProvider: checkoutGateway?.providerName ?? "",
+      gatewayAccount: checkoutGateway?.accountName ?? "",
+      gatewayMode: checkoutGateway?.mode ?? "",
       status: "pending",
     });
     setMyOrderId(created.id);
-    Alert.alert("Payment received", `Order Fee of ${DEPOSIT_CURRENCY}${DEPOSIT_AMOUNT.toLocaleString()} has been received. Your order is now pending DA assignment.`);
+    hydratedOrderRef.current = created.id;
+    // Remember the order on this device so backing out — or a cold launch —
+    // returns to it instead of restarting the wizard.
+    void saveActiveEvOrderId(created.id);
+    Alert.alert(
+      "Payment received",
+      `Order Fee of ${DEPOSIT_CURRENCY}${DEPOSIT_AMOUNT.toLocaleString()} has been received. Your order is now pending DA assignment.` +
+        (canSyncOrder
+          ? ""
+          : "\n\nYou're signed in on this device only, so the order is saved here and will upload when you sign in."),
+    );
   };
 
   const payDeposit = () => {
-    if (!defaultGateway) {
+    if (!checkoutGateway) {
       Alert.alert(
         "Payment gateway unavailable",
         "No active payment gateway is configured. Please contact support before proceeding.",
@@ -611,8 +772,8 @@ export default function TeksiEvScreen() {
         return;
       }
     }
-    const gwLine = defaultGateway
-      ? `\n\nProcessed by ${defaultGateway.providerName}${defaultGateway.mode === "Sandbox" ? " (Sandbox)" : ""}.`
+    const gwLine = checkoutGateway
+      ? `\n\nProcessed by ${checkoutGateway.providerName}${checkoutGateway.mode === "Sandbox" ? " (Sandbox)" : ""}.`
       : "";
     Alert.alert(
       "Non-refundable Order Fee",
@@ -1009,10 +1170,35 @@ export default function TeksiEvScreen() {
         <Banknote color={Colors.secondary} size={28} />
         <Text style={[styles.depositLabel, { color: Colors.secondary }]}>Order Fee</Text>
         <Text style={[styles.depositValue, { color: Colors.secondary }]}>{DEPOSIT_CURRENCY} {DEPOSIT_AMOUNT.toLocaleString()}</Text>
-        <Text style={[styles.depositSub, { color: Colors.secondary }]}>Refundable Order Fee to secure your build</Text>
+        <Text style={[styles.depositSub, { color: Colors.secondary }]}>
+          Non-refundable order fee to secure your build
+        </Text>
       </View>
 
-      {defaultGateway ? (
+      {!canSyncOrder && (
+        <View
+          style={[
+            styles.gatewayBanner,
+            {
+              backgroundColor: (Colors.warning ?? "#F59E0B") + "15",
+              borderColor: Colors.warning ?? "#F59E0B",
+            },
+          ]}
+          testID="ev-checkout-local-session"
+        >
+          <View style={[styles.gatewayIcon, { backgroundColor: (Colors.warning ?? "#F59E0B") + "30" }]}>
+            <ShieldCheck color={Colors.warning ?? "#F59E0B"} size={16} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.gatewayLabel, { color: Colors.textSecondary }]}>Offline session</Text>
+            <Text style={[styles.gatewayName, { color: Colors.warning ?? "#F59E0B" }]} numberOfLines={3}>
+              Your order will be held on this device and uploaded once you sign in.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {checkoutGateway ? (
         <View
           style={[
             styles.gatewayBanner,
@@ -1028,8 +1214,8 @@ export default function TeksiEvScreen() {
               Secure payment by
             </Text>
             <Text style={[styles.gatewayName, { color: Colors.text }]} numberOfLines={1}>
-              {defaultGateway.providerName}
-              {defaultGateway.accountName ? `  ·  ${defaultGateway.accountName}` : ""}
+              {checkoutGateway.providerName}
+              {checkoutGateway.accountName ? `  ·  ${checkoutGateway.accountName}` : ""}
             </Text>
           </View>
           <View
@@ -1037,7 +1223,7 @@ export default function TeksiEvScreen() {
               styles.gatewayPill,
               {
                 backgroundColor:
-                  defaultGateway.mode === "Live"
+                  checkoutGateway.mode === "Live"
                     ? (Colors.success ?? "#10B981") + "30"
                     : (Colors.warning ?? "#F59E0B") + "30",
               },
@@ -1048,13 +1234,13 @@ export default function TeksiEvScreen() {
                 styles.gatewayPillText,
                 {
                   color:
-                    defaultGateway.mode === "Live"
+                    checkoutGateway.mode === "Live"
                       ? Colors.success ?? "#10B981"
                       : Colors.warning ?? "#F59E0B",
                 },
               ]}
             >
-              {defaultGateway.mode}
+              {checkoutGateway.mode}
             </Text>
           </View>
         </View>
@@ -1602,7 +1788,12 @@ export default function TeksiEvScreen() {
       const label = d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
       slots.push({ iso, label });
     }
-    const readyForDelivery = String(myOrder?.values.status ?? "") === "ready_for_delivery";
+    // Normalised so the banner tracks the shared status vocabulary rather than
+    // one exact spelling — and so `delivered` still counts as ready.
+    const readyForDelivery = evOrderStatusAtLeast(
+      myOrder?.values.status,
+      "ready_for_delivery",
+    );
     return (
       <View style={{ gap: 14 }}>
         <View
@@ -1664,33 +1855,16 @@ export default function TeksiEvScreen() {
   };
 
   const renderDelivery = () => {
-    const checklistItems = getEntries("ev-delivery-checklist");
-    const submittedRaw = String(myOrder?.values.checklistSubmitted ?? "");
-    const submitted = submittedRaw === "true" || submittedRaw === "1";
-    let advisorChecks: { name: string; done: boolean; note: string }[] = [];
-    try {
-      const raw = String(myOrder?.values.checklistResults ?? "");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          advisorChecks = parsed.map((x) => ({
-            name: String(x?.name ?? ""),
-            done: x?.done !== false,
-            note: String(x?.note ?? ""),
-          }));
-        }
-      }
-    } catch {
-      advisorChecks = [];
-    }
-    const items: { name: string; done: boolean; note: string }[] =
-      advisorChecks.length > 0
-        ? advisorChecks
-        : checklistItems.map((c) => ({
-            name: String(c.values.name ?? c.values.title ?? "Item"),
-            done: submitted,
-            note: "",
-          }));
+    const orderValues: EvOrderValues = myOrder?.values ?? {};
+    const submitted = isChecklistSubmitted(orderValues);
+    // Before submission the configured template is shown as a preview of what
+    // the advisor will walk through; after it, the advisor's own results.
+    const items = buildChecklistDraft(
+      getEntries("ev-delivery-checklist").map((c) =>
+        String(c.values.name ?? c.values.title ?? "Item"),
+      ),
+      orderValues,
+    );
 
     return (
       <View style={{ gap: 12 }}>
@@ -1744,7 +1918,13 @@ export default function TeksiEvScreen() {
               return;
             }
             setChecklistAccepted(true);
-            persistOrder({ checklistAccepted: true, status: "delivered" });
+            persistOrder({
+              checklistAccepted: true,
+              checklistAcceptedAt: new Date().toISOString(),
+              status: "delivered",
+            });
+            // Handover is done — this device no longer has an order in flight.
+            void clearActiveEvOrderId();
           }}
           disabled={checklistAccepted}
           style={[
@@ -1887,9 +2067,7 @@ export default function TeksiEvScreen() {
     }
     setOwnershipConfirmed(true);
     if (myOrderId) {
-      const existing = orders.find((o) => o.id === myOrderId);
-      const merged: Record<string, string | number | boolean> = {
-        ...(existing?.values ?? {}),
+      persistOrder({
         ownerType,
         ownerIdType: ownerType === "company" ? `company+${idType}` : idType,
         ownerIdCountry: idCountry,
@@ -1902,8 +2080,7 @@ export default function TeksiEvScreen() {
         companyName: ownerType === "company" ? companyName : "",
         companyRegNo: ownerType === "company" ? companyRegNo : "",
         companyAddress: ownerType === "company" ? companyAddress : "",
-      };
-      updateEntry("ev-orders", myOrderId, merged);
+      });
     }
   };
 

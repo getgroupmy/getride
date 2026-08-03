@@ -58,6 +58,7 @@ import {
   Bot,
   FlaskConical,
   Percent,
+  ClipboardList,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
@@ -150,6 +151,7 @@ export default function AdminSettingsScreen() {
           { id: "ev-delivery-advisors", label: "Delivery Advisors", description: "Assign DAs across countries & dealerships", icon: UserCheck, tone: "warning" },
           { id: "ev-finance-options", label: "Finance Options", description: "Cash, Leasing & Financing plans", icon: Wallet, tone: "neutral" },
           { id: "ev-order-fee", label: "Order Fee", description: "Non-refundable order fee per country", icon: Banknote, tone: "warning" },
+          { id: "ev-delivery-checklist", label: "Delivery Checklist", description: "Handover items advisors confirm at delivery", icon: ClipboardList, tone: "success" },
         ],
       },
       {
@@ -230,6 +232,7 @@ export default function AdminSettingsScreen() {
     "ev-delivery-advisors": "/admin-settings-ev-delivery-advisors",
     "ev-finance-options": "/admin-settings-ev-finance-options",
     "ev-order-fee": "/admin-settings-ev-order-fee",
+    "ev-delivery-checklist": "/admin-settings-ev-delivery-checklist",
     supabase: "/admin-settings-supabase",
     "mock-settings": "/admin-settings-mock",
     "rork-chat": "/admin-settings-rork-chat",

@@ -124,6 +124,14 @@ Commission *rates* are configurable from Admin → Settings → Commission Rates
 
 Both stores degrade gracefully: if the wallet/commission tables aren't in the live database yet, they fall back to device-local AsyncStorage copies and report `source: "local"` so callers can surface a notice.
 
+### TEKSI EV order flow
+
+`app/teksi-ev.tsx` is the customer car-buying wizard (menu item "Book TEKSI EV"), nine steps: model → specification → order fee → ownership → plate → financing → advisor → schedule → delivery. Every catalog it reads is admin-configured (`ev-vehicle-details`, `ev-vehicle-inventory`, `ev-delivery-advisors`, `ev-finance-options`, `ev-order-fee`, `ev-delivery-checklist`), and the order itself is one `ev-orders` entry created when the order fee is paid, then patched step by step. The fee comes from `resolveOrderFee` (vehicle country → account country → ID country) and is collected through the gateway attached to that fee row, falling back to the platform default.
+
+Shared order logic lives in `utils/evOrders.ts` (pure, tested): the status vocabulary (`pending` → `assigned` → `in-progress` → `ready_for_delivery` → `delivered`, plus `cancelled`) with `normalizeEvOrderStatus` tolerating stored spelling variants, the delivery-checklist parse/merge helpers, and `deriveEvOrderStep`, which maps a stored order back onto a wizard step. Both sides of the flow use it: the customer wizard and the back office (`app/admin-orders.tsx`), where a Delivery Advisor is assigned and the handover checklist is filled in and submitted (`checklistResults` / `checklistSubmitted`) for the customer to accept — accepting is what marks the order `delivered`.
+
+Orders resume rather than restart: `utils/evOrderStore.ts` remembers the in-flight order id on the device, and if that's absent the wizard adopts this account's newest unfinished order. Writes need an authenticated Supabase session (owner-scoped RLS, see Database); on a legacy local-PIN session the checkout says so and the order is held locally until it can sync.
+
 ### Maps
 
 - Native: `utils/maps.ts` re-exports from `react-native-maps` and adds helpers (`decodePolyline`, `getRoute`, `reverseGeocode`).
@@ -152,6 +160,7 @@ RLS is enabled everywhere and — since migration `0069` — scoped rather than 
 - **`admin_access`** writes require sub-admin edit access (the `0010` public-write policies are gone). First-run bootstrap: the `admin_access_bootstrap()` RPC makes the first authenticated caller the `'*'` admin on an empty table — the sub-admin screen retries through it automatically.
 - From `0066`: the wallet tables are read-only to clients (writes go through owner-scoped RPCs — see Wallets above), and the `app_settings` row `fare_ai_provider` (secret AI provider keys) is only visible to profiles with an `admin_access` row or the service role — non-admin clients get fare estimates through the `ai-route-proxy` edge function instead.
 - Storage: buckets stay public (existing `getPublicUrl` links keep rendering) but the broad per-bucket SELECT (listing) policies are dropped and writes are admin- or owner-scoped; `voice-protection` objects are readable only by their owner's folder or admins (signed URLs).
+- From `0080`: **`ev_orders`** is the one *owner-scoped* settings category. TEKSI EV orders are created by the customer (see EV order flow below), so they cannot live in the admin-write-only `settings_entries`; they get their own table with the same `SettingEntry` shape plus `user_id` (defaulted from `auth.uid()`, frozen by trigger), readable/writable by owner-or-admin and deletable by admins only. `adminSync.ts` routes the category through `OWNER_SCOPED_CATEGORY_TABLE_MAP` and falls back to `settings_entries` when the table is missing (`isMissingTableError`); `AdminDataContext` keeps local-only rows of these categories across a remote fetch and retries their upsert, so an order created offline is never dropped.
 
 Owner-scoped tables (like `profiles`) require `auth.uid()` to match the row; admin/back-office writes otherwise use the `service_role` key.
 

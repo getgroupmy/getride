@@ -10,6 +10,7 @@ import {
   deleteVehicleMakeModel as sbDeleteVehicleMakeModel,
   deleteRegion as sbDeleteRegion,
   fetchAllSettings as sbFetchAllSettings,
+  OWNER_SCOPED_CATEGORIES,
   fetchRegions as sbFetchRegions,
   fetchPartners as sbFetchPartners,
   fetchUsers as sbFetchUsers,
@@ -943,21 +944,44 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
             }
           }
 
-          setData((prev) => ({
-            // Partners are the source of truth in Supabase — always replace
-            // local cache (including empty array) so the admin panel reflects
-            // the live `partners` table, never stale seeds.
-            partners: remotePartners ?? prev.partners,
-            users: remoteUsers && remoteUsers.length > 0 ? remoteUsers : prev.users,
-            // Vehicles are the source of truth in Supabase — always replace
-            // local cache (including empty array) so admin-vehicles-*.tsx
-            // reflects the live `vehicles` table, never stale seeds.
-            vehicles: remoteVehicles ?? prev.vehicles,
-            // Vehicle make/model catalog is exclusively sourced from Supabase
-            // (see migration 0015). No local seed/fallback.
-            vehicleMakeModels: remoteVMM ?? prev.vehicleMakeModels,
-            entries: remoteEntries ? { ...prev.entries, ...remoteEntries } : prev.entries,
-          }));
+          setData((prev) => {
+            const mergedEntries = remoteEntries
+              ? { ...prev.entries, ...remoteEntries }
+              : prev.entries;
+            // Owner-scoped categories (EV orders) hold customer data written
+            // from the device that created it. A row that never reached the
+            // server — offline, or a legacy local-PIN session — must survive
+            // the remote fetch replacing its category, so keep the local-only
+            // rows and retry their sync.
+            if (remoteEntries) {
+              for (const category of OWNER_SCOPED_CATEGORIES) {
+                const remoteList = remoteEntries[category];
+                if (!remoteList) continue;
+                const remoteIds = new Set(remoteList.map((e) => e.id));
+                const localOnly = (prev.entries[category] ?? []).filter(
+                  (e) => !remoteIds.has(e.id)
+                );
+                if (localOnly.length === 0) continue;
+                mergedEntries[category] = [...localOnly, ...remoteList];
+                localOnly.forEach((e, i) => void sbUpsertSetting(category, e, i));
+              }
+            }
+            return {
+              // Partners are the source of truth in Supabase — always replace
+              // local cache (including empty array) so the admin panel reflects
+              // the live `partners` table, never stale seeds.
+              partners: remotePartners ?? prev.partners,
+              users: remoteUsers && remoteUsers.length > 0 ? remoteUsers : prev.users,
+              // Vehicles are the source of truth in Supabase — always replace
+              // local cache (including empty array) so admin-vehicles-*.tsx
+              // reflects the live `vehicles` table, never stale seeds.
+              vehicles: remoteVehicles ?? prev.vehicles,
+              // Vehicle make/model catalog is exclusively sourced from Supabase
+              // (see migration 0015). No local seed/fallback.
+              vehicleMakeModels: remoteVMM ?? prev.vehicleMakeModels,
+              entries: mergedEntries,
+            };
+          });
         }
       } catch (e) {
         console.log("[AdminData] hydrate error", e);
