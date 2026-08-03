@@ -29,14 +29,15 @@ import {
   Star,
 } from "lucide-react-native";
 import { Country } from "country-state-city";
-
-const COUNTRY_STATES_CITIES_STORAGE_KEY = "country-states-cities" as const;
 import { useColors } from "@/hooks/useColors";
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
 import { useAdminData, SettingEntry } from "@/contexts/AdminDataContext";
 import PaymentGatewayAccountPicker, {
   SelectedGateway,
 } from "@/components/PaymentGatewayAccountPicker";
+import type { ResolvedGateway } from "@/app/admin-settings-payment-gateway";
+
+const COUNTRY_STATES_CITIES_STORAGE_KEY = "country-states-cities" as const;
 
 export const ORDER_FEE_STORAGE_KEY = "ev-order-fee" as const;
 export const DEFAULT_ORDER_FEE_COUNTRY = "Malaysia";
@@ -581,6 +582,17 @@ export default function AdminSettingsEvOrderFeeScreen() {
   );
 }
 
+export interface ResolvedOrderFee {
+  amount: number;
+  currency: string;
+  country: string;
+  /**
+   * The gateway this country's fee is collected through, when the admin
+   * picked one on the fee row. Null means "use the default gateway".
+   */
+  gateway: ResolvedGateway | null;
+}
+
 /**
  * Resolve an order fee for a given country from a list of order-fee entries.
  * Falls back to the default-flagged entry, otherwise the Malaysia seed defaults.
@@ -588,7 +600,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
 export function resolveOrderFee(
   entries: SettingEntry[],
   country: string | undefined,
-): { amount: number; currency: string; country: string } {
+): ResolvedOrderFee {
   const list = entries.filter((e) => e.values.active !== false);
   const norm = (s: string) => s.trim().toLowerCase();
   const byCountry = country
@@ -604,12 +616,25 @@ export function resolveOrderFee(
       amount: DEFAULT_ORDER_FEE_AMOUNT,
       currency: DEFAULT_ORDER_FEE_CURRENCY,
       country: DEFAULT_ORDER_FEE_COUNTRY,
+      gateway: null,
     };
   }
+  const v = picked.values;
+  const gatewayId = String(v.gatewayId ?? "");
   return {
-    amount: Number(picked.values.amount ?? DEFAULT_ORDER_FEE_AMOUNT) || DEFAULT_ORDER_FEE_AMOUNT,
-    currency: String(picked.values.currency ?? DEFAULT_ORDER_FEE_CURRENCY) || DEFAULT_ORDER_FEE_CURRENCY,
-    country: String(picked.values.country ?? DEFAULT_ORDER_FEE_COUNTRY) || DEFAULT_ORDER_FEE_COUNTRY,
+    amount: Number(v.amount ?? DEFAULT_ORDER_FEE_AMOUNT) || DEFAULT_ORDER_FEE_AMOUNT,
+    currency: String(v.currency ?? DEFAULT_ORDER_FEE_CURRENCY) || DEFAULT_ORDER_FEE_CURRENCY,
+    country: String(v.country ?? DEFAULT_ORDER_FEE_COUNTRY) || DEFAULT_ORDER_FEE_COUNTRY,
+    gateway: gatewayId
+      ? {
+          id: gatewayId,
+          providerId: String(v.gatewayProviderId ?? ""),
+          providerName: String(v.gatewayProviderName ?? ""),
+          accountName: String(v.gatewayAccountName ?? ""),
+          mode: String(v.gatewayMode ?? "Live") === "Sandbox" ? "Sandbox" : "Live",
+          isDefault: false,
+        }
+      : null,
   };
 }
 

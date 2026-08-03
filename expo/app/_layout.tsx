@@ -238,6 +238,7 @@ function RootLayoutNav() {
       <Stack.Screen name="admin-settings-ev-delivery-advisors" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-ev-finance-options" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-ev-order-fee" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="admin-settings-ev-delivery-checklist" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-session-history" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-trace-fraud" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-orders" options={{ animation: "slide_from_right", gestureEnabled: false }} />
