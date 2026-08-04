@@ -7,12 +7,22 @@
  * billing record — a dispatched ride is settled through `ride_requests` and
  * the commission RPC; this is the driver's own tally of street hires.
  *
+ * A record carries both ends of the hire (`pickup` / `dropoff`: the odometer
+ * and the position where the passenger got in and out). Those readings do not
+ * all land at once — the adapter and the geocoder answer after the fare is
+ * already settled — so the record is written immediately and completed by
+ * `patchMeterTripWaypoints`. Nothing that was measured or charged is rewritable.
+ *
  * Shaping a record and summing the log are pure (and tested); this module only
- * loads, appends and trims.
+ * loads, appends, patches and trims.
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import {
+  normalizeMeterWaypoint,
+  type MeterWaypoint,
+} from "@/utils/meterDashboard";
 import {
   computeMeterFare,
   meterGrandTotal,
@@ -49,6 +59,13 @@ export interface MeterTrip {
   gpsSamples: number;
   plate: string | null;
   driver: string | null;
+  /**
+   * Where the hire began and ended: the vehicle's odometer and the position at
+   * each end. Null on a record from a build before the meter stamped them, and
+   * on either end the meter could not read — see {@link MeterWaypoint}.
+   */
+  pickup: MeterWaypoint | null;
+  dropoff: MeterWaypoint | null;
 }
 
 export interface BuildMeterTripInput {
@@ -59,6 +76,8 @@ export interface BuildMeterTripInput {
   extra: number;
   plate?: string | null;
   driver?: string | null;
+  pickup?: MeterWaypoint | null;
+  dropoff?: MeterWaypoint | null;
 }
 
 /**
@@ -91,6 +110,8 @@ export function buildMeterTrip(
     gpsSamples: state.gpsSamples,
     plate: input.plate?.trim() ? input.plate.trim() : null,
     driver: input.driver?.trim() ? input.driver.trim() : null,
+    pickup: normalizeMeterWaypoint(input.pickup),
+    dropoff: normalizeMeterWaypoint(input.dropoff),
   };
 }
 
@@ -143,6 +164,8 @@ function normalizeTrips(value: unknown): MeterTrip[] {
       gpsSamples: typeof t.gpsSamples === "number" ? t.gpsSamples : 0,
       plate: typeof t.plate === "string" ? t.plate : null,
       driver: typeof t.driver === "string" ? t.driver : null,
+      pickup: normalizeMeterWaypoint(t.pickup),
+      dropoff: normalizeMeterWaypoint(t.dropoff),
     });
   }
   return out;
@@ -173,6 +196,43 @@ export async function saveMeterTrip(trip: MeterTrip): Promise<MeterTrip[]> {
     console.log("[meter-trips] save failed", e);
   }
   return next;
+}
+
+/**
+ * Fold a late answer into a hire that is already on the roll.
+ *
+ * The two ends of a hire are stamped the instant they happen, but the readings
+ * that describe them do not all arrive at once: the odometer comes back from
+ * the adapter a moment later, and an address later still. Rather than hold the
+ * record up — the log must exist the second the driver ends the hire — the
+ * record is written with what is known and completed here.
+ *
+ * Only the ends may be patched: nothing that was measured or charged is
+ * rewritable after the fact.
+ */
+export async function patchMeterTripWaypoints(
+  id: string,
+  patch: { pickup?: MeterWaypoint | null; dropoff?: MeterWaypoint | null },
+): Promise<{ trip: MeterTrip | null; trips: MeterTrip[] }> {
+  const existing = await loadMeterTrips();
+  const index = existing.findIndex((t) => t.id === id);
+  // The hire may have fallen off the end of the log, or been cleared, while the
+  // answer was in flight — that is not an error, there is simply nothing to fill in.
+  if (index === -1) return { trip: null, trips: existing };
+
+  const updated: MeterTrip = {
+    ...existing[index],
+    ...("pickup" in patch ? { pickup: normalizeMeterWaypoint(patch.pickup) } : {}),
+    ...("dropoff" in patch ? { dropoff: normalizeMeterWaypoint(patch.dropoff) } : {}),
+  };
+  const next = [...existing];
+  next[index] = updated;
+  try {
+    await AsyncStorage.setItem(METER_TRIPS_KEY, JSON.stringify(next));
+  } catch (e) {
+    console.log("[meter-trips] waypoint patch failed", e);
+  }
+  return { trip: updated, trips: next };
 }
 
 /** Clear the log. The driver's own tally, so it is theirs to wipe. */

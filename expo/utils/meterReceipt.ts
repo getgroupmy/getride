@@ -17,7 +17,12 @@ import {
   formatMeterClock,
   formatMeterDistance,
 } from "@/utils/taxiMeter";
-import { formatDashDate, formatDashTime } from "@/utils/meterDashboard";
+import {
+  formatDashDate,
+  formatDashTime,
+  formatWaypointOdometer,
+  formatWaypointPlace,
+} from "@/utils/meterDashboard";
 import type { MeterTrip } from "@/utils/meterTripsStore";
 
 export interface ReceiptBranding {
@@ -51,6 +56,27 @@ function receiptLines(trip: MeterTrip): ReceiptLine[] {
     { label: "Date", value: formatDashDate(trip.endedAt) },
     { label: "Start", value: formatDashTime(trip.startedAt) },
     { label: "End", value: formatDashTime(trip.endedAt) },
+  ];
+
+  // Where the hire ran, and what the cluster read at each end. A record from
+  // before the meter stamped its ends carries none of this, and a car that
+  // publishes no odometer carries only half of it — either way the paper shows
+  // what was actually recorded and no line for what was not.
+  for (const end of [
+    { label: "Pickup", waypoint: trip.pickup },
+    { label: "Drop-off", waypoint: trip.dropoff },
+  ]) {
+    if (!end.waypoint) continue;
+    lines.push({ label: end.label, value: formatWaypointPlace(end.waypoint) });
+    if (end.waypoint.odometerKm !== null) {
+      lines.push({
+        label: `${end.label} odometer`,
+        value: formatWaypointOdometer(end.waypoint.odometerKm),
+      });
+    }
+  }
+
+  lines.push(
     { label: "Distance", value: formatMeterDistance(trip.distanceM) },
     { label: "Trip time", value: formatMeterClock(trip.elapsedMs) },
     { label: "Waiting", value: formatMeterClock(trip.waitingMs) },
@@ -60,7 +86,7 @@ function receiptLines(trip: MeterTrip): ReceiptLine[] {
         trip.period === "night" ? "Night" : "Day"
       }`,
     },
-  ];
+  );
   if (trip.period === "night") {
     lines.push({
       label: "Night surcharge",
@@ -100,7 +126,7 @@ export function buildMeterReceiptHtml(
   const rows = receiptLines(trip)
     .map(
       (l) =>
-        `<tr class="${l.strong ? "total" : ""}"><td>${escapeHtml(
+        `<tr class="${l.strong ? "total" : ""}"><td class="l">${escapeHtml(
           l.label,
         )}</td><td class="v">${escapeHtml(l.value)}</td></tr>`,
     )
@@ -128,7 +154,11 @@ export function buildMeterReceiptHtml(
   hr { border: none; border-top: 1px dashed #999; margin: 8px 0; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   td { padding: 3px 0; }
-  td.v { text-align: right; font-variant-numeric: tabular-nums; }
+  td { vertical-align: top; }
+  td.l { white-space: nowrap; padding-right: 8px; }
+  /* An address is the one value that will not fit an 80 mm roll on one line:
+     it wraps inside its own cell rather than pushing the column off the paper. */
+  td.v { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   tr.total td { font-size: 15px; font-weight: 700; padding-top: 8px; border-top: 1px solid #111; }
   .foot { font-size: 10px; color: #666; text-align: center; margin-top: 10px; }
 </style>

@@ -15,10 +15,13 @@
  *     this glass against the reference console" and "how tall". Sizing off the
  *     height alone (as this screen first did) makes a wide-but-short viewport
  *     draw digits that overflow sideways.
- *  2. **A readout is sized to its own panel, not to a share of the screen.**
- *     The segment fields are monospace, so the width a value needs is
- *     arithmetic — `fitDigits` returns the largest point size at which the
- *     digits still sit inside the panel that holds them.
+ *  2. **A readout is sized to the value in hand, in its own panel.** The
+ *     segment fields are monospace, so the width a value needs is arithmetic —
+ *     `fitDigits` returns the largest point size at which that many digits
+ *     still sit inside the panel holding them, and `fitReadout` caps it at what
+ *     the panel has vertically. Sizing a field to the longest string it might
+ *     ever hold either clips the long case or wastes the short one, so the
+ *     clock and the distance are re-fitted as they grow.
  *
  * All pure, so the fitting rules are unit tested rather than eyeballed on one
  * device.
@@ -39,8 +42,19 @@ const COMPACT_WIDTH = 820;
 export const MIN_METER_SCALE = 0.68;
 export const MAX_METER_SCALE = 1.7;
 
-/** Roughly how wide one monospace glyph is, as a fraction of its point size. */
-const MONO_ASPECT = 0.62;
+/**
+ * Roughly how wide one monospace glyph is, as a fraction of its point size.
+ *
+ * Menlo (iOS) advances 0.602 em and Android's monospace 0.600, and
+ * `SegmentDisplay` adds 0.02 em of letter spacing on top — so the true figure
+ * is a shade over 0.62. This carries a few percent of margin above that: a
+ * readout drawn one point too small is invisible to the driver, while one drawn
+ * a hair too wide loses its last digit to the panel's overflow.
+ */
+const MONO_ASPECT = 0.645;
+
+/** Never draw a readout below this: a dash instrument is read at a glance. */
+export const MIN_READOUT_PT = 9;
 
 /** Every size the meter draws with, in points/pixels for one viewport. */
 export interface MeterMetrics {
@@ -55,7 +69,14 @@ export interface MeterMetrics {
 
   /* Readouts */
   fareSize: number;
-  statSize: number;
+  /**
+   * Ceiling for the TIME / DISTANCE readouts. Their actual size is fitted to
+   * the value being shown (`fitReadout` against {@link statPanelWidth}), so a
+   * clock past an hour and a two-digit distance both stay whole.
+   */
+  statSizeMax: number;
+  /** Width one of the two stat panels gets, for that fitting. */
+  statPanelWidth: number;
   currencySize: number;
   statusSize: number;
   summaryValue: number;
@@ -128,6 +149,30 @@ export function fitDigits(
   return room / (chars * MONO_ASPECT);
 }
 
+/**
+ * The size a readout is actually drawn at: {@link fitDigits} for the value in
+ * hand, held under `max` and above the legibility floor, and rounded.
+ *
+ * This is what makes a field size itself to its *content* rather than to the
+ * longest thing it might ever hold. A clock that has run past an hour, a
+ * distance that has gained a digit, an odometer with six of them — each is
+ * drawn as large as its own box allows, so nothing is ever cut off and nothing
+ * is needlessly small. Fields that sit side by side pass their values through
+ * separately and take the smaller answer, so a pair stays a pair.
+ */
+export function fitReadout(
+  panelWidth: number,
+  chars: number,
+  reserved: number,
+  max: number,
+): number {
+  const fitted = fitDigits(panelWidth, chars, reserved);
+  // No room at all (a pathological viewport): the floor still gets drawn, and
+  // the panel's own overflow is what clips it.
+  if (fitted <= 0) return Math.round(Math.min(max, MIN_READOUT_PT));
+  return Math.round(Math.max(MIN_READOUT_PT, Math.min(max, fitted)));
+}
+
 /** Every size the meter draws with, for one viewport. */
 export function computeMeterMetrics(width: number, height: number): MeterMetrics {
   const scale = meterScale(width, height);
@@ -175,10 +220,10 @@ export function computeMeterMetrics(width: number, height: number): MeterMetrics
         fitDigits(moneyPanel, 6, pad * 2 + currencySize * 1.6 + gap),
       ),
     ),
-    // "00:00:00" is the longest thing a stat panel shows.
-    statSize: Math.round(
-      Math.min(28 * scale, fitDigits(statPanel, 8, pad * 2 + px(4))),
-    ),
+    // The stat panels have the height for this much; how much of it a readout
+    // actually uses is decided by the value it is drawing (see `fitReadout`).
+    statSizeMax: Math.round(28 * scale),
+    statPanelWidth: statPanel,
     currencySize,
     statusSize: pt(22, 13),
     summaryValue: pt(22, 13),

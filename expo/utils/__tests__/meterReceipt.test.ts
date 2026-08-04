@@ -20,6 +20,20 @@ const TRIP: MeterTrip = {
   gpsSamples: 120,
   plate: "VEP 1234",
   driver: "KABEER SINGH",
+  pickup: {
+    at: new Date(2026, 7, 4, 11, 20, 0).getTime(),
+    odometerKm: 128450.6,
+    latitude: 3.139,
+    longitude: 101.6869,
+    place: "KLCC, Kuala Lumpur",
+  },
+  dropoff: {
+    at: new Date(2026, 7, 4, 11, 47, 0).getTime(),
+    odometerKm: 128459.1,
+    latitude: 3.1285,
+    longitude: 101.6768,
+    place: "Bangsar, Kuala Lumpur",
+  },
 };
 
 describe("buildMeterReceiptHtml", () => {
@@ -51,6 +65,39 @@ describe("buildMeterReceiptHtml", () => {
     expect(buildMeterReceiptHtml({ ...TRIP, extra: 0 })).not.toContain("Extras");
   });
 
+  it("prints where the hire ran and what the odometer read at each end", () => {
+    const html = buildMeterReceiptHtml(TRIP);
+    expect(html).toContain("KLCC, Kuala Lumpur");
+    expect(html).toContain("Bangsar, Kuala Lumpur");
+    expect(html).toContain("Pickup odometer");
+    expect(html).toContain("128 450.6 km");
+    expect(html).toContain("Drop-off odometer");
+    expect(html).toContain("128 459.1 km");
+  });
+
+  it("prints the fix when the geocoder never answered", () => {
+    const html = buildMeterReceiptHtml({
+      ...TRIP,
+      pickup: { ...TRIP.pickup!, place: null },
+    });
+    expect(html).toContain("3.13900, 101.68690");
+  });
+
+  it("leaves out an end the meter never stamped", () => {
+    // A record from a build before the ends existed, or a hire whose reader
+    // never answered: no line rather than a line full of dashes.
+    const html = buildMeterReceiptHtml({ ...TRIP, pickup: null, dropoff: null });
+    expect(html).not.toContain("Pickup");
+    expect(html).not.toContain("Drop-off");
+
+    const noOdometer = buildMeterReceiptHtml({
+      ...TRIP,
+      pickup: { ...TRIP.pickup!, odometerKm: null },
+    });
+    expect(noOdometer).toContain("Pickup</td>");
+    expect(noOdometer).not.toContain("Pickup odometer");
+  });
+
   it("escapes the driver-supplied fields", () => {
     const html = buildMeterReceiptHtml({
       ...TRIP,
@@ -77,5 +124,9 @@ describe("buildMeterReceiptText", () => {
     expect(text).toContain("Distance: 8.42 km");
     expect(text).toContain("Vehicle VEP 1234");
     expect(text).toContain("Driver KABEER SINGH");
+    expect(text).toContain("Pickup: KLCC, Kuala Lumpur");
+    expect(text).toContain("Drop-off: Bangsar, Kuala Lumpur");
+    expect(text).toContain("Pickup odometer: 128 450.6 km");
+    expect(text).toContain("Drop-off odometer: 128 459.1 km");
   });
 });
