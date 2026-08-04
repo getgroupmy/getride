@@ -4349,3 +4349,15 @@ insert into public.meter_digital_settings (level, label)
  where not exists (
    select 1 from public.meter_digital_settings where level = 'master'
  );
+
+-- Realtime: the console panels of a card apply live — the admin Show / Tap
+-- switches write through without a Save — so a change has to reach the drivers'
+-- meters on its own (migrations/0082_meter_digital_settings_realtime.sql).
+alter table public.meter_digital_settings replica identity full;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.meter_digital_settings;
+exception
+  when duplicate_object then null;
+end$$;
