@@ -16,6 +16,7 @@ import {
   ChevronUp,
   RefreshCw,
 } from "lucide-react-native";
+import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
 
 interface ServerDetails {
   url: string;
@@ -89,6 +90,7 @@ export function ConnectionStatusModal({
       visible={visible}
       transparent
       animationType="fade"
+      supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
       onRequestClose={onClose}
       statusBarTranslucent
     >

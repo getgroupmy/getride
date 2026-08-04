@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Check } from "lucide-react-native";
+import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
 import { useColors } from "@/hooks/useColors";
 import { useBranding } from "@/contexts/BrandingContext";
 
@@ -25,7 +26,13 @@ export function AppIconChangeModal() {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
+      onRequestClose={onClose}
+    >
       <View style={styles.backdrop}>
         <View style={[styles.card, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
           <View style={[styles.iconWrap, { borderColor: Colors.border }]}>
