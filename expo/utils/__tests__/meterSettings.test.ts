@@ -1,14 +1,17 @@
 import {
   allowedMeterSources,
+  canApplyMeterPanelLive,
   createMeterProfileDraft,
   DEFAULT_METER_PROFILE,
   describeMeterRates,
   hasMeterSurcharges,
   meterExtraSurcharge,
   meterOdometerGate,
+  meterPanelsToRow,
   meterProfileScopeLabel,
   meterReadsOdometer,
   meterProfileToRow,
+  setMeterPanelAccess,
   normalizeMeterProfile,
   resolveMeterProfile,
   validateMeterProfile,
@@ -456,5 +459,85 @@ describe("meterProfileScopeLabel", () => {
         profile({ level: "suburb", suburb: "Bangsar", city: "Kuala Lumpur" }),
       ),
     ).toBe("Bangsar, Kuala Lumpur");
+  });
+});
+
+describe("setMeterPanelAccess", () => {
+  const panels = () => profile().panels;
+
+  it("hides a panel and takes its tap with it — an undrawn tab cannot be pressed", () => {
+    const next = setMeterPanelAccess(panels(), "printer", { show: false });
+    expect(next.printer).toEqual({ show: false, tap: false });
+  });
+
+  it("shows a panel again without assuming it may be tapped", () => {
+    const hidden = setMeterPanelAccess(panels(), "obd", { show: false });
+    expect(setMeterPanelAccess(hidden, "obd", { show: true }).obd).toEqual({
+      show: true,
+      tap: false,
+    });
+  });
+
+  it("locks a shown panel: visible, not tappable", () => {
+    expect(setMeterPanelAccess(panels(), "settings", { tap: false }).settings).toEqual({
+      show: true,
+      tap: false,
+    });
+  });
+
+  it("shows a hidden panel that is made tappable — tap without show is not a state", () => {
+    const hidden = setMeterPanelAccess(panels(), "trips", { show: false });
+    expect(setMeterPanelAccess(hidden, "trips", { tap: true }).trips).toEqual({
+      show: true,
+      tap: true,
+    });
+  });
+
+  it("pins the meter panel on — a console without a meter is not a meter", () => {
+    expect(setMeterPanelAccess(panels(), "meter", { show: false }).meter).toEqual({
+      show: true,
+      tap: true,
+    });
+    expect(setMeterPanelAccess(panels(), "meter", { tap: false }).meter).toEqual({
+      show: true,
+      tap: true,
+    });
+  });
+
+  it("leaves the other panels and the caller's own record untouched", () => {
+    const before = panels();
+    const next = setMeterPanelAccess(before, "printer", { show: false });
+    expect(before.printer).toEqual({ show: true, tap: true });
+    expect(next.trips).toEqual({ show: true, tap: true });
+    expect(next.settings).toEqual({ show: true, tap: true });
+  });
+
+  it("round-trips through the row shape the live write sends", () => {
+    const next = setMeterPanelAccess(panels(), "obd", { show: false });
+    expect(meterPanelsToRow(next)).toMatchObject({
+      show_obd: false,
+      tap_obd: false,
+      show_meter: true,
+      tap_settings: true,
+    });
+    expect(normalizeMeterProfile(row(meterPanelsToRow(next))).panels.obd).toEqual({
+      show: false,
+      tap: false,
+    });
+  });
+});
+
+describe("canApplyMeterPanelLive", () => {
+  it("applies live to a stored card", () => {
+    expect(canApplyMeterPanelLive(profile({ id: "row-1", level: "city" }))).toBe(true);
+  });
+
+  it("applies live to the global card even before its row exists", () => {
+    expect(canApplyMeterPanelLive(profile({ id: "" }))).toBe(true);
+  });
+
+  it("holds a brand-new override card back — it has no row and no scope yet", () => {
+    expect(canApplyMeterPanelLive(createMeterProfileDraft("country"))).toBe(false);
+    expect(canApplyMeterPanelLive(createMeterProfileDraft("master"))).toBe(true);
   });
 });

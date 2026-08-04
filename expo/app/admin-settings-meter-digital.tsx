@@ -51,13 +51,16 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
 import {
+  canApplyMeterPanelLive,
   createMeterProfileDraft,
   DEFAULT_METER_PROFILE,
   describeMeterRates,
   METER_PANEL_IDS,
   METER_PANEL_LABELS,
   meterProfileScopeLabel,
+  setMeterPanelAccess,
   validateMeterProfile,
+  type MeterPanelAccess,
   type MeterPanelId,
   type MeterProfile,
   type MeterSettingsLevel,
@@ -66,6 +69,7 @@ import {
 import {
   deleteMeterProfile,
   fetchMeterProfiles,
+  saveMeterPanelAccess,
   saveMeterProfile,
   type MeterSettingsSource,
 } from "@/utils/meterSettingsStore";
@@ -152,6 +156,9 @@ function readNumber(raw: string, fallback: number): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
+/** What the panel switches are reporting about themselves right now. */
+type PanelNote = { kind: "saved" | "draft" | "error"; text: string } | null;
+
 export default function AdminSettingsMeterDigitalScreen() {
   const router = useRouter();
   const Colors = useColors();
@@ -167,6 +174,9 @@ export default function AdminSettingsMeterDigitalScreen() {
   /** The numeric fields, held as text so a half-typed "0." isn't clamped away. */
   const [fields, setFields] = useState<Record<NumericField, string>>(() => fieldsOf(DEFAULT_METER_PROFILE));
   const [focusField, setFocusField] = useState<"country" | "state" | "city" | null>(null);
+  /** The panel a live toggle is being written for, and what it last reported. */
+  const [panelBusy, setPanelBusy] = useState<MeterPanelId | null>(null);
+  const [panelNote, setPanelNote] = useState<PanelNote>(null);
 
   const load = useCallback(async () => {
     const res = await fetchMeterProfiles();
@@ -235,6 +245,8 @@ export default function AdminSettingsMeterDigitalScreen() {
     });
     setFields(fieldsOf(profile));
     setFocusField(null);
+    setPanelBusy(null);
+    setPanelNote(null);
     setEditorOpen(true);
   }, []);
 
@@ -252,11 +264,10 @@ export default function AdminSettingsMeterDigitalScreen() {
     [guard, openEditor],
   );
 
-  /** Fold the text fields back onto the draft, then save it. */
-  const submit = useCallback(async () => {
-    if (!guard()) return;
+  /** The draft with its text fields folded back on — the card as it would save. */
+  const mergedDraft = useCallback((): MeterProfile => {
     const d = DEFAULT_METER_PROFILE;
-    const merged: MeterProfile = {
+    return {
       ...draft,
       rates: {
         ...draft.rates,
@@ -281,6 +292,12 @@ export default function AdminSettingsMeterDigitalScreen() {
       extraStep: Math.max(0.01, readNumber(fields.extraStep, d.extraStep)),
       maxExtra: readNumber(fields.maxExtra, d.maxExtra),
     };
+  }, [draft, fields]);
+
+  /** Fold the text fields back onto the draft, then save it. */
+  const submit = useCallback(async () => {
+    if (!guard()) return;
+    const merged = mergedDraft();
 
     const invalid = validateMeterProfile(merged);
     if (invalid) {
@@ -297,7 +314,80 @@ export default function AdminSettingsMeterDigitalScreen() {
     }
     setEditorOpen(false);
     await load();
-  }, [draft, fields, guard, load]);
+  }, [guard, load, mergedDraft]);
+
+  /**
+   * A console panel's Show or Tap switch — applied live, not on Save.
+   *
+   * A panel is not a fare: which tabs a driver's console carries can change
+   * under them without anything being mis-billed, so the switch writes straight
+   * through and the drivers pick it up from the table. Only the ten panel
+   * columns are written (`saveMeterPanelAccess`), so a rate the admin is halfway
+   * through typing in the same editor is never committed by a panel toggle —
+   * that still waits for Save.
+   *
+   * The switch moves first and is put back if the write is refused, so it never
+   * shows a state the database did not take.
+   */
+  const applyPanel = useCallback(
+    async (id: MeterPanelId, patch: Partial<MeterPanelAccess>) => {
+      if (!guard()) return;
+      const previous = draft.panels;
+      const panels = setMeterPanelAccess(previous, id, patch);
+      setDraft((p) => ({ ...p, panels }));
+
+      // A card that isn't stored yet has no row to write to, and no scope
+      // entered either — its panels ride along with the Create press.
+      if (!canApplyMeterPanelLive(draft)) {
+        setPanelNote({
+          kind: "draft",
+          text: "Panels apply live once this card is created.",
+        });
+        return;
+      }
+
+      // The base is the *stored* card, so the write carries nothing but the
+      // panels. Only when the global row does not exist yet is the editor's own
+      // card used — that toggle has to create the row it applies to.
+      const stored =
+        profiles.find((p) => p.id === draft.id.trim()) ??
+        (draft.level === "master" ? globalCard : null);
+      let base: MeterProfile;
+      if (stored) {
+        base = stored;
+      } else {
+        const merged = mergedDraft();
+        const invalid = validateMeterProfile({ ...merged, panels });
+        if (invalid) {
+          setDraft((p) => ({ ...p, panels: previous }));
+          setPanelNote({ kind: "error", text: invalid });
+          return;
+        }
+        base = merged;
+      }
+
+      setPanelBusy(id);
+      const res = await saveMeterPanelAccess(base, panels);
+      setPanelBusy(null);
+      if (!res.ok) {
+        setDraft((p) => ({ ...p, panels: previous }));
+        setPanelNote({ kind: "error", text: res.error ?? "Could not apply. Please try again." });
+        return;
+      }
+      // A toggle that created the global row adopts its id, so the next one
+      // updates that row rather than looking for it again.
+      if (res.id) setDraft((p) => (p.id.trim() ? p : { ...p, id: res.id as string }));
+      setPanelNote({
+        kind: "saved",
+        text:
+          res.source === "local"
+            ? "Applied on this device — the meter settings table isn't in the database yet."
+            : "Applied live — drivers' consoles update without a Save.",
+      });
+      await load();
+    },
+    [draft, globalCard, guard, load, mergedDraft, profiles],
+  );
 
   const confirmDelete = useCallback(
     (profile: MeterProfile) => {
@@ -838,8 +928,27 @@ export default function AdminSettingsMeterDigitalScreen() {
               <GroupTitle Colors={Colors} icon={LayoutGrid} title="Console panels" />
               <Text style={[styles.groupHint, { color: Colors.textSecondary }]}>
                 Show puts the tab on the console; Tap decides whether the driver can open it. A
-                panel that is shown but not tappable is visible and locked.
+                panel that is shown but not tappable is visible and locked. These switches take
+                effect immediately — they are saved as you move them, no Save needed.
               </Text>
+              {panelNote && (
+                <Text
+                  style={[
+                    styles.panelNote,
+                    {
+                      color:
+                        panelNote.kind === "error"
+                          ? Colors.error
+                          : panelNote.kind === "draft"
+                            ? Colors.textSecondary
+                            : Colors.accent,
+                    },
+                  ]}
+                  testID="meter-settings-panel-note"
+                >
+                  {panelNote.text}
+                </Text>
+              )}
               <View style={[styles.panelHead, { borderBottomColor: Colors.border }]}>
                 <Text style={[styles.panelHeadCell, { color: Colors.textSecondary, flex: 1 }]}>
                   Panel
@@ -849,6 +958,7 @@ export default function AdminSettingsMeterDigitalScreen() {
               </View>
               {METER_PANEL_IDS.map((id: MeterPanelId) => {
                 const locked = id === "meter"; // the meter itself is never hidden
+                const writing = panelBusy === id;
                 return (
                   <View key={id} style={styles.panelRow}>
                     <Text style={[styles.panelName, { color: Colors.text }]} numberOfLines={2}>
@@ -856,24 +966,13 @@ export default function AdminSettingsMeterDigitalScreen() {
                       {locked ? " (always on)" : ""}
                     </Text>
                     <View style={styles.panelSwitch}>
+                      {/* Left in place while the write is in flight rather than
+                          swapped for a spinner: the switch already shows where
+                          it is going, and the note below reports how it went. */}
                       <Switch
                         value={draft.panels[id].show}
-                        disabled={locked}
-                        onValueChange={(next) => {
-                          if (!editable) {
-                            guard();
-                            return;
-                          }
-                          setDraft((p) => ({
-                            ...p,
-                            panels: {
-                              ...p.panels,
-                              // Hiding a panel takes its tap with it — a tab that
-                              // isn't drawn cannot be pressed.
-                              [id]: { show: next, tap: next && p.panels[id].tap },
-                            },
-                          }));
-                        }}
+                        disabled={locked || writing}
+                        onValueChange={(next) => void applyPanel(id, { show: next })}
                         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                         thumbColor="#fff"
                         testID={`meter-settings-show-${id}`}
@@ -882,17 +981,8 @@ export default function AdminSettingsMeterDigitalScreen() {
                     <View style={styles.panelSwitch}>
                       <Switch
                         value={draft.panels[id].tap}
-                        disabled={locked || !draft.panels[id].show}
-                        onValueChange={(next) => {
-                          if (!editable) {
-                            guard();
-                            return;
-                          }
-                          setDraft((p) => ({
-                            ...p,
-                            panels: { ...p.panels, [id]: { ...p.panels[id], tap: next } },
-                          }));
-                        }}
+                        disabled={locked || !draft.panels[id].show || writing}
+                        onValueChange={(next) => void applyPanel(id, { tap: next })}
                         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                         thumbColor="#fff"
                         testID={`meter-settings-tap-${id}`}
@@ -1262,6 +1352,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     marginTop: 12,
   },
+  panelNote: { fontSize: 11, fontWeight: "700" as const, lineHeight: 16, marginTop: 6 },
   panelHeadCell: { fontSize: 11, fontWeight: "700" as const, width: 54, textAlign: "center" as const },
   panelRow: { flexDirection: "row" as const, alignItems: "center" as const, paddingVertical: 8 },
   panelName: { flex: 1, fontSize: 13, fontWeight: "600" as const, paddingRight: 8 },

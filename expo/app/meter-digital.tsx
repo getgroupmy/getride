@@ -192,7 +192,7 @@ import {
   type MeterPanelId,
   type MeterProfile,
 } from "@/utils/meterSettings";
-import { fetchMeterProfiles } from "@/utils/meterSettingsStore";
+import { fetchMeterProfiles, subscribeMeterSettings } from "@/utils/meterSettingsStore";
 import {
   adjustCharges,
   AIRPORT_SURCHARGE,
@@ -725,15 +725,35 @@ export default function MeterDigitalScreen() {
   }, []);
 
   // --- The rate cards, and where this meter is ---
-  useEffect(() => {
-    let cancelled = false;
-    void fetchMeterProfiles().then(({ profiles }) => {
-      if (!cancelled) setCards(profiles);
-    });
-    return () => {
-      cancelled = true;
-    };
+  //
+  // Read when the console is focused and then kept live: an administrator moving
+  // a Show / Tap
+  // switch in Admin → Settings → Meter Digital Setting is not asked to press a
+  // Save, and this is the other half of that promise — the console picks the
+  // change up where it stands rather than at the next launch. What the driver
+  // is *billed* on is still frozen for the life of a hire (see `setBilling`
+  // below), so a live card only ever lands between passengers.
+  const reloadCards = useCallback(async () => {
+    const { profiles } = await fetchMeterProfiles();
+    setCards(profiles);
   }, []);
+
+  // Realtime where the table is published for it (migration 0082).
+  useEffect(
+    () =>
+      subscribeMeterSettings(() => {
+        void reloadCards();
+      }),
+    [reloadCards],
+  );
+
+  // The first read, and the backstop for a database where the table is not
+  // published for realtime: coming back to the console re-reads the cards.
+  useFocusEffect(
+    useCallback(() => {
+      void reloadCards();
+    }, [reloadCards]),
+  );
 
   /**
    * Which card applies depends on where the taxi is, so the first fix is

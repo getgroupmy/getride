@@ -17,8 +17,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
 import {
   METER_SETTINGS_COLUMNS,
+  meterPanelsToRow,
   meterProfileToRow,
   normalizeMeterProfile,
+  type MeterPanelAccess,
+  type MeterPanelId,
   type MeterProfile,
 } from "@/utils/meterSettings";
 
@@ -33,6 +36,8 @@ export interface MeterSettingsSaveResult {
   ok: boolean;
   error?: string;
   source?: MeterSettingsSource;
+  /** The row the write landed on, so a card created by it can be adopted. */
+  id?: string;
 }
 
 const TABLE = "meter_digital_settings";
@@ -212,6 +217,150 @@ export async function saveMeterProfile(
   }
   await writeStored(LOCAL_KEY, next);
   return { ok: true, source: "local" };
+}
+
+/**
+ * Write just the console panels of a card.
+ *
+ * The Show / Tap switches in the admin editor apply live — a driver's console
+ * is not a fare, so there is nothing to hold back until a Save — and this is the
+ * narrow write that makes that safe: only the ten panel columns are touched, so
+ * a toggle can never carry a half-typed rate into the database with it, and a
+ * second admin editing the fares at the same time is not clobbered.
+ *
+ * `profile` supplies the row to write and, where the single global card does
+ * not exist yet, the card to create it from.
+ */
+export async function saveMeterPanelAccess(
+  profile: MeterProfile,
+  panels: Record<MeterPanelId, MeterPanelAccess>,
+): Promise<MeterSettingsSaveResult> {
+  const id = profile.id.trim();
+  const panelRow = meterPanelsToRow(panels);
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      if (id) {
+        const { error } = await supabase.from(TABLE).update(panelRow).eq("id", id);
+        if (error) throw error;
+        return { ok: true, source: "supabase", id };
+      }
+      if (profile.level === "master") {
+        const { data, error: selErr } = await supabase
+          .from(TABLE)
+          .select("id")
+          .eq("level", "master")
+          .limit(1);
+        if (selErr) throw selErr;
+        const existing = (data ?? [])[0] as { id: string } | undefined;
+        if (existing) {
+          const { error } = await supabase.from(TABLE).update(panelRow).eq("id", existing.id);
+          if (error) throw error;
+          return { ok: true, source: "supabase", id: existing.id };
+        }
+        // No global row yet: the toggle creates it, from the card the editor is
+        // showing plus this change. Its seeded rates are the built-in tariff the
+        // meter was already billing on, so nothing about a fare moves.
+        const { data: inserted, error } = await supabase
+          .from(TABLE)
+          .insert(meterProfileToRow({ ...profile, panels }))
+          .select("id")
+          .limit(1);
+        if (error) throw error;
+        const row = (inserted ?? [])[0] as { id: string } | undefined;
+        return { ok: true, source: "supabase", id: row?.id };
+      }
+      return {
+        ok: false,
+        error: "Create this rate card first — panel changes apply live once it exists.",
+      };
+    } catch (e) {
+      if (isPermissionDeniedError(e)) {
+        return {
+          ok: false,
+          error:
+            "The database refused the write. Rate cards are admin-only — sign in with an admin account and try again.",
+        };
+      }
+      if (!isMissingSchemaError(e)) {
+        console.log("[meter-settings] panel save failed", e);
+        return { ok: false, error: "Could not apply. Please try again." };
+      }
+      console.log("[meter-settings] panel save falling back to local profiles");
+    }
+  }
+
+  // Local fallback — the device copy, same rules.
+  const profiles = await readStored(LOCAL_KEY);
+  const stored = id
+    ? profiles.find((p) => p.id === id)
+    : profile.level === "master"
+      ? profiles.find((p) => p.level === "master")
+      : undefined;
+
+  if (!stored && !id && profile.level !== "master") {
+    return {
+      ok: false,
+      error: "Create this rate card first — panel changes apply live once it exists.",
+    };
+  }
+
+  const assignedId = stored?.id ?? uuidv4();
+  const next: MeterProfile = {
+    ...(stored ?? profile),
+    id: assignedId,
+    panels,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeStored(
+    LOCAL_KEY,
+    stored ? profiles.map((p) => (p.id === assignedId ? next : p)) : [next, ...profiles],
+  );
+  return { ok: true, source: "local", id: assignedId };
+}
+
+/**
+ * Watch the rate cards for changes made elsewhere — an admin moving a panel
+ * switch has to reach the drivers' consoles without them reopening the meter.
+ *
+ * Debounced, because one edit can land as several row events. Returns a no-op
+ * unsubscribe when Supabase isn't configured (there is no external writer for a
+ * device-local card) or when the channel cannot be opened at all; callers keep a
+ * refetch-on-focus backstop for a database where the table is not published for
+ * realtime.
+ */
+export function subscribeMeterSettings(onChange: () => void): () => void {
+  if (!isSupabaseConfigured || !supabase) return () => {};
+
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const notify = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      onChange();
+    }, 250);
+  };
+
+  try {
+    const channel = supabase
+      .channel("meter-settings-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: TABLE }, notify)
+      .subscribe((status) => {
+        console.log("[meter-settings] realtime channel status", status);
+      });
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      try {
+        supabase?.removeChannel(channel);
+      } catch (e) {
+        console.log("[meter-settings] realtime unsubscribe failed", e);
+      }
+    };
+  } catch (e) {
+    console.log("[meter-settings] realtime subscribe failed", e);
+    return () => {};
+  }
 }
 
 /** Remove a rate card. Deleting the global one falls back to the built-in tariff. */

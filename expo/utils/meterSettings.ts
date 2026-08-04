@@ -380,6 +380,45 @@ export function normalizeMeterProfile(raw: unknown): MeterProfile | null {
   };
 }
 
+/** The ten panel columns of a row — the console's own half of a card. */
+export type MeterPanelRow = Pick<
+  MeterSettingsRow,
+  | "show_meter"
+  | "show_trips"
+  | "show_printer"
+  | "show_obd"
+  | "show_settings"
+  | "tap_meter"
+  | "tap_trips"
+  | "tap_printer"
+  | "tap_obd"
+  | "tap_settings"
+>;
+
+/**
+ * The panel flags as the row stores them.
+ *
+ * Split out of `meterProfileToRow` because the panels are written on their own:
+ * a Show / Tap toggle in the admin editor applies live, and a narrow write of
+ * these ten columns cannot carry a half-typed rate along with it.
+ */
+export function meterPanelsToRow(
+  panels: Record<MeterPanelId, MeterPanelAccess>,
+): MeterPanelRow {
+  return {
+    show_meter: panels.meter.show,
+    show_trips: panels.trips.show,
+    show_printer: panels.printer.show,
+    show_obd: panels.obd.show,
+    show_settings: panels.settings.show,
+    tap_meter: panels.meter.tap,
+    tap_trips: panels.trips.tap,
+    tap_printer: panels.printer.tap,
+    tap_obd: panels.obd.tap,
+    tap_settings: panels.settings.tap,
+  };
+}
+
 /** Turn a profile back into the row shape, for an insert or update. */
 export function meterProfileToRow(
   profile: MeterProfile,
@@ -395,16 +434,7 @@ export function meterProfileToRow(
     source_mode: profile.sourceMode,
     allow_start_without_odometer: profile.allowStartWithoutOdometer,
     read_odometer: profile.readOdometer,
-    show_meter: panels.meter.show,
-    show_trips: panels.trips.show,
-    show_printer: panels.printer.show,
-    show_obd: panels.obd.show,
-    show_settings: panels.settings.show,
-    tap_meter: panels.meter.tap,
-    tap_trips: panels.trips.tap,
-    tap_printer: panels.printer.tap,
-    tap_obd: panels.obd.tap,
-    tap_settings: panels.settings.tap,
+    ...meterPanelsToRow(panels),
     currency: profile.currency,
     flag_fare: rates.flagFare,
     flag_distance_m: rates.flagDistanceM,
@@ -431,6 +461,68 @@ export function meterProfileToRow(
     max_extra: profile.maxExtra,
     active: profile.active,
   };
+}
+
+// --- Panel toggles ----------------------------------------------------------
+
+/**
+ * Flip one panel's Show or Tap flag, keeping the two flags coherent.
+ *
+ * Three rules, all of them the console's rather than the form's, which is why
+ * they live here and not in the admin screen:
+ *
+ *   * the meter panel is pinned on at both ends — a console without a meter is
+ *     not a meter (`validateMeterProfile` refuses to store one either),
+ *   * hiding a panel takes its tap with it: a tab that isn't drawn cannot be
+ *     pressed,
+ *   * a hidden panel cannot be made tappable without being shown, so turning
+ *     Tap on turns Show on with it.
+ *
+ * Returns a new record — the caller's is never mutated.
+ */
+export function setMeterPanelAccess(
+  panels: Record<MeterPanelId, MeterPanelAccess>,
+  id: MeterPanelId,
+  patch: Partial<MeterPanelAccess>,
+): Record<MeterPanelId, MeterPanelAccess> {
+  const next: Record<MeterPanelId, MeterPanelAccess> = {
+    meter: { ...panels.meter },
+    trips: { ...panels.trips },
+    printer: { ...panels.printer },
+    obd: { ...panels.obd },
+    settings: { ...panels.settings },
+  };
+  if (id === "meter") {
+    next.meter = { show: true, tap: true };
+    return next;
+  }
+
+  let { show, tap } = next[id];
+  if (patch.show !== undefined) {
+    show = patch.show;
+    // Hiding takes the tap with it. Showing again does not hand it back: a
+    // panel that was locked stays locked until Tap is turned on itself.
+    if (!show) tap = false;
+  }
+  if (patch.tap !== undefined) {
+    tap = patch.tap;
+    if (tap) show = true;
+  }
+  next[id] = { show, tap };
+  return next;
+}
+
+/**
+ * Whether a panel toggle on this card can be written through on its own.
+ *
+ * A card that is already stored is updated in place, and the global card is
+ * upserted as the single `master` row whether or not it exists yet — both take
+ * effect the moment the switch moves. A brand-new override card has no row to
+ * update and no scope entered yet, so its panels stay in the form until it is
+ * created.
+ */
+export function canApplyMeterPanelLive(profile: MeterProfile): boolean {
+  return profile.id.trim().length > 0 || profile.level === "master";
 }
 
 /** A blank card at `level`, seeded from the built-in defaults. */
