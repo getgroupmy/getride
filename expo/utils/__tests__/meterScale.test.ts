@@ -138,12 +138,30 @@ describe("fitMoneyPanel", () => {
 
   it("gives the readout its ground back when the caption goes", () => {
     // The FARE panel only carries its total line once there is an extra, so it
-    // has more room for digits than EXTRA does at the same height.
-    expect(panel(200, 1).readoutSize).toBeGreaterThan(panel(200, 2).readoutSize);
+    // has more room for digits than EXTRA does at the same height. Read at a
+    // height that binds the readout: where the box is generous both panels sit
+    // at the ceiling instead, which is the next case.
+    expect(panel(140, 1).readoutSize).toBeGreaterThan(panel(140, 2).readoutSize);
+  });
+
+  it("holds the viewport ceiling once the panel is tall enough for it", () => {
+    // Ground given back is still ground under the metrics' ceiling: a tall
+    // console draws both panels at `maxReadout` rather than letting the one
+    // with the spare line grow past what the viewport allows.
+    expect(panel(200, 1).readoutSize).toBe(56);
+    expect(panel(200, 2).readoutSize).toBe(56);
   });
 
   it("keeps the keys pressable on a console with almost no height", () => {
     expect(panel(90, 2).keyHeight).toBeGreaterThanOrEqual(MIN_KEY_HEIGHT - 0.5);
+  });
+
+  it("does not read a spent box as an unmeasured one", () => {
+    // Once the keys have taken theirs there is nothing left on a 90pt panel.
+    // That is a measured box with no room — not a box awaiting its layout pass
+    // — so the readout lands on the floor. Falling through to the width would
+    // draw a full-size fare across a panel that cannot hold one.
+    expect(panel(90, 2).readoutSize).toBe(MIN_READOUT_PT);
   });
 
   it("holds the viewport ceilings before it has been measured", () => {
