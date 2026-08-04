@@ -111,6 +111,9 @@ function receiptLines(trip: MeterTrip): ReceiptLine[] {
   if (trip.extra > 0) {
     lines.push({ label: "Tolls & charges", value: money(trip.extra) });
   }
+  if (trip.cardSurcharge > 0) {
+    lines.push({ label: "Bags & passengers", value: money(trip.cardSurcharge) });
+  }
   if (trip.airportSurcharge > 0) {
     lines.push({ label: "Airport surcharge", value: money(trip.airportSurcharge) });
   }

@@ -137,6 +137,31 @@ describe("buildMeterTrip", () => {
     expect(make("none").airportSurcharge).toBe(0);
   });
 
+  it("stores the rate card's bag & passenger surcharge in the total", () => {
+    const state = finishedState();
+    const trip = buildMeterTrip(state, computeMeterFare(state), {
+      id: "t",
+      endedAt: T0 + 600_000,
+      tariff: "old",
+      period: "day",
+      extra: 1,
+      pax: 3,
+      luggage: 2,
+      airport: "pickup",
+      airportSurcharge: AIRPORT_SURCHARGE,
+      cardSurcharge: 4.5,
+    });
+    expect(trip.cardSurcharge).toBe(4.5);
+    // Every line the passenger paid, and nothing the meter invented.
+    expect(trip.total).toBe(5.75 + 1 + AIRPORT_SURCHARGE + 4.5);
+  });
+
+  it("charges no card surcharge when the caller priced none", () => {
+    const trip = tripFrom(finishedState());
+    expect(trip.cardSurcharge).toBe(0);
+    expect(trip.total).toBe(trip.fare + trip.extra);
+  });
+
   it("has no declaration at all when the caller made none", () => {
     const trip = tripFrom(finishedState());
     expect(trip).toMatchObject({

@@ -43,6 +43,7 @@ import {
   periodMultiplier,
   type MeterFare,
   type MeterPeriod,
+  type MeterRates,
   type MeterState,
   type MeterTariff,
 } from "@/utils/taxiMeter";
@@ -76,7 +77,16 @@ export interface MeterTrip {
   airport: MeterAirport;
   /** The airport surcharge actually charged, in RM. Zero when neither end was. */
   airportSurcharge: number;
-  /** What the passenger paid: `fare` + `extra` + `airportSurcharge`. */
+  /**
+   * What the rate card charged for the declared bags and passengers, in RM.
+   * Zero on a card that charges for neither, and on a record written before
+   * cards existed.
+   */
+  cardSurcharge: number;
+  /**
+   * What the passenger paid: `fare` + `extra` + `airportSurcharge` +
+   * `cardSurcharge`.
+   */
   total: number;
   /** Samples each sensor contributed, so a fare can be traced to its source. */
   obdSamples: number;
@@ -97,6 +107,13 @@ export interface BuildMeterTripInput {
   endedAt: number;
   tariff: MeterTariff;
   period: MeterPeriod;
+  /**
+   * The rate card the hire was billed on. Omitted on a hire metered by the
+   * built-in tariff, where `tariff` alone says everything.
+   */
+  rates?: MeterRates;
+  /** The card's night surcharge, when it is not the built-in one. */
+  nightMultiplier?: number;
   extra: number;
   /** The end-of-hire declaration. Omitted only by callers that predate it. */
   pax?: number | null;
@@ -108,6 +125,11 @@ export interface BuildMeterTripInput {
    * did not bill for — or bill for one it did not claim.
    */
   airportSurcharge?: number | null;
+  /**
+   * The rate card's per-bag / per-passenger surcharge for this hire. Priced by
+   * the caller from the declared counts, since only it knows the card.
+   */
+  cardSurcharge?: number | null;
   plate?: string | null;
   driver?: string | null;
   pickup?: MeterWaypoint | null;
@@ -133,6 +155,10 @@ export function buildMeterTrip(
     typeof input.airportSurcharge === "number" && Number.isFinite(input.airportSurcharge)
       ? Math.max(0, input.airportSurcharge)
       : airportSurchargeFor(airport);
+  const cardSurcharge =
+    typeof input.cardSurcharge === "number" && Number.isFinite(input.cardSurcharge)
+      ? Math.max(0, input.cardSurcharge)
+      : 0;
   return {
     id: input.id,
     startedAt: state.startedAt ?? input.endedAt,
@@ -148,7 +174,8 @@ export function buildMeterTrip(
     luggage: clampLuggage(input.luggage),
     airport,
     airportSurcharge,
-    total: meterGrandTotal(fare.total, extra, airportSurcharge),
+    cardSurcharge,
+    total: meterGrandTotal(fare.total, extra, airportSurcharge, cardSurcharge),
     obdSamples: state.obdSamples,
     gpsSamples: state.gpsSamples,
     plate: input.plate?.trim() ? input.plate.trim() : null,
@@ -195,6 +222,12 @@ function normalizeTrips(value: unknown): MeterTrip[] {
       typeof t.airportSurcharge === "number" && Number.isFinite(t.airportSurcharge)
         ? Math.max(0, t.airportSurcharge)
         : airportSurchargeFor(airport);
+    // Zero rather than re-priced: the card that charged it may since have
+    // changed, and a stored record says what it charged.
+    const cardSurcharge =
+      typeof t.cardSurcharge === "number" && Number.isFinite(t.cardSurcharge)
+        ? Math.max(0, t.cardSurcharge)
+        : 0;
     out.push({
       id: t.id,
       startedAt: typeof t.startedAt === "number" ? t.startedAt : t.endedAt,
@@ -210,6 +243,7 @@ function normalizeTrips(value: unknown): MeterTrip[] {
       luggage: clampLuggage(t.luggage),
       airport,
       airportSurcharge,
+      cardSurcharge,
       total:
         typeof t.total === "number"
           ? t.total
@@ -217,6 +251,7 @@ function normalizeTrips(value: unknown): MeterTrip[] {
               typeof t.fare === "number" ? t.fare : 0,
               typeof t.extra === "number" ? t.extra : 0,
               airportSurcharge,
+              cardSurcharge,
             ),
       obdSamples: typeof t.obdSamples === "number" ? t.obdSamples : 0,
       gpsSamples: typeof t.gpsSamples === "number" ? t.gpsSamples : 0,
@@ -312,7 +347,8 @@ export async function recordMeterTrip(
 ): Promise<{ trip: MeterTrip; trips: MeterTrip[] }> {
   const fare = computeMeterFare(state, {
     tariff: input.tariff,
-    multiplier: periodMultiplier(input.period),
+    rates: input.rates,
+    multiplier: periodMultiplier(input.period, input.nightMultiplier),
   });
   const trip = buildMeterTrip(state, fare, input);
   const trips = await saveMeterTrip(trip);

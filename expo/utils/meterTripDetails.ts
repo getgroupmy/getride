@@ -154,11 +154,22 @@ export function chargesToText(value: number): string {
   return amount > 0 ? amount.toFixed(2) : "";
 }
 
-/** Move keyed charges by `steps` presses of the − / + keys, same step as EXTRA. */
-export function adjustCharges(current: number, steps: number): number {
+/**
+ * Move keyed charges by `steps` presses of the − / + keys.
+ *
+ * The step defaults to the console's own EXTRA step and is overridden by the
+ * rate card, so the two places a driver can reach the same figure move it by
+ * the same amount.
+ */
+export function adjustCharges(
+  current: number,
+  steps: number,
+  step: number = EXTRA_STEP,
+): number {
   const base = sanitizeCharges(current);
   const delta = Number.isFinite(steps) ? steps : 0;
-  return sanitizeCharges(base + delta * EXTRA_STEP);
+  const size = Number.isFinite(step) && step > 0 ? step : EXTRA_STEP;
+  return sanitizeCharges(base + delta * size);
 }
 
 /** What is still unanswered, in the order the form asks it. Empty when done. */

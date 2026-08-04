@@ -177,6 +177,16 @@ import {
   type MeterWaypoint,
 } from "@/utils/meterDashboard";
 import {
+  allowedMeterSources,
+  describeMeterRates,
+  meterExtraSurcharge,
+  meterOdometerGate,
+  resolveMeterProfile,
+  type MeterPanelId,
+  type MeterProfile,
+} from "@/utils/meterSettings";
+import { fetchMeterProfiles } from "@/utils/meterSettingsStore";
+import {
   adjustCharges,
   AIRPORT_SURCHARGE,
   airportSurchargeFor,
@@ -214,19 +224,16 @@ import {
   computeMeterFare,
   createMeterState,
   describeMeterSource,
-  EXTRA_STEP,
   formatMeterClock,
   formatMeterDistance,
   formatMeterKm,
   isNightPeriod,
   meterGrandTotal,
-  NIGHT_MULTIPLIER,
-  NIGHT_END_HOUR,
-  NIGHT_START_HOUR,
   pauseMeter,
   periodMultiplier,
   resetMeter,
   startMeter,
+  TARIFF_RATES,
   WAITING_SPEED_KMH,
   type MeterPeriod,
   type MeterSample,
@@ -268,12 +275,12 @@ const TONE_COLOR: Record<MeterLinkTone, string> = {
 
 type MeterTab = "ehailing" | "trips" | "printer" | "obd" | "settings";
 
-const TABS: { id: MeterTab; label: string; icon: typeof CarTaxiFront }[] = [
-  { id: "ehailing", label: "Meter", icon: CarTaxiFront },
-  { id: "trips", label: "TRIPS", icon: ClipboardList },
-  { id: "printer", label: "PRINTER\nCONNECTION STATUS", icon: Printer },
-  { id: "obd", label: "OBD\nCONNECTION STATUS", icon: Cpu },
-  { id: "settings", label: "SETTINGS", icon: SettingsIcon },
+const TABS: { id: MeterTab; panel: MeterPanelId; label: string; icon: typeof CarTaxiFront }[] = [
+  { id: "ehailing", panel: "meter", label: "Meter", icon: CarTaxiFront },
+  { id: "trips", panel: "trips", label: "TRIPS", icon: ClipboardList },
+  { id: "printer", panel: "printer", label: "PRINTER\nCONNECTION STATUS", icon: Printer },
+  { id: "obd", panel: "obd", label: "OBD\nCONNECTION STATUS", icon: Cpu },
+  { id: "settings", panel: "settings", label: "SETTINGS", icon: SettingsIcon },
 ];
 
 interface LiveFix {
@@ -479,6 +486,32 @@ export default function MeterDigitalScreen() {
   const [totalOpen, setTotalOpen] = useState<boolean>(false);
   const [printing, setPrinting] = useState<boolean>(false);
 
+  /* --- The admin-configured rate card --- */
+
+  // Every rule the meter is *told* rather than decides — which sensors it may
+  // bill on, whether a hire needs an odometer, which panels exist, and the
+  // rates themselves. Configured in Admin → Settings → Meter Digital Setting
+  // and resolved for where this hire is starting; with nothing configured
+  // anywhere the built-in TEKSI card is used and the driver keeps the OLD /
+  // NEW tariff keys.
+  const [cards, setCards] = useState<MeterProfile[]>([]);
+  const [geo, setGeo] = useState<{
+    country: string | null;
+    state: string | null;
+    city: string | null;
+    suburb: string | null;
+  } | null>(null);
+  const [billing, setBilling] = useState(() =>
+    resolveMeterProfile({ profiles: [] }),
+  );
+  /** How many bags and passengers the card is charging for on this hire. */
+  /** True while a required odometer read is holding a START press. */
+  const [odometerChecking, setOdometerChecking] = useState<boolean>(false);
+
+  const profile = billing.profile;
+  const configured = billing.level !== "default";
+  const sources = allowedMeterSources(profile.sourceMode);
+
   /* --- Leaving the console --- */
 
   // The five tabs are panels of one instrument, not screens of their own, so a
@@ -604,21 +637,28 @@ export default function MeterDigitalScreen() {
    * Mode has no adapter to ask at all, and a simulated odometer would be a
    * number the vehicle never reported.
    */
+  const readOdometerOnce = useCallback(async (): Promise<number | null> => {
+    const session = canbusRef.current;
+    if (session.phase !== "online" || session.simulated) return null;
+    try {
+      const raw = await sendCommandRef.current(OBD_MODE_CURRENT + PID_ODOMETER);
+      const reading = decodeReading(PID_ODOMETER, raw);
+      return typeof reading?.numeric === "number" ? reading.numeric : null;
+    } catch (e) {
+      console.log("[meter-digital] odometer unavailable", e);
+      return null;
+    }
+  }, []);
+
   const readWaypointOdometer = useCallback(
     async (end: MeterEnd, at: number) => {
-      const session = canbusRef.current;
-      if (session.phase !== "online" || session.simulated) return;
-      try {
-        const raw = await sendCommandRef.current(OBD_MODE_CURRENT + PID_ODOMETER);
-        const reading = decodeReading(PID_ODOMETER, raw);
-        if (typeof reading?.numeric === "number") {
-          patchWaypoint(end, at, { odometerKm: reading.numeric });
-        }
-      } catch (e) {
-        console.log(`[meter-digital] ${end} odometer unavailable`, e);
-      }
+      // A card can switch the read off for a fleet whose cars do not publish
+      // PID A6 — there is nothing to gain by asking every one of them.
+      if (!profile.readOdometer) return;
+      const km = await readOdometerOnce();
+      if (km !== null) patchWaypoint(end, at, { odometerKm: km });
     },
-    [patchWaypoint],
+    [patchWaypoint, profile.readOdometer, readOdometerOnce],
   );
 
   /** Turn an end's fix into an address. It keeps the raw fix until this lands. */
@@ -645,17 +685,19 @@ export default function MeterDigitalScreen() {
    * moment they press END — not when a dongle or a geocoder answers.
    */
   const captureWaypoint = useCallback(
-    (end: MeterEnd, at: number): MeterWaypoint => {
+    (end: MeterEnd, at: number, odometerKm: number | null = null): MeterWaypoint => {
       const fix = fixRef.current;
       const waypoint: MeterWaypoint = {
         at,
-        odometerKm: null,
+        odometerKm,
         latitude: fix?.latitude ?? null,
         longitude: fix?.longitude ?? null,
         place: null,
       };
       setWaypoint(end, waypoint);
-      void readWaypointOdometer(end, at);
+      // A reading the start gate already took is not asked for a second time —
+      // the adapter answers one command at a time.
+      if (odometerKm === null) void readWaypointOdometer(end, at);
       if (fix) void resolveWaypointPlace(end, at, fix.latitude, fix.longitude);
       return waypoint;
     },
@@ -672,6 +714,59 @@ export default function MeterDigitalScreen() {
       cancelled = true;
     };
   }, []);
+
+  // --- The rate cards, and where this meter is ---
+  useEffect(() => {
+    let cancelled = false;
+    void fetchMeterProfiles().then(({ profiles }) => {
+      if (!cancelled) setCards(profiles);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /**
+   * Which card applies depends on where the taxi is, so the first fix is
+   * turned into a country/state/city/suburb once.
+   *
+   * Structured geography, not the display address the waypoints use: a card is
+   * matched on the place names, and picking those out of a formatted string
+   * would be guesswork. Web has no `reverseGeocodeAsync`, so it simply stays on
+   * the global card.
+   */
+  useEffect(() => {
+    if (geo || !hasFix || Platform.OS === "web") return;
+    const fix = fixRef.current;
+    if (!fix) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const places = await Location.reverseGeocodeAsync({
+          latitude: fix.latitude,
+          longitude: fix.longitude,
+        });
+        const p = places?.[0];
+        if (cancelled || !p) return;
+        setGeo({
+          country: p.country ?? null,
+          state: p.region ?? null,
+          city: p.city ?? p.subregion ?? null,
+          suburb: p.district ?? p.subregion ?? null,
+        });
+      } catch (e) {
+        console.log("[meter-digital] rate-card geography lookup failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [geo, hasFix]);
+
+  const resolvedCard = useMemo(
+    () => resolveMeterProfile({ profiles: cards, ...(geo ?? {}) }),
+    [cards, geo],
+  );
 
   // --- Network + cellular, for the header status cluster ---
   const network = Network.useNetworkState();
@@ -781,6 +876,13 @@ export default function MeterDigitalScreen() {
     }, [patchWaypoint, resolveWaypointPlace]),
   );
 
+  // The card's sensor permission, mirrored for the tick below — which runs
+  // outside React's tree and must not be rebuilt every time a card lands.
+  const sourcesRef = useRef(sources);
+  useEffect(() => {
+    sourcesRef.current = sources;
+  }, [sources]);
+
   // --- The meter clock: one 1 Hz tick drives both the header and the accrual ---
   useEffect(() => {
     const id = setInterval(() => {
@@ -788,21 +890,26 @@ export default function MeterDigitalScreen() {
       setNow(at);
       const can = canbusRef.current;
       const fix = fixRef.current;
+      const allowed = sourcesRef.current;
       // Demo Mode telemetry is invented, so it must never bill a fare: the
-      // meter treats a simulated link as "no OBD" and runs on GPS instead.
-      const useObd = can.phase === "online" && !can.simulated;
+      // meter treats a simulated link as "no OBD" and runs on GPS instead. A
+      // card that names a single source takes the other one away outright — an
+      // "OBD only" card must never quietly bill a fare on the phone's GPS.
+      const useObd = allowed.obd && can.phase === "online" && !can.simulated;
+      const useGps = allowed.gps && fix !== null;
       const sample: MeterSample = {
         at,
         obdSpeedKmh: useObd ? canbusSpeedOf(can.telemetry.speed) : null,
         obdUpdatedAt: useObd ? can.lastUpdate : null,
-        gpsSpeedKmh: fix?.speedKmh ?? null,
-        gpsPoint: fix
-          ? {
-              latitude: fix.latitude,
-              longitude: fix.longitude,
-              accuracyM: fix.accuracyM,
-            }
-          : null,
+        gpsSpeedKmh: useGps ? (fix?.speedKmh ?? null) : null,
+        gpsPoint:
+          useGps && fix
+            ? {
+                latitude: fix.latitude,
+                longitude: fix.longitude,
+                accuracyM: fix.accuracyM,
+              }
+            : null,
       };
       // A stopped meter ignores the sample and returns the same state object,
       // so this is a no-op render while parked.
@@ -811,15 +918,35 @@ export default function MeterDigitalScreen() {
     return () => clearInterval(id);
   }, []);
 
+  /**
+   * The rates a hire is billed at.
+   *
+   * An admin-configured card wins over the OLD / NEW keys: the keys stay live
+   * only when nothing has been configured anywhere, which is what the meter
+   * did before rate cards existed.
+   */
+  const rates = configured ? profile.rates : TARIFF_RATES[tariff];
   const fare = useMemo(
-    () => computeMeterFare(meter, { tariff, multiplier: periodMultiplier(period) }),
-    [meter, tariff, period],
+    () =>
+      computeMeterFare(meter, {
+        rates,
+        multiplier: periodMultiplier(period, profile.nightMultiplier),
+      }),
+    [meter, period, profile.nightMultiplier, rates],
   );
   // What the passenger owes: the metered fare, the keyed-in charges, and the
-  // airport surcharge once the driver has declared one. Before that there is no
-  // surcharge to add — the meter cannot tell an airport from any other kerb.
+  // two surcharges the meter cannot measure — the airport leg, and whatever the
+  // rate card charges per bag and per passenger. Both come off the end-of-hire
+  // declaration, so before it is answered there is nothing to add: the meter
+  // can no more count the bags than it can tell an airport from any other kerb.
   const airportSurcharge = tripDetails?.airportSurcharge ?? 0;
-  const grandTotal = meterGrandTotal(fare.total, extra, airportSurcharge);
+  const cardSurcharge = tripDetails
+    ? meterExtraSurcharge(profile, {
+        luggage: tripDetails.luggage,
+        passengers: tripDetails.pax,
+      })
+    : 0;
+  const grandTotal = meterGrandTotal(fare.total, extra, airportSurcharge, cardSurcharge);
 
   // The end-of-hire total is drawn in a card that is itself a share of the
   // glass, so the digits are fitted to the card rather than to the viewport.
@@ -837,6 +964,34 @@ export default function MeterDigitalScreen() {
   }, [ui, winWidth]);
 
   const started = meter.startedAt !== null;
+
+  /**
+   * Commit the resolved card — but never under a running hire.
+   *
+   * A card can arrive late (the fetch, the geocoded position) and a passenger
+   * must not watch the tariff change mid-journey, so once a hire has opened the
+   * card it opened on is the card it is billed on. It is picked up again the
+   * moment the meter is cleared.
+   */
+  useEffect(() => {
+    if (started) return;
+    setBilling(resolvedCard);
+  }, [resolvedCard, started]);
+
+  // The shift the card's own night window says it is, re-picked when the card
+  // lands. The DAY / NIGHT keys still override it.
+  useEffect(() => {
+    if (started) return;
+    setPeriod(
+      isNightPeriod(Date.now(), {
+        startHour: profile.nightStartHour,
+        endHour: profile.nightEndHour,
+      })
+        ? "night"
+        : "day",
+    );
+  }, [profile.nightEndHour, profile.nightStartHour, started]);
+
   // What the meter *has* — both sensors, one of them, or neither. What it is
   // billing on is a different question, answered beside it while a hire runs.
   const link = describeMeterConnection({
@@ -852,7 +1007,9 @@ export default function MeterDigitalScreen() {
     running: meter.running,
     started,
     period,
-    tariff,
+    // An operator card is not one of the two built-in tariffs, so the subline
+    // does not claim to be either — the SETTINGS panel names the card instead.
+    tariff: configured ? null : tariff,
   });
   // A hire opens on the vehicle link. Until there is one, START is a dead key
   // that raises the connect popup instead of starting a fare.
@@ -891,15 +1048,43 @@ export default function MeterDigitalScreen() {
   /* --- Controls --- */
 
   /** Open the hire: the fare starts accruing and the pickup is stamped. */
-  const beginTrip = useCallback(() => {
-    const at = Date.now();
-    setMeter((prev) => startMeter(prev, at));
-    // A fresh hire, so nothing from the last one may follow it onto the roll.
-    recordedTripRef.current = null;
-    setTripDetails(null);
-    setWaypoint("dropoff", null);
-    captureWaypoint("pickup", at);
-  }, [captureWaypoint, setWaypoint]);
+  const beginTrip = useCallback(
+    (odometerKm: number | null = null) => {
+      const at = Date.now();
+      setMeter((prev) => startMeter(prev, at));
+      // A fresh hire, so nothing from the last one may follow it onto the roll.
+      recordedTripRef.current = null;
+      setTripDetails(null);
+      setWaypoint("dropoff", null);
+      captureWaypoint("pickup", at, odometerKm);
+    },
+    [captureWaypoint, setWaypoint],
+  );
+
+  /**
+   * Open the hire, after the card's odometer condition.
+   *
+   * A card can require the vehicle's odometer before a fare may begin, so the
+   * pickup mileage on the receipt is never a blank. The reading is taken here
+   * rather than after the start, because a hire that has already opened cannot
+   * be un-opened when the car turns out not to publish PID A6.
+   */
+  const startHire = useCallback(() => {
+    if (profile.allowStartWithoutOdometer) {
+      beginTrip();
+      return;
+    }
+    setOdometerChecking(true);
+    void readOdometerOnce().then((km) => {
+      setOdometerChecking(false);
+      const gate = meterOdometerGate(profile, km);
+      if (!gate.canStart) {
+        Alert.alert("Odometer required", gate.reason ?? "");
+        return;
+      }
+      beginTrip(km);
+    });
+  }, [beginTrip, profile, readOdometerOnce]);
 
   /** Give up on the pending START — the driver closed the popup. */
   const closeConnectPrompt = useCallback(() => {
@@ -909,7 +1094,7 @@ export default function MeterDigitalScreen() {
 
   const handleStart = useCallback(() => {
     if (startGate.canStart) {
-      beginTrip();
+      startHire();
       return;
     }
     // The press is not thrown away: it is held, the link attempt is made, and
@@ -921,16 +1106,18 @@ export default function MeterDigitalScreen() {
         .connect()
         .catch((e) => console.log("[meter-digital] connect failed", e));
     }
-  }, [beginTrip, canbus, startGate.canStart]);
+  }, [canbus, startGate.canStart, startHire]);
 
-  // The held START, released by the link coming up.
+  // The held START, released by the link coming up. It goes through the same
+  // odometer gate as a direct press — a card that requires the reading requires
+  // it however the hire was opened.
   useEffect(() => {
     if (!pendingStartRef.current) return;
     if (!startGate.canStart) return;
     pendingStartRef.current = false;
     setConnectPromptOpen(false);
-    beginTrip();
-  }, [beginTrip, startGate.canStart]);
+    startHire();
+  }, [startGate.canStart, startHire]);
 
   const handlePauseToggle = useCallback(() => {
     // Resuming is deliberately not gated on the link: a hire already under way
@@ -941,7 +1128,14 @@ export default function MeterDigitalScreen() {
   const handleNewTrip = useCallback(() => {
     setMeter(resetMeter());
     setExtra(0);
-    setPeriod(isNightPeriod() ? "night" : "day");
+    setPeriod(
+      isNightPeriod(Date.now(), {
+        startHour: profile.nightStartHour,
+        endHour: profile.nightEndHour,
+      })
+        ? "night"
+        : "day",
+    );
     setWaypoint("pickup", null);
     setWaypoint("dropoff", null);
     // The declaration belongs to the hire that carried it, never to the next
@@ -950,7 +1144,7 @@ export default function MeterDigitalScreen() {
     setDetailsDraft(createTripDetailsDraft());
     setChargesText("");
     recordedTripRef.current = null;
-  }, [setWaypoint]);
+  }, [profile.nightEndHour, profile.nightStartHour, setWaypoint]);
 
   /**
    * End the hire: stop accruing, stamp the drop-off, and ask for the
@@ -1009,11 +1203,20 @@ export default function MeterDigitalScreen() {
       endedAt: pendingEnd.endedAt,
       tariff,
       period,
+      // The card the hire was billed on, so the record re-prices on the rates
+      // that were actually charged rather than on today's.
+      rates,
+      nightMultiplier: profile.nightMultiplier,
       extra: details.charges,
       pax: details.pax,
       luggage: details.luggage,
       airport: details.airport,
       airportSurcharge: details.airportSurcharge,
+      // Priced from the declared counts, on the same card.
+      cardSurcharge: meterExtraSurcharge(profile, {
+        luggage: details.luggage,
+        passengers: details.pax,
+      }),
       plate,
       driver: driverName,
       pickup: pickupRef.current,
@@ -1035,7 +1238,7 @@ export default function MeterDigitalScreen() {
         setLastTrip((prev) => (prev && prev.id === patched.id ? patched : prev));
       });
     });
-  }, [detailsDraft, driverName, pendingEnd, period, plate, tariff]);
+  }, [detailsDraft, driverName, pendingEnd, period, plate, profile, rates, tariff]);
 
   /* --- The declaration's own keys --- */
 
@@ -1061,16 +1264,23 @@ export default function MeterDigitalScreen() {
   /** The − / + keys beside the field, for a driver wearing gloves in the dark. */
   const handleChargesStep = useCallback(
     (steps: number) => {
-      const charges = adjustCharges(detailsDraft.charges, steps);
+      const charges = adjustCharges(detailsDraft.charges, steps, profile.extraStep);
       setChargesText(chargesToText(charges));
       setDetailsDraft((prev) => ({ ...prev, charges }));
     },
-    [detailsDraft.charges],
+    [detailsDraft.charges, profile.extraStep],
   );
 
-  const handleExtra = useCallback((steps: number) => {
-    setExtra((prev) => adjustExtra(prev, steps));
-  }, []);
+  const handleExtra = useCallback(
+    (steps: number) => {
+      // The step and the ceiling come from the card: a fleet whose tolls are in
+      // whole ringgit should not have to press a 50-sen key twice.
+      setExtra((prev) =>
+        adjustExtra(prev, steps, { step: profile.extraStep, max: profile.maxExtra }),
+      );
+    },
+    [profile.extraStep, profile.maxExtra],
+  );
 
   const printReceipt = useCallback(
     async (trip: MeterTrip | null) => {
@@ -1274,18 +1484,31 @@ export default function MeterDigitalScreen() {
           startBlocked && styles.primaryButtonBlocked,
         ]}
         onPress={meter.running ? handleEndTrip : started ? handleNewTrip : handleStart}
+        // A card that requires the odometer holds the press while the reader is
+        // asked. One press, one read — a second would queue behind it.
+        disabled={odometerChecking}
         activeOpacity={0.85}
         testID="meter-digital-toggle"
       >
-        <CarTaxiFront
-          color={startBlocked ? DASH.muted : "#fff"}
-          size={Math.round(ui.buttonText * 1.3)}
-        />
+        {odometerChecking ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <CarTaxiFront
+            color={startBlocked ? DASH.muted : "#fff"}
+            size={Math.round(ui.buttonText * 1.3)}
+          />
+        )}
         <FitText
           style={[styles.primaryButtonText, startBlocked && styles.primaryButtonTextBlocked]}
           size={ui.buttonText}
         >
-          {meter.running ? "END TRIP" : started ? "NEW TRIP" : "START TRIP"}
+          {odometerChecking
+            ? "READING ODOMETER…"
+            : meter.running
+              ? "END TRIP"
+              : started
+                ? "NEW TRIP"
+                : "START TRIP"}
         </FitText>
       </TouchableOpacity>
       {started ? (
@@ -1422,7 +1645,7 @@ export default function MeterDigitalScreen() {
       chars: fareText.length,
       // The fare only carries its caption once there is something to total up.
       textLines:
-        extra > 0 || airportSurcharge > 0
+        extra > 0 || airportSurcharge > 0 || cardSurcharge > 0
           ? [ui.panelLabel, ui.smallText]
           : [ui.panelLabel],
     });
@@ -1439,6 +1662,7 @@ export default function MeterDigitalScreen() {
     };
   }, [
     airportSurcharge,
+    cardSurcharge,
     extra,
     extraBox,
     extraText.length,
@@ -1503,7 +1727,7 @@ export default function MeterDigitalScreen() {
           );
         })}
       </View>
-      {extra > 0 || airportSurcharge > 0 ? (
+      {extra > 0 || airportSurcharge > 0 || cardSurcharge > 0 ? (
         <FitText style={styles.fareTotalLine} size={ui.smallText} testID="meter-digital-grand">
           {airportSurcharge > 0 ? "TOTAL WITH EXTRA + AIRPORT" : "TOTAL WITH EXTRA"} · RM{" "}
           {grandTotal.toFixed(2)}
@@ -1567,7 +1791,7 @@ export default function MeterDigitalScreen() {
       {/* One line, always: a wrapped caption steals the height the readout
           above it needs on a phone-sized dash. */}
       <FitText style={styles.fareTotalLine} size={ui.smallText}>
-        RM {EXTRA_STEP.toFixed(2)} PER PRESS · TOLLS, FEES, LUGGAGE
+        {`RM ${profile.extraStep.toFixed(2)} PER PRESS · TOLLS, FEES, LUGGAGE`}
       </FitText>
     </View>
   );
@@ -2165,6 +2389,44 @@ export default function MeterDigitalScreen() {
       >
         <View style={[styles.panel, panelStyle(ui)]}>
           <PanelLabel ui={ui}>TARIFF</PanelLabel>
+          {configured ? (
+            /* An operator has set the rates for this region, so the tariff is
+               not the driver's to pick — the card is shown instead of the
+               keys, charge by charge, so the fare on the glass is never a
+               number without a stated reason. */
+            <>
+              <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
+                {profile.label ?? billing.scope}
+                {profile.label ? ` · ${billing.scope}` : ""}
+              </Text>
+              {describeMeterRates(profile).map((line) => (
+                <Text
+                  key={line}
+                  style={[
+                    styles.bodyMuted,
+                    {
+                      fontSize: ui.captionText,
+                      lineHeight: Math.round(ui.captionText * 1.45),
+                    },
+                  ]}
+                  allowFontScaling={false}
+                >
+                  • {line}
+                </Text>
+              ))}
+              <Text
+                style={[
+                  styles.bodyMuted,
+                  { fontSize: ui.captionText, lineHeight: Math.round(ui.captionText * 1.45) },
+                ]}
+                allowFontScaling={false}
+              >
+                Set by your operator in Admin → Settings → Meter Digital Setting. The card
+                is fixed for the life of a hire, so a fare never re-prices mid-journey.
+              </Text>
+            </>
+          ) : (
+            <>
           <View style={[styles.tariffRow, { gap: ui.gap }]}>
             {(
               [
@@ -2228,15 +2490,17 @@ export default function MeterDigitalScreen() {
             Changing the tariff re-prices the running meter from its own totals —
             distance and time are not re-measured.
           </Text>
+            </>
+          )}
         </View>
 
         <View style={[styles.panel, panelStyle(ui)]}>
           <PanelLabel ui={ui}>SHIFT</PanelLabel>
           <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
-            The night shift adds {Math.round((NIGHT_MULTIPLIER - 1) * 100)}% to the
-            whole fare and runs from{" "}
-            {NIGHT_START_HOUR.toString().padStart(2, "0")}:00 to{" "}
-            {NIGHT_END_HOUR.toString().padStart(2, "0")}:00. The meter picks the
+            The night shift adds {Math.round((profile.nightMultiplier - 1) * 100)}% to
+            the whole fare and runs from{" "}
+            {profile.nightStartHour.toString().padStart(2, "0")}:00 to{" "}
+            {profile.nightEndHour.toString().padStart(2, "0")}:00. The meter picks the
             shift from the clock when it opens; the DAY / NIGHT keys override it.
           </Text>
           <View style={[styles.tariffRow, { gap: ui.gap }]}>
@@ -2264,7 +2528,9 @@ export default function MeterDigitalScreen() {
                     {key === "day" ? "DAY" : "NIGHT"}
                   </FitText>
                   <FitText style={styles.tariffChipHint} size={ui.captionText}>
-                    {key === "day" ? "No surcharge" : `× ${NIGHT_MULTIPLIER.toFixed(1)}`}
+                    {key === "day"
+                      ? "No surcharge"
+                      : `× ${profile.nightMultiplier.toFixed(2).replace(/\.?0+$/, "")}`}
                   </FitText>
                 </TouchableOpacity>
               );
@@ -2300,6 +2566,21 @@ export default function MeterDigitalScreen() {
       </ScrollView>
     </View>
   );
+
+  // The panels the card leaves on the console. The meter itself is never
+  // hidden — a console without one is not a meter — which `validateMeterProfile`
+  // enforces on the admin side and this backstops on the driver's.
+  const visibleTabs = TABS.filter(
+    (item) => item.panel === "meter" || profile.panels[item.panel].show,
+  );
+
+  // A card can be re-resolved while the driver is standing on a panel it hides.
+  // Rather than draw a panel that is no longer part of the console, fall back
+  // to the meter.
+  useEffect(() => {
+    if (visibleTabs.some((item) => item.id === tab)) return;
+    setTab("ehailing");
+  }, [tab, visibleTabs]);
 
   const body =
     tab === "trips"
@@ -2408,8 +2689,13 @@ export default function MeterDigitalScreen() {
       </View>
 
       <View style={[styles.tabBar, { paddingBottom: insets.bottom }]}>
-        {TABS.map((item) => {
+        {visibleTabs.map((item) => {
           const active = tab === item.id;
+          // A panel the card leaves visible but locked keeps its place on the
+          // foot — the driver can see the console has one — and simply does
+          // not open. It is drawn dimmed so a dead key never reads as a
+          // broken one.
+          const tappable = profile.panels[item.panel].tap;
           return (
             <TouchableOpacity
               key={item.id}
@@ -2420,9 +2706,11 @@ export default function MeterDigitalScreen() {
                   paddingTop: Math.round(ui.pad * 0.75),
                   paddingBottom: Math.round(ui.pad * 0.9),
                   paddingHorizontal: Math.round(ui.pad * 0.35),
+                  opacity: tappable ? 1 : 0.4,
                 },
               ]}
               onPress={() => setTab(item.id)}
+              disabled={!tappable}
               activeOpacity={0.8}
               testID={`meter-digital-tab-${item.id}`}
             >
@@ -2618,7 +2906,7 @@ export default function MeterDigitalScreen() {
                     allowFontScaling={false}
                   >
                     Tolls you paid, a booking fee, a luggage charge. Type the
-                    figure or step it in RM {EXTRA_STEP.toFixed(2)}. Leave it at
+                    figure or step it in RM {profile.extraStep.toFixed(2)}. Leave it at
                     zero if there were none.
                   </Text>
                 </>,
