@@ -1,5 +1,6 @@
 import {
   isLandscapeSize,
+  resolveOrientationGate,
   rotateNoticeCopy,
   shouldPromptRotate,
   type OrientationLockState,
@@ -21,6 +22,51 @@ describe("isLandscapeSize", () => {
   it("does not claim landscape for a viewport it cannot measure", () => {
     expect(isLandscapeSize(NaN, 390)).toBe(false);
     expect(isLandscapeSize(844, Number.POSITIVE_INFINITY)).toBe(false);
+  });
+});
+
+describe("resolveOrientationGate", () => {
+  it("lets the screen draw in a landscape viewport, whatever the lock said", () => {
+    const states: OrientationLockState[] = ["pending", "locked", "unsupported"];
+    for (const state of states) {
+      expect(resolveOrientationGate(state, 844, 390)).toBe("ready");
+    }
+  });
+
+  it("draws neither the screen nor the notice while the pin is pending", () => {
+    // The device may be mid-turn: the console would be laid out for the wrong
+    // shape and the notice would flash for a frame.
+    expect(resolveOrientationGate("pending", 390, 844)).toBe("waiting");
+  });
+
+  it("asks for a rotate instead of drawing when the pin was refused", () => {
+    expect(resolveOrientationGate("unsupported", 390, 844)).toBe("rotate");
+  });
+
+  it("asks for a rotate when the pin was accepted but the glass stayed portrait", () => {
+    expect(resolveOrientationGate("locked", 390, 844)).toBe("rotate");
+  });
+
+  it("never lets the screen draw in portrait", () => {
+    const states: OrientationLockState[] = ["pending", "locked", "unsupported"];
+    for (const state of states) {
+      expect(resolveOrientationGate(state, 390, 844)).not.toBe("ready");
+    }
+  });
+
+  it("refuses to draw a viewport it cannot measure", () => {
+    // Not landscape unless proven landscape — a squeezed console is worse than
+    // a moment of nothing.
+    expect(resolveOrientationGate("locked", NaN, NaN)).toBe("rotate");
+    expect(resolveOrientationGate("pending", NaN, NaN)).toBe("waiting");
+  });
+
+  it("re-gates on a return to portrait, exactly as on first entry", () => {
+    // Coming back from another page restarts the lock at `pending`; the device
+    // having rotated away in the meantime must land back on the notice.
+    expect(resolveOrientationGate("pending", 390, 844)).toBe("waiting");
+    expect(resolveOrientationGate("locked", 390, 844)).toBe("rotate");
+    expect(resolveOrientationGate("locked", 844, 390)).toBe("ready");
   });
 });
 

@@ -10,9 +10,16 @@
  *    native side to call, exactly like the CANBus transports.
  *
  * When the lock does not take, the screen must not simply render sideways-ish
- * in a portrait viewport — it tells the driver to turn the device. The maths
- * for "is this viewport landscape" and "should we be asking them to rotate"
- * lives here, native-module free, so it stays unit testable.
+ * in a portrait viewport — it does not render at all. The console is replaced
+ * by the "turn your device" notice until the viewport is actually landscape,
+ * and that stays true every time the screen is returned to: coming back from
+ * another page re-asks for the pin and re-checks the viewport, so a device that
+ * rotated back to portrait while it was away meets the notice again rather than
+ * a meter laid out for a shape it is not being held in.
+ *
+ * The maths for "is this viewport landscape", "may the console draw" and
+ * "should we be asking them to rotate" lives here, native-module free, so it
+ * stays unit testable.
  */
 
 /** How the landscape pin is going, as far as the screen is concerned. */
@@ -30,8 +37,43 @@ export function isLandscapeSize(width: number, height: number): boolean {
   return width > height;
 }
 
+/** What a landscape-only screen may put on the glass right now. */
+export type OrientationGate =
+  /** Landscape: draw the screen. */
+  | "ready"
+  /**
+   * Portrait, and the device is not going to turn itself: draw the notice
+   * *instead of* the screen — never over it, and never a stacked-up portrait
+   * rendering of a console that is read at a glance from a dash mount.
+   */
+  | "rotate"
+  /**
+   * Portrait, but the pin has not reported back yet — the device may be mid
+   * turn. Draw neither: the console would be laid out for the wrong shape, and
+   * the notice would flash for one frame on a screen that is already rotating.
+   */
+  | "waiting";
+
 /**
- * Whether to cover the screen with the "turn your device" notice.
+ * What to draw, from the lock's state and the viewport it produced.
+ *
+ * The viewport is the authority, not the lock: `locked` only means the OS
+ * accepted the request, so the console draws when — and only when — the glass
+ * is actually landscape. That is what makes the gate survive navigation. The
+ * lock state is re-asked for on every focus, so a return from another page
+ * starts at `waiting` and settles into `ready` or `rotate` on its own.
+ */
+export function resolveOrientationGate(
+  state: OrientationLockState,
+  width: number,
+  height: number,
+): OrientationGate {
+  if (isLandscapeSize(width, height)) return "ready";
+  return state === "pending" ? "waiting" : "rotate";
+}
+
+/**
+ * Whether to show the "turn your device" notice.
  *
  * Never while the lock is still `pending`: on a device that is about to rotate
  * itself the first frame is always portrait, and flashing the notice for that
@@ -45,8 +87,7 @@ export function shouldPromptRotate(
   width: number,
   height: number,
 ): boolean {
-  if (state === "pending") return false;
-  return !isLandscapeSize(width, height);
+  return resolveOrientationGate(state, width, height) === "rotate";
 }
 
 /** Title + body for the rotate notice, phrased for why the lock did not take. */

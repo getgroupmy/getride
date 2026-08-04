@@ -37,11 +37,18 @@
  * readouts, deliberately *not* following the app's light/dark theme. A meter is
  * read off a windscreen mount at night, and a white screen there is a hazard.
  *
- * The screen is landscape-only. It pins the device to landscape while it is
- * focused (`useLandscapeLock`) and hands rotation back on the way out. Where
- * that pin cannot happen — the web build, or a binary made before
- * `expo-screen-orientation` shipped — a portrait viewport gets the rotate
- * notice instead of a squeezed meter.
+ * The screen is landscape-only, and that is a gate rather than a hint: the
+ * console is *not drawn at all* in a portrait viewport. It pins the device to
+ * landscape while it is focused (`useLandscapeLock`) and hands rotation back on
+ * the way out; where that pin cannot happen — the web build, or a binary made
+ * before `expo-screen-orientation` shipped — the rotate notice takes the whole
+ * screen until the driver turns the device. The pin and the check run on every
+ * focus, so returning here from the reader settings (or anywhere else) with the
+ * device back in portrait meets the notice again, not a squeezed meter.
+ *
+ * The gate covers the drawing only. The sensors, the link and the 1 Hz clock
+ * live above it and keep running, because a hire that is open is a fare that is
+ * accruing — turning the phone upright must never cost the driver the meter.
  *
  * Nothing here is drawn at a fixed point size. Every padding, icon, key and
  * word comes from `computeMeterMetrics` (pure + tested), which fits the whole
@@ -122,7 +129,7 @@ import { PID_ODOMETER } from "@/utils/canbus/fuelRange";
 import { decodeReading } from "@/utils/canbus/vehicleScan";
 import { formatDisplayAddress } from "@/utils/addressFormatter";
 import { reverseGeocode } from "@/utils/maps";
-import { isLandscapeSize, shouldPromptRotate } from "@/utils/orientationLock";
+import { resolveOrientationGate } from "@/utils/orientationLock";
 import {
   computeMeterMetrics,
   fitDigits,
@@ -329,12 +336,12 @@ export default function MeterDigitalScreen() {
   const { appIconUri } = useBranding();
   const battery = useDeviceBattery();
 
-  // Landscape-only: pinned while focused, with the rotate notice as the cover
-  // for every platform/build where the pin cannot happen.
+  // Landscape-only: pinned while focused, re-asked on every focus, and gated on
+  // the viewport the pin actually produced — the console below only renders on
+  // `ready`. See `utils/orientationLock.ts`.
   const lockState = useLandscapeLock();
   const { width: winWidth, height: winHeight } = useWindowDimensions();
-  const isLandscape = isLandscapeSize(winWidth, winHeight);
-  const promptRotate = shouldPromptRotate(lockState, winWidth, winHeight);
+  const gate = resolveOrientationGate(lockState, winWidth, winHeight);
 
   /**
    * Every size on the console, fitted to the glass it is drawn on — see
@@ -1448,7 +1455,7 @@ export default function MeterDigitalScreen() {
   /* --- The meter, as the mount sees it --- */
 
   const dashboard = (
-    <View style={[styles.grid, { gap: ui.gap }, !isLandscape && styles.gridStacked]}>
+    <View style={[styles.grid, { gap: ui.gap }]}>
       <View style={[styles.colLeft, { gap: ui.gap }]}>
         {driverCard}
         {tripControls}
@@ -1981,6 +1988,29 @@ export default function MeterDigitalScreen() {
             ? settingsTab
             : dashboard;
 
+  /* --- The landscape gate --- */
+
+  // Below this line is the instrument, and it is laid out for a windscreen
+  // mount. In portrait it is not drawn: the driver gets the notice on its own
+  // (`rotate`), or a blank console while the device is still turning
+  // (`waiting`). Everything above — the link, the fix, the running hire — is
+  // untouched, so a fare in progress survives the phone being picked up, and
+  // the meter is drawn again the moment the glass is landscape.
+  if (gate !== "ready") {
+    return (
+      <View style={styles.container} testID="meter-digital-gate">
+        <StatusBar barStyle="light-content" hidden />
+        {gate === "rotate" ? (
+          <RotateDeviceNotice
+            state={lockState}
+            onBack={() => router.back()}
+            testID="meter-digital-rotate"
+          />
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* The meter draws its own status cluster, so the OS bar is redundant
@@ -2345,14 +2375,6 @@ export default function MeterDigitalScreen() {
           </View>
         </View>
       </Modal>
-
-      {promptRotate ? (
-        <RotateDeviceNotice
-          state={lockState}
-          onBack={() => router.back()}
-          testID="meter-digital-rotate"
-        />
-      ) : null}
     </View>
   );
 }
@@ -2445,8 +2467,9 @@ const styles = StyleSheet.create({
 
   /* Body */
   bodyWrap: { flex: 1 },
+  // Always two columns: the console is only ever drawn in landscape (the gate
+  // above), so there is no portrait fallback layout to fall back to.
   grid: { flex: 1, flexDirection: "row" },
-  gridStacked: { flexDirection: "column" },
   colLeft: { flex: 1 },
   colRight: { flex: 1.85 },
   pairRow: { flexDirection: "row", flex: 1 },
