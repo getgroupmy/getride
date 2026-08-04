@@ -1453,6 +1453,12 @@ export default function DriverTeksiScreen() {
             ]}
             onPress={() => {
               console.log("[partner-teksi] Meter Digital pressed");
+              // The meter renders the driver card off the permit. Only hosted
+              // photos travel as a param — a cropped permit portrait is a data
+              // URL, far too long for a route.
+              const permitPhoto = permit.photoUri?.startsWith("http")
+                ? permit.photoUri
+                : null;
               router.push({
                 pathname: "/meter-digital",
                 params: {
@@ -1460,6 +1466,13 @@ export default function DriverTeksiScreen() {
                   ...(permit.vehiclePlate && permit.vehiclePlate !== "—"
                     ? { plate: permit.vehiclePlate }
                     : {}),
+                  ...(permit.name && permit.name !== "—"
+                    ? { driver: permit.name }
+                    : {}),
+                  ...(permit.permitNumber && permit.permitNumber !== "—"
+                    ? { license: permit.permitNumber }
+                    : {}),
+                  ...(permitPhoto ? { photo: permitPhoto } : {}),
                 },
               } as never);
             }}
