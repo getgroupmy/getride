@@ -222,7 +222,7 @@ const TONE_COLOR: Record<MeterLinkTone, string> = {
 type MeterTab = "ehailing" | "trips" | "printer" | "obd" | "settings";
 
 const TABS: { id: MeterTab; label: string; icon: typeof CarTaxiFront }[] = [
-  { id: "ehailing", label: "eHailing", icon: CarTaxiFront },
+  { id: "ehailing", label: "Meter", icon: CarTaxiFront },
   { id: "trips", label: "TRIPS", icon: ClipboardList },
   { id: "printer", label: "PRINTER\nCONNECTION STATUS", icon: Printer },
   { id: "obd", label: "OBD\nCONNECTION STATUS", icon: Cpu },
