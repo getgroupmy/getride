@@ -22,6 +22,13 @@
  *     the panel has vertically. Sizing a field to the longest string it might
  *     ever hold either clips the long case or wastes the short one, so the
  *     clock and the distance are re-fitted as they grow.
+ *  3. **A measured box beats a predicted one.** The sizes here are computed from
+ *     the viewport, which is only a *prediction* of how wide a panel ends up —
+ *     and a prediction is wrong the moment the device adds a safe-area inset (a
+ *     landscape notch takes ~100pt off the glass). So the screen hands the box
+ *     each field was actually laid out in back to `fitReadoutBox` /
+ *     `fitMoneyPanel`, and the field is fitted to that box in both axes.
+ *     Nothing is clipped, because nothing is guessed.
  *
  * All pure, so the fitting rules are unit tested rather than eyeballed on one
  * device.
@@ -53,8 +60,23 @@ export const MAX_METER_SCALE = 1.7;
  */
 const MONO_ASPECT = 0.645;
 
+/**
+ * How tall one monospace line is, as a multiple of its point size.
+ *
+ * `SegmentDisplay` draws with `lineHeight: size * 1.26`, so this is the figure a
+ * height fit divides by — a readout sized off the raw box height has its leading
+ * clipped by the panel holding it.
+ */
+const MONO_LINE = 1.26;
+
+/** How tall a line of ordinary panel text is, as a multiple of its point size. */
+const TEXT_LINE = 1.35;
+
 /** Never draw a readout below this: a dash instrument is read at a glance. */
 export const MIN_READOUT_PT = 9;
+
+/** A key still has to be pressable with a thumb in a moving vehicle. */
+export const MIN_KEY_HEIGHT = 26;
 
 /** Every size the meter draws with, in points/pixels for one viewport. */
 export interface MeterMetrics {
@@ -173,8 +195,146 @@ export function fitReadout(
   return Math.round(Math.max(MIN_READOUT_PT, Math.min(max, fitted)));
 }
 
+/**
+ * The largest point size at which a value fits a box it was *measured* in —
+ * across and down.
+ *
+ * This is the honest version of {@link fitReadout}: instead of a panel width
+ * predicted from the viewport and a height ceiling guessed from the scale, both
+ * numbers come from the layout the platform actually performed. A landscape
+ * notch, a split-screen tablet, a rounding that landed the other way — none of
+ * them can clip a readout that was fitted to its own box.
+ *
+ * An axis that has not been measured yet (0) falls through to the axis that
+ * was, and to `max` when neither has.
+ */
+export function fitReadoutBox(
+  boxWidth: number,
+  boxHeight: number,
+  chars: number,
+  reservedWidth: number,
+  max: number,
+): number {
+  const byWidth = fitDigits(boxWidth, chars, reservedWidth);
+  const byHeight =
+    Number.isFinite(boxHeight) && boxHeight > 0 ? boxHeight / MONO_LINE : 0;
+  const limits = [byWidth, byHeight].filter((v) => v > 0);
+  if (limits.length === 0) return Math.round(Math.min(max, MIN_READOUT_PT));
+  return Math.round(Math.max(MIN_READOUT_PT, Math.min(max, ...limits)));
+}
+
+/** What one money panel (FARE, EXTRA) draws with, once it has been measured. */
+export interface MoneyPanelFit {
+  /** Point size for the RM readout. */
+  readoutSize: number;
+  /** Height each key below it gets. */
+  keyHeight: number;
+}
+
+/** A measured money panel, and everything sharing its height. */
+export interface MoneyPanelInput {
+  /** The panel's own measured box. */
+  width: number;
+  height: number;
+  /** How many glyphs the readout is drawing right now: "4.00" is four. */
+  chars: number;
+  /** The panel's padding, and the gap between its rows. */
+  pad: number;
+  gap: number;
+  /** Point sizes of the fixed text lines: the label, and any caption below. */
+  textLines: number[];
+  /** Width the currency mark and its gap take out of the readout's row. */
+  reservedWidth: number;
+  /** Ceilings from the viewport metrics: never draw larger than these. */
+  maxReadout: number;
+  maxKeyHeight: number;
+}
+
+/**
+ * Divide a measured money panel between its readout and its keys.
+ *
+ * The panel carries a label, the RM readout, a row of keys and — for EXTRA,
+ * always — a caption, inside a box whose height is a share of the glass. On a
+ * short console the sum of their natural sizes exceeds that box and whatever is
+ * drawn first gets clipped, which is exactly what may not happen to a fare.
+ *
+ * So the panel is divided rather than overflowed: the fixed text lines take
+ * their real height off the top, the keys take a share of what is left but never
+ * more than the viewport allows nor less than a thumb needs, and the readout is
+ * fitted to the remainder in both axes.
+ */
+export function fitMoneyPanel(input: MoneyPanelInput): MoneyPanelFit {
+  const {
+    width,
+    height,
+    chars,
+    pad,
+    gap,
+    textLines,
+    reservedWidth,
+    maxReadout,
+    maxKeyHeight,
+  } = input;
+
+  const innerWidth = Math.max(0, width - pad * 2);
+  // The rows sharing the height: every fixed text line, the readout, the keys.
+  const rows = textLines.length + 2;
+  const fixed =
+    textLines.reduce((sum, size) => sum + size * TEXT_LINE, 0) +
+    gap * Math.max(0, rows - 1);
+  const innerHeight = Math.max(0, height - pad * 2 - fixed);
+
+  // Not measured yet (or a box with nothing left): the viewport ceilings stand,
+  // and the width fit decides alone where there is a width to fit to. This is
+  // the first frame only — the layout pass lands immediately after it.
+  if (innerHeight <= 0) {
+    return Object.freeze({
+      readoutSize:
+        innerWidth > 0
+          ? fitReadoutBox(innerWidth, 0, chars, reservedWidth, maxReadout)
+          : Math.round(Math.max(MIN_READOUT_PT, maxReadout)),
+      keyHeight: Math.max(MIN_KEY_HEIGHT, Math.round(maxKeyHeight)),
+    });
+  }
+
+  const keyHeight = Math.max(
+    Math.min(MIN_KEY_HEIGHT, innerHeight),
+    Math.min(maxKeyHeight, innerHeight * 0.46),
+  );
+
+  return Object.freeze({
+    readoutSize: fitReadoutBox(
+      innerWidth,
+      Math.max(0, innerHeight - keyHeight - gap),
+      chars,
+      reservedWidth,
+      maxReadout,
+    ),
+    keyHeight: Math.round(keyHeight),
+  });
+}
+
+/**
+ * The part of the glass the console does not get: the safe-area insets a notch,
+ * a rounded corner or a home indicator claim.
+ *
+ * Sizing off the raw window on a landscape phone over-states the width by the
+ * ~100pt the sensor housing takes, and every panel prediction inherits that
+ * error — which is what pushed the clock's last digits outside their panel.
+ */
+export interface MeterChrome {
+  horizontal?: number;
+  vertical?: number;
+}
+
 /** Every size the meter draws with, for one viewport. */
-export function computeMeterMetrics(width: number, height: number): MeterMetrics {
+export function computeMeterMetrics(
+  rawWidth: number,
+  rawHeight: number,
+  chrome?: MeterChrome,
+): MeterMetrics {
+  const width = Math.max(1, rawWidth - Math.max(0, chrome?.horizontal ?? 0));
+  const height = Math.max(1, rawHeight - Math.max(0, chrome?.vertical ?? 0));
   const scale = meterScale(width, height);
   /** A scaled size, never smaller than one point. */
   const px = (base: number): number => Math.max(1, Math.round(base * scale));

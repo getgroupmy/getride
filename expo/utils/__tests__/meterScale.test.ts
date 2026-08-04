@@ -1,9 +1,12 @@
 import {
   computeMeterMetrics,
   fitDigits,
+  fitMoneyPanel,
   fitReadout,
+  fitReadoutBox,
   meterScale,
   MAX_METER_SCALE,
+  MIN_KEY_HEIGHT,
   MIN_METER_SCALE,
   MIN_READOUT_PT,
 } from "@/utils/meterScale";
@@ -77,7 +80,110 @@ describe("fitReadout", () => {
   });
 });
 
+describe("fitReadoutBox", () => {
+  it("fits the tighter axis of the box it was measured in", () => {
+    // Wide but shallow: the height is what may not be exceeded.
+    expect(fitReadoutBox(4000, 40, 8, 0, 90)).toBeLessThanOrEqual(Math.round(40 / 1.26));
+    // Deep but narrow: the width is.
+    const narrow = fitReadoutBox(120, 4000, 8, 0, 90);
+    expect(narrow * 8 * 0.62).toBeLessThanOrEqual(120);
+  });
+
+  it("never exceeds the viewport ceiling, however big the box", () => {
+    expect(fitReadoutBox(4000, 4000, 4, 0, 28)).toBe(28);
+  });
+
+  it("falls through to the axis that has been measured", () => {
+    // First frame: a width but no height yet, and the reverse.
+    expect(fitReadoutBox(300, 0, 4, 0, 90)).toBeGreaterThan(MIN_READOUT_PT);
+    expect(fitReadoutBox(0, 300, 4, 0, 90)).toBeGreaterThan(MIN_READOUT_PT);
+    // Nothing measured at all: the floor, and the panel clips.
+    expect(fitReadoutBox(0, 0, 4, 0, 90)).toBe(MIN_READOUT_PT);
+  });
+
+  it("keeps a growing clock whole in a box that does not grow", () => {
+    const box = { width: 180, height: 60 };
+    for (const value of ["00:04", "00:04:07", "104:07:22"]) {
+      const drawn = fitReadoutBox(box.width, box.height, value.length, 0, 40);
+      expect(drawn * value.length * 0.62).toBeLessThanOrEqual(box.width + 0.5);
+      expect(drawn * 1.26).toBeLessThanOrEqual(box.height + 0.5);
+    }
+  });
+});
+
+describe("fitMoneyPanel", () => {
+  const panel = (height: number, captionLines: number) =>
+    fitMoneyPanel({
+      width: 300,
+      height,
+      chars: 4,
+      pad: 10,
+      gap: 8,
+      textLines: captionLines === 2 ? [12, 10] : [12],
+      reservedWidth: 30,
+      maxReadout: 56,
+      maxKeyHeight: 40,
+    });
+
+  it("draws the readout and the keys inside the panel they were measured in", () => {
+    for (const height of [120, 180, 240, 320]) {
+      const fit = panel(height, 2);
+      const label = 12 * 1.35;
+      const caption = 10 * 1.35;
+      const stack =
+        10 * 2 + label + caption + 8 * 3 + fit.readoutSize * 1.26 + fit.keyHeight;
+      expect(stack).toBeLessThanOrEqual(height + 0.5);
+    }
+  });
+
+  it("gives the readout its ground back when the caption goes", () => {
+    // The FARE panel only carries its total line once there is an extra, so it
+    // has more room for digits than EXTRA does at the same height.
+    expect(panel(200, 1).readoutSize).toBeGreaterThan(panel(200, 2).readoutSize);
+  });
+
+  it("keeps the keys pressable on a console with almost no height", () => {
+    expect(panel(90, 2).keyHeight).toBeGreaterThanOrEqual(MIN_KEY_HEIGHT - 0.5);
+  });
+
+  it("holds the viewport ceilings before it has been measured", () => {
+    const first = fitMoneyPanel({
+      width: 0,
+      height: 0,
+      chars: 4,
+      pad: 10,
+      gap: 8,
+      textLines: [12, 10],
+      reservedWidth: 30,
+      maxReadout: 48,
+      maxKeyHeight: 40,
+    });
+    expect(first.readoutSize).toBe(48);
+    expect(first.keyHeight).toBe(40);
+  });
+});
+
 describe("computeMeterMetrics", () => {
+  it("sizes to the glass the console actually gets, not the whole window", () => {
+    // A landscape notch takes ~100pt of width and the home indicator ~21pt of
+    // height; panels predicted off the raw window are that much too wide.
+    const raw = computeMeterMetrics(PHONE.width, PHONE.height);
+    const inset = computeMeterMetrics(PHONE.width, PHONE.height, {
+      horizontal: 118,
+      vertical: 21,
+    });
+    expect(inset.statPanelWidth).toBeLessThan(raw.statPanelWidth);
+    expect(inset.scale).toBeLessThanOrEqual(raw.scale);
+  });
+
+  it("ignores chrome it cannot make sense of", () => {
+    const plain = computeMeterMetrics(PHONE.width, PHONE.height);
+    const negative = computeMeterMetrics(PHONE.width, PHONE.height, {
+      horizontal: -50,
+    });
+    expect(negative.statPanelWidth).toBeCloseTo(plain.statPanelWidth, 5);
+  });
+
   it("keeps the fare digits inside the panel that holds them", () => {
     for (const size of [PHONE, TABLET_7, TABLET_10, { width: 667, height: 375 }]) {
       const m = computeMeterMetrics(size.width, size.height);

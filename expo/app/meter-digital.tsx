@@ -47,9 +47,10 @@
  * word comes from `computeMeterMetrics` (pure + tested), which fits the whole
  * console to the viewport it is being drawn into — a phone in a cradle and a
  * 10-inch dash tablet get the same instrument, scaled. The segment readouts go
- * further and are fitted to the value they are showing (`fitReadout`), so a
- * clock that has gained an hour digit and a distance that has gained a hundreds
- * digit are still drawn whole. Text that lives inside a control shrinks to its
+ * further: each is fitted to the box it was *measured* in (`fitReadoutBox`,
+ * `fitMoneyPanel`) and to the value it is showing, so a clock that has gained an
+ * hour digit, a distance that has gained a hundreds digit and a fare in a panel
+ * squeezed by a landscape notch are all still drawn whole. Text that lives inside a control shrinks to its
  * box on top of that (`FitText`) and ignores the OS font-size setting, because
  * a clipped fare or a half-drawn key is not a thing a taxi meter may show.
  */
@@ -68,6 +69,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  type LayoutChangeEvent,
   type StyleProp,
   type TextStyle,
 } from "react-native";
@@ -124,7 +126,8 @@ import { isLandscapeSize, shouldPromptRotate } from "@/utils/orientationLock";
 import {
   computeMeterMetrics,
   fitDigits,
-  fitReadout,
+  fitMoneyPanel,
+  fitReadoutBox,
   type MeterMetrics,
 } from "@/utils/meterScale";
 import {
@@ -228,6 +231,38 @@ interface LiveFix {
 /** Which end of the hire a stamp belongs to. */
 type MeterEnd = "pickup" | "dropoff";
 
+/** A box the layout pass actually gave a field, in points. */
+interface MeasuredBox {
+  width: number;
+  height: number;
+}
+
+const UNMEASURED: MeasuredBox = { width: 0, height: 0 };
+
+/**
+ * The box a field was laid out in, reported back so the field can be fitted to
+ * it rather than to a prediction of it.
+ *
+ * Both boxes this is used on are flex children whose size comes from the panel
+ * above them, never from the readout inside them — so measuring cannot chase
+ * its own tail: a bigger readout does not make the box report bigger. Updates
+ * are gated on a real change, so a re-layout that lands on the same numbers does
+ * not re-render the console.
+ */
+function useMeasuredBox(): [MeasuredBox, (event: LayoutChangeEvent) => void] {
+  const [box, setBox] = useState<MeasuredBox>(UNMEASURED);
+  const onLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return;
+    setBox((prev) =>
+      Math.abs(prev.width - width) < 0.5 && Math.abs(prev.height - height) < 0.5
+        ? prev
+        : { width, height },
+    );
+  }, []);
+  return [box, onLayout];
+}
+
 /**
  * A word that must fit the box it is in.
  *
@@ -304,11 +339,30 @@ export default function MeterDigitalScreen() {
   /**
    * Every size on the console, fitted to the glass it is drawn on — see
    * `utils/meterScale.ts`. Nothing below reads a hardcoded point size.
+   *
+   * The insets are handed over with the window, because they are not the
+   * console's to draw in: a landscape phone gives ~100pt of its width to the
+   * sensor housing and the home indicator, and sizing the panels off the raw
+   * window is what pushed the clock's last digits outside its panel.
    */
   const ui = useMemo(
-    () => computeMeterMetrics(winWidth, winHeight),
-    [winWidth, winHeight],
+    () =>
+      computeMeterMetrics(winWidth, winHeight, {
+        horizontal: insets.left + insets.right,
+        vertical: insets.top + insets.bottom,
+      }),
+    [insets.bottom, insets.left, insets.right, insets.top, winHeight, winWidth],
   );
+
+  /* --- What the fields were actually laid out in --- */
+
+  // The metrics above are a prediction of each panel's box; these are the boxes
+  // themselves, reported by the layout pass. Every readout is fitted to its own
+  // measurement, so nothing depends on the prediction being exact.
+  const [timeBox, onTimeLayout] = useMeasuredBox();
+  const [distanceBox, onDistanceLayout] = useMeasuredBox();
+  const [fareBox, onFareLayout] = useMeasuredBox();
+  const [extraBox, onExtraLayout] = useMeasuredBox();
 
   const { settings: displaySettings } = useDisplaySettings();
   // Same link the Teksi screen uses: auto-connect to the saved reader, and only
@@ -1039,34 +1093,46 @@ export default function MeterDigitalScreen() {
   const distanceValue = formatMeterKm(meter.distanceM);
 
   /**
-   * One size for both stat readouts, fitted to what they are actually showing.
+   * One size for both stat readouts, fitted to what they are actually showing
+   * inside the box they were actually given.
    *
    * Neither field has a fixed length — the clock gains a digit past ten hours,
    * the distance past ten and a hundred kilometres — so sizing them to a
    * guessed maximum either clips the long case or wastes the short one. Each
-   * value is fitted to the panel it lives in and the tighter of the two wins,
-   * so the pair matches and every character of both is drawn.
+   * value is fitted to its own measured row (falling back to the predicted panel
+   * width for the very first frame, before the layout pass has run) and the
+   * tighter of the two wins, so the pair matches and every character of both is
+   * drawn.
    */
   const statValueSize = useMemo(() => {
-    const base = ui.pad * 2 + Math.round(ui.gap * 0.6);
+    const predicted = Math.max(0, ui.statPanelWidth - ui.pad * 2);
+    const unitRoom = Math.round(ui.captionText * 1.8) + Math.round(ui.gap * 0.6);
     return Math.min(
-      fitReadout(ui.statPanelWidth, timeValue.length, base, ui.statSizeMax),
+      fitReadoutBox(
+        timeBox.width > 0 ? timeBox.width : predicted,
+        timeBox.height,
+        timeValue.length,
+        0,
+        ui.statSizeMax,
+      ),
       // The distance shares its row with the "km" label, which takes its width
       // out of the digits' before they are fitted.
-      fitReadout(
-        ui.statPanelWidth,
+      fitReadoutBox(
+        distanceBox.width > 0 ? distanceBox.width : predicted,
+        distanceBox.height,
         distanceValue.length,
-        base + Math.round(ui.captionText * 1.8),
+        unitRoom,
         ui.statSizeMax,
       ),
     );
-  }, [distanceValue.length, timeValue.length, ui]);
+  }, [distanceBox, distanceValue.length, timeBox, timeValue.length, ui]);
 
   const statCard = (
     label: string,
     value: string,
     unit: string | null,
     testID: string,
+    onValueRowLayout: (event: LayoutChangeEvent) => void,
   ) => (
     <View
       style={[
@@ -1077,7 +1143,10 @@ export default function MeterDigitalScreen() {
       testID={testID}
     >
       <PanelLabel ui={ui}>{label}</PanelLabel>
-      <View style={styles.statValueRow}>
+      {/* The row is what gets measured: it takes its width from the panel and
+          its height from whatever the label left, so the readout inside it can
+          never influence the box it is being fitted to. */}
+      <View style={styles.statValueRow} onLayout={onValueRowLayout}>
         <View style={[styles.statValueInner, { gap: Math.round(ui.gap * 0.6) }]}>
           <SegmentDisplay value={value} size={statValueSize} color={DASH.segment} />
           {unit ? (
@@ -1099,7 +1168,52 @@ export default function MeterDigitalScreen() {
     </View>
   );
 
-  /* --- Fare --- */
+  /* --- Fare / extras --- */
+
+  const fareText = fare.total.toFixed(2);
+  const extraText = extra.toFixed(2);
+
+  /**
+   * How the two money panels divide the height they were measured at.
+   *
+   * Both hold four things — a label, the RM readout, a row of keys, a caption —
+   * inside a box that is a share of the glass, and on a short console their
+   * natural sizes do not all fit. `fitMoneyPanel` divides the measured box
+   * instead of letting the last row overflow it, which is what had EXTRA's
+   * digits sliced across the top on a landscape phone.
+   *
+   * The two panels then take the tighter of the two answers: they sit side by
+   * side showing the same currency, so a fare drawn a few points larger than the
+   * extras beside it reads as a bug rather than as emphasis.
+   */
+  const money = useMemo(() => {
+    const shared = {
+      pad: ui.pad,
+      gap: ui.gap,
+      reservedWidth: ui.currencySize * 1.6 + Math.round(ui.gap * 0.9),
+      maxReadout: ui.fareSize,
+      maxKeyHeight: ui.keyHeight,
+    };
+    const fareFit = fitMoneyPanel({
+      ...shared,
+      width: fareBox.width,
+      height: fareBox.height,
+      chars: fareText.length,
+      // The fare only carries its caption once there is an extra to total up.
+      textLines: extra > 0 ? [ui.panelLabel, ui.smallText] : [ui.panelLabel],
+    });
+    const extraFit = fitMoneyPanel({
+      ...shared,
+      width: extraBox.width,
+      height: extraBox.height,
+      chars: extraText.length,
+      textLines: [ui.panelLabel, ui.smallText],
+    });
+    return {
+      readoutSize: Math.min(fareFit.readoutSize, extraFit.readoutSize),
+      keyHeight: Math.min(fareFit.keyHeight, extraFit.keyHeight),
+    };
+  }, [extra, extraBox, extraText.length, fareBox, fareText.length, ui]);
 
   const fareCard = (
     <View
@@ -1108,6 +1222,7 @@ export default function MeterDigitalScreen() {
         styles.farePanel,
         { padding: ui.pad, gap: ui.gap, borderRadius: ui.radius },
       ]}
+      onLayout={onFareLayout}
       testID="meter-digital-fare"
     >
       <PanelLabel ui={ui}>FARE</PanelLabel>
@@ -1119,8 +1234,8 @@ export default function MeterDigitalScreen() {
           RM
         </Text>
         <SegmentDisplay
-          value={fare.total.toFixed(2)}
-          size={ui.fareSize}
+          value={fareText}
+          size={money.readoutSize}
           color={DASH.segment}
           testID="meter-digital-total"
         />
@@ -1135,7 +1250,7 @@ export default function MeterDigitalScreen() {
               style={[
                 styles.key,
                 {
-                  height: ui.keyHeight,
+                  height: money.keyHeight,
                   gap: Math.round(ui.gap * 0.6),
                   borderRadius: Math.round(ui.radius * 0.65),
                 },
@@ -1173,6 +1288,7 @@ export default function MeterDigitalScreen() {
         styles.farePanel,
         { padding: ui.pad, gap: ui.gap, borderRadius: ui.radius },
       ]}
+      onLayout={onExtraLayout}
       testID="meter-digital-extra"
     >
       <PanelLabel ui={ui}>EXTRA</PanelLabel>
@@ -1184,8 +1300,8 @@ export default function MeterDigitalScreen() {
           RM
         </Text>
         <SegmentDisplay
-          value={extra.toFixed(2)}
-          size={ui.fareSize}
+          value={extraText}
+          size={money.readoutSize}
           color={DASH.segment}
         />
       </View>
@@ -1193,7 +1309,7 @@ export default function MeterDigitalScreen() {
         <TouchableOpacity
           style={[
             styles.key,
-            { height: ui.keyHeight, borderRadius: Math.round(ui.radius * 0.65) },
+            { height: money.keyHeight, borderRadius: Math.round(ui.radius * 0.65) },
             extra <= 0 && styles.keyDisabled,
           ]}
           disabled={extra <= 0}
@@ -1206,7 +1322,7 @@ export default function MeterDigitalScreen() {
         <TouchableOpacity
           style={[
             styles.key,
-            { height: ui.keyHeight, borderRadius: Math.round(ui.radius * 0.65) },
+            { height: money.keyHeight, borderRadius: Math.round(ui.radius * 0.65) },
           ]}
           onPress={() => handleExtra(1)}
           activeOpacity={0.8}
@@ -1337,8 +1453,14 @@ export default function MeterDigitalScreen() {
         {driverCard}
         {tripControls}
         <View style={[styles.pairRow, { gap: ui.gap }]}>
-          {statCard("TIME", timeValue, null, "meter-digital-time")}
-          {statCard("DISTANCE", distanceValue, "km", "meter-digital-distance")}
+          {statCard("TIME", timeValue, null, "meter-digital-time", onTimeLayout)}
+          {statCard(
+            "DISTANCE",
+            distanceValue,
+            "km",
+            "meter-digital-distance",
+            onDistanceLayout,
+          )}
         </View>
       </View>
       <View style={[styles.colRight, { gap: ui.gap }]}>
