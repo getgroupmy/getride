@@ -25,6 +25,7 @@ import SupportCallListener from "@/components/SupportCallListener";
 import IncomingTransferPopup from "@/components/IncomingTransferPopup";
 import ReferralBonusToast from "@/components/ReferralBonusToast";
 import { RootErrorBoundary } from "@/components/RootErrorBoundary";
+import { landscapeFullscreen } from "@/utils/fullscreenChrome";
 import { installGlobalErrorGuard } from "@/utils/globalErrorGuard";
 import { capturePendingReferral } from "@/utils/referral";
 
@@ -144,7 +145,13 @@ function RootLayoutNav() {
       <Stack.Screen name="partner-documents" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="vehicle-onboarding" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="partner-teksi" options={{ animation: "slide_from_right", gestureEnabled: false }} />
-      <Stack.Screen name="meter-digital" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      {/* The taxi meter is a dash instrument: the native stack pins it to
+          landscape and takes the system bars off the glass on iPhone, iPad and
+          Android before it is drawn. See `utils/fullscreenChrome.ts`. */}
+      <Stack.Screen
+        name="meter-digital"
+        options={landscapeFullscreen({ animation: "slide_from_right", gestureEnabled: false })}
+      />
       <Stack.Screen name="partner-ehailing" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="ride-running" options={{ animation: "slide_from_bottom", gestureEnabled: false }} />
       <Stack.Screen name="ride-detail" options={{ animation: "slide_from_right", gestureEnabled: false }} />

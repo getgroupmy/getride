@@ -45,14 +45,22 @@
  * swallowed, so a running hire cannot be walked out of. `resolveMeterBack`
  * decides all three cases.
  *
- * The screen is landscape-only, and that is a gate rather than a hint: the
- * console is *not drawn at all* in a portrait viewport. It pins the device to
- * landscape while it is focused (`useLandscapeLock`) and hands rotation back on
- * the way out; where that pin cannot happen — the web build, or a binary made
- * before `expo-screen-orientation` shipped — the rotate notice takes the whole
- * screen until the driver turns the device. The pin and the check run on every
- * focus, so returning here from the reader settings (or anywhere else) with the
- * device back in portrait meets the notice again, not a squeezed meter.
+ * The screen is landscape-only and full-screen, and that is a gate rather than
+ * a hint: the console is *not drawn at all* in a portrait viewport. On iPhone,
+ * iPad and Android the pin is declared on the route itself — the native stack
+ * carries `orientation: "landscape"` and hides the status bar, the Android
+ * navigation bar and the home indicator before the screen appears
+ * (`utils/fullscreenChrome.ts`), and on iPad it lands because the app also
+ * ships `ios.requireFullScreen`, without which a resizable iPad app's
+ * orientation preference is ignored. `useLandscapeLock` asks
+ * `expo-screen-orientation` for the same pin while the screen is focused, as
+ * the fallback for anywhere the native stack cannot reach and as what the
+ * rotate notice reads its wording from. Where neither can happen — the web
+ * build, or a binary made before `expo-screen-orientation` shipped — the
+ * rotate notice takes the whole screen until the driver turns the device. The
+ * pin and the check run on every focus, so returning here from the reader
+ * settings (or anywhere else) with the device still upright meets the notice
+ * rather than a squeezed meter.
  *
  * The gate covers the drawing only. The sensors, the link and the 1 Hz clock
  * live above it and keep running, because a hire that is open is a fare that is
@@ -137,7 +145,7 @@ import { OBD_MODE_CURRENT } from "@/utils/canbus/obd";
 import { PID_ODOMETER } from "@/utils/canbus/fuelRange";
 import { decodeReading } from "@/utils/canbus/vehicleScan";
 import { formatDisplayAddress } from "@/utils/addressFormatter";
-import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
+import { FULLSCREEN_MODAL_PROPS } from "@/utils/fullscreenChrome";
 import { reverseGeocode } from "@/utils/maps";
 import { resolveOrientationGate } from "@/utils/orientationLock";
 import {
@@ -2195,10 +2203,12 @@ export default function MeterDigitalScreen() {
         visible={totalOpen}
         transparent
         animationType="fade"
-        // The console is landscape-pinned, and an iOS modal that does not
-        // declare landscape throws rather than presenting. See
-        // `utils/modalOrientation.ts`.
-        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
+        // A modal is its own window: iOS throws rather than presenting one
+        // that has not declared the landscape the console is pinned to, and
+        // Android puts the system bars back underneath it unless it is told to
+        // draw under them — which would make the full-screen meter behind it
+        // visibly jump. See `utils/fullscreenChrome.ts`.
+        {...FULLSCREEN_MODAL_PROPS}
         onRequestClose={() => setTotalOpen(false)}
       >
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
@@ -2353,7 +2363,7 @@ export default function MeterDigitalScreen() {
         visible={connectPromptOpen}
         transparent
         animationType="fade"
-        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
+        {...FULLSCREEN_MODAL_PROPS}
         onRequestClose={closeConnectPrompt}
       >
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
@@ -2458,7 +2468,7 @@ export default function MeterDigitalScreen() {
         visible={exitPromptOpen}
         transparent
         animationType="fade"
-        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
+        {...FULLSCREEN_MODAL_PROPS}
         onRequestClose={() => setExitPromptOpen(false)}
       >
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
