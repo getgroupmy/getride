@@ -206,16 +206,24 @@ export interface MeterBackInputs {
   onMeterPanel: boolean;
   /** Is the meter accruing a fare right now? */
   running: boolean;
+  /**
+   * A hire has been ended but not yet closed — the driver is filling in the
+   * end-of-hire declaration. The fare has stopped, but the hire has not been
+   * written, so leaving would lose it just as surely as walking out of a
+   * running one.
+   */
+  ending?: boolean;
 }
 
 /**
  * Resolve a back press. Panel-first: a running meter still lets the driver back
  * out of the trip log or the reader settings onto the meter — what it refuses
- * is leaving the console with a fare in progress.
+ * is leaving the console with a fare in progress, or with one that has stopped
+ * but has not yet been declared and recorded.
  */
 export function resolveMeterBack(inputs: MeterBackInputs): MeterBackAction {
   if (!inputs.onMeterPanel) return "panel";
-  return inputs.running ? "blocked" : "prompt";
+  return inputs.running || inputs.ending === true ? "blocked" : "prompt";
 }
 
 /**

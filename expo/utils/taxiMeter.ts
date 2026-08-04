@@ -423,11 +423,21 @@ export function adjustExtra(current: number, steps: number): number {
   return round2(Math.min(MAX_EXTRA, Math.max(0, base + delta * EXTRA_STEP)));
 }
 
-/** What the passenger pays: the metered fare plus hand-entered extras. */
-export function meterGrandTotal(fareTotal: number, extra: number): number {
+/**
+ * What the passenger pays: the metered fare plus everything declared on top of
+ * it — keyed-in charges, an airport surcharge (see `utils/meterTripDetails.ts`).
+ *
+ * Any number of additions, because they are separate lines on the receipt and
+ * summing them before they get here would lose which was which. Each is clamped
+ * on its own, so no single bad value can pull the total below the fare.
+ */
+export function meterGrandTotal(fareTotal: number, ...extras: number[]): number {
   const fare = Number.isFinite(fareTotal) ? Math.max(0, fareTotal) : 0;
-  const add = Number.isFinite(extra) ? Math.max(0, extra) : 0;
-  return round2(fare + add);
+  const added = extras.reduce(
+    (sum, value) => sum + (Number.isFinite(value) ? Math.max(0, value) : 0),
+    0,
+  );
+  return round2(fare + added);
 }
 
 /** "1:04:07" past an hour, otherwise "04:07". */
