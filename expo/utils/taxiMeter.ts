@@ -15,6 +15,13 @@
  * accrual and the fare can be unit-tested sample by sample. See
  * utils/__tests__/taxiMeter.test.ts. The screen (app/meter-digital.tsx) owns
  * the clock and the sensors and simply feeds samples in.
+ *
+ * The fare itself is driven by a {@link MeterRates} card rather than by the
+ * constants below: the two built-in TEKSI tariffs are just the two cards in
+ * {@link TARIFF_RATES}, and an admin-configured card (Admin → Settings → Meter
+ * Digital Setting, resolved by `utils/meterSettings.ts`) is fed in the same
+ * way. The constants remain the built-in defaults and the fallback the meter
+ * bills on when no card has been configured anywhere.
  */
 
 /** Fare structures, mirroring `TariffType` in utils/maps.ts. */
@@ -319,87 +326,227 @@ export interface MeterFare {
   total: number;
   /** The flag-fall portion, in RM. */
   flagFall: number;
-  /** Billed increments beyond the flag fall ("old" tariff only). */
+  /** Billed increments beyond the flag fall (block-billed cards only). */
   units: number;
-  /** Increments the distance alone would have billed ("old" tariff only). */
+  /** Increments the distance alone would have billed (block cards only). */
   distanceUnits: number;
-  /** Increments the time alone would have billed ("old" tariff only). */
+  /** Increments the time alone would have billed (block cards only). */
   timeUnits: number;
-  /** Charge from the increments (or from km + minutes on the new tariff). */
+  /** Everything charged on top of the flag fall. */
   variable: number;
   distanceKm: number;
   durationMin: number;
 }
 
+// --- The rate card ---
+
+/**
+ * How distance is billed. `block` is what a mechanical meter does — a started
+ * block costs a whole block (TEKSI: RM0.35 per 200 m) — `per_km` bills
+ * continuously, and `off` bills nothing for distance at all.
+ */
+export type MeterDistanceMode = "block" | "per_km" | "off";
+
+/** How time is billed. `block` is the TEKSI 36-second increment. */
+export type MeterTimeMode = "block" | "per_minute" | "per_second" | "off";
+
+/**
+ * How the distance and time charges combine. `max` is the taxi-meter rule —
+ * whichever is greater, never both for the same second — and `sum` adds them,
+ * which is how the "new rates" structure works.
+ */
+export type MeterChargeMode = "max" | "sum";
+
+/**
+ * Where the variable charge starts counting: past the flag-fare distance
+ * (`flag`, the classic meter) or from the moment the hire opened (`start`,
+ * where the flag fare is a booking fee on top of the whole trip).
+ */
+export type MeterChargeFrom = "flag" | "start";
+
+/**
+ * Everything the fare depends on, in one card. The two built-in TEKSI tariffs
+ * are the two entries in {@link TARIFF_RATES}; an admin-configured card comes
+ * from `meterRatesOf` in `utils/meterSettings.ts` and is billed the same way.
+ */
+export interface MeterRates {
+  /** Flag fall, in RM — what the meter shows the instant a hire opens. */
+  flagFare: number;
+  /** Distance the flag fare covers, in metres. */
+  flagDistanceM: number;
+  /** Floor under the whole fare. 0 means the flag fare is the only floor. */
+  minimumFare: number;
+  distanceMode: MeterDistanceMode;
+  /** One distance block, in metres. */
+  distanceBlockM: number;
+  /** Charge for a started distance block, in RM. */
+  distanceBlockCharge: number;
+  perKmCharge: number;
+  timeMode: MeterTimeMode;
+  /** One time block, in seconds. */
+  timeBlockS: number;
+  /** Charge for a started time block, in RM. */
+  timeBlockCharge: number;
+  perMinuteCharge: number;
+  perSecondCharge: number;
+  chargeMode: MeterChargeMode;
+  chargeFrom: MeterChargeFrom;
+}
+
+/** The two built-in TEKSI tariffs, as rate cards. */
+export const TARIFF_RATES: Record<MeterTariff, MeterRates> = {
+  old: {
+    flagFare: FLAG_FALL,
+    flagDistanceM: FLAG_FALL_DISTANCE_M,
+    minimumFare: 0,
+    distanceMode: "block",
+    distanceBlockM: INCREMENT_DISTANCE_M,
+    distanceBlockCharge: INCREMENT_CHARGE,
+    perKmCharge: NEW_TARIFF_PER_KM,
+    timeMode: "block",
+    timeBlockS: INCREMENT_TIME_MS / 1000,
+    timeBlockCharge: INCREMENT_CHARGE,
+    perMinuteCharge: NEW_TARIFF_PER_MIN,
+    perSecondCharge: 0,
+    chargeMode: "max",
+    chargeFrom: "flag",
+  },
+  new: {
+    flagFare: FLAG_FALL,
+    flagDistanceM: FLAG_FALL_DISTANCE_M,
+    minimumFare: 0,
+    distanceMode: "per_km",
+    distanceBlockM: INCREMENT_DISTANCE_M,
+    distanceBlockCharge: INCREMENT_CHARGE,
+    perKmCharge: NEW_TARIFF_PER_KM,
+    timeMode: "per_minute",
+    timeBlockS: INCREMENT_TIME_MS / 1000,
+    timeBlockCharge: INCREMENT_CHARGE,
+    perMinuteCharge: NEW_TARIFF_PER_MIN,
+    perSecondCharge: 0,
+    chargeMode: "sum",
+    chargeFrom: "start",
+  },
+};
+
 export interface MeterFareOptions {
   tariff?: MeterTariff;
   /** Surge/peak multiplier applied to the whole fare. */
   multiplier?: number;
+  /**
+   * The rate card to bill on. Defaults to the built-in card for `tariff`, so
+   * every existing caller keeps the fare it had.
+   */
+  rates?: MeterRates;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** A positive, finite number, or `fallback`. Guards a configured divisor. */
+function positive(value: number, fallback: number): number {
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+/** A finite, non-negative number, or 0. Guards a configured charge. */
+function charge(value: number): number {
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
 
 /**
  * Whether `at` falls on the night shift, in the device's local time.
  *
  * Written to survive the window being moved: a shift that wraps past midnight
- * (say 22:00 → 06:00) is handled by the second branch.
+ * (say 22:00 → 06:00) is handled by the second branch. The window itself is
+ * configurable, because the night shift is not the same hours everywhere.
  */
-export function isNightPeriod(at: Date | number = Date.now()): boolean {
+export function isNightPeriod(
+  at: Date | number = Date.now(),
+  window: { startHour?: number; endHour?: number } = {},
+): boolean {
   const d = at instanceof Date ? at : new Date(at);
   const hour = d.getHours();
   if (!Number.isFinite(hour)) return false;
-  return NIGHT_START_HOUR <= NIGHT_END_HOUR
-    ? hour >= NIGHT_START_HOUR && hour < NIGHT_END_HOUR
-    : hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
+  const start = Number.isFinite(window.startHour) ? (window.startHour as number) : NIGHT_START_HOUR;
+  const end = Number.isFinite(window.endHour) ? (window.endHour as number) : NIGHT_END_HOUR;
+  return start <= end ? hour >= start && hour < end : hour >= start || hour < end;
 }
 
 /** The fare multiplier the DAY / NIGHT key selects. */
-export function periodMultiplier(period: MeterPeriod): number {
-  return period === "night" ? NIGHT_MULTIPLIER : 1;
+export function periodMultiplier(
+  period: MeterPeriod,
+  nightMultiplier: number = NIGHT_MULTIPLIER,
+): number {
+  if (period !== "night") return 1;
+  return Number.isFinite(nightMultiplier) && nightMultiplier > 0
+    ? nightMultiplier
+    : NIGHT_MULTIPLIER;
 }
 
 /**
- * Fare for the meter's current totals.
+ * Fare for the meter's current totals, billed on a rate card.
  *
  * Matches `calculateFare` in utils/maps.ts, with one deliberate improvement:
- * the "old" tariff's time increments are billed from the time actually accrued
- * after the first kilometre (`chargeableMs`) rather than a proportional
- * estimate, because a live meter knows it exactly.
+ * a `chargeFrom: "flag"` card's time blocks are billed from the time actually
+ * accrued after the flag-fare distance (`chargeableMs`) rather than a
+ * proportional estimate, because a live meter knows it exactly.
  */
 export function computeMeterFare(
   state: MeterState,
   options: MeterFareOptions = {},
 ): MeterFare {
   const { tariff = "old", multiplier = 1 } = options;
+  const rates = options.rates ?? TARIFF_RATES[tariff] ?? TARIFF_RATES.old;
+
   const distanceM = Math.max(0, state.distanceM);
   const distanceKm = distanceM / 1000;
-  const durationMin = Math.max(0, state.elapsedMs) / 60_000;
+  const elapsedMs = Math.max(0, state.elapsedMs);
+  const durationMin = elapsedMs / 60_000;
 
-  if (tariff === "new") {
-    const variable = distanceKm * NEW_TARIFF_PER_KM + durationMin * NEW_TARIFF_PER_MIN;
-    return {
-      total: round2((FLAG_FALL + variable) * multiplier),
-      flagFall: round2(FLAG_FALL * multiplier),
-      units: 0,
-      distanceUnits: 0,
-      timeUnits: 0,
-      variable: round2(variable * multiplier),
-      distanceKm,
-      durationMin,
-    };
+  // What the variable charge is measured over. On a `flag` card that is the
+  // distance and the time past the flag fare; on a `start` card it is the whole
+  // hire, with the flag fare riding on top.
+  const billedM =
+    rates.chargeFrom === "start"
+      ? distanceM
+      : Math.max(0, distanceM - Math.max(0, rates.flagDistanceM));
+  const billedMs =
+    rates.chargeFrom === "start" ? elapsedMs : Math.max(0, state.chargeableMs);
+
+  let distanceUnits = 0;
+  let distanceCharge = 0;
+  if (rates.distanceMode === "block") {
+    distanceUnits = Math.ceil(billedM / positive(rates.distanceBlockM, INCREMENT_DISTANCE_M));
+    distanceCharge = distanceUnits * charge(rates.distanceBlockCharge);
+  } else if (rates.distanceMode === "per_km") {
+    distanceCharge = (billedM / 1000) * charge(rates.perKmCharge);
   }
 
-  const extraM = Math.max(0, distanceM - FLAG_FALL_DISTANCE_M);
-  const distanceUnits = Math.ceil(extraM / INCREMENT_DISTANCE_M);
-  const timeUnits =
-    extraM > 0 ? Math.ceil(Math.max(0, state.chargeableMs) / INCREMENT_TIME_MS) : 0;
-  const units = Math.max(distanceUnits, timeUnits);
-  const variable = units * INCREMENT_CHARGE;
+  let timeUnits = 0;
+  let timeCharge = 0;
+  if (rates.timeMode === "block") {
+    timeUnits = Math.ceil(billedMs / (positive(rates.timeBlockS, 36) * 1000));
+    timeCharge = timeUnits * charge(rates.timeBlockCharge);
+  } else if (rates.timeMode === "per_minute") {
+    timeCharge = (billedMs / 60_000) * charge(rates.perMinuteCharge);
+  } else if (rates.timeMode === "per_second") {
+    timeCharge = (billedMs / 1000) * charge(rates.perSecondCharge);
+  }
+
+  const variable =
+    rates.chargeMode === "sum"
+      ? distanceCharge + timeCharge
+      : Math.max(distanceCharge, timeCharge);
+  const units =
+    rates.chargeMode === "sum" ? distanceUnits + timeUnits : Math.max(distanceUnits, timeUnits);
+
+  const flagFare = charge(rates.flagFare);
+  // The floor is on the metered fare, before the shift multiplier — a night
+  // surcharge lifts the minimum with everything else.
+  const metered = Math.max(flagFare + variable, charge(rates.minimumFare));
 
   return {
-    total: round2((FLAG_FALL + variable) * multiplier),
-    flagFall: round2(FLAG_FALL * multiplier),
+    total: round2(metered * multiplier),
+    flagFall: round2(flagFare * multiplier),
     units,
     distanceUnits,
     timeUnits,
@@ -414,13 +561,20 @@ export function computeMeterFare(
  *
  * Extras are the charges the meter cannot measure — booking fee, luggage, a
  * toll the driver paid — so they are only ever entered by hand. Clamped to
- * [0, {@link MAX_EXTRA}] and rounded to sen, so no sequence of presses can put
- * a negative or unrenderable number on the display.
+ * [0, `max`] and rounded to sen, so no sequence of presses can put a negative
+ * or unrenderable number on the display. The step and the ceiling default to
+ * the built-ins and are overridden by the admin-configured rate card.
  */
-export function adjustExtra(current: number, steps: number): number {
+export function adjustExtra(
+  current: number,
+  steps: number,
+  bounds: { step?: number; max?: number } = {},
+): number {
   const base = Number.isFinite(current) ? current : 0;
   const delta = Number.isFinite(steps) ? steps : 0;
-  return round2(Math.min(MAX_EXTRA, Math.max(0, base + delta * EXTRA_STEP)));
+  const step = positive(bounds.step ?? EXTRA_STEP, EXTRA_STEP);
+  const max = positive(bounds.max ?? MAX_EXTRA, MAX_EXTRA);
+  return round2(Math.min(max, Math.max(0, base + delta * step)));
 }
 
 /**
