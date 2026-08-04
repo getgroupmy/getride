@@ -7,6 +7,7 @@ import {
   meterExtraSurcharge,
   meterOdometerGate,
   meterProfileScopeLabel,
+  meterReadsOdometer,
   meterProfileToRow,
   normalizeMeterProfile,
   resolveMeterProfile,
@@ -324,6 +325,26 @@ describe("meterOdometerGate", () => {
     expect(meterOdometerGate(strict, 128_450.6).canStart).toBe(true);
     // A car that has genuinely never moved still has a reading.
     expect(meterOdometerGate(strict, 0).canStart).toBe(true);
+  });
+
+  it("does not hold a hire for a reading the card can never produce", () => {
+    // Both of these would otherwise be a meter that can never be started: the
+    // odometer comes off the vehicle bus and has no second source.
+    const readOff = profile({ allowStartWithoutOdometer: false, readOdometer: false });
+    expect(meterOdometerGate(readOff, null).canStart).toBe(true);
+
+    const gpsOnly = profile({ allowStartWithoutOdometer: false, sourceMode: "gps" });
+    expect(meterOdometerGate(gpsOnly, null).canStart).toBe(true);
+    expect(meterOdometerGate(gpsOnly, null).reason).toBeNull();
+  });
+});
+
+describe("meterReadsOdometer", () => {
+  it("needs both the flag and a bus to read it off", () => {
+    expect(meterReadsOdometer(profile())).toBe(true);
+    expect(meterReadsOdometer(profile({ readOdometer: false }))).toBe(false);
+    expect(meterReadsOdometer(profile({ sourceMode: "obd" }))).toBe(true);
+    expect(meterReadsOdometer(profile({ sourceMode: "gps" }))).toBe(false);
   });
 });
 
