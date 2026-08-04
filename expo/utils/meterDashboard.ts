@@ -364,12 +364,7 @@ export interface MeterSublineInputs {
   /** The meter has been started at least once since it was last cleared. */
   started: boolean;
   period: MeterPeriod;
-  /**
-   * Which of the two built-in tariffs is billing. Null when an operator's rate
-   * card is — the OLD / NEW distinction is not where the fare is coming from
-   * then, and naming one would name a tariff that is not being charged.
-   */
-  tariff: MeterTariff | null;
+  tariff: MeterTariff;
 }
 
 /**

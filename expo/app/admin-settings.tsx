@@ -59,7 +59,6 @@ import {
   FlaskConical,
   Percent,
   ClipboardList,
-  Gauge,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 
@@ -125,7 +124,6 @@ export default function AdminSettingsScreen() {
           { id: "payment-gateway", label: "Payment Gateway", description: "Stripe, Fiuu, PayPal & more", icon: Wallet, tone: "success" },
           { id: "driver-incentive", label: "Partner Incentive", description: "Bonus & incentive rules", icon: TrendingUp, tone: "success" },
           { id: "commission-rates", label: "Commission Rates", description: "Master rate + country/state/city/suburb & user overrides", icon: Percent, tone: "success" },
-          { id: "meter-digital", label: "Meter Digital Setting", description: "Taxi meter sensors, console panels & fare rates per region", icon: Gauge, tone: "accent" },
           { id: "get-coin", label: "Get Coin", description: "GET.coin exchange rate — GC per RM", icon: Coins, tone: "warning" },
           { id: "leaderboard", label: "Leaderboard", description: "Top partner rankings", icon: Trophy, tone: "warning" },
           { id: "rides", label: "Rides", description: "Ride configuration", icon: Route, tone: "neutral" },
@@ -212,7 +210,6 @@ export default function AdminSettingsScreen() {
     "payment-gateway": "/admin-settings-payment-gateway",
     "driver-incentive": "/admin-settings-driver-incentive",
     "commission-rates": "/admin-settings-commission",
-    "meter-digital": "/admin-settings-meter-digital",
     "get-coin": "/admin-settings-get-coin",
     leaderboard: "/admin-settings-leaderboard",
     rides: "/admin-settings-rides",
