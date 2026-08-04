@@ -10,6 +10,7 @@ import {
   formatWaypointOdometer,
   formatWaypointPlace,
   normalizeMeterWaypoint,
+  resolveMeterBack,
   segmentGhost,
   type MeterConnectionInputs,
   type MeterWaypoint,
@@ -138,6 +139,26 @@ describe("evaluateMeterStart", () => {
     expect(evaluateMeterStart({ ...NO_LINK, obdError: "  " }).message).toContain(
       "No OBD-II reader is connected",
     );
+  });
+});
+
+describe("resolveMeterBack", () => {
+  it("returns to the meter from any other panel", () => {
+    expect(resolveMeterBack({ onMeterPanel: false, running: false })).toBe("panel");
+  });
+
+  it("returns to the meter from another panel even while a fare runs", () => {
+    // The panels are inner navigation: what a running hire blocks is leaving
+    // the console, not stepping off the trip log back onto the meter.
+    expect(resolveMeterBack({ onMeterPanel: false, running: true })).toBe("panel");
+  });
+
+  it("asks where the driver is going when the meter is idle", () => {
+    expect(resolveMeterBack({ onMeterPanel: true, running: false })).toBe("prompt");
+  });
+
+  it("refuses to leave the console with a fare accruing", () => {
+    expect(resolveMeterBack({ onMeterPanel: true, running: true })).toBe("blocked");
   });
 });
 

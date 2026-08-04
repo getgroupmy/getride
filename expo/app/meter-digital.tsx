@@ -37,6 +37,14 @@
  * readouts, deliberately *not* following the app's light/dark theme. A meter is
  * read off a windscreen mount at night, and a white screen there is a hazard.
  *
+ * Leaving is a mode change, not a step back. The five tabs are panels of one
+ * instrument, so back returns to the meter from any of them; back *from* the
+ * meter raises a popup asking where the driver is going — passenger mode
+ * (`/`), e-hailing (`/partner-ehailing`), or nowhere. While a fare is accruing
+ * there is no leaving at all: the key is dead and the Android hardware back is
+ * swallowed, so a running hire cannot be walked out of. `resolveMeterBack`
+ * decides all three cases.
+ *
  * The screen is landscape-only, and that is a gate rather than a hint: the
  * console is *not drawn at all* in a portrait viewport. It pins the device to
  * landscape while it is focused (`useLandscapeLock`) and hands rotation back on
@@ -148,6 +156,7 @@ import {
   formatPlaceSpan,
   formatWaypointOdometer,
   formatWaypointPlace,
+  resolveMeterBack,
   type MeterLinkTone,
   type MeterWaypoint,
 } from "@/utils/meterDashboard";
@@ -381,30 +390,6 @@ export default function MeterDigitalScreen() {
   });
 
   const [tab, setTab] = useState<MeterTab>("ehailing");
-  // The five tabs are panels of one instrument, not screens of their own — so
-  // back off the trip log, the printer, the OBD panel or the settings returns
-  // to the meter, and only a back press from the meter itself leaves for the
-  // driver-permit screen. Same rule for the Android hardware/gesture back,
-  // which would otherwise drop the driver out of the console mid-panel.
-  const handleBack = useCallback(() => {
-    if (tab !== "ehailing") {
-      setTab("ehailing");
-      return;
-    }
-    router.back();
-  }, [router, tab]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (Platform.OS !== "android") return;
-      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-        if (tab === "ehailing") return false;
-        setTab("ehailing");
-        return true;
-      });
-      return () => sub.remove();
-    }, [tab]),
-  );
 
   const [tariff, setTariff] = useState<MeterTariff>(
     params.tariff === "new" ? "new" : "old",
@@ -424,11 +409,60 @@ export default function MeterDigitalScreen() {
   const [dropoff, setDropoffState] = useState<MeterWaypoint | null>(null);
   /** The "connecting to the vehicle" popup, raised by a blocked START press. */
   const [connectPromptOpen, setConnectPromptOpen] = useState<boolean>(false);
+  /** The "where to?" popup, raised by a back press off the idle meter. */
+  const [exitPromptOpen, setExitPromptOpen] = useState<boolean>(false);
 
   const [trips, setTrips] = useState<MeterTrip[]>([]);
   const [lastTrip, setLastTrip] = useState<MeterTrip | null>(null);
   const [totalOpen, setTotalOpen] = useState<boolean>(false);
   const [printing, setPrinting] = useState<boolean>(false);
+
+  /* --- Leaving the console --- */
+
+  // The five tabs are panels of one instrument, not screens of their own, so a
+  // back press off the trip log, the printer, the OBD panel or the settings
+  // returns to the meter. A back press from the meter itself is the driver
+  // leaving the console, which means changing mode rather than stepping back
+  // one screen — so it raises the popup below instead of popping the route.
+  // While a fare is accruing it does neither: the key is dead, and the Android
+  // hardware/gesture back is swallowed rather than dropping the driver out of
+  // the console mid-hire. `resolveMeterBack` owns that decision for both.
+  const backAction = resolveMeterBack({
+    onMeterPanel: tab === "ehailing",
+    running: meter.running,
+  });
+  const backBlocked = backAction === "blocked";
+
+  const handleBack = useCallback(() => {
+    if (backAction === "panel") {
+      setTab("ehailing");
+      return;
+    }
+    if (backAction === "blocked") return;
+    setExitPromptOpen(true);
+  }, [backAction]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        handleBack();
+        // Always consumed: every outcome — panel, blocked, popup — is handled
+        // here, and none of them is "pop the meter off the stack".
+        return true;
+      });
+      return () => sub.remove();
+    }, [handleBack]),
+  );
+
+  /** Leave the console for another mode. The meter is idle, so nothing is lost. */
+  const leaveMeter = useCallback(
+    (target: "/" | "/partner-ehailing") => {
+      setExitPromptOpen(false);
+      router.replace(target as never);
+    },
+    [router],
+  );
 
   // Latest sensor readings, held in refs so the 1 Hz tick can read them without
   // re-creating the interval on every telemetry update.
@@ -2054,6 +2088,8 @@ export default function MeterDigitalScreen() {
             },
           ]}
         >
+          {/* Dead while a fare is accruing: there is no leaving the console
+              mid-hire, and a dimmed key says so before it is pressed. */}
           <TouchableOpacity
             style={[
               styles.backButton,
@@ -2062,11 +2098,16 @@ export default function MeterDigitalScreen() {
                 height: ui.headerButton,
                 borderRadius: Math.round(ui.radius * 0.7),
               },
+              backBlocked && styles.backButtonBlocked,
             ]}
+            disabled={backBlocked}
             onPress={handleBack}
             testID="meter-digital-back"
           >
-            <ArrowLeft color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
+            <ArrowLeft
+              color={backBlocked ? DASH.disabled : DASH.muted}
+              size={Math.round(ui.headerButton * 0.6)}
+            />
           </TouchableOpacity>
           <Image
             source={appIconUri ? { uri: appIconUri } : require("@/assets/images/icon.png")}
@@ -2401,6 +2442,93 @@ export default function MeterDigitalScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Leaving the console. The meter is not a screen the driver steps back
+          out of — off it there is only the mode they drive in — so the back
+          key asks which one rather than popping the route. It is only ever
+          raised with the meter idle (`resolveMeterBack`), so no fare is at
+          stake in any of the three answers. */}
+      <Modal
+        visible={exitPromptOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setExitPromptOpen(false)}
+      >
+        <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                padding: ui.pad * 1.4,
+                gap: ui.gap,
+                borderRadius: Math.round(ui.radius * 1.3),
+                maxWidth: Math.min(520, winWidth * 0.8),
+                maxHeight: winHeight - ui.pad * 3,
+              },
+            ]}
+            testID="meter-digital-exit-modal"
+          >
+            <View style={styles.modalHeader}>
+              <FitText style={styles.modalTitle} size={ui.rowText}>
+                LEAVE THE METER
+              </FitText>
+              <TouchableOpacity
+                onPress={() => setExitPromptOpen(false)}
+                style={[
+                  styles.modalClose,
+                  { width: ui.headerButton, height: ui.headerButton },
+                ]}
+                testID="meter-digital-exit-close"
+              >
+                <X color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
+              The meter is idle. Where to?
+            </Text>
+            <View style={[styles.modalActions, { gap: ui.gap }]}>
+              <TouchableOpacity
+                style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
+                onPress={() => leaveMeter("/")}
+                activeOpacity={0.85}
+                testID="meter-digital-exit-passenger"
+              >
+                <User color={DASH.text} size={ui.iconSize} />
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                  PASSENGER MODE
+                </FitText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
+                onPress={() => leaveMeter("/partner-ehailing")}
+                activeOpacity={0.85}
+                testID="meter-digital-exit-ehailing"
+              >
+                <CarTaxiFront color={DASH.text} size={ui.iconSize} />
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                  E-HAILING
+                </FitText>
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.modalActions, { gap: ui.gap }]}>
+              <TouchableOpacity
+                style={[
+                  styles.wideButton,
+                  wideButtonStyle(ui),
+                  { backgroundColor: DASH.accent },
+                ]}
+                onPress={() => setExitPromptOpen(false)}
+                activeOpacity={0.85}
+                testID="meter-digital-exit-stay"
+              >
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                  STAY ON THE METER
+                </FitText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -2477,6 +2605,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.06)",
   },
+  backButtonBlocked: { backgroundColor: "rgba(255,255,255,0.02)" },
   brandLogo: { flexShrink: 0 },
   brandTitle: {
     flexShrink: 1,
