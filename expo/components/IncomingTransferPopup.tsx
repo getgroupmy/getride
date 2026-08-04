@@ -13,6 +13,7 @@ import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCoins } from "@/utils/getCoinStore";
+import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
 import {
   fetchPendingIncomingRequests,
   respondToTransferRequest,
@@ -126,7 +127,13 @@ export default function IncomingTransferPopup() {
   if (current) {
     const senderName = current.fromName ?? "Someone";
     return (
-      <Modal visible transparent animationType="fade" statusBarTranslucent>
+      <Modal
+        visible
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
+      >
         <View style={styles.backdrop}>
           <View style={[styles.card, { backgroundColor: Colors.card }]} testID="incoming-transfer-popup">
             <View style={styles.iconWrap}>
@@ -180,7 +187,13 @@ export default function IncomingTransferPopup() {
 
   if (result) {
     return (
-      <Modal visible transparent animationType="fade" statusBarTranslucent>
+      <Modal
+        visible
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
+      >
         <View style={styles.backdrop}>
           <View style={[styles.card, { backgroundColor: Colors.card }]} testID="incoming-transfer-result">
             <View style={styles.iconWrap}>

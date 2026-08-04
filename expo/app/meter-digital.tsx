@@ -137,6 +137,7 @@ import { OBD_MODE_CURRENT } from "@/utils/canbus/obd";
 import { PID_ODOMETER } from "@/utils/canbus/fuelRange";
 import { decodeReading } from "@/utils/canbus/vehicleScan";
 import { formatDisplayAddress } from "@/utils/addressFormatter";
+import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
 import { reverseGeocode } from "@/utils/maps";
 import { resolveOrientationGate } from "@/utils/orientationLock";
 import {
@@ -2194,6 +2195,10 @@ export default function MeterDigitalScreen() {
         visible={totalOpen}
         transparent
         animationType="fade"
+        // The console is landscape-pinned, and an iOS modal that does not
+        // declare landscape throws rather than presenting. See
+        // `utils/modalOrientation.ts`.
+        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
         onRequestClose={() => setTotalOpen(false)}
       >
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
@@ -2348,6 +2353,7 @@ export default function MeterDigitalScreen() {
         visible={connectPromptOpen}
         transparent
         animationType="fade"
+        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
         onRequestClose={closeConnectPrompt}
       >
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
@@ -2452,6 +2458,7 @@ export default function MeterDigitalScreen() {
         visible={exitPromptOpen}
         transparent
         animationType="fade"
+        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
         onRequestClose={() => setExitPromptOpen(false)}
       >
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
