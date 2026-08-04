@@ -21,7 +21,11 @@
  * The TRIP STATUS panel names the connection type in both states — GPS, the
  * vehicle bus, or both — and once a hire is open it also carries the odometer
  * the cluster showed at pickup (mode-01 PID A6, read once) and where the
- * passenger got in (reverse-geocoded, or the raw fix when that fails).
+ * passenger got in (reverse-geocoded, or the raw fix when that fails). The
+ * drop-off is stamped the same way when the hire ends, and both ends go onto
+ * the trip log and the printed receipt: readings that answer after the record
+ * is written are folded into it (`patchMeterTripWaypoints`), because the fare
+ * may not wait for a dongle.
  *
  * All accrual and tariff maths live in `utils/taxiMeter.ts` (pure + tested);
  * this screen owns the 1 Hz clock, the sensors, and the layout. What the
@@ -42,10 +46,12 @@
  * Nothing here is drawn at a fixed point size. Every padding, icon, key and
  * word comes from `computeMeterMetrics` (pure + tested), which fits the whole
  * console to the viewport it is being drawn into — a phone in a cradle and a
- * 10-inch dash tablet get the same instrument, scaled. Text that lives inside
- * a control shrinks to its box on top of that (`FitText`) and ignores the OS
- * font-size setting, because a clipped fare or a half-drawn key is not a thing
- * a taxi meter may show.
+ * 10-inch dash tablet get the same instrument, scaled. The segment readouts go
+ * further and are fitted to the value they are showing (`fitReadout`), so a
+ * clock that has gained an hour digit and a distance that has gained a hundreds
+ * digit are still drawn whole. Text that lives inside a control shrinks to its
+ * box on top of that (`FitText`) and ignores the OS font-size setting, because
+ * a clipped fare or a half-drawn key is not a thing a taxi meter may show.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -115,22 +121,30 @@ import { decodeReading } from "@/utils/canbus/vehicleScan";
 import { formatDisplayAddress } from "@/utils/addressFormatter";
 import { reverseGeocode } from "@/utils/maps";
 import { isLandscapeSize, shouldPromptRotate } from "@/utils/orientationLock";
-import { computeMeterMetrics, fitDigits, type MeterMetrics } from "@/utils/meterScale";
+import {
+  computeMeterMetrics,
+  fitDigits,
+  fitReadout,
+  type MeterMetrics,
+} from "@/utils/meterScale";
 import {
   describeMeterConnection,
   describeMeterSubline,
   evaluateMeterStart,
   formatDashDate,
   formatDashTime,
-  formatPickupOdometer,
-  formatPickupPlace,
+  formatOdometerSpan,
+  formatPlaceSpan,
+  formatWaypointOdometer,
+  formatWaypointPlace,
   type MeterLinkTone,
-  type MeterPickup,
+  type MeterWaypoint,
 } from "@/utils/meterDashboard";
 import { buildMeterReceiptHtml } from "@/utils/meterReceipt";
 import {
   clearMeterTrips,
   loadMeterTrips,
+  patchMeterTripWaypoints,
   recordMeterTrip,
   summarizeMeterTrips,
   type MeterTrip,
@@ -210,6 +224,9 @@ interface LiveFix {
   accuracyM: number | null;
   speedKmh: number | null;
 }
+
+/** Which end of the hire a stamp belongs to. */
+type MeterEnd = "pickup" | "dropoff";
 
 /**
  * A word that must fit the box it is in.
@@ -315,8 +332,9 @@ export default function MeterDigitalScreen() {
   const [gpsDenied, setGpsDenied] = useState<boolean>(false);
   const [hasFix, setHasFix] = useState<boolean>(false);
   const [now, setNow] = useState<number>(() => Date.now());
-  /** What the meter recorded when the passenger got in. Null until a hire starts. */
-  const [pickup, setPickupState] = useState<MeterPickup | null>(null);
+  /** The two ends of the hire. Null until the meter stamps them. */
+  const [pickup, setPickupState] = useState<MeterWaypoint | null>(null);
+  const [dropoff, setDropoffState] = useState<MeterWaypoint | null>(null);
   /** The "connecting to the vehicle" popup, raised by a blocked START press. */
   const [connectPromptOpen, setConnectPromptOpen] = useState<boolean>(false);
 
@@ -339,8 +357,12 @@ export default function MeterDigitalScreen() {
   useEffect(() => {
     sendCommandRef.current = canbus.sendCommand;
   }, [canbus.sendCommand]);
-  // Mirrors `pickup` for the sensor callbacks, which run outside React's tree.
-  const pickupRef = useRef<MeterPickup | null>(null);
+  // Mirror the two ends for the sensor callbacks, which run outside React's tree.
+  const pickupRef = useRef<MeterWaypoint | null>(null);
+  const dropoffRef = useRef<MeterWaypoint | null>(null);
+  // The log record the current ends belong to, so a late answer can be folded
+  // into the row that is already on the roll.
+  const recordedTripRef = useRef<string | null>(null);
   // A START press that is waiting for the vehicle link to come up.
   const pendingStartRef = useRef<boolean>(false);
 
@@ -349,86 +371,109 @@ export default function MeterDigitalScreen() {
   const obdLinked = online && !canbusState.simulated;
   const obdDemo = online && canbusState.simulated;
 
-  const setPickup = useCallback((next: MeterPickup | null) => {
-    pickupRef.current = next;
-    setPickupState(next);
+  const setWaypoint = useCallback((end: MeterEnd, next: MeterWaypoint | null) => {
+    if (end === "pickup") {
+      pickupRef.current = next;
+      setPickupState(next);
+    } else {
+      dropoffRef.current = next;
+      setDropoffState(next);
+    }
   }, []);
 
   /**
-   * Fold a late answer — the odometer, an address, a first fix — into the
-   * pickup record. Keyed on the hire it belongs to, so an answer that arrives
-   * after the driver has cleared the meter is dropped rather than attached to
-   * the next passenger's trip.
+   * Fold a late answer — the odometer, an address, a first fix — into one end
+   * of the hire.
+   *
+   * Keyed on the moment that end was stamped, so an answer that arrives after
+   * the driver has cleared the meter is dropped rather than attached to the
+   * next passenger's trip. Once the hire is on the roll the same answer is
+   * written through to the stored record, which was saved before it landed.
    */
-  const patchPickup = useCallback((at: number, patch: Partial<MeterPickup>) => {
-    const current = pickupRef.current;
-    if (!current || current.at !== at) return;
-    const next = { ...current, ...patch };
-    pickupRef.current = next;
-    setPickupState(next);
-  }, []);
+  const patchWaypoint = useCallback(
+    (end: MeterEnd, at: number, patch: Partial<MeterWaypoint>) => {
+      const current = end === "pickup" ? pickupRef.current : dropoffRef.current;
+      if (!current || current.at !== at) return;
+      const next = { ...current, ...patch };
+      setWaypoint(end, next);
+
+      const tripId = recordedTripRef.current;
+      if (!tripId) return;
+      void patchMeterTripWaypoints(tripId, { [end]: next }).then(
+        ({ trip, trips: list }) => {
+          if (!trip) return;
+          setTrips(list);
+          setLastTrip((prev) => (prev && prev.id === trip.id ? trip : prev));
+        },
+      );
+    },
+    [setWaypoint],
+  );
 
   /**
-   * The odometer the cluster is showing, read once as the hire opens.
+   * The odometer the cluster is showing, read once as an end is stamped.
    *
    * Generic OBD-II publishes it as mode-01 PID A6, which plenty of cars simply
-   * do not implement — those answer NO DATA and the panel shows a dash. Demo
+   * do not implement — those answer NO DATA and the reading stays a dash. Demo
    * Mode has no adapter to ask at all, and a simulated odometer would be a
    * number the vehicle never reported.
    */
-  const readPickupOdometer = useCallback(
-    async (at: number) => {
+  const readWaypointOdometer = useCallback(
+    async (end: MeterEnd, at: number) => {
       const session = canbusRef.current;
       if (session.phase !== "online" || session.simulated) return;
       try {
         const raw = await sendCommandRef.current(OBD_MODE_CURRENT + PID_ODOMETER);
         const reading = decodeReading(PID_ODOMETER, raw);
         if (typeof reading?.numeric === "number") {
-          patchPickup(at, { odometerKm: reading.numeric });
+          patchWaypoint(end, at, { odometerKm: reading.numeric });
         }
       } catch (e) {
-        console.log("[meter-digital] pickup odometer unavailable", e);
+        console.log(`[meter-digital] ${end} odometer unavailable`, e);
       }
     },
-    [patchPickup],
+    [patchWaypoint],
   );
 
-  /** Turn the pickup fix into an address. It keeps the raw fix until this lands. */
-  const resolvePickupPlace = useCallback(
-    async (at: number, latitude: number, longitude: number) => {
+  /** Turn an end's fix into an address. It keeps the raw fix until this lands. */
+  const resolveWaypointPlace = useCallback(
+    async (end: MeterEnd, at: number, latitude: number, longitude: number) => {
       try {
         const result = await reverseGeocode(latitude, longitude, "meter-digital");
         const label = result
           ? formatDisplayAddress(result.name, result.address).trim()
           : "";
-        if (label) patchPickup(at, { place: label });
+        if (label) patchWaypoint(end, at, { place: label });
       } catch (e) {
-        console.log("[meter-digital] pickup reverse geocode failed", e);
+        console.log(`[meter-digital] ${end} reverse geocode failed`, e);
       }
     },
-    [patchPickup],
+    [patchWaypoint],
   );
 
   /**
-   * Open a hire: stamp the pickup, then chase the two readings that describe
-   * it. Both are asynchronous and neither may hold the meter up — the fare
-   * starts accruing the moment the driver presses START, not when a dongle or a
-   * geocoder answers.
+   * Stamp one end of the hire and chase the two readings that describe it.
+   *
+   * The stamp is immediate and the readings are not: neither may hold the meter
+   * up. The fare starts the moment the driver presses START and stops the
+   * moment they press END — not when a dongle or a geocoder answers.
    */
-  const capturePickup = useCallback(
-    (at: number) => {
+  const captureWaypoint = useCallback(
+    (end: MeterEnd, at: number): MeterWaypoint => {
       const fix = fixRef.current;
-      setPickup({
+      const waypoint: MeterWaypoint = {
         at,
         odometerKm: null,
         latitude: fix?.latitude ?? null,
         longitude: fix?.longitude ?? null,
         place: null,
-      });
-      void readPickupOdometer(at);
-      if (fix) void resolvePickupPlace(at, fix.latitude, fix.longitude);
+      };
+      setWaypoint(end, waypoint);
+      void readWaypointOdometer(end, at);
+      if (fix) void resolveWaypointPlace(end, at, fix.latitude, fix.longitude);
+      return waypoint;
     },
-    [readPickupOdometer, resolvePickupPlace, setPickup],
+    [readWaypointOdometer, resolveWaypointPlace, setWaypoint],
   );
 
   // --- The trip log, the meter's own paper roll ---
@@ -518,15 +563,16 @@ export default function MeterDigitalScreen() {
                 hasFixRef.current = true;
                 setHasFix(true);
               }
-              // A hire can open before the first fix lands (a cold start in a
+              // An end can be stamped before a fix lands (a cold start in a
               // basement car park). The first one that arrives is still the
-              // closest thing to where the passenger got in, so it backfills
-              // the pickup rather than leaving it blank for the whole trip.
-              const openPickup = pickupRef.current;
-              if (openPickup && openPickup.latitude === null) {
-                const { latitude, longitude } = pos.coords;
-                patchPickup(openPickup.at, { latitude, longitude });
-                void resolvePickupPlace(openPickup.at, latitude, longitude);
+              // closest thing to where it happened, so it backfills the stamp
+              // rather than leaving it blank for good.
+              const { latitude, longitude } = pos.coords;
+              for (const end of ["pickup", "dropoff"] as const) {
+                const stamped = end === "pickup" ? pickupRef.current : dropoffRef.current;
+                if (!stamped || stamped.latitude !== null) continue;
+                patchWaypoint(end, stamped.at, { latitude, longitude });
+                void resolveWaypointPlace(end, stamped.at, latitude, longitude);
               }
             },
           );
@@ -546,7 +592,7 @@ export default function MeterDigitalScreen() {
         hasFixRef.current = false;
         setHasFix(false);
       };
-    }, [patchPickup, resolvePickupPlace]),
+    }, [patchWaypoint, resolveWaypointPlace]),
   );
 
   // --- The meter clock: one 1 Hz tick drives both the header and the accrual ---
@@ -658,8 +704,11 @@ export default function MeterDigitalScreen() {
   const beginTrip = useCallback(() => {
     const at = Date.now();
     setMeter((prev) => startMeter(prev, at));
-    capturePickup(at);
-  }, [capturePickup]);
+    // A fresh hire, so nothing from the last one may follow it onto the roll.
+    recordedTripRef.current = null;
+    setWaypoint("dropoff", null);
+    captureWaypoint("pickup", at);
+  }, [captureWaypoint, setWaypoint]);
 
   /** Give up on the pending START — the driver closed the popup. */
   const closeConnectPrompt = useCallback(() => {
@@ -702,27 +751,47 @@ export default function MeterDigitalScreen() {
     setMeter(resetMeter());
     setExtra(0);
     setPeriod(isNightPeriod() ? "night" : "day");
-    setPickup(null);
-  }, [setPickup]);
+    setWaypoint("pickup", null);
+    setWaypoint("dropoff", null);
+    recordedTripRef.current = null;
+  }, [setWaypoint]);
 
-  /** End the hire: stop accruing, write the record, show the total. */
+  /** End the hire: stamp the drop-off, stop accruing, write the record. */
   const handleEndTrip = useCallback(() => {
+    const endedAt = Date.now();
     const stopped = pauseMeter(meter);
     setMeter(stopped);
+    // Stamped before the record is written so the row carries the drop-off from
+    // the start; the odometer and the address are folded in as they answer.
+    const dropoffWaypoint = captureWaypoint("dropoff", endedAt);
     void recordMeterTrip(stopped, {
       id: uuidv4(),
-      endedAt: Date.now(),
+      endedAt,
       tariff,
       period,
       extra,
       plate,
       driver: driverName,
+      pickup: pickupRef.current,
+      dropoff: dropoffWaypoint,
     }).then(({ trip, trips: list }) => {
       setLastTrip(trip);
       setTrips(list);
       setTotalOpen(true);
+      // From here a late answer knows which row to complete. Reconcile once
+      // first: anything that answered while this write was in flight is in the
+      // refs but did not make it into the record.
+      recordedTripRef.current = trip.id;
+      void patchMeterTripWaypoints(trip.id, {
+        pickup: pickupRef.current,
+        dropoff: dropoffRef.current,
+      }).then(({ trip: patched, trips: patchedList }) => {
+        if (!patched) return;
+        setTrips(patchedList);
+        setLastTrip((prev) => (prev && prev.id === patched.id ? patched : prev));
+      });
     });
-  }, [driverName, extra, meter, period, plate, tariff]);
+  }, [captureWaypoint, driverName, extra, meter, period, plate, tariff]);
 
   const handleExtra = useCallback((steps: number) => {
     setExtra((prev) => adjustExtra(prev, steps));
@@ -966,6 +1035,33 @@ export default function MeterDigitalScreen() {
 
   /* --- Time / distance --- */
 
+  const timeValue = formatMeterClock(meter.elapsedMs);
+  const distanceValue = formatMeterKm(meter.distanceM);
+
+  /**
+   * One size for both stat readouts, fitted to what they are actually showing.
+   *
+   * Neither field has a fixed length — the clock gains a digit past ten hours,
+   * the distance past ten and a hundred kilometres — so sizing them to a
+   * guessed maximum either clips the long case or wastes the short one. Each
+   * value is fitted to the panel it lives in and the tighter of the two wins,
+   * so the pair matches and every character of both is drawn.
+   */
+  const statValueSize = useMemo(() => {
+    const base = ui.pad * 2 + Math.round(ui.gap * 0.6);
+    return Math.min(
+      fitReadout(ui.statPanelWidth, timeValue.length, base, ui.statSizeMax),
+      // The distance shares its row with the "km" label, which takes its width
+      // out of the digits' before they are fitted.
+      fitReadout(
+        ui.statPanelWidth,
+        distanceValue.length,
+        base + Math.round(ui.captionText * 1.8),
+        ui.statSizeMax,
+      ),
+    );
+  }, [distanceValue.length, timeValue.length, ui]);
+
   const statCard = (
     label: string,
     value: string,
@@ -983,12 +1079,15 @@ export default function MeterDigitalScreen() {
       <PanelLabel ui={ui}>{label}</PanelLabel>
       <View style={styles.statValueRow}>
         <View style={[styles.statValueInner, { gap: Math.round(ui.gap * 0.6) }]}>
-          <SegmentDisplay value={value} size={ui.statSize} color={DASH.segment} />
+          <SegmentDisplay value={value} size={statValueSize} color={DASH.segment} />
           {unit ? (
             <Text
               style={[
                 styles.statUnit,
-                { fontSize: ui.captionText, marginBottom: Math.round(ui.statSize * 0.14) },
+                {
+                  fontSize: ui.captionText,
+                  marginBottom: Math.round(statValueSize * 0.14),
+                },
               ]}
               allowFontScaling={false}
             >
@@ -1186,24 +1285,28 @@ export default function MeterDigitalScreen() {
         </View>
         <View style={[styles.statusDivider, { marginHorizontal: ui.pad * 2 }]} />
         {started ? (
-          // Once a hire is open the panel carries the two facts that belong to
-          // the moment the passenger got in and cannot be recovered later.
+          // Once a hire is open the panel carries the facts that belong to the
+          // moment the passenger got in — joined by the drop-off once they get
+          // out, which is what the log row and the receipt then print.
           <View style={[styles.pickupRow, { gap: ui.gap, paddingHorizontal: ui.pad }]}>
             <View style={styles.pickupOdo}>
               <FitText style={styles.pickupLabel} size={ui.captionText}>
-                AT PICKUP ODO
+                {dropoff ? "ODO" : "AT PICKUP ODO"}
               </FitText>
               <FitText
                 style={styles.pickupValue}
                 size={ui.rowText}
+                minimumScale={0.5}
                 testID="meter-digital-pickup-odo"
               >
-                {formatPickupOdometer(pickup?.odometerKm)}
+                {dropoff
+                  ? (formatOdometerSpan(pickup, dropoff) ?? "—")
+                  : formatWaypointOdometer(pickup?.odometerKm)}
               </FitText>
             </View>
             <View style={styles.pickupPlace}>
               <FitText style={styles.pickupLabel} size={ui.captionText}>
-                PICKUP
+                {dropoff ? "PICKUP → DROP-OFF" : "PICKUP"}
               </FitText>
               <FitText
                 style={styles.pickupValue}
@@ -1211,7 +1314,9 @@ export default function MeterDigitalScreen() {
                 minimumScale={0.5}
                 testID="meter-digital-pickup-place"
               >
-                {formatPickupPlace(pickup)}
+                {dropoff
+                  ? (formatPlaceSpan(pickup, dropoff) ?? "—")
+                  : formatWaypointPlace(pickup)}
               </FitText>
             </View>
           </View>
@@ -1232,13 +1337,8 @@ export default function MeterDigitalScreen() {
         {driverCard}
         {tripControls}
         <View style={[styles.pairRow, { gap: ui.gap }]}>
-          {statCard("TIME", formatMeterClock(meter.elapsedMs), null, "meter-digital-time")}
-          {statCard(
-            "DISTANCE",
-            formatMeterKm(meter.distanceM),
-            "km",
-            "meter-digital-distance",
-          )}
+          {statCard("TIME", timeValue, null, "meter-digital-time")}
+          {statCard("DISTANCE", distanceValue, "km", "meter-digital-distance")}
         </View>
       </View>
       <View style={[styles.colRight, { gap: ui.gap }]}>
@@ -1345,7 +1445,12 @@ export default function MeterDigitalScreen() {
             recorded here, with the fare it charged and the source it measured on.
           </Text>
         ) : (
-          trips.map((trip) => (
+          trips.map((trip) => {
+            // Both are null on a record from before the meter stamped its ends,
+            // so those rows simply keep the shape they were written with.
+            const odometerSpan = formatOdometerSpan(trip.pickup, trip.dropoff);
+            const placeSpan = formatPlaceSpan(trip.pickup, trip.dropoff);
+            return (
             <View key={trip.id} style={[styles.panel, styles.tripRow, panelStyle(ui)]}>
               <View style={[styles.tripWhen, { width: ui.tripWhenWidth }]}>
                 <FitText style={styles.tripDate} size={ui.rowText}>
@@ -1365,7 +1470,18 @@ export default function MeterDigitalScreen() {
                   {trip.period === "night" ? "Night" : "Day"} · {trip.obdSamples} OBD /{" "}
                   {trip.gpsSamples} GPS
                   {trip.extra > 0 ? ` · extras RM ${trip.extra.toFixed(2)}` : ""}
+                  {odometerSpan ? ` · ODO ${odometerSpan}` : ""}
                 </FitText>
+                {placeSpan ? (
+                  <FitText
+                    style={styles.tripRoute}
+                    size={ui.captionText}
+                    minimumScale={0.5}
+                    testID={`meter-digital-trip-route-${trip.id}`}
+                  >
+                    {placeSpan}
+                  </FitText>
+                ) : null}
               </View>
               <FitText style={styles.tripTotal} size={ui.summaryValue}>
                 RM {trip.total.toFixed(2)}
@@ -1386,7 +1502,8 @@ export default function MeterDigitalScreen() {
                 <Printer color={DASH.accent} size={ui.iconSize} />
               </TouchableOpacity>
             </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
     </View>
@@ -1911,6 +2028,22 @@ export default function MeterDigitalScreen() {
                 bounces={false}
               >
                 {[
+                  // The ends first: this is the moment the receipt exists, and
+                  // where the hire ran is the passenger's own record of it.
+                  ...(lastTrip.pickup
+                    ? [{ label: "Pickup", value: formatWaypointPlace(lastTrip.pickup) }]
+                    : []),
+                  ...(lastTrip.dropoff
+                    ? [{ label: "Drop-off", value: formatWaypointPlace(lastTrip.dropoff) }]
+                    : []),
+                  ...(formatOdometerSpan(lastTrip.pickup, lastTrip.dropoff)
+                    ? [
+                        {
+                          label: "Odometer",
+                          value: formatOdometerSpan(lastTrip.pickup, lastTrip.dropoff) as string,
+                        },
+                      ]
+                    : []),
                   { label: "Distance", value: formatMeterDistance(lastTrip.distanceM) },
                   { label: "Trip time", value: formatMeterClock(lastTrip.elapsedMs) },
                   { label: "Waiting", value: formatMeterClock(lastTrip.waitingMs) },
@@ -2357,6 +2490,7 @@ const styles = StyleSheet.create({
   tripTime: { color: DASH.muted, fontWeight: "600" as const },
   tripFacts: { flex: 1, gap: 2, minWidth: 0 },
   tripFact: { color: DASH.text, fontWeight: "700" as const },
+  tripRoute: { color: DASH.accent, fontWeight: "700" as const },
   tripMeta: { color: DASH.muted, fontWeight: "600" as const },
   tripTotal: { color: DASH.segment, fontWeight: "900" as const, flexShrink: 0 },
   tripPrint: {

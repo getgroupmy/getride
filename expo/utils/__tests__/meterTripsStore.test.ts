@@ -6,11 +6,13 @@ import {
   loadMeterTrips,
   MAX_METER_TRIPS,
   METER_TRIPS_KEY,
+  patchMeterTripWaypoints,
   recordMeterTrip,
   saveMeterTrip,
   summarizeMeterTrips,
   type MeterTrip,
 } from "@/utils/meterTripsStore";
+import type { MeterWaypoint } from "@/utils/meterDashboard";
 import {
   computeMeterFare,
   createMeterState,
@@ -19,6 +21,22 @@ import {
 } from "@/utils/taxiMeter";
 
 const T0 = 1_700_000_000_000;
+
+/** The two ends of a hire, as the meter stamps them. */
+const PICKUP: MeterWaypoint = {
+  at: T0,
+  odometerKm: 128450.6,
+  latitude: 3.139,
+  longitude: 101.6869,
+  place: "KLCC, Kuala Lumpur",
+};
+const DROPOFF: MeterWaypoint = {
+  at: T0 + 600_000,
+  odometerKm: 128452.7,
+  latitude: 3.1285,
+  longitude: 101.6768,
+  place: "Bangsar, Kuala Lumpur",
+};
 
 /** A finished 2 km hire that took ten minutes, half of it crawling. */
 function finishedState(overrides: Partial<MeterState> = {}): MeterState {
@@ -98,6 +116,37 @@ describe("buildMeterTrip", () => {
     const trip = tripFrom(finishedState({ startedAt: null }));
     expect(trip.startedAt).toBe(T0 + 600_000);
   });
+
+  it("keeps both ends of the hire, sanitised", () => {
+    const trip = buildMeterTrip(finishedState(), computeMeterFare(finishedState()), {
+      id: "t",
+      endedAt: T0 + 600_000,
+      tariff: "old",
+      period: "day",
+      extra: 0,
+      pickup: PICKUP,
+      dropoff: {
+        ...DROPOFF,
+        // Half a fix and a blank address are dropped rather than stored.
+        longitude: null,
+        place: "  ",
+      },
+    });
+    expect(trip.pickup).toEqual(PICKUP);
+    expect(trip.dropoff).toEqual({
+      at: DROPOFF.at,
+      odometerKm: DROPOFF.odometerKm,
+      latitude: null,
+      longitude: null,
+      place: null,
+    });
+  });
+
+  it("has no ends at all when the meter could not stamp them", () => {
+    const trip = tripFrom(finishedState());
+    expect(trip.pickup).toBeNull();
+    expect(trip.dropoff).toBeNull();
+  });
 });
 
 describe("summarizeMeterTrips", () => {
@@ -161,6 +210,16 @@ describe("the log on disk", () => {
     expect(list[0]).toMatchObject({ startedAt: 5, tariff: "old", period: "day", total: 0 });
   });
 
+  it("reads a record written before the meter stamped its ends", async () => {
+    // The shape the log had until the ends existed: no pickup, no dropoff.
+    await AsyncStorage.setItem(
+      METER_TRIPS_KEY,
+      JSON.stringify([{ id: "legacy", endedAt: 5, distanceM: 1200, total: 6.1 }]),
+    );
+    const [trip] = await loadMeterTrips();
+    expect(trip).toMatchObject({ id: "legacy", pickup: null, dropoff: null });
+  });
+
   it("survives unparseable storage", async () => {
     await AsyncStorage.setItem(METER_TRIPS_KEY, "{not json");
     expect(await loadMeterTrips()).toEqual([]);
@@ -170,6 +229,61 @@ describe("the log on disk", () => {
     await saveMeterTrip(tripFrom(finishedState()));
     await clearMeterTrips();
     expect(await loadMeterTrips()).toEqual([]);
+  });
+});
+
+describe("patchMeterTripWaypoints", () => {
+  it("completes a hire whose readings landed after it was written", async () => {
+    // What the record looks like when the driver ends the hire: the ends are
+    // stamped, but the odometer and the address have not answered yet.
+    const pending = {
+      ...tripFrom(finishedState()),
+      pickup: { ...PICKUP, odometerKm: null, place: null },
+      dropoff: { ...DROPOFF, odometerKm: null, place: null },
+    };
+    await saveMeterTrip(pending);
+
+    const { trip, trips } = await patchMeterTripWaypoints(pending.id, {
+      pickup: PICKUP,
+      dropoff: DROPOFF,
+    });
+    expect(trip?.pickup).toEqual(PICKUP);
+    expect(trip?.dropoff).toEqual(DROPOFF);
+    expect(trips[0].pickup?.place).toBe("KLCC, Kuala Lumpur");
+    // And it is on disk, not just in the returned copy.
+    expect((await loadMeterTrips())[0].dropoff?.odometerKm).toBe(128452.7);
+  });
+
+  it("touches only the end it was given", async () => {
+    const trip = { ...tripFrom(finishedState()), pickup: PICKUP, dropoff: DROPOFF };
+    await saveMeterTrip(trip);
+    const { trip: patched } = await patchMeterTripWaypoints(trip.id, {
+      dropoff: { ...DROPOFF, place: "Mid Valley" },
+    });
+    expect(patched?.pickup).toEqual(PICKUP);
+    expect(patched?.dropoff?.place).toBe("Mid Valley");
+  });
+
+  it("never rewrites what was measured or charged", async () => {
+    const trip = { ...tripFrom(finishedState(), 2.5), pickup: PICKUP, dropoff: DROPOFF };
+    await saveMeterTrip(trip);
+    const { trip: patched } = await patchMeterTripWaypoints(trip.id, {
+      pickup: { ...PICKUP, place: "Ampang" },
+    });
+    expect(patched).toMatchObject({
+      distanceM: trip.distanceM,
+      elapsedMs: trip.elapsedMs,
+      fare: trip.fare,
+      extra: trip.extra,
+      total: trip.total,
+    });
+  });
+
+  it("is a no-op for a hire that is no longer on the roll", async () => {
+    // Cleared, or aged off the end of the log, while the answer was in flight.
+    const { trip, trips } = await patchMeterTripWaypoints("gone", { pickup: PICKUP });
+    expect(trip).toBeNull();
+    expect(trips).toEqual([]);
   });
 });
 

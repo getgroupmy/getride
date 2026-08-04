@@ -4,11 +4,15 @@ import {
   evaluateMeterStart,
   formatDashDate,
   formatDashTime,
-  formatPickupCoords,
-  formatPickupOdometer,
-  formatPickupPlace,
+  formatOdometerSpan,
+  formatPlaceSpan,
+  formatWaypointCoords,
+  formatWaypointOdometer,
+  formatWaypointPlace,
+  normalizeMeterWaypoint,
   segmentGhost,
   type MeterConnectionInputs,
+  type MeterWaypoint,
 } from "@/utils/meterDashboard";
 
 /** A parked meter with nothing connected — every case starts from here. */
@@ -137,39 +141,124 @@ describe("evaluateMeterStart", () => {
   });
 });
 
-describe("pickup readings", () => {
+describe("waypoint readings", () => {
+  const AT = 1_700_000_000_000;
+  const waypoint = (over: Partial<MeterWaypoint> = {}): MeterWaypoint => ({
+    at: AT,
+    odometerKm: null,
+    latitude: null,
+    longitude: null,
+    place: null,
+    ...over,
+  });
+
   it("groups an odometer the way a dash cluster prints it", () => {
-    expect(formatPickupOdometer(128450.62)).toBe("128 450.6 km");
-    expect(formatPickupOdometer(0)).toBe("0.0 km");
-    expect(formatPickupOdometer(999)).toBe("999.0 km");
-    expect(formatPickupOdometer(1234567.8)).toBe("1 234 567.8 km");
+    expect(formatWaypointOdometer(128450.62)).toBe("128 450.6 km");
+    expect(formatWaypointOdometer(0)).toBe("0.0 km");
+    expect(formatWaypointOdometer(999)).toBe("999.0 km");
+    expect(formatWaypointOdometer(1234567.8)).toBe("1 234 567.8 km");
   });
 
   it("says nothing rather than inventing an odometer", () => {
     // A car without PID A6 has no odometer to read, and nothing else can supply
     // one — GPS cannot know what the cluster says.
-    expect(formatPickupOdometer(null)).toBe("—");
-    expect(formatPickupOdometer(undefined)).toBe("—");
-    expect(formatPickupOdometer(Number.NaN)).toBe("—");
-    expect(formatPickupOdometer(-1)).toBe("—");
+    expect(formatWaypointOdometer(null)).toBe("—");
+    expect(formatWaypointOdometer(undefined)).toBe("—");
+    expect(formatWaypointOdometer(Number.NaN)).toBe("—");
+    expect(formatWaypointOdometer(-1)).toBe("—");
   });
 
   it("prints a fix to five decimals", () => {
-    expect(formatPickupCoords(3.139, 101.6869)).toBe("3.13900, 101.68690");
-    expect(formatPickupCoords(3.139, null)).toBeNull();
-    expect(formatPickupCoords(Number.NaN, 101.6869)).toBeNull();
+    expect(formatWaypointCoords(3.139, 101.6869)).toBe("3.13900, 101.68690");
+    expect(formatWaypointCoords(3.139, null)).toBeNull();
+    expect(formatWaypointCoords(Number.NaN, 101.6869)).toBeNull();
   });
 
   it("falls back from the address to the fix, and says so when there is neither", () => {
-    const base = { at: 1, odometerKm: null, latitude: 3.139, longitude: 101.6869 };
-    expect(formatPickupPlace({ ...base, place: "KLCC, Kuala Lumpur" })).toBe(
-      "KLCC, Kuala Lumpur",
-    );
-    expect(formatPickupPlace({ ...base, place: "   " })).toBe("3.13900, 101.68690");
+    const located = { latitude: 3.139, longitude: 101.6869 };
     expect(
-      formatPickupPlace({ at: 1, odometerKm: null, latitude: null, longitude: null, place: null }),
-    ).toBe("NO FIX AT PICKUP");
-    expect(formatPickupPlace(null)).toBe("—");
+      formatWaypointPlace(waypoint({ ...located, place: "KLCC, Kuala Lumpur" })),
+    ).toBe("KLCC, Kuala Lumpur");
+    expect(formatWaypointPlace(waypoint({ ...located, place: "   " }))).toBe(
+      "3.13900, 101.68690",
+    );
+    expect(formatWaypointPlace(waypoint())).toBe("NO FIX");
+    expect(formatWaypointPlace(null)).toBe("—");
+  });
+
+  it("prints the odometer across the hire, and nothing when there is none", () => {
+    expect(
+      formatOdometerSpan(
+        waypoint({ odometerKm: 128450.6 }),
+        waypoint({ odometerKm: 128462.14 }),
+      ),
+    ).toBe("128 450.6 → 128 462.1 km");
+    // One end read it and the other did not — the gap is shown as a gap.
+    expect(formatOdometerSpan(waypoint({ odometerKm: 128450.6 }), waypoint())).toBe(
+      "128 450.6 → — km",
+    );
+    expect(formatOdometerSpan(waypoint(), waypoint({ odometerKm: 12 }))).toBe(
+      "— → 12.0 km",
+    );
+    // Neither end has one: the caller drops the line rather than printing dashes.
+    expect(formatOdometerSpan(waypoint(), waypoint())).toBeNull();
+    expect(formatOdometerSpan(null, null)).toBeNull();
+  });
+
+  it("prints where the hire ran, and nothing for a record that never stamped it", () => {
+    expect(
+      formatPlaceSpan(waypoint({ place: "KLCC" }), waypoint({ place: "Bangsar" })),
+    ).toBe("KLCC → Bangsar");
+    // A hire still running has no drop-off yet — that is a dash, not a blank.
+    expect(formatPlaceSpan(waypoint({ place: "KLCC" }), null)).toBe("KLCC → —");
+    // A record written before the meter stamped its ends carries neither.
+    expect(formatPlaceSpan(null, null)).toBeNull();
+  });
+});
+
+describe("normalizeMeterWaypoint", () => {
+  it("keeps a stamped end whole", () => {
+    expect(
+      normalizeMeterWaypoint({
+        at: 5,
+        odometerKm: 128450.6,
+        latitude: 3.139,
+        longitude: 101.6869,
+        place: "  KLCC  ",
+      }),
+    ).toEqual({
+      at: 5,
+      odometerKm: 128450.6,
+      latitude: 3.139,
+      longitude: 101.6869,
+      place: "KLCC",
+    });
+  });
+
+  it("drops readings it cannot use rather than storing them", () => {
+    const cleaned = normalizeMeterWaypoint({
+      at: 5,
+      odometerKm: -3,
+      // Half a fix cannot be plotted, so neither half is kept.
+      latitude: 3.139,
+      longitude: null,
+      place: "   ",
+    });
+    expect(cleaned).toEqual({
+      at: 5,
+      odometerKm: null,
+      latitude: null,
+      longitude: null,
+      place: null,
+    });
+  });
+
+  it("is null for anything that is not a stamped end", () => {
+    // What a record written before this feature looks like.
+    expect(normalizeMeterWaypoint(undefined)).toBeNull();
+    expect(normalizeMeterWaypoint(null)).toBeNull();
+    expect(normalizeMeterWaypoint("KLCC")).toBeNull();
+    expect(normalizeMeterWaypoint({ odometerKm: 12 })).toBeNull();
   });
 });
 

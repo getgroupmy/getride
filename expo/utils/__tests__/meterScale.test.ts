@@ -1,9 +1,11 @@
 import {
   computeMeterMetrics,
   fitDigits,
+  fitReadout,
   meterScale,
   MAX_METER_SCALE,
   MIN_METER_SCALE,
+  MIN_READOUT_PT,
 } from "@/utils/meterScale";
 
 /** The three mounts the meter is actually read off. */
@@ -55,6 +57,26 @@ describe("fitDigits", () => {
   });
 });
 
+describe("fitReadout", () => {
+  it("never draws above the ceiling its panel has vertically", () => {
+    // A very wide panel could fit enormous digits; the height cap still wins.
+    expect(fitReadout(4000, 4, 0, 28)).toBe(28);
+  });
+
+  it("shrinks to keep a longer value whole", () => {
+    // Nine characters do not fit this panel at the ceiling; four do, and are
+    // drawn at it rather than shrunk to match.
+    expect(fitReadout(200, 9, 24, 40)).toBeLessThan(40);
+    expect(fitReadout(200, 4, 24, 40)).toBe(40);
+  });
+
+  it("holds the legibility floor rather than drawing a readout nobody can read", () => {
+    expect(fitReadout(60, 9, 24, 40)).toBe(MIN_READOUT_PT);
+    // No room at all: the floor is still what gets drawn, and the panel clips.
+    expect(fitReadout(10, 9, 24, 40)).toBe(MIN_READOUT_PT);
+  });
+});
+
 describe("computeMeterMetrics", () => {
   it("keeps the fare digits inside the panel that holds them", () => {
     for (const size of [PHONE, TABLET_7, TABLET_10, { width: 667, height: 375 }]) {
@@ -68,16 +90,45 @@ describe("computeMeterMetrics", () => {
     }
   });
 
-  it("keeps the clock readout inside its own half of the left column", () => {
+  it("hands the stat panels their own width, so a readout can be fitted to it", () => {
     for (const size of [PHONE, TABLET_7, TABLET_10]) {
       const m = computeMeterMetrics(size.width, size.height);
       const gridWidth = size.width - m.bodyPad * 2 - m.gap;
-      const statPanel = (gridWidth / 2.85 - m.gap) / 2;
-      // "00:00:00" — the longest thing a stat panel ever shows.
-      expect(m.pad * 2 + m.statSize * 8 * 0.62).toBeLessThanOrEqual(
-        statPanel + 0.5,
-      );
+      expect(m.statPanelWidth).toBeCloseTo((gridWidth / 2.85 - m.gap) / 2, 5);
     }
+  });
+
+  it("keeps every character of a stat readout inside its own panel", () => {
+    for (const size of [PHONE, TABLET_7, TABLET_10, { width: 667, height: 375 }]) {
+      const m = computeMeterMetrics(size.width, size.height);
+      // The clock as it grows: "04:07", an hour in, and past a hundred hours.
+      for (const value of ["00:04:07", "104:07:22", "9.99", "1234.56"]) {
+        const drawn = fitReadout(
+          m.statPanelWidth,
+          value.length,
+          m.pad * 2,
+          m.statSizeMax,
+        );
+        // 0.62 em is the real advance of the platform monospace face; the
+        // fitting carries margin above it, so the drawn width must sit inside.
+        expect(m.pad * 2 + drawn * value.length * 0.62).toBeLessThanOrEqual(
+          m.statPanelWidth + 0.5,
+        );
+      }
+    }
+  });
+
+  it("sizes a stat readout to the value in hand, not to the longest one it might hold", () => {
+    const m = computeMeterMetrics(PHONE.width, PHONE.height);
+    const short = fitReadout(m.statPanelWidth, "4.20".length, m.pad * 2, m.statSizeMax);
+    const long = fitReadout(
+      m.statPanelWidth,
+      "104:07:22".length,
+      m.pad * 2,
+      m.statSizeMax,
+    );
+    expect(short).toBeGreaterThan(long);
+    expect(short).toBeLessThanOrEqual(m.statSizeMax);
   });
 
   it("never sizes the fare above the room its panel has vertically", () => {
@@ -122,7 +173,9 @@ describe("computeMeterMetrics", () => {
     expect(tiny.tabLabel).toBeGreaterThanOrEqual(8);
     expect(tiny.buttonText).toBeGreaterThanOrEqual(12);
     expect(tiny.fareSize).toBeGreaterThan(0);
-    expect(tiny.statSize).toBeGreaterThan(0);
+    expect(
+      fitReadout(tiny.statPanelWidth, 8, tiny.pad * 2, tiny.statSizeMax),
+    ).toBeGreaterThanOrEqual(MIN_READOUT_PT);
   });
 
   it("drops the header date only on a viewport too narrow for it", () => {

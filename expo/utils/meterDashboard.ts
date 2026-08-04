@@ -10,9 +10,11 @@
  * The TRIP STATUS panel answers two different questions depending on whether a
  * hire is under way. Idle, it is a readiness report: which sensors the meter
  * could measure with (the *connection type* — GPS, the vehicle bus, or both).
- * Once a hire has started it also carries the two facts that belong to that
- * hire and cannot be recovered later: the odometer the vehicle showed when the
- * passenger got in, and where that was.
+ * Once a hire has started it also carries the facts that belong to that hire
+ * and cannot be recovered later: the odometer the vehicle showed when the
+ * passenger got in, and where that was. The same {@link MeterWaypoint} is
+ * stamped again at the drop-off, and the formatters below are what the trip log
+ * and the printed receipt render both ends with.
  *
  * The rule the whole file exists to keep: nothing here ever claims a source the
  * meter does not have. Demo Mode telemetry is invented, so a simulated session
@@ -187,22 +189,62 @@ export function evaluateMeterStart(inputs: MeterStartGateInputs): MeterStartGate
 }
 
 /**
- * What the meter recorded about the pickup — the two facts that belong to the
- * moment the passenger got in and cannot be reconstructed afterwards.
+ * One end of a hire — where it began or where it finished.
  *
- * Both are nullable on purpose: generic OBD-II only publishes an odometer on
- * the cars that implement PID A6, and a hire can begin before the first GPS fix
- * lands. A missing one is shown as missing, never filled in with a guess.
+ * These are the facts that belong to a moment (the passenger getting in, the
+ * passenger getting out) and cannot be reconstructed afterwards, so the meter
+ * stamps them as they happen: the odometer the cluster was showing, and where
+ * the vehicle was.
+ *
+ * Both readings are nullable on purpose: generic OBD-II only publishes an
+ * odometer on the cars that implement PID A6, and a hire can begin before the
+ * first GPS fix lands. A missing one is shown as missing, never filled in with
+ * a guess.
  */
-export interface MeterPickup {
-  /** Epoch ms the hire began. Also the key a late answer is matched against. */
+export interface MeterWaypoint {
+  /** Epoch ms this end was stamped. Also the key a late answer is matched against. */
   at: number;
-  /** Odometer the vehicle reported at pickup, in km (OBD-II PID A6). */
+  /** Odometer the vehicle reported here, in km (OBD-II PID A6). */
   odometerKm: number | null;
   latitude: number | null;
   longitude: number | null;
-  /** Reverse-geocoded label for the pickup point, once one arrives. */
+  /** Reverse-geocoded label for the point, once one arrives. */
   place: string | null;
+}
+
+/** A finite, non-negative number, or null. Used to sanitise stored readings. */
+function finiteOrNull(value: unknown, { min = -Infinity }: { min?: number } = {}):
+  | number
+  | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= min
+    ? value
+    : null;
+}
+
+/**
+ * Narrow anything that claims to be a waypoint down to one, dropping readings
+ * that are not usable rather than storing them.
+ *
+ * Records written before the meter stamped its ends have none of this, so a
+ * value it cannot make sense of becomes null rather than an error — the log has
+ * to keep opening on a build older than the feature.
+ */
+export function normalizeMeterWaypoint(value: unknown): MeterWaypoint | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Partial<MeterWaypoint>;
+  const at = finiteOrNull(raw.at);
+  if (at === null) return null;
+  const place = typeof raw.place === "string" ? raw.place.trim() : "";
+  const latitude = finiteOrNull(raw.latitude);
+  const longitude = finiteOrNull(raw.longitude);
+  return {
+    at,
+    odometerKm: finiteOrNull(raw.odometerKm, { min: 0 }),
+    // A half fix is no fix: one coordinate on its own cannot be plotted.
+    latitude: longitude === null ? null : latitude,
+    longitude: latitude === null ? null : longitude,
+    place: place.length > 0 ? place : null,
+  };
 }
 
 /** Group the thousands of an odometer, the way the dash cluster prints it. */
@@ -211,20 +253,20 @@ function groupThousands(whole: string): string {
 }
 
 /**
- * The odometer as the panel shows it, e.g. "128 450.6 km".
+ * The odometer as the meter shows it, e.g. "128 450.6 km".
  *
  * A car that does not publish PID A6 has no odometer to read, and there is no
  * second source for one — so it renders as a dash rather than as a number the
  * meter made up.
  */
-export function formatPickupOdometer(km: number | null | undefined): string {
+export function formatWaypointOdometer(km: number | null | undefined): string {
   if (typeof km !== "number" || !Number.isFinite(km) || km < 0) return "—";
   const [whole, frac] = km.toFixed(1).split(".");
   return `${groupThousands(whole)}.${frac} km`;
 }
 
-/** A fix as the panel prints it when there is no address: "3.13900, 101.68690". */
-export function formatPickupCoords(
+/** A fix as the meter prints it when there is no address: "3.13900, 101.68690". */
+export function formatWaypointCoords(
   latitude: number | null | undefined,
   longitude: number | null | undefined,
 ): string | null {
@@ -234,15 +276,49 @@ export function formatPickupCoords(
 }
 
 /**
- * Where the hire began: the address when the geocoder answered, the raw fix
- * when it did not, and an honest "no fix" when the hire started before the
- * first one arrived.
+ * Where an end of the hire was: the address when the geocoder answered, the raw
+ * fix when it did not, and an honest "no fix" when the meter had no position at
+ * that moment at all.
  */
-export function formatPickupPlace(pickup: MeterPickup | null | undefined): string {
-  if (!pickup) return "—";
-  const place = pickup.place?.trim();
+export function formatWaypointPlace(
+  waypoint: MeterWaypoint | null | undefined,
+): string {
+  if (!waypoint) return "—";
+  const place = waypoint.place?.trim();
   if (place) return place;
-  return formatPickupCoords(pickup.latitude, pickup.longitude) ?? "NO FIX AT PICKUP";
+  return formatWaypointCoords(waypoint.latitude, waypoint.longitude) ?? "NO FIX";
+}
+
+/**
+ * The odometer across a whole hire — "128 450.6 → 128 462.1 km" — for the log
+ * row and the receipt.
+ *
+ * Null when neither end has a reading, so a record from a car with no odometer
+ * (or from a build before the meter stamped its ends) simply has no such line
+ * rather than a line full of dashes.
+ */
+export function formatOdometerSpan(
+  from: MeterWaypoint | null | undefined,
+  to: MeterWaypoint | null | undefined,
+): string | null {
+  const start = from?.odometerKm ?? null;
+  const end = to?.odometerKm ?? null;
+  if (start === null && end === null) return null;
+  const startText = start === null ? "—" : formatWaypointOdometer(start).replace(" km", "");
+  const endText = end === null ? "—" : formatWaypointOdometer(end).replace(" km", "");
+  return `${startText} → ${endText} km`;
+}
+
+/**
+ * Where the hire ran, end to end — "KLCC → Bangsar". Null only when neither end
+ * was stamped at all, which is what a record from an older build looks like.
+ */
+export function formatPlaceSpan(
+  from: MeterWaypoint | null | undefined,
+  to: MeterWaypoint | null | undefined,
+): string | null {
+  if (!from && !to) return null;
+  return `${formatWaypointPlace(from)} → ${formatWaypointPlace(to)}`;
 }
 
 export interface MeterSublineInputs {
