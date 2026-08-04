@@ -1,16 +1,19 @@
 import {
-  describeMeterLink,
+  describeMeterConnection,
   describeMeterSubline,
+  evaluateMeterStart,
   formatDashDate,
   formatDashTime,
+  formatPickupCoords,
+  formatPickupOdometer,
+  formatPickupPlace,
   segmentGhost,
-  type MeterLinkInputs,
+  type MeterConnectionInputs,
 } from "@/utils/meterDashboard";
 
 /** A parked meter with nothing connected — every case starts from here. */
-const IDLE: MeterLinkInputs = {
+const IDLE: MeterConnectionInputs = {
   running: false,
-  source: "none",
   obdLinked: false,
   obdConnecting: false,
   obdDemo: false,
@@ -18,77 +21,155 @@ const IDLE: MeterLinkInputs = {
   gpsDenied: false,
 };
 
-describe("describeMeterLink — running", () => {
-  it("names the source the meter is actually billing on", () => {
+describe("describeMeterConnection", () => {
+  it("names both sensors when the meter has both", () => {
     expect(
-      describeMeterLink({ ...IDLE, running: true, source: "obd", obdLinked: true }),
-    ).toEqual({ label: "OBD-II CONNECTED", tone: "ok", fromVehicle: true });
+      describeMeterConnection({ ...IDLE, obdLinked: true, hasGpsFix: true }),
+    ).toEqual({
+      type: "gps+obd",
+      label: "GPS + OBD-II",
+      tone: "ok",
+      fromVehicle: true,
+      demo: false,
+    });
+  });
 
-    expect(describeMeterLink({ ...IDLE, running: true, source: "gps" })).toEqual({
-      label: "GPS CONNECTED",
-      tone: "info",
+  it("names the one sensor it has when that is all there is", () => {
+    expect(describeMeterConnection({ ...IDLE, obdLinked: true })).toMatchObject({
+      type: "obd",
+      label: "OBD-II ONLY",
+      fromVehicle: true,
+    });
+    expect(describeMeterConnection({ ...IDLE, hasGpsFix: true })).toMatchObject({
+      type: "gps",
+      label: "GPS ONLY",
       fromVehicle: false,
     });
   });
 
-  it("reports GPS while a linked reader is not the billing source", () => {
-    // The reader is up but the last sample came off GPS (stale sweep): the
-    // panel must name GPS, because GPS is what is being billed.
-    const status = describeMeterLink({
+  it("does not count a stale fix the platform has taken back", () => {
+    // Permission revoked mid-hire: the last fix is not a live connection.
+    expect(
+      describeMeterConnection({ ...IDLE, hasGpsFix: true, gpsDenied: true }).type,
+    ).toBe("none");
+  });
+
+  it("never counts Demo Mode as a vehicle link", () => {
+    const demoOnly = describeMeterConnection({ ...IDLE, obdDemo: true });
+    expect(demoOnly.type).toBe("none");
+    expect(demoOnly.label).toBe("DEMO MODE");
+    expect(demoOnly.demo).toBe(true);
+
+    // With a fix the type is GPS — the simulator adds nothing to it, and is
+    // flagged beside the type rather than folded into it.
+    const demoWithGps = describeMeterConnection({
       ...IDLE,
-      running: true,
-      source: "gps",
-      obdLinked: true,
+      obdDemo: true,
+      hasGpsFix: true,
     });
-    expect(status.label).toBe("GPS CONNECTED");
-    expect(status.fromVehicle).toBe(false);
+    expect(demoWithGps.type).toBe("gps");
+    expect(demoWithGps.demo).toBe(true);
+
+    // Once a real reader answers, the link is the car.
+    expect(
+      describeMeterConnection({ ...IDLE, obdDemo: true, obdLinked: true }).demo,
+    ).toBe(false);
   });
 
-  it("never presents Demo Mode as a vehicle link", () => {
-    // Demo telemetry cannot bill, so a running demo meter is on GPS — and if
-    // GPS is missing too, it says so rather than claiming the simulator.
-    expect(
-      describeMeterLink({ ...IDLE, running: true, source: "gps", obdDemo: true }).label,
-    ).toBe("GPS CONNECTED");
-    expect(
-      describeMeterLink({ ...IDLE, running: true, source: "none", obdDemo: true }).label,
-    ).toBe("NO SIGNAL");
-  });
-
-  it("distinguishes a refused permission from a missing signal", () => {
-    expect(describeMeterLink({ ...IDLE, running: true, source: "none" })).toEqual({
+  it("reports the reason, worst first, when it has neither", () => {
+    expect(describeMeterConnection({ ...IDLE, gpsDenied: true }).label).toBe(
+      "LOCATION OFF",
+    );
+    expect(describeMeterConnection({ ...IDLE, obdConnecting: true }).label).toBe(
+      "LINKING READER",
+    );
+    expect(describeMeterConnection(IDLE).label).toBe("ACQUIRING GPS");
+    // A hire under way with nothing to measure on is not "acquiring" — it is a
+    // meter that has lost its signal.
+    expect(describeMeterConnection({ ...IDLE, running: true })).toEqual({
+      type: "none",
       label: "NO SIGNAL",
       tone: "bad",
       fromVehicle: false,
+      demo: false,
     });
-    expect(
-      describeMeterLink({ ...IDLE, running: true, source: "none", gpsDenied: true }).label,
-    ).toBe("LOCATION OFF");
-  });
-});
-
-describe("describeMeterLink — idle", () => {
-  it("reports readiness in the order the driver would fix it", () => {
-    expect(describeMeterLink({ ...IDLE, obdConnecting: true }).label).toBe(
-      "LINKING READER",
-    );
-    expect(describeMeterLink({ ...IDLE, obdLinked: true }).label).toBe("OBD-II READY");
-    expect(describeMeterLink({ ...IDLE, gpsDenied: true }).label).toBe("LOCATION OFF");
-    expect(describeMeterLink({ ...IDLE, obdDemo: true }).label).toBe("DEMO MODE");
-    expect(describeMeterLink({ ...IDLE, hasGpsFix: true }).label).toBe("GPS CONNECTED");
-    expect(describeMeterLink(IDLE).label).toBe("ACQUIRING GPS");
-  });
-
-  it("flags Demo Mode ahead of a usable GPS fix", () => {
-    const status = describeMeterLink({ ...IDLE, obdDemo: true, hasGpsFix: true });
-    expect(status.label).toBe("DEMO MODE");
-    expect(status.tone).toBe("warn");
   });
 
   it("keeps a refused permission louder than Demo Mode", () => {
     expect(
-      describeMeterLink({ ...IDLE, obdDemo: true, gpsDenied: true }).label,
+      describeMeterConnection({ ...IDLE, obdDemo: true, gpsDenied: true }).label,
     ).toBe("LOCATION OFF");
+  });
+});
+
+describe("evaluateMeterStart", () => {
+  const NO_LINK = { obdLinked: false, obdDemo: false, obdConnecting: false };
+
+  it("opens a hire only on a vehicle link", () => {
+    expect(evaluateMeterStart({ ...NO_LINK, obdLinked: true }).canStart).toBe(true);
+    expect(evaluateMeterStart(NO_LINK).canStart).toBe(false);
+  });
+
+  it("lets Demo Mode through, saying plainly what it is", () => {
+    const gate = evaluateMeterStart({ ...NO_LINK, obdDemo: true });
+    expect(gate.canStart).toBe(true);
+    expect(gate.title).toBe("Demo Mode");
+    expect(gate.message).toContain("bills on GPS");
+  });
+
+  it("holds the hire while a link attempt is in flight", () => {
+    const gate = evaluateMeterStart({ ...NO_LINK, obdConnecting: true });
+    expect(gate.canStart).toBe(false);
+    expect(gate.connecting).toBe(true);
+    expect(gate.title).toBe("Connecting to the vehicle…");
+  });
+
+  it("repeats the reader's own error rather than a generic one", () => {
+    const gate = evaluateMeterStart({ ...NO_LINK, obdError: "Adapter not found" });
+    expect(gate.canStart).toBe(false);
+    expect(gate.message).toContain("Adapter not found");
+    expect(gate.message).toContain("OBD-II (CANBus) reader");
+
+    // Blank/absent errors fall back to the plain statement of fact.
+    expect(evaluateMeterStart({ ...NO_LINK, obdError: "  " }).message).toContain(
+      "No OBD-II reader is connected",
+    );
+  });
+});
+
+describe("pickup readings", () => {
+  it("groups an odometer the way a dash cluster prints it", () => {
+    expect(formatPickupOdometer(128450.62)).toBe("128 450.6 km");
+    expect(formatPickupOdometer(0)).toBe("0.0 km");
+    expect(formatPickupOdometer(999)).toBe("999.0 km");
+    expect(formatPickupOdometer(1234567.8)).toBe("1 234 567.8 km");
+  });
+
+  it("says nothing rather than inventing an odometer", () => {
+    // A car without PID A6 has no odometer to read, and nothing else can supply
+    // one — GPS cannot know what the cluster says.
+    expect(formatPickupOdometer(null)).toBe("—");
+    expect(formatPickupOdometer(undefined)).toBe("—");
+    expect(formatPickupOdometer(Number.NaN)).toBe("—");
+    expect(formatPickupOdometer(-1)).toBe("—");
+  });
+
+  it("prints a fix to five decimals", () => {
+    expect(formatPickupCoords(3.139, 101.6869)).toBe("3.13900, 101.68690");
+    expect(formatPickupCoords(3.139, null)).toBeNull();
+    expect(formatPickupCoords(Number.NaN, 101.6869)).toBeNull();
+  });
+
+  it("falls back from the address to the fix, and says so when there is neither", () => {
+    const base = { at: 1, odometerKm: null, latitude: 3.139, longitude: 101.6869 };
+    expect(formatPickupPlace({ ...base, place: "KLCC, Kuala Lumpur" })).toBe(
+      "KLCC, Kuala Lumpur",
+    );
+    expect(formatPickupPlace({ ...base, place: "   " })).toBe("3.13900, 101.68690");
+    expect(
+      formatPickupPlace({ at: 1, odometerKm: null, latitude: null, longitude: null, place: null }),
+    ).toBe("NO FIX AT PICKUP");
+    expect(formatPickupPlace(null)).toBe("—");
   });
 });
 

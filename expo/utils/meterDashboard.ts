@@ -7,33 +7,53 @@
  * is decided here rather than in the screen, so the wording is unit-testable
  * and the screen stays a layout.
  *
- * The rule the whole file exists to keep: the panel never claims a source the
- * meter is not actually billing on. Demo Mode telemetry is invented, so a
- * simulated link reads as "demo", never as a vehicle link — the same promise
- * `utils/taxiMeter.ts` keeps by refusing to bill on it.
+ * The TRIP STATUS panel answers two different questions depending on whether a
+ * hire is under way. Idle, it is a readiness report: which sensors the meter
+ * could measure with (the *connection type* — GPS, the vehicle bus, or both).
+ * Once a hire has started it also carries the two facts that belong to that
+ * hire and cannot be recovered later: the odometer the vehicle showed when the
+ * passenger got in, and where that was.
+ *
+ * The rule the whole file exists to keep: nothing here ever claims a source the
+ * meter does not have. Demo Mode telemetry is invented, so a simulated session
+ * is never counted as a vehicle link — it is reported as demo, beside whatever
+ * the connection type genuinely is, the same promise `utils/taxiMeter.ts` keeps
+ * by refusing to bill on it. And because the connection type names what is
+ * *linked* rather than what is being *billed*, a running meter shows the billed
+ * source separately (see `describeMeterSource` in utils/taxiMeter.ts).
  */
 
-import type { MeterPeriod, MeterSource, MeterTariff } from "@/utils/taxiMeter";
+import type { MeterPeriod, MeterTariff } from "@/utils/taxiMeter";
 
 /** How the status should be coloured. Screens map these onto their palette. */
 export type MeterLinkTone = "ok" | "info" | "warn" | "bad";
 
-export interface MeterLinkStatus {
-  /** The TRIP STATUS headline, e.g. "GPS CONNECTED". */
+/**
+ * Which sensors the meter can actually measure with right now. Demo Mode is
+ * not one of them — a simulator is not a vehicle.
+ */
+export type MeterConnectionType = "gps+obd" | "obd" | "gps" | "none";
+
+export interface MeterConnection {
+  type: MeterConnectionType;
+  /** The TRIP STATUS headline, e.g. "GPS + OBD-II". */
   label: string;
   tone: MeterLinkTone;
   /**
-   * True when the headline is about the vehicle bus rather than satellites —
-   * the screen uses it to pick the glyph beside the label.
+   * True when the vehicle bus is part of the link — the screen uses it to pick
+   * the glyph beside the label.
    */
   fromVehicle: boolean;
+  /**
+   * A simulated session is open. Never folded into `type`: it is shown beside
+   * it, so invented telemetry can never read as a vehicle link.
+   */
+  demo: boolean;
 }
 
-export interface MeterLinkInputs {
+export interface MeterConnectionInputs {
   /** Is the meter accruing right now? */
   running: boolean;
-  /** Source the last accepted sample actually billed on. */
-  source: MeterSource;
   /** A real, non-simulated OBD-II session is open. */
   obdLinked: boolean;
   /** A connection attempt is in flight. */
@@ -47,52 +67,182 @@ export interface MeterLinkInputs {
 }
 
 /**
- * What the TRIP STATUS panel says.
+ * The connection type the TRIP STATUS headline shows, in both states: which of
+ * the two sensors the meter has, together or on their own.
  *
- * While the meter runs, the answer is simply which source produced the last
- * sample — that is the source being billed, so nothing else may be shown.
- * While it is idle the panel is a readiness report instead, ordered by what
- * the driver would want to fix first.
+ * With neither, the headline becomes the reason — ordered by what the driver
+ * would want to fix first, and distinguishing a refused permission from a
+ * signal that simply has not arrived yet.
  */
-export function describeMeterLink(inputs: MeterLinkInputs): MeterLinkStatus {
-  const {
-    running,
-    source,
-    obdLinked,
-    obdConnecting,
-    obdDemo,
-    hasGpsFix,
-    gpsDenied,
-  } = inputs;
+export function describeMeterConnection(inputs: MeterConnectionInputs): MeterConnection {
+  const { running, obdLinked, obdConnecting, obdDemo, hasGpsFix, gpsDenied } = inputs;
 
-  if (running) {
-    if (source === "obd") {
-      return { label: "OBD-II CONNECTED", tone: "ok", fromVehicle: true };
-    }
-    if (source === "gps") {
-      return { label: "GPS CONNECTED", tone: "info", fromVehicle: false };
-    }
-    return gpsDenied
-      ? { label: "LOCATION OFF", tone: "bad", fromVehicle: false }
-      : { label: "NO SIGNAL", tone: "bad", fromVehicle: false };
-  }
+  const gps = hasGpsFix && !gpsDenied;
+  // A simulated session is only "demo" while no real reader is linked; once a
+  // car answers, the link is the car.
+  const demo = obdDemo && !obdLinked;
 
-  if (obdConnecting) {
-    return { label: "LINKING READER", tone: "warn", fromVehicle: true };
+  if (gps && obdLinked) {
+    return { type: "gps+obd", label: "GPS + OBD-II", tone: "ok", fromVehicle: true, demo };
   }
   if (obdLinked) {
-    return { label: "OBD-II READY", tone: "ok", fromVehicle: true };
+    return { type: "obd", label: "OBD-II ONLY", tone: "ok", fromVehicle: true, demo };
   }
+  if (gps) {
+    return { type: "gps", label: "GPS ONLY", tone: "info", fromVehicle: false, demo };
+  }
+
+  const none = { type: "none" as const, demo };
   if (gpsDenied) {
-    return { label: "LOCATION OFF", tone: "bad", fromVehicle: false };
+    return { ...none, label: "LOCATION OFF", tone: "bad", fromVehicle: false };
+  }
+  if (obdConnecting) {
+    return { ...none, label: "LINKING READER", tone: "warn", fromVehicle: true };
+  }
+  if (demo) {
+    return { ...none, label: "DEMO MODE", tone: "warn", fromVehicle: true };
+  }
+  if (running) {
+    return { ...none, label: "NO SIGNAL", tone: "bad", fromVehicle: false };
+  }
+  return { ...none, label: "ACQUIRING GPS", tone: "warn", fromVehicle: false };
+}
+
+export interface MeterStartGateInputs {
+  /** A real, non-simulated OBD-II session is open. */
+  obdLinked: boolean;
+  /** The session is the simulator. */
+  obdDemo: boolean;
+  /** A connection attempt is in flight. */
+  obdConnecting: boolean;
+  /** The last error the reader reported, if any. */
+  obdError?: string | null;
+}
+
+export interface MeterStartGate {
+  /** May a hire begin? */
+  canStart: boolean;
+  /** A link attempt is in flight — the popup shows a spinner rather than a retry. */
+  connecting: boolean;
+  /** Headline for the button's popup, e.g. "Connecting to the vehicle…". */
+  title: string;
+  /** The line under it: what is happening, or what to do about it. */
+  message: string;
+}
+
+/**
+ * Whether the meter may start a hire, and what to say when it may not.
+ *
+ * A hire begins on the vehicle link: the meter is a taxi meter, and the fare it
+ * opens should be measured by the car rather than by whatever the phone can
+ * see. GPS remains the fallback *during* a hire (a tunnel, a dropped dongle),
+ * because a fare already running must never stop measuring — but it is not what
+ * a hire opens on.
+ *
+ * Demo Mode is the one deliberate exception: it is admin-gated simulation, and
+ * blocking it would make the screen impossible to exercise without a car. It is
+ * allowed through, and told plainly that it bills on GPS.
+ */
+export function evaluateMeterStart(inputs: MeterStartGateInputs): MeterStartGate {
+  const { obdLinked, obdDemo, obdConnecting, obdError } = inputs;
+
+  if (obdLinked) {
+    return {
+      canStart: true,
+      connecting: false,
+      title: "Vehicle linked",
+      message:
+        "The OBD-II reader is answering. The meter measures the hire on the vehicle's own speed.",
+    };
   }
   if (obdDemo) {
-    return { label: "DEMO MODE", tone: "warn", fromVehicle: true };
+    return {
+      canStart: true,
+      connecting: false,
+      title: "Demo Mode",
+      message:
+        "This is simulated telemetry, not a vehicle. The meter will start, but it bills on GPS — Demo Mode never bills a fare.",
+    };
   }
-  if (hasGpsFix) {
-    return { label: "GPS CONNECTED", tone: "info", fromVehicle: false };
+  if (obdConnecting) {
+    return {
+      canStart: false,
+      connecting: true,
+      title: "Connecting to the vehicle…",
+      message:
+        "Linking the OBD-II reader. The hire starts by itself as soon as the vehicle answers.",
+    };
   }
-  return { label: "ACQUIRING GPS", tone: "warn", fromVehicle: false };
+
+  const reason =
+    typeof obdError === "string" && obdError.trim().length > 0
+      ? `The reader could not be reached: ${obdError.trim()}`
+      : "No OBD-II reader is connected";
+  return {
+    canStart: false,
+    connecting: false,
+    title: "No vehicle link",
+    message: `${reason}. A hire starts on the vehicle link — connect the reader saved in Settings → OBD-II (CANBus) reader, or add one there.`,
+  };
+}
+
+/**
+ * What the meter recorded about the pickup — the two facts that belong to the
+ * moment the passenger got in and cannot be reconstructed afterwards.
+ *
+ * Both are nullable on purpose: generic OBD-II only publishes an odometer on
+ * the cars that implement PID A6, and a hire can begin before the first GPS fix
+ * lands. A missing one is shown as missing, never filled in with a guess.
+ */
+export interface MeterPickup {
+  /** Epoch ms the hire began. Also the key a late answer is matched against. */
+  at: number;
+  /** Odometer the vehicle reported at pickup, in km (OBD-II PID A6). */
+  odometerKm: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** Reverse-geocoded label for the pickup point, once one arrives. */
+  place: string | null;
+}
+
+/** Group the thousands of an odometer, the way the dash cluster prints it. */
+function groupThousands(whole: string): string {
+  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+/**
+ * The odometer as the panel shows it, e.g. "128 450.6 km".
+ *
+ * A car that does not publish PID A6 has no odometer to read, and there is no
+ * second source for one — so it renders as a dash rather than as a number the
+ * meter made up.
+ */
+export function formatPickupOdometer(km: number | null | undefined): string {
+  if (typeof km !== "number" || !Number.isFinite(km) || km < 0) return "—";
+  const [whole, frac] = km.toFixed(1).split(".");
+  return `${groupThousands(whole)}.${frac} km`;
+}
+
+/** A fix as the panel prints it when there is no address: "3.13900, 101.68690". */
+export function formatPickupCoords(
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+): string | null {
+  if (typeof latitude !== "number" || !Number.isFinite(latitude)) return null;
+  if (typeof longitude !== "number" || !Number.isFinite(longitude)) return null;
+  return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+}
+
+/**
+ * Where the hire began: the address when the geocoder answered, the raw fix
+ * when it did not, and an honest "no fix" when the hire started before the
+ * first one arrived.
+ */
+export function formatPickupPlace(pickup: MeterPickup | null | undefined): string {
+  if (!pickup) return "—";
+  const place = pickup.place?.trim();
+  if (place) return place;
+  return formatPickupCoords(pickup.latitude, pickup.longitude) ?? "NO FIX AT PICKUP";
 }
 
 export interface MeterSublineInputs {
