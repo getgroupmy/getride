@@ -26,6 +26,14 @@
  * that pin cannot happen — the web build, or a binary made before
  * `expo-screen-orientation` shipped — a portrait viewport gets the rotate
  * notice instead of a squeezed meter.
+ *
+ * Nothing here is drawn at a fixed point size. Every padding, icon, key and
+ * word comes from `computeMeterMetrics` (pure + tested), which fits the whole
+ * console to the viewport it is being drawn into — a phone in a cradle and a
+ * 10-inch dash tablet get the same instrument, scaled. Text that lives inside
+ * a control shrinks to its box on top of that (`FitText`) and ignores the OS
+ * font-size setting, because a clipped fare or a half-drawn key is not a thing
+ * a taxi meter may show.
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -42,6 +50,8 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  type StyleProp,
+  type TextStyle,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -88,6 +98,7 @@ import RotateDeviceNotice from "@/components/RotateDeviceNotice";
 import SegmentDisplay from "@/components/SegmentDisplay";
 import { TRANSPORT_LABEL } from "@/utils/canbus/types";
 import { isLandscapeSize, shouldPromptRotate } from "@/utils/orientationLock";
+import { computeMeterMetrics, fitDigits, type MeterMetrics } from "@/utils/meterScale";
 import {
   describeMeterLink,
   describeMeterSubline,
@@ -176,6 +187,58 @@ interface LiveFix {
   speedKmh: number | null;
 }
 
+/**
+ * A word that must fit the box it is in.
+ *
+ * `computeMeterMetrics` already sizes the type to the viewport; this is the
+ * second line of defence for the strings that cannot be predicted — a long
+ * driver name, a plate from another state, a fare that grew a digit.
+ *
+ * Two things do that. It never follows the OS font scale, because a dash
+ * instrument's layout is fixed by the glass rather than by a phone's
+ * accessibility setting — a wound-up system font would otherwise push the fare
+ * out of its panel. And it asks for shrink-to-fit, which iOS honours; where the
+ * platform ignores it (Android, web) the metrics are what keep the word inside
+ * its box, and the panel's `overflow: hidden` is the backstop.
+ */
+function FitText({
+  style,
+  size,
+  lines = 1,
+  minimumScale = 0.6,
+  children,
+  testID,
+}: {
+  style?: StyleProp<TextStyle>;
+  size: number;
+  lines?: number;
+  minimumScale?: number;
+  children: React.ReactNode;
+  testID?: string;
+}) {
+  return (
+    <Text
+      style={[style, { fontSize: size }]}
+      numberOfLines={lines}
+      adjustsFontSizeToFit
+      minimumFontScale={minimumScale}
+      allowFontScaling={false}
+      testID={testID}
+    >
+      {children}
+    </Text>
+  );
+}
+
+/** The small caps heading every panel carries. Always one line. */
+function PanelLabel({ ui, children }: { ui: MeterMetrics; children: React.ReactNode }) {
+  return (
+    <FitText style={styles.panelLabel} size={ui.panelLabel}>
+      {children}
+    </FitText>
+  );
+}
+
 export default function MeterDigitalScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -196,39 +259,15 @@ export default function MeterDigitalScreen() {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const isLandscape = isLandscapeSize(winWidth, winHeight);
   const promptRotate = shouldPromptRotate(lockState, winWidth, winHeight);
-  // A landscape phone fits the instrument but not every chip in the header, so
-  // the date — the one thing the driver is least likely to need — goes first.
-  const compactHeader = winWidth < 820;
 
   /**
-   * The readouts scale with the glass. The same meter is read off a 7-inch
-   * dash tablet and off a phone in a cradle, and a fare that needs squinting at
-   * is the one thing this screen may not produce, so the digits, the avatar and
-   * the trip button all size off the viewport height rather than sitting at one
-   * fixed point size.
+   * Every size on the console, fitted to the glass it is drawn on — see
+   * `utils/meterScale.ts`. Nothing below reads a hardcoded point size.
    */
-  const ui = useMemo(() => {
-    const scale = Math.min(1.7, Math.max(0.8, winHeight / 430));
-    const pad = Math.round(12 * scale);
-    // What the grid actually gets once the header and the tab bar have taken
-    // theirs. The fare readout is sized to fit its own panel rather than to a
-    // fixed share of the viewport: on a phone in a cradle a "proportional"
-    // digit is simply one that overflows the panel it lives in.
-    const bodyHeight = Math.max(180, winHeight - 130);
-    const fareRoom = Math.max(26, bodyHeight / 1.75 - (pad * 2 + 80));
-    return {
-      pad,
-      gap: Math.round(9 * scale),
-      fareSize: Math.round(Math.min(56 * scale, fareRoom / 1.3)),
-      statSize: Math.round(28 * scale),
-      nameSize: Math.round(19 * scale),
-      statusSize: Math.round(22 * scale),
-      buttonHeight: Math.round(56 * scale),
-      buttonText: Math.round(19 * scale),
-      avatar: Math.round(95 * scale),
-      currencySize: Math.round(18 * scale),
-    };
-  }, [winHeight]);
+  const ui = useMemo(
+    () => computeMeterMetrics(winWidth, winHeight),
+    [winWidth, winHeight],
+  );
 
   const { settings: displaySettings } = useDisplaySettings();
   // Same link the Teksi screen uses: auto-connect to the saved reader, and only
@@ -416,6 +455,21 @@ export default function MeterDigitalScreen() {
   );
   const grandTotal = meterGrandTotal(fare.total, extra);
 
+  // The end-of-hire total is drawn in a card that is itself a share of the
+  // glass, so the digits are fitted to the card rather than to the viewport.
+  const modalAmountSize = useMemo(() => {
+    const cardWidth = Math.min(520, winWidth * 0.8);
+    return Math.round(
+      Math.max(
+        22,
+        Math.min(
+          ui.modalAmount,
+          fitDigits(cardWidth, 6, ui.pad * 2.8 + ui.currencySize * 1.6 + ui.gap),
+        ),
+      ),
+    );
+  }, [ui, winWidth]);
+
   const started = meter.startedAt !== null;
   const link = describeMeterLink({
     running: meter.running,
@@ -571,42 +625,53 @@ export default function MeterDigitalScreen() {
           : BatteryLow;
 
   const statusCluster = (
-    <View style={styles.statusCluster} testID="meter-digital-status-cluster">
+    <View style={[styles.statusCluster, { gap: ui.gap }]} testID="meter-digital-status-cluster">
       {gpsDenied ? (
-        <MapPinOff color={DASH.danger} size={17} />
+        <MapPinOff color={DASH.danger} size={ui.headerIcon} />
       ) : (
-        <MapPin color={hasFix ? DASH.accent : DASH.muted} size={17} />
+        <MapPin color={hasFix ? DASH.accent : DASH.muted} size={ui.headerIcon} />
       )}
       {netConnected === false ? (
-        <CloudOff color={DASH.danger} size={17} />
+        <CloudOff color={DASH.danger} size={ui.headerIcon} />
       ) : (
-        <Cloud color={netConnected ? DASH.muted : DASH.dim} size={17} />
+        <Cloud color={netConnected ? DASH.muted : DASH.dim} size={ui.headerIcon} />
       )}
       <View style={styles.signalWrap}>
         {cellularGeneration ? (
-          <Text style={styles.signalLabel}>{cellularGeneration}</Text>
+          <FitText style={styles.signalLabel} size={ui.smallText}>
+            {cellularGeneration}
+          </FitText>
         ) : null}
         {onWifi ? (
-          <Wifi color={DASH.muted} size={17} />
+          <Wifi color={DASH.muted} size={ui.headerIcon} />
         ) : netConnected ? (
-          <Signal color={DASH.muted} size={17} />
+          <Signal color={DASH.muted} size={ui.headerIcon} />
         ) : (
-          <SignalZero color={DASH.dim} size={17} />
+          <SignalZero color={DASH.dim} size={ui.headerIcon} />
         )}
       </View>
       {battery.level !== null ? (
         <View style={styles.signalWrap}>
           <BatteryIcon
             color={battery.level <= 0.15 && !battery.charging ? DASH.danger : DASH.muted}
-            size={19}
+            size={Math.round(ui.headerIcon * 1.1)}
           />
-          <Text style={styles.signalLabel}>{Math.round(battery.level * 100)}%</Text>
+          <FitText style={styles.signalLabel} size={ui.smallText}>
+            {Math.round(battery.level * 100)}%
+          </FitText>
         </View>
       ) : null}
-      {compactHeader ? null : (
-        <Text style={styles.headerDate}>{formatDashDate(now)}</Text>
-      )}
-      <Text style={styles.headerTime}>{formatDashTime(now)}</Text>
+      {/* A small landscape phone fits the instrument but not every chip in the
+          header, so the date — the one thing the driver is least likely to
+          need — goes before anything else is allowed to shrink. */}
+      {ui.showHeaderDate ? (
+        <FitText style={styles.headerDate} size={ui.headerText}>
+          {formatDashDate(now)}
+        </FitText>
+      ) : null}
+      <FitText style={styles.headerTime} size={ui.headerText}>
+        {formatDashTime(now)}
+      </FitText>
     </View>
   );
 
@@ -614,11 +679,11 @@ export default function MeterDigitalScreen() {
 
   const driverCard = (
     <View
-      style={[styles.panel, styles.driverPanel, { padding: ui.pad }]}
+      style={[styles.panel, styles.driverPanel, { padding: ui.pad, gap: ui.gap, borderRadius: ui.radius }]}
       testID="meter-digital-driver"
     >
-      <Text style={styles.panelLabel}>DRIVER</Text>
-      <View style={styles.driverRow}>
+      <PanelLabel ui={ui}>DRIVER</PanelLabel>
+      <View style={[styles.driverRow, { gap: ui.gap }]}>
         <View
           style={[styles.avatar, { width: ui.avatar, height: ui.avatar }]}
         >
@@ -628,21 +693,36 @@ export default function MeterDigitalScreen() {
             <User color={DASH.muted} size={Math.round(ui.avatar * 0.45)} />
           )}
         </View>
-        <View style={styles.driverInfo}>
-          <Text style={[styles.driverName, { fontSize: ui.nameSize }]} numberOfLines={2}>
+        <View style={[styles.driverInfo, { gap: Math.round(ui.gap * 0.7) }]}>
+          {/* Two lines, then shrink: a long name must not push the plate out
+              of the panel. */}
+          <FitText style={styles.driverName} size={ui.nameSize} lines={2} minimumScale={0.55}>
             {driverName}
-          </Text>
-          <View style={styles.plateChip}>
-            <Text style={styles.plateChipLabel}>PLATE</Text>
-            <Text style={styles.plateChipValue} numberOfLines={1}>
+          </FitText>
+          <View
+            style={[
+              styles.plateChip,
+              {
+                gap: Math.round(ui.gap * 0.8),
+                paddingVertical: Math.round(ui.pad * 0.35),
+                paddingHorizontal: Math.round(ui.pad * 0.7),
+              },
+            ]}
+          >
+            <FitText style={styles.plateChipLabel} size={ui.captionText}>
+              PLATE
+            </FitText>
+            <FitText style={styles.plateChipValue} size={ui.rowText}>
               {plate ?? "—"}
-            </Text>
+            </FitText>
           </View>
-          <View style={styles.licenseRow}>
-            <Text style={styles.licenseLabel}>LICENSE</Text>
-            <Text style={styles.licenseValue} numberOfLines={1}>
+          <View style={[styles.licenseRow, { gap: Math.round(ui.gap * 0.8) }]}>
+            <FitText style={styles.licenseLabel} size={ui.captionText}>
+              LICENSE
+            </FitText>
+            <FitText style={styles.licenseValue} size={ui.captionText}>
               {license ?? "—"}
-            </Text>
+            </FitText>
           </View>
         </View>
       </View>
@@ -652,12 +732,14 @@ export default function MeterDigitalScreen() {
   /* --- Trip control: START / END, with the meter's pause beside it --- */
 
   const tripControls = (
-    <View style={styles.controlRow}>
+    <View style={[styles.controlRow, { gap: ui.gap }]}>
       <TouchableOpacity
         style={[
           styles.primaryButton,
           {
             height: ui.buttonHeight,
+            gap: ui.gap,
+            borderRadius: ui.radius,
             backgroundColor: meter.running
               ? DASH.danger
               : started
@@ -670,24 +752,24 @@ export default function MeterDigitalScreen() {
         testID="meter-digital-toggle"
       >
         <CarTaxiFront color="#fff" size={Math.round(ui.buttonText * 1.3)} />
-        <Text style={[styles.primaryButtonText, { fontSize: ui.buttonText }]}>
+        <FitText style={styles.primaryButtonText} size={ui.buttonText}>
           {meter.running ? "END TRIP" : started ? "NEW TRIP" : "START TRIP"}
-        </Text>
+        </FitText>
       </TouchableOpacity>
       {started ? (
         <TouchableOpacity
           style={[
             styles.pauseButton,
-            { width: ui.buttonHeight, height: ui.buttonHeight },
+            { width: ui.buttonHeight, height: ui.buttonHeight, borderRadius: ui.radius },
           ]}
           onPress={handlePauseToggle}
           activeOpacity={0.85}
           testID="meter-digital-pause"
         >
           {meter.running ? (
-            <Pause color={DASH.text} size={22} fill={DASH.text} />
+            <Pause color={DASH.text} size={Math.round(ui.buttonHeight * 0.4)} fill={DASH.text} />
           ) : (
-            <Play color={DASH.text} size={22} fill={DASH.text} />
+            <Play color={DASH.text} size={Math.round(ui.buttonHeight * 0.4)} fill={DASH.text} />
           )}
         </TouchableOpacity>
       ) : null}
@@ -702,12 +784,29 @@ export default function MeterDigitalScreen() {
     unit: string | null,
     testID: string,
   ) => (
-    <View style={[styles.panel, styles.statPanel, { padding: ui.pad }]} testID={testID}>
-      <Text style={styles.panelLabel}>{label}</Text>
+    <View
+      style={[
+        styles.panel,
+        styles.statPanel,
+        { padding: ui.pad, gap: ui.gap, borderRadius: ui.radius },
+      ]}
+      testID={testID}
+    >
+      <PanelLabel ui={ui}>{label}</PanelLabel>
       <View style={styles.statValueRow}>
-        <View style={styles.statValueInner}>
+        <View style={[styles.statValueInner, { gap: Math.round(ui.gap * 0.6) }]}>
           <SegmentDisplay value={value} size={ui.statSize} color={DASH.segment} />
-          {unit ? <Text style={styles.statUnit}>{unit}</Text> : null}
+          {unit ? (
+            <Text
+              style={[
+                styles.statUnit,
+                { fontSize: ui.captionText, marginBottom: Math.round(ui.statSize * 0.14) },
+              ]}
+              allowFontScaling={false}
+            >
+              {unit}
+            </Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -717,12 +816,21 @@ export default function MeterDigitalScreen() {
 
   const fareCard = (
     <View
-      style={[styles.panel, styles.farePanel, { padding: ui.pad }]}
+      style={[
+        styles.panel,
+        styles.farePanel,
+        { padding: ui.pad, gap: ui.gap, borderRadius: ui.radius },
+      ]}
       testID="meter-digital-fare"
     >
-      <Text style={styles.panelLabel}>FARE</Text>
-      <View style={styles.moneyRow}>
-        <Text style={[styles.currency, { fontSize: ui.currencySize }]}>RM</Text>
+      <PanelLabel ui={ui}>FARE</PanelLabel>
+      <View style={[styles.moneyRow, { gap: Math.round(ui.gap * 0.9) }]}>
+        <Text
+          style={[styles.currency, { fontSize: ui.currencySize }]}
+          allowFontScaling={false}
+        >
+          RM
+        </Text>
         <SegmentDisplay
           value={fare.total.toFixed(2)}
           size={ui.fareSize}
@@ -730,30 +838,41 @@ export default function MeterDigitalScreen() {
           testID="meter-digital-total"
         />
       </View>
-      <View style={styles.keyRow}>
+      <View style={[styles.keyRow, { gap: ui.gap }]}>
         {(["day", "night"] as const).map((key) => {
           const active = period === key;
           const Icon = key === "day" ? Sun : Moon;
           return (
             <TouchableOpacity
               key={key}
-              style={[styles.key, active && styles.keyActive]}
+              style={[
+                styles.key,
+                {
+                  height: ui.keyHeight,
+                  gap: Math.round(ui.gap * 0.6),
+                  borderRadius: Math.round(ui.radius * 0.65),
+                },
+                active && styles.keyActive,
+              ]}
               onPress={() => setPeriod(key)}
               activeOpacity={0.8}
               testID={`meter-digital-period-${key}`}
             >
-              <Icon color={active ? DASH.bgDeep : DASH.accent} size={14} />
-              <Text style={[styles.keyText, active && styles.keyTextActive]}>
+              <Icon color={active ? DASH.bgDeep : DASH.accent} size={ui.keyIcon} />
+              <FitText
+                style={[styles.keyText, active && styles.keyTextActive]}
+                size={ui.keyText}
+              >
                 {key === "day" ? "DAY" : "NIGHT"}
-              </Text>
+              </FitText>
             </TouchableOpacity>
           );
         })}
       </View>
       {extra > 0 ? (
-        <Text style={styles.fareTotalLine} numberOfLines={1}>
+        <FitText style={styles.fareTotalLine} size={ui.smallText}>
           TOTAL WITH EXTRA · RM {grandTotal.toFixed(2)}
-        </Text>
+        </FitText>
       ) : null}
     </View>
   );
@@ -762,42 +881,58 @@ export default function MeterDigitalScreen() {
 
   const extraCard = (
     <View
-      style={[styles.panel, styles.farePanel, { padding: ui.pad }]}
+      style={[
+        styles.panel,
+        styles.farePanel,
+        { padding: ui.pad, gap: ui.gap, borderRadius: ui.radius },
+      ]}
       testID="meter-digital-extra"
     >
-      <Text style={styles.panelLabel}>EXTRA</Text>
-      <View style={styles.moneyRow}>
-        <Text style={[styles.currency, { fontSize: ui.currencySize }]}>RM</Text>
+      <PanelLabel ui={ui}>EXTRA</PanelLabel>
+      <View style={[styles.moneyRow, { gap: Math.round(ui.gap * 0.9) }]}>
+        <Text
+          style={[styles.currency, { fontSize: ui.currencySize }]}
+          allowFontScaling={false}
+        >
+          RM
+        </Text>
         <SegmentDisplay
           value={extra.toFixed(2)}
           size={ui.fareSize}
           color={DASH.segment}
         />
       </View>
-      <View style={styles.keyRow}>
+      <View style={[styles.keyRow, { gap: ui.gap }]}>
         <TouchableOpacity
-          style={[styles.key, extra <= 0 && styles.keyDisabled]}
+          style={[
+            styles.key,
+            { height: ui.keyHeight, borderRadius: Math.round(ui.radius * 0.65) },
+            extra <= 0 && styles.keyDisabled,
+          ]}
           disabled={extra <= 0}
           onPress={() => handleExtra(-1)}
           activeOpacity={0.8}
           testID="meter-digital-extra-down"
         >
-          <Minus color={DASH.accent} size={18} />
+          <Minus color={DASH.accent} size={ui.iconSize} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.key}
+          style={[
+            styles.key,
+            { height: ui.keyHeight, borderRadius: Math.round(ui.radius * 0.65) },
+          ]}
           onPress={() => handleExtra(1)}
           activeOpacity={0.8}
           testID="meter-digital-extra-up"
         >
-          <Plus color={DASH.accent} size={18} />
+          <Plus color={DASH.accent} size={ui.iconSize} />
         </TouchableOpacity>
       </View>
       {/* One line, always: a wrapped caption steals the height the readout
           above it needs on a phone-sized dash. */}
-      <Text style={styles.fareTotalLine} numberOfLines={1}>
+      <FitText style={styles.fareTotalLine} size={ui.smallText}>
         RM {EXTRA_STEP.toFixed(2)} PER PRESS · TOLLS, FEES, LUGGAGE
-      </Text>
+      </FitText>
     </View>
   );
 
@@ -805,12 +940,16 @@ export default function MeterDigitalScreen() {
 
   const statusCard = (
     <View
-      style={[styles.panel, styles.statusPanel, { padding: ui.pad }]}
+      style={[
+        styles.panel,
+        styles.statusPanel,
+        { padding: ui.pad, gap: ui.gap, borderRadius: ui.radius },
+      ]}
       testID="meter-digital-link"
     >
-      <Text style={styles.panelLabel}>TRIP STATUS</Text>
-      <View style={styles.statusCenter}>
-        <View style={styles.statusHeadline}>
+      <PanelLabel ui={ui}>TRIP STATUS</PanelLabel>
+      <View style={[styles.statusCenter, { gap: Math.round(ui.gap * 0.9) }]}>
+        <View style={[styles.statusHeadline, { gap: ui.gap }]}>
           {link.fromVehicle ? (
             <Cpu color={linkColor} size={Math.round(ui.statusSize * 1.15)} />
           ) : (
@@ -820,12 +959,16 @@ export default function MeterDigitalScreen() {
               fill={linkColor}
             />
           )}
-          <Text style={[styles.statusText, { fontSize: ui.statusSize }]}>
+          {/* The headline is the one line the driver reads at a glance, so it
+              shrinks to the panel rather than wrapping or being clipped. */}
+          <FitText style={[styles.statusText, styles.statusFlex]} size={ui.statusSize}>
             {link.label}
-          </Text>
+          </FitText>
         </View>
-        <View style={styles.statusDivider} />
-        <Text style={styles.statusSub}>{subline}</Text>
+        <View style={[styles.statusDivider, { marginHorizontal: ui.pad * 2 }]} />
+        <FitText style={styles.statusSub} size={ui.rowText}>
+          {subline}
+        </FitText>
       </View>
     </View>
   );
@@ -833,11 +976,11 @@ export default function MeterDigitalScreen() {
   /* --- The meter, as the mount sees it --- */
 
   const dashboard = (
-    <View style={[styles.grid, !isLandscape && styles.gridStacked]}>
-      <View style={styles.colLeft}>
+    <View style={[styles.grid, { gap: ui.gap }, !isLandscape && styles.gridStacked]}>
+      <View style={[styles.colLeft, { gap: ui.gap }]}>
         {driverCard}
         {tripControls}
-        <View style={styles.pairRow}>
+        <View style={[styles.pairRow, { gap: ui.gap }]}>
           {statCard("TIME", formatMeterClock(meter.elapsedMs), null, "meter-digital-time")}
           {statCard(
             "DISTANCE",
@@ -847,8 +990,8 @@ export default function MeterDigitalScreen() {
           )}
         </View>
       </View>
-      <View style={styles.colRight}>
-        <View style={styles.pairRow}>
+      <View style={[styles.colRight, { gap: ui.gap }]}>
+        <View style={[styles.pairRow, { gap: ui.gap }]}>
           {fareCard}
           {extraCard}
         </View>
@@ -861,96 +1004,135 @@ export default function MeterDigitalScreen() {
 
   /** A thin reminder of the live fare, so no tab hides a running meter. */
   const runningStrip = started ? (
-    <View style={styles.runningStrip}>
-      <View style={[styles.runningDot, { backgroundColor: linkColor }]} />
-      <Text style={styles.runningText}>
+    <View
+      style={[
+        styles.runningStrip,
+        {
+          gap: ui.gap,
+          paddingVertical: Math.round(ui.pad * 0.6),
+          paddingHorizontal: ui.pad,
+          borderRadius: Math.round(ui.radius * 0.7),
+        },
+      ]}
+    >
+      <View style={[dotStyle(ui), { backgroundColor: linkColor }]} />
+      <FitText style={styles.runningText} size={ui.bodyText}>
         {meter.running ? "METER RUNNING" : "METER STOPPED"} · RM{" "}
         {grandTotal.toFixed(2)} · {formatMeterClock(meter.elapsedMs)} ·{" "}
         {formatMeterDistance(meter.distanceM)}
-      </Text>
+      </FitText>
       <TouchableOpacity
-        style={styles.stripButton}
+        style={[
+          styles.stripButton,
+          {
+            paddingVertical: Math.round(ui.pad * 0.4),
+            paddingHorizontal: Math.round(ui.pad * 0.8),
+            borderRadius: Math.round(ui.radius * 0.55),
+          },
+        ]}
         onPress={() => setTab("ehailing")}
         testID="meter-digital-strip-back"
       >
-        <Text style={styles.stripButtonText}>OPEN METER</Text>
+        <FitText style={styles.stripButtonText} size={ui.captionText}>
+          OPEN METER
+        </FitText>
       </TouchableOpacity>
     </View>
   ) : null;
 
   const tripsSummary = summarizeMeterTrips(trips);
   const tripsTab = (
-    <View style={styles.tabBody}>
+    <View style={[styles.tabBody, { gap: ui.gap }]}>
       {runningStrip}
-      <View style={styles.summaryRow}>
+      <View style={[styles.summaryRow, { gap: ui.gap }]}>
         {[
           { label: "HIRES", value: String(tripsSummary.count) },
           { label: "DISTANCE", value: formatMeterDistance(tripsSummary.distanceM) },
           { label: "TAKINGS", value: `RM ${tripsSummary.total.toFixed(2)}` },
         ].map((s) => (
-          <View key={s.label} style={[styles.panel, styles.summaryCard]}>
-            <Text style={styles.panelLabel}>{s.label}</Text>
-            <Text style={styles.summaryValue}>{s.value}</Text>
+          <View key={s.label} style={[styles.panel, styles.summaryCard, panelStyle(ui)]}>
+            <PanelLabel ui={ui}>{s.label}</PanelLabel>
+            <FitText style={styles.summaryValue} size={ui.summaryValue}>
+              {s.value}
+            </FitText>
           </View>
         ))}
         <TouchableOpacity
-          style={[styles.panel, styles.summaryCard, styles.clearCard]}
+          style={[styles.panel, styles.summaryCard, styles.clearCard, panelStyle(ui)]}
           onPress={handleClearLog}
           disabled={trips.length === 0}
           activeOpacity={0.85}
           testID="meter-digital-clear-log"
         >
-          <Trash2 color={trips.length === 0 ? DASH.dim : DASH.danger} size={18} />
-          <Text
+          <Trash2 color={trips.length === 0 ? DASH.dim : DASH.danger} size={ui.iconSize} />
+          <FitText
             style={[
               styles.clearCardText,
               { color: trips.length === 0 ? DASH.dim : DASH.danger },
             ]}
+            size={ui.bodyText}
           >
             CLEAR LOG
-          </Text>
+          </FitText>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.tabScroll}
-        contentContainerStyle={styles.tabScrollContent}
+        contentContainerStyle={[styles.tabScrollContent, { gap: ui.gap }]}
         showsVerticalScrollIndicator={false}
       >
         {trips.length === 0 ? (
-          <Text style={styles.emptyText}>
+          <Text
+            style={[
+              styles.emptyText,
+              { fontSize: ui.rowText, lineHeight: Math.round(ui.rowText * 1.5) },
+            ]}
+            allowFontScaling={false}
+          >
             No hires logged on this device yet. Every trip you end on the meter is
             recorded here, with the fare it charged and the source it measured on.
           </Text>
         ) : (
           trips.map((trip) => (
-            <View key={trip.id} style={[styles.panel, styles.tripRow]}>
-              <View style={styles.tripWhen}>
-                <Text style={styles.tripDate}>{formatDashDate(trip.endedAt)}</Text>
-                <Text style={styles.tripTime}>
+            <View key={trip.id} style={[styles.panel, styles.tripRow, panelStyle(ui)]}>
+              <View style={[styles.tripWhen, { width: ui.tripWhenWidth }]}>
+                <FitText style={styles.tripDate} size={ui.rowText}>
+                  {formatDashDate(trip.endedAt)}
+                </FitText>
+                <FitText style={styles.tripTime} size={ui.captionText}>
                   {formatDashTime(trip.startedAt)} → {formatDashTime(trip.endedAt)}
-                </Text>
+                </FitText>
               </View>
               <View style={styles.tripFacts}>
-                <Text style={styles.tripFact}>
+                <FitText style={styles.tripFact} size={ui.rowText}>
                   {formatMeterDistance(trip.distanceM)} ·{" "}
                   {formatMeterClock(trip.elapsedMs)}
-                </Text>
-                <Text style={styles.tripMeta}>
+                </FitText>
+                <FitText style={styles.tripMeta} size={ui.captionText} lines={2}>
                   {trip.tariff === "new" ? "New rates" : "Old rates"} ·{" "}
                   {trip.period === "night" ? "Night" : "Day"} · {trip.obdSamples} OBD /{" "}
                   {trip.gpsSamples} GPS
                   {trip.extra > 0 ? ` · extras RM ${trip.extra.toFixed(2)}` : ""}
-                </Text>
+                </FitText>
               </View>
-              <Text style={styles.tripTotal}>RM {trip.total.toFixed(2)}</Text>
+              <FitText style={styles.tripTotal} size={ui.summaryValue}>
+                RM {trip.total.toFixed(2)}
+              </FitText>
               <TouchableOpacity
-                style={styles.tripPrint}
+                style={[
+                  styles.tripPrint,
+                  {
+                    width: ui.wideButtonHeight,
+                    height: ui.wideButtonHeight,
+                    borderRadius: Math.round(ui.radius * 0.7),
+                  },
+                ]}
                 onPress={() => void printReceipt(trip)}
                 activeOpacity={0.85}
                 testID={`meter-digital-print-${trip.id}`}
               >
-                <Printer color={DASH.accent} size={18} />
+                <Printer color={DASH.accent} size={ui.iconSize} />
               </TouchableOpacity>
             </View>
           ))
@@ -961,22 +1143,25 @@ export default function MeterDigitalScreen() {
 
   const receiptTarget = lastTrip ?? trips[0] ?? null;
   const printerTab = (
-    <View style={styles.tabBody}>
+    <View style={[styles.tabBody, { gap: ui.gap }]}>
       {runningStrip}
       <ScrollView
         style={styles.tabScroll}
-        contentContainerStyle={styles.tabScrollContent}
+        contentContainerStyle={[styles.tabScrollContent, { gap: ui.gap }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>PRINTER</Text>
-          <View style={styles.statusLineRow}>
-            <View style={[styles.runningDot, { backgroundColor: DASH.warn }]} />
-            <Text style={styles.statusLineText}>
+        <View style={[styles.panel, panelStyle(ui)]}>
+          <PanelLabel ui={ui}>PRINTER</PanelLabel>
+          <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
+            <View style={[dotStyle(ui), { backgroundColor: DASH.warn }]} />
+            <Text
+              style={[styles.statusLineText, { fontSize: ui.rowText }]}
+              allowFontScaling={false}
+            >
               No dedicated receipt printer is paired with this build
             </Text>
           </View>
-          <Text style={styles.bodyText}>
+          <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
             The meter has no thermal-printer driver of its own, so receipts go to
             the print service your device already has — AirPrint, Google Cloud
             Print, or a Bluetooth printer set up in the system settings. Anything
@@ -984,14 +1169,14 @@ export default function MeterDigitalScreen() {
           </Text>
         </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>LAST RECEIPT</Text>
+        <View style={[styles.panel, panelStyle(ui)]}>
+          <PanelLabel ui={ui}>LAST RECEIPT</PanelLabel>
           {receiptTarget ? (
             <>
-              <Text style={styles.receiptTotal}>
+              <FitText style={styles.receiptTotal} size={ui.receiptTotal}>
                 RM {receiptTarget.total.toFixed(2)}
-              </Text>
-              <Text style={styles.bodyText}>
+              </FitText>
+              <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
                 {formatDashDate(receiptTarget.endedAt)} ·{" "}
                 {formatDashTime(receiptTarget.startedAt)} →{" "}
                 {formatDashTime(receiptTarget.endedAt)} ·{" "}
@@ -1001,7 +1186,9 @@ export default function MeterDigitalScreen() {
               <TouchableOpacity
                 style={[
                   styles.wideButton,
+                  wideButtonStyle(ui),
                   styles.soloButton,
+                  { paddingHorizontal: ui.pad * 2 },
                   printing && styles.buttonDisabled,
                 ]}
                 disabled={printing}
@@ -1013,14 +1200,22 @@ export default function MeterDigitalScreen() {
                   <ActivityIndicator color={DASH.text} size="small" />
                 ) : (
                   <>
-                    <Receipt color={DASH.text} size={18} />
-                    <Text style={styles.wideButtonText}>PRINT RECEIPT</Text>
+                    <Receipt color={DASH.text} size={ui.iconSize} />
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      PRINT RECEIPT
+                    </FitText>
                   </>
                 )}
               </TouchableOpacity>
             </>
           ) : (
-            <Text style={styles.emptyText}>
+            <Text
+              style={[
+                styles.emptyText,
+                { fontSize: ui.rowText, lineHeight: Math.round(ui.rowText * 1.5) },
+              ]}
+              allowFontScaling={false}
+            >
               Nothing to print yet — end a trip and its receipt appears here.
             </Text>
           )}
@@ -1030,35 +1225,50 @@ export default function MeterDigitalScreen() {
   );
 
   const obdTab = (
-    <View style={styles.tabBody}>
+    <View style={[styles.tabBody, { gap: ui.gap }]}>
       {runningStrip}
       <ScrollView
         style={styles.tabScroll}
-        contentContainerStyle={styles.tabScrollContent}
+        contentContainerStyle={[styles.tabScrollContent, { gap: ui.gap }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>OBD-II READER</Text>
-          <View style={styles.statusLineRow}>
-            <View style={[styles.runningDot, { backgroundColor: readerColor }]} />
-            <Text style={styles.statusLineText}>{linkLine}</Text>
+        <View style={[styles.panel, panelStyle(ui)]}>
+          <PanelLabel ui={ui}>OBD-II READER</PanelLabel>
+          <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
+            <View style={[dotStyle(ui), { backgroundColor: readerColor }]} />
+            <Text
+              style={[styles.statusLineText, { fontSize: ui.rowText }]}
+              allowFontScaling={false}
+            >
+              {linkLine}
+            </Text>
           </View>
-          <Text style={styles.bodyText}>
+          <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
             The meter bills on the vehicle&apos;s OBD-II speed when the reader is
             linked, and switches to GPS the moment it isn&apos;t. Demo Mode never
             bills a fare — simulated telemetry is not a vehicle. This trip so far:{" "}
             {meter.obdSamples} OBD / {meter.gpsSamples} GPS samples.
           </Text>
           {canbusState.device ? (
-            <Text style={styles.bodyMuted}>
+            <Text
+              style={[
+                styles.bodyMuted,
+                { fontSize: ui.captionText, lineHeight: Math.round(ui.captionText * 1.45) },
+              ]}
+              allowFontScaling={false}
+            >
               {TRANSPORT_LABEL[canbusState.device.transport]} ·{" "}
               {canbusState.device.name}
               {canbusState.protocol ? ` · ${canbusState.protocol}` : ""}
             </Text>
           ) : null}
-          <View style={styles.actionRow}>
+          <View style={[styles.actionRow, { gap: ui.gap }]}>
             <TouchableOpacity
-              style={[styles.wideButton, canbus.connecting && styles.buttonDisabled]}
+              style={[
+                styles.wideButton,
+                wideButtonStyle(ui),
+                canbus.connecting && styles.buttonDisabled,
+              ]}
               disabled={canbus.connecting}
               onPress={() => {
                 if (online) void canbus.disconnect();
@@ -1070,28 +1280,30 @@ export default function MeterDigitalScreen() {
               {canbus.connecting ? (
                 <ActivityIndicator color={DASH.text} size="small" />
               ) : (
-                <Text style={styles.wideButtonText}>
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
                   {online ? "DISCONNECT READER" : "CONNECT READER"}
-                </Text>
+                </FitText>
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.wideButton, styles.ghostButton]}
+              style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
               onPress={() => router.push("/obd2-reader" as never)}
               activeOpacity={0.85}
               testID="meter-digital-reader-settings"
             >
-              <Text style={styles.wideButtonText}>READER SETTINGS</Text>
+              <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                READER SETTINGS
+              </FitText>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>SATELLITES</Text>
-          <View style={styles.statusLineRow}>
+        <View style={[styles.panel, panelStyle(ui)]}>
+          <PanelLabel ui={ui}>SATELLITES</PanelLabel>
+          <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
             <View
               style={[
-                styles.runningDot,
+                dotStyle(ui),
                 {
                   backgroundColor: gpsDenied
                     ? DASH.danger
@@ -1101,7 +1313,10 @@ export default function MeterDigitalScreen() {
                 },
               ]}
             />
-            <Text style={styles.statusLineText}>
+            <Text
+              style={[styles.statusLineText, { fontSize: ui.rowText }]}
+              allowFontScaling={false}
+            >
               {gpsDenied
                 ? "Location permission is off"
                 : hasFix
@@ -1109,7 +1324,7 @@ export default function MeterDigitalScreen() {
                   : "Waiting for a GPS fix"}
             </Text>
           </View>
-          <Text style={styles.bodyText}>
+          <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
             {gpsDenied
               ? "Without the reader and without location, the meter cannot measure distance at all. Grant location access in your device settings."
               : `GPS is the meter's fallback. Speeds at or below ${WAITING_SPEED_KMH} km/h count as waiting time rather than travel.`}
@@ -1120,16 +1335,16 @@ export default function MeterDigitalScreen() {
   );
 
   const settingsTab = (
-    <View style={styles.tabBody}>
+    <View style={[styles.tabBody, { gap: ui.gap }]}>
       {runningStrip}
       <ScrollView
         style={styles.tabScroll}
-        contentContainerStyle={styles.tabScrollContent}
+        contentContainerStyle={[styles.tabScrollContent, { gap: ui.gap }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>TARIFF</Text>
-          <View style={styles.tariffRow}>
+        <View style={[styles.panel, panelStyle(ui)]}>
+          <PanelLabel ui={ui}>TARIFF</PanelLabel>
+          <View style={[styles.tariffRow, { gap: ui.gap }]}>
             {(
               [
                 {
@@ -1148,78 +1363,107 @@ export default function MeterDigitalScreen() {
               return (
                 <TouchableOpacity
                   key={opt.key}
-                  style={[styles.tariffChip, active && styles.tariffChipActive]}
+                  style={[
+                    styles.tariffChip,
+                    chipStyle(ui),
+                    active && styles.tariffChipActive,
+                  ]}
                   onPress={() => setTariff(opt.key)}
                   activeOpacity={0.85}
                   testID={`meter-digital-tariff-${opt.key}`}
                 >
-                  <Text
+                  <FitText
                     style={[
                       styles.tariffChipTitle,
                       { color: active ? DASH.accent : DASH.text },
                     ]}
+                    size={ui.rowText}
                   >
                     {opt.title}
+                  </FitText>
+                  <Text
+                    style={[
+                      styles.tariffChipHint,
+                      {
+                        fontSize: ui.captionText,
+                        lineHeight: Math.round(ui.captionText * 1.35),
+                      },
+                    ]}
+                    allowFontScaling={false}
+                  >
+                    {opt.hint}
                   </Text>
-                  <Text style={styles.tariffChipHint}>{opt.hint}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-          <Text style={styles.bodyMuted}>
+          <Text
+            style={[
+              styles.bodyMuted,
+              { fontSize: ui.captionText, lineHeight: Math.round(ui.captionText * 1.45) },
+            ]}
+            allowFontScaling={false}
+          >
             Changing the tariff re-prices the running meter from its own totals —
             distance and time are not re-measured.
           </Text>
         </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>SHIFT</Text>
-          <Text style={styles.bodyText}>
+        <View style={[styles.panel, panelStyle(ui)]}>
+          <PanelLabel ui={ui}>SHIFT</PanelLabel>
+          <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
             The night shift adds {Math.round((NIGHT_MULTIPLIER - 1) * 100)}% to the
             whole fare and runs from{" "}
             {NIGHT_START_HOUR.toString().padStart(2, "0")}:00 to{" "}
             {NIGHT_END_HOUR.toString().padStart(2, "0")}:00. The meter picks the
             shift from the clock when it opens; the DAY / NIGHT keys override it.
           </Text>
-          <View style={styles.tariffRow}>
+          <View style={[styles.tariffRow, { gap: ui.gap }]}>
             {(["day", "night"] as const).map((key) => {
               const active = period === key;
               return (
                 <TouchableOpacity
                   key={key}
-                  style={[styles.tariffChip, active && styles.tariffChipActive]}
+                  style={[
+                    styles.tariffChip,
+                    chipStyle(ui),
+                    active && styles.tariffChipActive,
+                  ]}
                   onPress={() => setPeriod(key)}
                   activeOpacity={0.85}
                   testID={`meter-digital-shift-${key}`}
                 >
-                  <Text
+                  <FitText
                     style={[
                       styles.tariffChipTitle,
                       { color: active ? DASH.accent : DASH.text },
                     ]}
+                    size={ui.rowText}
                   >
                     {key === "day" ? "DAY" : "NIGHT"}
-                  </Text>
-                  <Text style={styles.tariffChipHint}>
+                  </FitText>
+                  <FitText style={styles.tariffChipHint} size={ui.captionText}>
                     {key === "day" ? "No surcharge" : `× ${NIGHT_MULTIPLIER.toFixed(1)}`}
-                  </Text>
+                  </FitText>
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.panelLabel}>METER</Text>
-          <Text style={styles.bodyText}>
+        <View style={[styles.panel, panelStyle(ui)]}>
+          <PanelLabel ui={ui}>METER</PanelLabel>
+          <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
             Clearing the meter zeroes the fare, the clock, the distance and the
             extras. It does not touch the trip log.
           </Text>
           <TouchableOpacity
             style={[
               styles.wideButton,
+              wideButtonStyle(ui),
               styles.ghostButton,
               styles.soloButton,
+              { paddingHorizontal: ui.pad * 2 },
               !started && styles.buttonDisabled,
             ]}
             disabled={!started}
@@ -1227,7 +1471,9 @@ export default function MeterDigitalScreen() {
             activeOpacity={0.85}
             testID="meter-digital-reset"
           >
-            <Text style={styles.wideButtonText}>CLEAR METER</Text>
+            <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+              CLEAR METER
+            </FitText>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -1252,22 +1498,45 @@ export default function MeterDigitalScreen() {
       <StatusBar barStyle="light-content" hidden />
 
       <SafeAreaView edges={["top", "left", "right"]} style={styles.headerSafe}>
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              gap: ui.gap,
+              paddingHorizontal: ui.pad,
+              paddingVertical: Math.round(ui.pad * 0.6),
+            },
+          ]}
+        >
           <TouchableOpacity
-            style={styles.backButton}
+            style={[
+              styles.backButton,
+              {
+                width: ui.headerButton,
+                height: ui.headerButton,
+                borderRadius: Math.round(ui.radius * 0.7),
+              },
+            ]}
             onPress={() => router.back()}
             testID="meter-digital-back"
           >
-            <ArrowLeft color={DASH.muted} size={20} />
+            <ArrowLeft color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
           </TouchableOpacity>
           <Image
             source={appIconUri ? { uri: appIconUri } : require("@/assets/images/icon.png")}
-            style={styles.brandLogo}
+            style={[
+              styles.brandLogo,
+              {
+                width: Math.round(ui.headerButton * 0.82),
+                height: Math.round(ui.headerButton * 0.82),
+                borderRadius: Math.round(ui.radius * 0.5),
+              },
+            ]}
             resizeMode="contain"
           />
-          <Text style={styles.brandTitle} numberOfLines={1}>
+          <FitText style={styles.brandTitle} size={ui.headerTitle}>
             GET TAXI METER
-          </Text>
+          </FitText>
           <View style={styles.headerSpacer} />
           {statusCluster}
         </View>
@@ -1276,7 +1545,12 @@ export default function MeterDigitalScreen() {
       <View
         style={[
           styles.bodyWrap,
-          { paddingLeft: insets.left + 14, paddingRight: insets.right + 14 },
+          {
+            paddingLeft: insets.left + ui.bodyPad,
+            paddingRight: insets.right + ui.bodyPad,
+            paddingTop: Math.round(ui.pad * 0.8),
+            paddingBottom: Math.round(ui.pad * 0.5),
+          },
         ]}
       >
         {body}
@@ -1288,19 +1562,39 @@ export default function MeterDigitalScreen() {
           return (
             <TouchableOpacity
               key={item.id}
-              style={styles.tabItem}
+              style={[
+                styles.tabItem,
+                {
+                  gap: Math.round(ui.gap * 0.5),
+                  paddingTop: Math.round(ui.pad * 0.75),
+                  paddingBottom: Math.round(ui.pad * 0.9),
+                  paddingHorizontal: Math.round(ui.pad * 0.35),
+                },
+              ]}
               onPress={() => setTab(item.id)}
               activeOpacity={0.8}
               testID={`meter-digital-tab-${item.id}`}
             >
-              <item.icon color={active ? DASH.accent : DASH.muted} size={24} />
-              <Text
+              <item.icon color={active ? DASH.accent : DASH.muted} size={ui.tabIcon} />
+              {/* Two of the five labels are two-liners, and five of them share
+                  the width of the glass — so they shrink to their share
+                  rather than being cut off mid-word. */}
+              <FitText
                 style={[styles.tabLabel, { color: active ? DASH.accent : DASH.muted }]}
+                size={ui.tabLabel}
+                lines={2}
+                minimumScale={0.55}
               >
                 {item.label}
-              </Text>
+              </FitText>
               {item.id === "obd" ? (
-                <View style={[styles.tabDot, { backgroundColor: readerColor }]} />
+                <View
+                  style={[
+                    styles.tabDot,
+                    dotStyle(ui),
+                    { top: Math.round(ui.pad * 0.65), backgroundColor: readerColor },
+                  ]}
+                />
               ) : null}
               {active ? <View style={styles.tabUnderline} /> : null}
             </TouchableOpacity>
@@ -1315,28 +1609,56 @@ export default function MeterDigitalScreen() {
         animationType="fade"
         onRequestClose={() => setTotalOpen(false)}
       >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard} testID="meter-digital-total-modal">
+        <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                padding: ui.pad * 1.4,
+                gap: ui.gap,
+                borderRadius: Math.round(ui.radius * 1.3),
+                // The card is a share of the glass, never a fixed width: it has
+                // to sit inside a landscape phone as well as a dash tablet.
+                maxWidth: Math.min(520, winWidth * 0.8),
+                maxHeight: winHeight - ui.pad * 3,
+              },
+            ]}
+            testID="meter-digital-total-modal"
+          >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>FARE DUE</Text>
+              <FitText style={styles.modalTitle} size={ui.rowText}>
+                FARE DUE
+              </FitText>
               <TouchableOpacity
                 onPress={() => setTotalOpen(false)}
-                style={styles.modalClose}
+                style={[styles.modalClose, { width: ui.headerButton, height: ui.headerButton }]}
                 testID="meter-digital-total-close"
               >
-                <X color={DASH.muted} size={20} />
+                <X color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
               </TouchableOpacity>
             </View>
-            <View style={styles.modalAmount}>
-              <Text style={styles.currency}>RM</Text>
+            <View style={[styles.modalAmount, { gap: Math.round(ui.gap * 0.9) }]}>
+              <Text
+                style={[styles.currency, { fontSize: ui.currencySize }]}
+                allowFontScaling={false}
+              >
+                RM
+              </Text>
               <SegmentDisplay
                 value={(lastTrip?.total ?? grandTotal).toFixed(2)}
-                size={62}
+                size={modalAmountSize}
                 color={DASH.segment}
               />
             </View>
             {lastTrip ? (
-              <View style={styles.modalRows}>
+              // Scrolls only where it has to: a short landscape phone has less
+              // height for the breakdown than the breakdown wants.
+              <ScrollView
+                style={styles.modalRowsScroll}
+                contentContainerStyle={[styles.modalRows, { gap: Math.round(ui.gap * 0.5) }]}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+              >
                 {[
                   { label: "Distance", value: formatMeterDistance(lastTrip.distanceM) },
                   { label: "Trip time", value: formatMeterClock(lastTrip.elapsedMs) },
@@ -1353,16 +1675,31 @@ export default function MeterDigitalScreen() {
                         : `GPS (${lastTrip.gpsSamples} / ${lastTrip.obdSamples} OBD)`,
                   },
                 ].map((row) => (
-                  <View key={row.label} style={styles.modalRow}>
-                    <Text style={styles.modalRowLabel}>{row.label}</Text>
-                    <Text style={styles.modalRowValue}>{row.value}</Text>
+                  <View key={row.label} style={[styles.modalRow, { gap: ui.gap }]}>
+                    <Text
+                      style={[styles.modalRowLabel, { fontSize: ui.bodyText }]}
+                      allowFontScaling={false}
+                    >
+                      {row.label}
+                    </Text>
+                    <Text
+                      style={[styles.modalRowValue, { fontSize: ui.bodyText }]}
+                      allowFontScaling={false}
+                    >
+                      {row.value}
+                    </Text>
                   </View>
                 ))}
-              </View>
+              </ScrollView>
             ) : null}
-            <View style={styles.modalActions}>
+            <View style={[styles.modalActions, { gap: ui.gap }]}>
               <TouchableOpacity
-                style={[styles.wideButton, styles.ghostButton, printing && styles.buttonDisabled]}
+                style={[
+                  styles.wideButton,
+                  wideButtonStyle(ui),
+                  styles.ghostButton,
+                  printing && styles.buttonDisabled,
+                ]}
                 disabled={printing}
                 onPress={() => void printReceipt(lastTrip)}
                 activeOpacity={0.85}
@@ -1372,13 +1709,19 @@ export default function MeterDigitalScreen() {
                   <ActivityIndicator color={DASH.text} size="small" />
                 ) : (
                   <>
-                    <Printer color={DASH.text} size={18} />
-                    <Text style={styles.wideButtonText}>PRINT RECEIPT</Text>
+                    <Printer color={DASH.text} size={ui.iconSize} />
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      PRINT RECEIPT
+                    </FitText>
                   </>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.wideButton, { backgroundColor: DASH.accent }]}
+                style={[
+                  styles.wideButton,
+                  wideButtonStyle(ui),
+                  { backgroundColor: DASH.accent },
+                ]}
                 onPress={() => {
                   setTotalOpen(false);
                   handleNewTrip();
@@ -1386,7 +1729,9 @@ export default function MeterDigitalScreen() {
                 activeOpacity={0.85}
                 testID="meter-digital-total-new"
               >
-                <Text style={styles.wideButtonText}>NEW TRIP</Text>
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                  NEW TRIP
+                </FitText>
               </TouchableOpacity>
             </View>
           </View>
@@ -1404,6 +1749,52 @@ export default function MeterDigitalScreen() {
   );
 }
 
+/** A panel's own box: padding, inner spacing and corner, all to the viewport. */
+function panelStyle(ui: MeterMetrics): {
+  padding: number;
+  gap: number;
+  borderRadius: number;
+} {
+  return { padding: ui.pad, gap: ui.gap, borderRadius: ui.radius };
+}
+
+/** Running text, with the leading a paragraph needs at whatever size it is. */
+function bodyTextStyle(ui: MeterMetrics): { fontSize: number; lineHeight: number } {
+  return { fontSize: ui.bodyText, lineHeight: Math.round(ui.bodyText * 1.5) };
+}
+
+/** A full-width action button's box. */
+function wideButtonStyle(ui: MeterMetrics): {
+  height: number;
+  gap: number;
+  borderRadius: number;
+} {
+  return {
+    height: ui.wideButtonHeight,
+    gap: Math.round(ui.gap * 0.8),
+    borderRadius: Math.round(ui.radius * 0.8),
+  };
+}
+
+/** A selectable chip (tariff, shift) — the same box at any viewport. */
+function chipStyle(ui: MeterMetrics): {
+  padding: number;
+  gap: number;
+  borderRadius: number;
+} {
+  return {
+    padding: Math.round(ui.pad * 0.85),
+    gap: Math.round(ui.gap * 0.45),
+    borderRadius: Math.round(ui.radius * 0.8),
+  };
+}
+
+/** The status dot beside a one-line status, sized with the type it sits by. */
+function dotStyle(ui: MeterMetrics): { width: number; height: number; borderRadius: number } {
+  const size = Math.max(6, Math.round(ui.bodyText * 0.75));
+  return { width: size, height: size, borderRadius: size / 2 };
+}
+
 /** Narrow the telemetry reading to a finite, non-negative km/h value. */
 function canbusSpeedOf(speed: number | undefined): number | null {
   return typeof speed === "number" && Number.isFinite(speed) && speed >= 0
@@ -1411,134 +1802,107 @@ function canbusSpeedOf(speed: number | undefined): number | null {
     : null;
 }
 
+/**
+ * Layout and colour only.
+ *
+ * Every size a driver can see — padding, corner, icon, point size — comes from
+ * `computeMeterMetrics` at render time and is applied inline, so nothing here
+ * carries a number that would pin the console to one viewport. What is left is
+ * how the boxes stack and what colour they are.
+ */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: DASH.bg },
 
   /* Header */
   headerSafe: { backgroundColor: DASH.bgDeep },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
+  header: { flexDirection: "row", alignItems: "center" },
   backButton: {
-    width: 34,
-    height: 34,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 10,
     backgroundColor: "rgba(255,255,255,0.06)",
   },
-  brandLogo: { width: 28, height: 28, borderRadius: 7 },
+  brandLogo: { flexShrink: 0 },
   brandTitle: {
     flexShrink: 1,
     color: DASH.text,
-    fontSize: 17,
     fontWeight: "800" as const,
     letterSpacing: 1,
   },
   headerSpacer: { flex: 1, minWidth: 8 },
-  statusCluster: { flexDirection: "row", alignItems: "center", gap: 10 },
+  statusCluster: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
   signalWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
-  signalLabel: { color: DASH.muted, fontSize: 10, fontWeight: "800" as const },
-  headerDate: {
-    color: DASH.text,
-    fontSize: 13,
-    fontWeight: "700" as const,
-    letterSpacing: 0.5,
-  },
-  headerTime: {
-    color: DASH.text,
-    fontSize: 13,
-    fontWeight: "700" as const,
-    letterSpacing: 0.5,
-  },
+  signalLabel: { color: DASH.muted, fontWeight: "800" as const },
+  headerDate: { color: DASH.text, fontWeight: "700" as const, letterSpacing: 0.5 },
+  headerTime: { color: DASH.text, fontWeight: "700" as const, letterSpacing: 0.5 },
 
   /* Body */
-  bodyWrap: { flex: 1, paddingTop: 10, paddingBottom: 6 },
-  grid: { flex: 1, flexDirection: "row", gap: 12 },
+  bodyWrap: { flex: 1 },
+  grid: { flex: 1, flexDirection: "row" },
   gridStacked: { flexDirection: "column" },
-  colLeft: { flex: 1, gap: 10 },
-  colRight: { flex: 1.85, gap: 10 },
-  pairRow: { flexDirection: "row", gap: 10, flex: 1 },
+  colLeft: { flex: 1 },
+  colRight: { flex: 1.85 },
+  pairRow: { flexDirection: "row", flex: 1 },
 
   panel: {
     backgroundColor: DASH.panel,
-    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: DASH.panelEdge,
-    padding: 12,
-    gap: 8,
+    // Overflow is the safety net behind the fitting maths: whatever the
+    // viewport, a readout is clipped by its own panel rather than drawn over
+    // the one beside it.
+    overflow: "hidden",
   },
-  panelLabel: {
-    color: DASH.text,
-    fontSize: 12,
-    fontWeight: "800" as const,
-    letterSpacing: 1,
-  },
+  panelLabel: { color: DASH.text, fontWeight: "800" as const, letterSpacing: 1 },
 
   /* Driver */
   driverPanel: { flex: 1.25 },
-  driverRow: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  driverRow: { flexDirection: "row", alignItems: "center", flex: 1 },
   avatar: {
     borderRadius: 999,
+    flexShrink: 0,
     backgroundColor: "rgba(255,255,255,0.07)",
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
   avatarImage: { width: "100%", height: "100%" },
-  driverInfo: { flex: 1, gap: 6 },
-  driverName: {
-    color: DASH.text,
-    fontSize: 21,
-    fontWeight: "900" as const,
-    letterSpacing: 0.4,
-  },
+  driverInfo: { flex: 1, minWidth: 0 },
+  driverName: { color: DASH.text, fontWeight: "900" as const, letterSpacing: 0.4 },
   plateChip: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    gap: 8,
+    maxWidth: "100%",
     backgroundColor: DASH.plate,
     borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
   },
-  plateChipLabel: { color: "#5A4A00", fontSize: 11, fontWeight: "800" as const },
+  plateChipLabel: { color: "#5A4A00", fontWeight: "800" as const, flexShrink: 0 },
   plateChipValue: {
     color: "#1A1A1A",
-    fontSize: 15,
     fontWeight: "900" as const,
     letterSpacing: 0.5,
+    flexShrink: 1,
   },
-  licenseRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  licenseLabel: { color: DASH.muted, fontSize: 11, fontWeight: "700" as const },
-  licenseValue: { color: DASH.muted, fontSize: 13, fontWeight: "700" as const },
+  licenseRow: { flexDirection: "row", alignItems: "center" },
+  licenseLabel: { color: DASH.muted, fontWeight: "700" as const, flexShrink: 0 },
+  licenseValue: { color: DASH.muted, fontWeight: "700" as const, flexShrink: 1 },
 
   /* Trip control */
-  controlRow: { flexDirection: "row", gap: 10 },
+  controlRow: { flexDirection: "row" },
   primaryButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    height: 62,
-    borderRadius: 14,
+    overflow: "hidden",
   },
   primaryButtonText: {
     color: "#fff",
-    fontSize: 21,
     fontWeight: "900" as const,
     letterSpacing: 1,
+    flexShrink: 1,
   },
   pauseButton: {
-    width: 62,
-    height: 62,
-    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: DASH.panel,
@@ -1550,165 +1914,120 @@ const styles = StyleSheet.create({
   statPanel: { flex: 1 },
   statValueRow: { flex: 1, justifyContent: "center" },
   // The unit rides the digits' baseline, as it does on a physical meter.
-  statValueInner: { flexDirection: "row", alignItems: "flex-end", gap: 6 },
-  statUnit: {
-    color: DASH.muted,
-    fontSize: 13,
-    fontWeight: "700" as const,
-    marginBottom: 4,
-  },
+  statValueInner: { flexDirection: "row", alignItems: "flex-end" },
+  statUnit: { color: DASH.muted, fontWeight: "700" as const },
 
   /* Fare / extras */
   farePanel: { flex: 1 },
-  moneyRow: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
-  currency: { color: DASH.segment, fontSize: 20, fontWeight: "900" as const },
-  keyRow: { flexDirection: "row", gap: 10 },
+  moneyRow: { flex: 1, flexDirection: "row", alignItems: "center" },
+  currency: { color: DASH.segment, fontWeight: "900" as const },
+  keyRow: { flexDirection: "row" },
   key: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    height: 40,
-    borderRadius: 9,
     borderWidth: 1,
     borderColor: DASH.accent,
+    overflow: "hidden",
   },
   keyActive: { backgroundColor: DASH.accent },
   keyDisabled: { opacity: 0.4 },
   keyText: {
     color: DASH.accent,
-    fontSize: 13,
     fontWeight: "800" as const,
     letterSpacing: 1,
+    flexShrink: 1,
   },
   keyTextActive: { color: DASH.bgDeep },
-  fareTotalLine: {
-    color: DASH.muted,
-    fontSize: 10,
-    fontWeight: "700" as const,
-    letterSpacing: 0.4,
-  },
+  fareTotalLine: { color: DASH.muted, fontWeight: "700" as const, letterSpacing: 0.4 },
 
   /* Trip status */
   statusPanel: { flex: 0.7 },
-  statusCenter: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
-  statusHeadline: { flexDirection: "row", alignItems: "center", gap: 12 },
-  statusText: {
-    color: DASH.text,
-    fontSize: 26,
-    fontWeight: "800" as const,
-    letterSpacing: 1,
-  },
+  statusCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
+  statusHeadline: { flexDirection: "row", alignItems: "center", maxWidth: "100%" },
+  statusText: { color: DASH.text, fontWeight: "800" as const, letterSpacing: 1 },
+  statusFlex: { flexShrink: 1 },
   statusDivider: {
     height: StyleSheet.hairlineWidth,
     alignSelf: "stretch",
-    marginHorizontal: 24,
     backgroundColor: DASH.panelEdge,
   },
-  statusSub: { color: DASH.muted, fontSize: 14, fontWeight: "600" as const },
+  statusSub: { color: DASH.muted, fontWeight: "600" as const, textAlign: "center" },
 
   /* Secondary tabs */
   // Capped: a 10-inch dash screen would otherwise run these paragraphs the
   // whole width of the glass, which is a line length nobody reads at a glance.
-  tabBody: { flex: 1, gap: 10, width: "100%", maxWidth: 1180, alignSelf: "center" },
+  tabBody: { flex: 1, width: "100%", maxWidth: 1180, alignSelf: "center" },
   tabScroll: { flex: 1 },
-  tabScrollContent: { gap: 10, paddingBottom: 8 },
+  tabScrollContent: { paddingBottom: 8 },
   runningStrip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
     backgroundColor: DASH.panel,
-    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: DASH.panelEdge,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
   },
-  runningDot: { width: 9, height: 9, borderRadius: 5 },
-  runningText: {
-    flex: 1,
-    color: DASH.text,
-    fontSize: 12,
-    fontWeight: "700" as const,
-    letterSpacing: 0.4,
-  },
-  stripButton: {
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: DASH.accent,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  stripButtonText: { color: DASH.accent, fontSize: 11, fontWeight: "800" as const },
+  runningText: { flex: 1, color: DASH.text, fontWeight: "700" as const, letterSpacing: 0.4 },
+  stripButton: { borderWidth: 1, borderColor: DASH.accent, flexShrink: 0 },
+  stripButtonText: { color: DASH.accent, fontWeight: "800" as const },
 
-  summaryRow: { flexDirection: "row", gap: 10 },
+  summaryRow: { flexDirection: "row" },
   summaryCard: { flex: 1 },
-  summaryValue: { color: DASH.segment, fontSize: 22, fontWeight: "900" as const },
-  clearCard: { alignItems: "center", justifyContent: "center", gap: 6 },
-  clearCardText: { fontSize: 12, fontWeight: "800" as const, letterSpacing: 0.6 },
+  summaryValue: { color: DASH.segment, fontWeight: "900" as const },
+  clearCard: { alignItems: "center", justifyContent: "center" },
+  clearCardText: { fontWeight: "800" as const, letterSpacing: 0.6 },
 
-  tripRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  tripWhen: { width: 180, gap: 2 },
-  tripDate: { color: DASH.text, fontSize: 13, fontWeight: "800" as const },
-  tripTime: { color: DASH.muted, fontSize: 11, fontWeight: "600" as const },
-  tripFacts: { flex: 1, gap: 2 },
-  tripFact: { color: DASH.text, fontSize: 13, fontWeight: "700" as const },
-  tripMeta: { color: DASH.muted, fontSize: 11, fontWeight: "600" as const },
-  tripTotal: { color: DASH.segment, fontSize: 19, fontWeight: "900" as const },
+  tripRow: { flexDirection: "row", alignItems: "center" },
+  tripWhen: { gap: 2, flexShrink: 0 },
+  tripDate: { color: DASH.text, fontWeight: "800" as const },
+  tripTime: { color: DASH.muted, fontWeight: "600" as const },
+  tripFacts: { flex: 1, gap: 2, minWidth: 0 },
+  tripFact: { color: DASH.text, fontWeight: "700" as const },
+  tripMeta: { color: DASH.muted, fontWeight: "600" as const },
+  tripTotal: { color: DASH.segment, fontWeight: "900" as const, flexShrink: 0 },
   tripPrint: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: DASH.panelEdge,
+    flexShrink: 0,
   },
 
-  statusLineRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  statusLineText: { flex: 1, color: DASH.text, fontSize: 13, fontWeight: "700" as const },
-  bodyText: { color: DASH.muted, fontSize: 12, lineHeight: 18 },
-  bodyMuted: { color: DASH.dim, fontSize: 11, lineHeight: 16 },
-  emptyText: { color: DASH.muted, fontSize: 13, lineHeight: 20 },
-  receiptTotal: { color: DASH.segment, fontSize: 30, fontWeight: "900" as const },
+  statusLineRow: { flexDirection: "row", alignItems: "center" },
+  statusLineText: { flex: 1, color: DASH.text, fontWeight: "700" as const },
+  bodyText: { color: DASH.muted },
+  bodyMuted: { color: DASH.dim },
+  emptyText: { color: DASH.muted, lineHeight: 20 },
+  receiptTotal: { color: DASH.segment, fontWeight: "900" as const },
 
-  actionRow: { flexDirection: "row", gap: 10, marginTop: 2 },
+  actionRow: { flexDirection: "row", marginTop: 2 },
   wideButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    height: 44,
-    borderRadius: 11,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
     borderColor: DASH.panelEdge,
+    overflow: "hidden",
   },
   ghostButton: { backgroundColor: "transparent" },
   /** A button that stands alone in a panel, rather than sharing an action row. */
-  soloButton: { flex: 0, alignSelf: "flex-start", paddingHorizontal: 24 },
+  soloButton: { flex: 0, alignSelf: "flex-start" },
   wideButtonText: {
     color: DASH.text,
-    fontSize: 13,
     fontWeight: "800" as const,
     letterSpacing: 0.8,
+    flexShrink: 1,
   },
   buttonDisabled: { opacity: 0.45 },
 
-  tariffRow: { flexDirection: "row", gap: 10 },
-  tariffChip: {
-    flex: 1,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: DASH.panelEdge,
-    padding: 10,
-    gap: 4,
-  },
+  tariffRow: { flexDirection: "row" },
+  tariffChip: { flex: 1, borderWidth: 1.5, borderColor: DASH.panelEdge },
   tariffChipActive: { borderColor: DASH.accent, backgroundColor: "rgba(59,169,232,0.12)" },
-  tariffChipTitle: { fontSize: 13, fontWeight: "800" as const, letterSpacing: 0.6 },
-  tariffChipHint: { color: DASH.muted, fontSize: 11, lineHeight: 15 },
+  tariffChipTitle: { fontWeight: "800" as const, letterSpacing: 0.6 },
+  tariffChipHint: { color: DASH.muted },
 
   /* Tab bar */
   tabBar: {
@@ -1717,29 +2036,9 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: DASH.panelEdge,
   },
-  tabItem: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    paddingTop: 9,
-    paddingBottom: 11,
-    paddingHorizontal: 4,
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: "800" as const,
-    letterSpacing: 0.5,
-    textAlign: "center",
-  },
-  tabDot: {
-    position: "absolute",
-    top: 8,
-    right: "32%",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
+  tabItem: { flex: 1, alignItems: "center", justifyContent: "center" },
+  tabLabel: { fontWeight: "800" as const, letterSpacing: 0.5, textAlign: "center" },
+  tabDot: { position: "absolute", right: "32%" },
   tabUnderline: {
     position: "absolute",
     left: "18%",
@@ -1756,31 +2055,21 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(3,10,20,0.82)",
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
   },
   modalCard: {
     width: "100%",
-    maxWidth: 520,
     backgroundColor: DASH.panel,
-    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: DASH.panelEdge,
-    padding: 18,
-    gap: 12,
   },
   modalHeader: { flexDirection: "row", alignItems: "center" },
-  modalTitle: {
-    flex: 1,
-    color: DASH.text,
-    fontSize: 14,
-    fontWeight: "800" as const,
-    letterSpacing: 1.2,
-  },
-  modalClose: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  modalAmount: { flexDirection: "row", alignItems: "flex-end", gap: 10 },
-  modalRows: { gap: 5 },
-  modalRow: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  modalRowLabel: { color: DASH.muted, fontSize: 12, fontWeight: "600" as const },
-  modalRowValue: { color: DASH.text, fontSize: 12, fontWeight: "700" as const },
-  modalActions: { flexDirection: "row", gap: 10, marginTop: 2 },
+  modalTitle: { flex: 1, color: DASH.text, fontWeight: "800" as const, letterSpacing: 1.2 },
+  modalClose: { alignItems: "center", justifyContent: "center" },
+  modalAmount: { flexDirection: "row", alignItems: "flex-end" },
+  modalRowsScroll: { flexShrink: 1 },
+  modalRows: {},
+  modalRow: { flexDirection: "row", justifyContent: "space-between" },
+  modalRowLabel: { color: DASH.muted, fontWeight: "600" as const },
+  modalRowValue: { color: DASH.text, fontWeight: "700" as const },
+  modalActions: { flexDirection: "row", marginTop: 2 },
 });
