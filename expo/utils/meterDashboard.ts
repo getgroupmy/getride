@@ -189,6 +189,36 @@ export function evaluateMeterStart(inputs: MeterStartGateInputs): MeterStartGate
 }
 
 /**
+ * What a back press means on the meter.
+ *
+ * - `panel` — the driver is on one of the other four tabs. Those are panels of
+ *   the same instrument, not screens, so back returns to the meter.
+ * - `blocked` — a fare is accruing. Leaving would abandon it, so the key is
+ *   inert (and the Android hardware back is swallowed rather than popping the
+ *   screen out from under a running hire).
+ * - `prompt` — the meter is idle: ask where the driver is going, since leaving
+ *   the console means changing mode rather than stepping back one screen.
+ */
+export type MeterBackAction = "panel" | "blocked" | "prompt";
+
+export interface MeterBackInputs {
+  /** Is the driver on the meter itself, rather than one of the other panels? */
+  onMeterPanel: boolean;
+  /** Is the meter accruing a fare right now? */
+  running: boolean;
+}
+
+/**
+ * Resolve a back press. Panel-first: a running meter still lets the driver back
+ * out of the trip log or the reader settings onto the meter — what it refuses
+ * is leaving the console with a fare in progress.
+ */
+export function resolveMeterBack(inputs: MeterBackInputs): MeterBackAction {
+  if (!inputs.onMeterPanel) return "panel";
+  return inputs.running ? "blocked" : "prompt";
+}
+
+/**
  * One end of a hire — where it began or where it finished.
  *
  * These are the facts that belong to a moment (the passenger getting in, the
