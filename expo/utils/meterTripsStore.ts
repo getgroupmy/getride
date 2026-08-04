@@ -29,6 +29,7 @@ import {
   periodMultiplier,
   type MeterFare,
   type MeterPeriod,
+  type MeterRates,
   type MeterState,
   type MeterTariff,
 } from "@/utils/taxiMeter";
@@ -73,6 +74,13 @@ export interface BuildMeterTripInput {
   endedAt: number;
   tariff: MeterTariff;
   period: MeterPeriod;
+  /**
+   * The rate card the hire was billed on. Omitted on a hire metered by the
+   * built-in tariff, where `tariff` alone says everything.
+   */
+  rates?: MeterRates;
+  /** The card's night surcharge, when it is not the built-in one. */
+  nightMultiplier?: number;
   extra: number;
   plate?: string | null;
   driver?: string | null;
@@ -254,7 +262,8 @@ export async function recordMeterTrip(
 ): Promise<{ trip: MeterTrip; trips: MeterTrip[] }> {
   const fare = computeMeterFare(state, {
     tariff: input.tariff,
-    multiplier: periodMultiplier(input.period),
+    rates: input.rates,
+    multiplier: periodMultiplier(input.period, input.nightMultiplier),
   });
   const trip = buildMeterTrip(state, fare, input);
   const trips = await saveMeterTrip(trip);

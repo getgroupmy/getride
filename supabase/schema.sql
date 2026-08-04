@@ -4243,7 +4243,7 @@ create table if not exists public.meter_digital_settings (
   source_mode text not null default 'gps+obd'
     check (source_mode in ('gps','gps+obd','obd')),
   allow_start_without_odometer boolean not null default true,
-  require_odometer             boolean not null default false,
+  read_odometer                boolean not null default true,
 
   -- Console panels: shown, and tappable
   show_meter    boolean not null default true,

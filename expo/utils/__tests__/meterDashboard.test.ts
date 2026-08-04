@@ -342,3 +342,11 @@ describe("header clock", () => {
     expect(formatDashTime(Number.NaN)).toBe("—");
   });
 });
+
+describe("describeMeterSubline — operator rate card", () => {
+  it("names no tariff when the fare is coming from an operator card", () => {
+    expect(
+      describeMeterSubline({ running: true, started: true, period: "night", tariff: null }),
+    ).toBe("Meter running • Night tariff");
+  });
+});

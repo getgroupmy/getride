@@ -102,8 +102,8 @@ export interface MeterProfile {
   sourceMode: MeterSourceMode;
   /** May a hire open before the vehicle has reported an odometer? */
   allowStartWithoutOdometer: boolean;
-  /** Ask the reader for the odometer at all (PID A6). */
-  requireOdometer: boolean;
+  /** Read the vehicle's odometer (PID A6) at each end of a hire at all. */
+  readOdometer: boolean;
 
   // --- Console panels ---
   panels: Record<MeterPanelId, MeterPanelAccess>;
@@ -145,7 +145,7 @@ export const DEFAULT_METER_PROFILE: MeterProfile = {
   label: "Built-in TEKSI tariff",
   sourceMode: "gps+obd",
   allowStartWithoutOdometer: true,
-  requireOdometer: false,
+  readOdometer: true,
   panels: {
     meter: { show: true, tap: true },
     trips: { show: true, tap: true },
@@ -179,7 +179,7 @@ export interface MeterSettingsRow {
   label: string | null;
   source_mode: string;
   allow_start_without_odometer: boolean;
-  require_odometer: boolean;
+  read_odometer: boolean;
   show_meter: boolean;
   show_trips: boolean;
   show_printer: boolean;
@@ -229,7 +229,7 @@ export const METER_SETTINGS_COLUMNS = [
   "label",
   "source_mode",
   "allow_start_without_odometer",
-  "require_odometer",
+  "read_odometer",
   "show_meter",
   "show_trips",
   "show_printer",
@@ -332,7 +332,7 @@ export function normalizeMeterProfile(raw: unknown): MeterProfile | null {
       r.allow_start_without_odometer,
       d.allowStartWithoutOdometer,
     ),
-    requireOdometer: bool(r.require_odometer, d.requireOdometer),
+    readOdometer: bool(r.read_odometer, d.readOdometer),
 
     panels: {
       meter: { show: bool(r.show_meter, true), tap: bool(r.tap_meter, true) },
@@ -394,7 +394,7 @@ export function meterProfileToRow(
     label: profile.label,
     source_mode: profile.sourceMode,
     allow_start_without_odometer: profile.allowStartWithoutOdometer,
-    require_odometer: profile.requireOdometer,
+    read_odometer: profile.readOdometer,
     show_meter: panels.meter.show,
     show_trips: panels.trips.show,
     show_printer: panels.printer.show,

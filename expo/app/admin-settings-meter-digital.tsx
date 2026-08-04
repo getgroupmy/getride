@@ -829,9 +829,9 @@ export default function AdminSettingsMeterDigitalScreen() {
               {switchRow(
                 "Read the odometer",
                 "Ask the reader for the odometer at pickup and drop-off. Turn off for fleets whose cars don't publish it.",
-                draft.requireOdometer,
-                (next) => setDraft((p) => ({ ...p, requireOdometer: next })),
-                "meter-settings-require-odo",
+                draft.readOdometer,
+                (next) => setDraft((p) => ({ ...p, readOdometer: next })),
+                "meter-settings-read-odo",
               )}
 
               {/* Panels */}

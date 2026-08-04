@@ -7,7 +7,7 @@
 -- rather than to decide for itself, in one row:
 --
 --   * which sensors it may bill on — GPS only, OBD-II only, or both,
---   * whether a hire may open without an odometer reading from the vehicle,
+--   * whether the odometer is read, and whether a hire may open without one,
 --   * which of the five console panels are shown, and which of those may be
 --     tapped (a panel can be visible but locked — the driver sees the printer
 --     status without being able to change it),
@@ -54,9 +54,10 @@ create table if not exists public.meter_digital_settings (
   -- False makes the odometer part of the start gate; true lets the hire begin
   -- and records the pickup odometer as unavailable.
   allow_start_without_odometer boolean not null default true,
-  -- Ask the reader for the odometer at all. Off on fleets whose cars do not
-  -- implement PID A6, so the meter stops trying.
-  require_odometer boolean not null default false,
+  -- Read the vehicle's odometer at each end of a hire at all. On by default;
+  -- turned off for fleets whose cars do not implement PID A6, so the meter
+  -- stops asking for something it will never get.
+  read_odometer boolean not null default true,
 
   -- ---- Console panels: shown, and tappable ---------------------------------
   show_meter    boolean not null default true,

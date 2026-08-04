@@ -28,7 +28,7 @@ function row(overrides: Partial<MeterSettingsRow> = {}): MeterSettingsRow {
     label: "Global",
     source_mode: "gps+obd",
     allow_start_without_odometer: true,
-    require_odometer: false,
+    read_odometer: true,
     show_meter: true,
     show_trips: true,
     show_printer: true,
