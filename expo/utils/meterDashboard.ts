@@ -119,13 +119,34 @@ export interface MeterStartGateInputs {
   obdConnecting: boolean;
   /** The last error the reader reported, if any. */
   obdError?: string | null;
+  /**
+   * Which sensors the operator's rate card lets the meter bill on
+   * (`allowedMeterSources`). Omitted means both, which is what the meter did
+   * before rate cards existed.
+   */
+  sources?: { obd: boolean; gps: boolean };
+  /** A usable GPS fix has arrived. Only consulted on a GPS-only card. */
+  hasGpsFix?: boolean;
+  /** Location permission was refused. */
+  gpsDenied?: boolean;
 }
+
+/**
+ * What the hire is waiting on — which decides what the popup offers.
+ *
+ * `vehicle` sends the driver to the reader; `gps` to their location settings.
+ * Offering the OBD-II reader to a driver on a GPS-only card would be pointing
+ * at a sensor that card has already taken away.
+ */
+export type MeterStartSource = "vehicle" | "gps";
 
 export interface MeterStartGate {
   /** May a hire begin? */
   canStart: boolean;
   /** A link attempt is in flight — the popup shows a spinner rather than a retry. */
   connecting: boolean;
+  /** Which sensor this hire opens on, under the card in force. */
+  opensOn: MeterStartSource;
   /** Headline for the button's popup, e.g. "Connecting to the vehicle…". */
   title: string;
   /** The line under it: what is happening, or what to do about it. */
@@ -135,23 +156,66 @@ export interface MeterStartGate {
 /**
  * Whether the meter may start a hire, and what to say when it may not.
  *
- * A hire begins on the vehicle link: the meter is a taxi meter, and the fare it
- * opens should be measured by the car rather than by whatever the phone can
- * see. GPS remains the fallback *during* a hire (a tunnel, a dropped dongle),
- * because a fare already running must never stop measuring — but it is not what
- * a hire opens on.
+ * A hire begins on the sensor it will be *billed* on, and which sensors those
+ * are is the operator's to decide (`allowedMeterSources`). With the vehicle bus
+ * among them the meter is a taxi meter: the fare opens on the car rather than
+ * on whatever the phone can see, and GPS remains the fallback *during* a hire
+ * (a tunnel, a dropped dongle) because a fare already running must never stop
+ * measuring — but it is not what such a hire opens on.
  *
- * Demo Mode is the one deliberate exception: it is admin-gated simulation, and
- * blocking it would make the screen impossible to exercise without a car. It is
- * allowed through, and told plainly that it bills on GPS.
+ * A **GPS-only card takes the vehicle bus away entirely**, so it cannot be what
+ * the hire waits for: there would be no sensor left that could ever release the
+ * gate, and the meter would refuse every START on a fleet that never fits a
+ * reader. Such a card opens the hire on the fix instead, and the popup points
+ * at location rather than at a reader the card has already ruled out.
+ *
+ * Demo Mode is the one deliberate exception on a card that does allow the bus:
+ * it is admin-gated simulation, and blocking it would make the screen
+ * impossible to exercise without a car. It is allowed through, and told plainly
+ * what it will (and will not) bill on.
  */
 export function evaluateMeterStart(inputs: MeterStartGateInputs): MeterStartGate {
-  const { obdLinked, obdDemo, obdConnecting, obdError } = inputs;
+  const { obdLinked, obdDemo, obdConnecting, obdError, hasGpsFix, gpsDenied } = inputs;
+  const sources = inputs.sources ?? { obd: true, gps: true };
+
+  // --- GPS-only card: the bus may not bill, so it is not what a hire opens on.
+  if (!sources.obd) {
+    const gps = hasGpsFix === true && gpsDenied !== true;
+    if (gps) {
+      return {
+        canStart: true,
+        connecting: false,
+        opensOn: "gps",
+        title: "GPS ready",
+        message:
+          "This rate card bills on GPS only. The meter measures the hire on the phone's own position.",
+      };
+    }
+    if (gpsDenied === true) {
+      return {
+        canStart: false,
+        connecting: false,
+        opensOn: "gps",
+        title: "Location is off",
+        message:
+          "This rate card bills on GPS only, and location permission has been refused. Allow location access for this app, then start the hire.",
+      };
+    }
+    return {
+      canStart: false,
+      connecting: true,
+      opensOn: "gps",
+      title: "Acquiring GPS…",
+      message:
+        "This rate card bills on GPS only, and no fix has arrived yet. The hire starts by itself as soon as the phone has a position.",
+    };
+  }
 
   if (obdLinked) {
     return {
       canStart: true,
       connecting: false,
+      opensOn: "vehicle",
       title: "Vehicle linked",
       message:
         "The OBD-II reader is answering. The meter measures the hire on the vehicle's own speed.",
@@ -161,15 +225,21 @@ export function evaluateMeterStart(inputs: MeterStartGateInputs): MeterStartGate
     return {
       canStart: true,
       connecting: false,
+      opensOn: "vehicle",
       title: "Demo Mode",
-      message:
-        "This is simulated telemetry, not a vehicle. The meter will start, but it bills on GPS — Demo Mode never bills a fare.",
+      // On an OBD-only card there is no second sensor to fall back to, so a
+      // demo hire accrues nothing at all. Saying it "bills on GPS" there would
+      // name a source that card has taken away.
+      message: sources.gps
+        ? "This is simulated telemetry, not a vehicle. The meter will start, but it bills on GPS — Demo Mode never bills a fare."
+        : "This is simulated telemetry, not a vehicle, and this rate card bills on the vehicle bus only. The meter will start, but it will accrue no distance until a real reader answers.",
     };
   }
   if (obdConnecting) {
     return {
       canStart: false,
       connecting: true,
+      opensOn: "vehicle",
       title: "Connecting to the vehicle…",
       message:
         "Linking the OBD-II reader. The hire starts by itself as soon as the vehicle answers.",
@@ -183,6 +253,7 @@ export function evaluateMeterStart(inputs: MeterStartGateInputs): MeterStartGate
   return {
     canStart: false,
     connecting: false,
+    opensOn: "vehicle",
     title: "No vehicle link",
     message: `${reason}. A hire starts on the vehicle link — connect the reader saved in Settings → OBD-II (CANBus) reader, or add one there.`,
   };

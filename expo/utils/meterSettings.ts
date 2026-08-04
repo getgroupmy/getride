@@ -552,17 +552,34 @@ export function allowedMeterSources(mode: MeterSourceMode): {
 }
 
 /**
+ * Whether this card reads the vehicle's odometer (mode-01 PID A6) at all.
+ *
+ * Two things have to be true: the card asks for the read, and the card lets the
+ * meter talk to the vehicle bus in the first place — the odometer has no second
+ * source, so a GPS-only card can never have one however the flag is set.
+ */
+export function meterReadsOdometer(profile: MeterProfile): boolean {
+  return profile.readOdometer && allowedMeterSources(profile.sourceMode).obd;
+}
+
+/**
  * Whether a hire may open, as far as the *odometer* is concerned.
  *
- * The vehicle link is gated separately (`evaluateMeterStart`); this is the
- * extra condition a fleet can impose on top of it — no odometer reading, no
- * hire — so the pickup mileage on the receipt is never a blank.
+ * The sensor the hire opens on is gated separately (`evaluateMeterStart`); this
+ * is the extra condition a fleet can impose on top of it — no odometer reading,
+ * no hire — so the pickup mileage on the receipt is never a blank.
+ *
+ * It only applies where the reading is obtainable. A card that switches the
+ * read off, or that bills on GPS only and so never speaks to the bus, has no
+ * way to produce an odometer: holding the hire for one would not be strictness
+ * but a meter that can never be started at all.
  */
 export function meterOdometerGate(
   profile: MeterProfile,
   odometerKm: number | null | undefined,
 ): { canStart: boolean; reason: string | null } {
   if (profile.allowStartWithoutOdometer) return { canStart: true, reason: null };
+  if (!meterReadsOdometer(profile)) return { canStart: true, reason: null };
   const has = typeof odometerKm === "number" && Number.isFinite(odometerKm) && odometerKm >= 0;
   if (has) return { canStart: true, reason: null };
   return {

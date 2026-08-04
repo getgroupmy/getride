@@ -11,11 +11,16 @@
  *     in Demo Mode. The meter switches over silently and says which source it
  *     is billing on, so the driver always knows what the fare is based on.
  *
- * A hire *opens* on the vehicle link, though: without one, START is greyed and
- * a press raises the connect popup instead of a fare — the press is held, the
- * link attempted, and the hire opens by itself the moment the car answers
- * (`evaluateMeterStart`). GPS is the fallback for a hire already running, not
- * the thing one begins on. Resuming from a pause is deliberately not gated: a
+ * A hire *opens* on the sensor it will be billed on, though: without one, START
+ * is greyed and a press raises the popup instead of a fare — the press is held
+ * and the hire opens by itself the moment that sensor arrives
+ * (`evaluateMeterStart`). Which sensor that is comes from the operator's rate
+ * card: where the card allows the bus it is the vehicle link (the link attempt
+ * is made from the popup, and GPS is only the fallback for a hire already
+ * running, not the thing one begins on); where the card bills on **GPS only**
+ * the bus has been taken away entirely, so the hire opens on the fix instead —
+ * waiting for a reader there would be waiting for a sensor that could never
+ * release the gate. Resuming from a pause is deliberately not gated either: a
  * fare under way must keep measuring on whatever it still has.
  *
  * The TRIP STATUS panel names the connection type in both states — GPS, the
@@ -87,6 +92,7 @@ import {
   Alert,
   BackHandler,
   Image,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -181,6 +187,7 @@ import {
   describeMeterRates,
   meterExtraSurcharge,
   meterOdometerGate,
+  meterReadsOdometer,
   resolveMeterProfile,
   type MeterPanelId,
   type MeterProfile,
@@ -582,7 +589,8 @@ export default function MeterDigitalScreen() {
   // The log record the current ends belong to, so a late answer can be folded
   // into the row that is already on the roll.
   const recordedTripRef = useRef<string | null>(null);
-  // A START press that is waiting for the vehicle link to come up.
+  // A START press waiting for the sensor the hire opens on — the vehicle link,
+  // or the first GPS fix under a GPS-only card.
   const pendingStartRef = useRef<boolean>(false);
 
   const canbusState = canbus.state;
@@ -653,12 +661,13 @@ export default function MeterDigitalScreen() {
   const readWaypointOdometer = useCallback(
     async (end: MeterEnd, at: number) => {
       // A card can switch the read off for a fleet whose cars do not publish
-      // PID A6 — there is nothing to gain by asking every one of them.
-      if (!profile.readOdometer) return;
+      // PID A6 — there is nothing to gain by asking every one of them — and a
+      // GPS-only card has no bus to ask in the first place.
+      if (!meterReadsOdometer(profile)) return;
       const km = await readOdometerOnce();
       if (km !== null) patchWaypoint(end, at, { odometerKm: km });
     },
-    [patchWaypoint, profile.readOdometer, readOdometerOnce],
+    [patchWaypoint, profile, readOdometerOnce],
   );
 
   /** Turn an end's fix into an address. It keeps the raw fix until this lands. */
@@ -1011,13 +1020,19 @@ export default function MeterDigitalScreen() {
     // does not claim to be either — the SETTINGS panel names the card instead.
     tariff: configured ? null : tariff,
   });
-  // A hire opens on the vehicle link. Until there is one, START is a dead key
-  // that raises the connect popup instead of starting a fare.
+  // A hire opens on the sensor it will be billed on: the vehicle link where the
+  // card allows the bus, the GPS fix where the card is GPS-only (waiting for a
+  // reader there would be waiting for a sensor the card has taken away). Until
+  // that sensor is there, START is a dead key that raises the popup below
+  // instead of starting a fare.
   const startGate = evaluateMeterStart({
     obdLinked,
     obdDemo,
     obdConnecting: canbus.connecting,
     obdError: canbusState.error,
+    sources,
+    hasGpsFix: hasFix,
+    gpsDenied,
   });
   const startBlocked = !started && !startGate.canStart;
 
@@ -1070,7 +1085,10 @@ export default function MeterDigitalScreen() {
    * be un-opened when the car turns out not to publish PID A6.
    */
   const startHire = useCallback(() => {
-    if (profile.allowStartWithoutOdometer) {
+    // Nothing to wait for when the card does not require the reading, or when
+    // it could not produce one anyway (read switched off, or a GPS-only card
+    // that never speaks to the bus).
+    if (profile.allowStartWithoutOdometer || !meterReadsOdometer(profile)) {
       beginTrip();
       return;
     }
@@ -1098,15 +1116,17 @@ export default function MeterDigitalScreen() {
       return;
     }
     // The press is not thrown away: it is held, the link attempt is made, and
-    // the hire opens by itself the moment the vehicle answers.
+    // the hire opens by itself the moment the sensor arrives. On a GPS-only
+    // card there is no reader to attempt — the held press is released by the
+    // fix landing instead, so the press only waits.
     pendingStartRef.current = true;
     setConnectPromptOpen(true);
-    if (!canbus.connecting) {
+    if (startGate.opensOn === "vehicle" && !canbus.connecting) {
       void canbus
         .connect()
         .catch((e) => console.log("[meter-digital] connect failed", e));
     }
-  }, [canbus, startGate.canStart, startHire]);
+  }, [canbus, startGate.canStart, startGate.opensOn, startHire]);
 
   // The held START, released by the link coming up. It goes through the same
   // odometer gate as a direct press — a card that requires the reading requires
@@ -1464,8 +1484,9 @@ export default function MeterDigitalScreen() {
 
   const tripControls = (
     <View style={[styles.controlRow, { gap: ui.gap }]}>
-      {/* Greyed without a vehicle link, but never inert: the press is what
-          raises the connect popup and holds the hire until the car answers. */}
+      {/* Greyed without the sensor the hire opens on, but never inert: the
+          press is what raises the popup and holds the hire until that sensor
+          arrives — the car answering, or the first fix landing. */}
       <TouchableOpacity
         style={[
           styles.primaryButton,
@@ -3269,7 +3290,9 @@ export default function MeterDigitalScreen() {
           >
             <View style={styles.modalHeader}>
               <FitText style={styles.modalTitle} size={ui.rowText}>
-                VEHICLE LINK
+                {/* Named after what the hire is actually waiting for: a
+                    GPS-only card has no vehicle link to offer. */}
+                {startGate.opensOn === "gps" ? "GPS SIGNAL" : "VEHICLE LINK"}
               </FitText>
               <TouchableOpacity
                 onPress={closeConnectPrompt}
@@ -3285,6 +3308,12 @@ export default function MeterDigitalScreen() {
             <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
               {startGate.connecting ? (
                 <ActivityIndicator color={DASH.warn} size="small" />
+              ) : startGate.opensOn === "gps" ? (
+                gpsDenied ? (
+                  <MapPinOff color={DASH.danger} size={ui.iconSize} />
+                ) : (
+                  <MapPin color={DASH.ok} size={ui.iconSize} />
+                )
               ) : (
                 <Cpu color={readerColor} size={ui.iconSize} />
               )}
@@ -3299,49 +3328,84 @@ export default function MeterDigitalScreen() {
             <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
               {startGate.message}
             </Text>
-            <View style={[styles.modalActions, { gap: ui.gap }]}>
-              <TouchableOpacity
-                style={[
-                  styles.wideButton,
-                  wideButtonStyle(ui),
-                  styles.ghostButton,
-                ]}
-                onPress={() => {
-                  closeConnectPrompt();
-                  router.push("/obd2-reader" as never);
-                }}
-                activeOpacity={0.85}
-                testID="meter-digital-connect-settings"
-              >
-                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                  READER SETTINGS
-                </FitText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.wideButton,
-                  wideButtonStyle(ui),
-                  { backgroundColor: DASH.accent },
-                  startGate.connecting && styles.buttonDisabled,
-                ]}
-                disabled={startGate.connecting}
-                onPress={() => {
-                  void canbus
-                    .connect()
-                    .catch((e) => console.log("[meter-digital] connect failed", e));
-                }}
-                activeOpacity={0.85}
-                testID="meter-digital-connect-retry"
-              >
-                {startGate.connecting ? (
-                  <ActivityIndicator color={DASH.text} size="small" />
-                ) : (
+            {/* What the popup offers follows what the hire is waiting for. On a
+                GPS-only card the reader is not a thing to fix — the card has
+                ruled it out — so the only action is the one that can actually
+                release the gate: the location permission. */}
+            {startGate.opensOn === "gps" ? (
+              <View style={[styles.modalActions, { gap: ui.gap }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.wideButton,
+                    wideButtonStyle(ui),
+                    { backgroundColor: DASH.accent },
+                    !gpsDenied && styles.buttonDisabled,
+                  ]}
+                  disabled={!gpsDenied}
+                  onPress={() => {
+                    void Linking.openSettings().catch((e) =>
+                      console.log("[meter-digital] open settings failed", e),
+                    );
+                  }}
+                  activeOpacity={0.85}
+                  testID="meter-digital-connect-location"
+                >
+                  {gpsDenied ? (
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      LOCATION SETTINGS
+                    </FitText>
+                  ) : (
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      WAITING FOR FIX
+                    </FitText>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={[styles.modalActions, { gap: ui.gap }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.wideButton,
+                    wideButtonStyle(ui),
+                    styles.ghostButton,
+                  ]}
+                  onPress={() => {
+                    closeConnectPrompt();
+                    router.push("/obd2-reader" as never);
+                  }}
+                  activeOpacity={0.85}
+                  testID="meter-digital-connect-settings"
+                >
                   <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                    TRY AGAIN
+                    READER SETTINGS
                   </FitText>
-                )}
-              </TouchableOpacity>
-            </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.wideButton,
+                    wideButtonStyle(ui),
+                    { backgroundColor: DASH.accent },
+                    startGate.connecting && styles.buttonDisabled,
+                  ]}
+                  disabled={startGate.connecting}
+                  onPress={() => {
+                    void canbus
+                      .connect()
+                      .catch((e) => console.log("[meter-digital] connect failed", e));
+                  }}
+                  activeOpacity={0.85}
+                  testID="meter-digital-connect-retry"
+                >
+                  {startGate.connecting ? (
+                    <ActivityIndicator color={DASH.text} size="small" />
+                  ) : (
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      TRY AGAIN
+                    </FitText>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>

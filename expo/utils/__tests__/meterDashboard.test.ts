@@ -140,6 +140,87 @@ describe("evaluateMeterStart", () => {
       "No OBD-II reader is connected",
     );
   });
+
+  describe("under a GPS-only rate card", () => {
+    const GPS_ONLY = { ...NO_LINK, sources: { obd: false, gps: true } };
+
+    it("opens a hire on the fix, with no reader in sight", () => {
+      const gate = evaluateMeterStart({ ...GPS_ONLY, hasGpsFix: true });
+      expect(gate.canStart).toBe(true);
+      expect(gate.opensOn).toBe("gps");
+      expect(gate.title).toBe("GPS ready");
+    });
+
+    it("never waits on a reader the card has taken away", () => {
+      // The whole point: with no reader at all — the state that blocks a
+      // hire on a normal card — a GPS-only card still starts.
+      const gate = evaluateMeterStart({
+        ...GPS_ONLY,
+        hasGpsFix: true,
+        obdError: "Adapter not found",
+      });
+      expect(gate.canStart).toBe(true);
+      expect(gate.message).not.toContain("Adapter not found");
+    });
+
+    it("holds the hire until a fix lands, and says so", () => {
+      const gate = evaluateMeterStart({ ...GPS_ONLY, hasGpsFix: false });
+      expect(gate.canStart).toBe(false);
+      // Same contract as a link attempt in flight: the popup spins, and the
+      // held START is released by the fix arriving.
+      expect(gate.connecting).toBe(true);
+      expect(gate.opensOn).toBe("gps");
+      expect(gate.title).toBe("Acquiring GPS…");
+    });
+
+    it("points a refused permission at location rather than at the reader", () => {
+      const gate = evaluateMeterStart({
+        ...GPS_ONLY,
+        hasGpsFix: true,
+        gpsDenied: true,
+      });
+      expect(gate.canStart).toBe(false);
+      expect(gate.connecting).toBe(false);
+      expect(gate.opensOn).toBe("gps");
+      expect(gate.message).toContain("location permission");
+      expect(gate.message).not.toContain("reader");
+    });
+
+    it("ignores a linked reader — it is not what this card bills on", () => {
+      const gate = evaluateMeterStart({
+        ...GPS_ONLY,
+        obdLinked: true,
+        hasGpsFix: false,
+      });
+      expect(gate.canStart).toBe(false);
+      expect(gate.opensOn).toBe("gps");
+    });
+  });
+
+  it("opens on the vehicle link where the card allows the bus", () => {
+    for (const sources of [
+      { obd: true, gps: true },
+      { obd: true, gps: false },
+    ]) {
+      expect(evaluateMeterStart({ ...NO_LINK, sources, hasGpsFix: true }).canStart).toBe(
+        false,
+      );
+      expect(
+        evaluateMeterStart({ ...NO_LINK, sources, obdLinked: true }).opensOn,
+      ).toBe("vehicle");
+    }
+  });
+
+  it("does not promise Demo Mode a GPS fallback an OBD-only card forbids", () => {
+    const gate = evaluateMeterStart({
+      ...NO_LINK,
+      obdDemo: true,
+      sources: { obd: true, gps: false },
+    });
+    expect(gate.canStart).toBe(true);
+    expect(gate.message).not.toContain("bills on GPS");
+    expect(gate.message).toContain("accrue no distance");
+  });
 });
 
 describe("resolveMeterBack", () => {
