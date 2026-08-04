@@ -66,6 +66,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   Image,
   Modal,
   Platform,
@@ -380,6 +381,31 @@ export default function MeterDigitalScreen() {
   });
 
   const [tab, setTab] = useState<MeterTab>("ehailing");
+  // The five tabs are panels of one instrument, not screens of their own — so
+  // back off the trip log, the printer, the OBD panel or the settings returns
+  // to the meter, and only a back press from the meter itself leaves for the
+  // driver-permit screen. Same rule for the Android hardware/gesture back,
+  // which would otherwise drop the driver out of the console mid-panel.
+  const handleBack = useCallback(() => {
+    if (tab !== "ehailing") {
+      setTab("ehailing");
+      return;
+    }
+    router.back();
+  }, [router, tab]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        if (tab === "ehailing") return false;
+        setTab("ehailing");
+        return true;
+      });
+      return () => sub.remove();
+    }, [tab]),
+  );
+
   const [tariff, setTariff] = useState<MeterTariff>(
     params.tariff === "new" ? "new" : "old",
   );
@@ -2037,7 +2063,7 @@ export default function MeterDigitalScreen() {
                 borderRadius: Math.round(ui.radius * 0.7),
               },
             ]}
-            onPress={() => router.back()}
+            onPress={handleBack}
             testID="meter-digital-back"
           >
             <ArrowLeft color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
