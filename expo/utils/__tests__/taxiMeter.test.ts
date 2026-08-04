@@ -1,13 +1,22 @@
 import {
+  adjustExtra,
   applyMeterSample,
   computeMeterFare,
   createMeterState,
   describeMeterSource,
+  EXTRA_STEP,
+  formatMeterClock,
   formatMeterDistance,
   formatMeterDuration,
+  formatMeterKm,
   haversineMeters,
+  isNightPeriod,
   isObdFresh,
+  MAX_EXTRA,
+  meterGrandTotal,
+  NIGHT_MULTIPLIER,
   pauseMeter,
+  periodMultiplier,
   startMeter,
   type MeterSample,
   type MeterState,
@@ -313,5 +322,78 @@ describe("formatting", () => {
     expect(describeMeterSource("obd")).toBe("OBD-II");
     expect(describeMeterSource("gps")).toBe("GPS");
     expect(describeMeterSource("none")).toBe("No signal");
+  });
+
+  it("formats the segment clock at a fixed width", () => {
+    expect(formatMeterClock(0)).toBe("00:00:00");
+    expect(formatMeterClock(24_000)).toBe("00:00:24");
+    expect(formatMeterClock(65_000)).toBe("00:01:05");
+    expect(formatMeterClock(3_905_000)).toBe("01:05:05");
+    expect(formatMeterClock(-5)).toBe("00:00:00");
+    // Past 99 hours the field grows rather than wrapping.
+    expect(formatMeterClock(100 * 3_600_000)).toBe("100:00:00");
+  });
+
+  it("formats the segment distance as unit-free kilometres", () => {
+    expect(formatMeterKm(0)).toBe("0.00");
+    expect(formatMeterKm(740.4)).toBe("0.74");
+    expect(formatMeterKm(3421)).toBe("3.42");
+    expect(formatMeterKm(-500)).toBe("0.00");
+  });
+});
+
+describe("night shift", () => {
+  const atHour = (hour: number) => new Date(2026, 7, 4, hour, 30, 0);
+
+  it("runs from midnight to 06:00, local time", () => {
+    expect(isNightPeriod(atHour(0))).toBe(true);
+    expect(isNightPeriod(atHour(5))).toBe(true);
+    expect(isNightPeriod(atHour(6))).toBe(false);
+    expect(isNightPeriod(atHour(11))).toBe(false);
+    expect(isNightPeriod(atHour(23))).toBe(false);
+  });
+
+  it("accepts an epoch as readily as a Date", () => {
+    expect(isNightPeriod(atHour(3).getTime())).toBe(true);
+    expect(isNightPeriod(atHour(15).getTime())).toBe(false);
+  });
+
+  it("surcharges the whole fare on the night shift", () => {
+    expect(periodMultiplier("day")).toBe(1);
+    expect(periodMultiplier("night")).toBe(NIGHT_MULTIPLIER);
+
+    const state: MeterState = { ...createMeterState(), distanceM: 2000 };
+    const day = computeMeterFare(state, { multiplier: periodMultiplier("day") });
+    const night = computeMeterFare(state, { multiplier: periodMultiplier("night") });
+    expect(day.total).toBe(5.75);
+    expect(night.total).toBe(8.63);
+  });
+});
+
+describe("extras", () => {
+  it("moves by one step per press", () => {
+    expect(adjustExtra(0, 1)).toBe(EXTRA_STEP);
+    expect(adjustExtra(EXTRA_STEP, 1)).toBe(EXTRA_STEP * 2);
+    expect(adjustExtra(2, -1)).toBe(2 - EXTRA_STEP);
+    expect(adjustExtra(2, 4)).toBe(4);
+  });
+
+  it("never goes negative and never overflows the display", () => {
+    expect(adjustExtra(0, -1)).toBe(0);
+    expect(adjustExtra(0.5, -5)).toBe(0);
+    expect(adjustExtra(MAX_EXTRA, 1)).toBe(MAX_EXTRA);
+    expect(adjustExtra(MAX_EXTRA, 40)).toBe(MAX_EXTRA);
+  });
+
+  it("survives a non-finite starting point", () => {
+    expect(adjustExtra(Number.NaN, 1)).toBe(EXTRA_STEP);
+    expect(adjustExtra(0, Number.NaN)).toBe(0);
+  });
+
+  it("adds extras onto the metered fare in sen", () => {
+    expect(meterGrandTotal(8.63, 2.5)).toBe(11.13);
+    expect(meterGrandTotal(4, 0)).toBe(4);
+    // Negative inputs are clamped rather than subtracted from the passenger.
+    expect(meterGrandTotal(-3, -2)).toBe(0);
   });
 });

@@ -1,0 +1,151 @@
+/**
+ * The meter's receipt — what comes off the roll at the end of a hire.
+ *
+ * There is no dedicated thermal-printer driver in this build, so the receipt
+ * is rendered as HTML and handed to the platform print service (`expo-print`
+ * on native, the browser's print dialog on web). That reaches any AirPrint /
+ * Google Cloud Print / Bluetooth printer the OS already knows about, which is
+ * the honest capability: the meter can print, it just does not own the printer.
+ *
+ * Building the document is pure so its contents can be asserted in a test —
+ * particularly the rule that a night-shift fare says so on the paper.
+ */
+
+import {
+  FLAG_FALL,
+  NIGHT_MULTIPLIER,
+  formatMeterClock,
+  formatMeterDistance,
+} from "@/utils/taxiMeter";
+import { formatDashDate, formatDashTime } from "@/utils/meterDashboard";
+import type { MeterTrip } from "@/utils/meterTripsStore";
+
+export interface ReceiptBranding {
+  /** Operator name across the top of the receipt. */
+  title?: string;
+  /** Free-text line under the title, e.g. a licence or hotline number. */
+  subtitle?: string;
+}
+
+const money = (n: number) => `RM ${(Number.isFinite(n) ? n : 0).toFixed(2)}`;
+
+/** Escape anything that reaches the HTML — plates and names are user data. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+interface ReceiptLine {
+  label: string;
+  value: string;
+  strong?: boolean;
+}
+
+/** The rows of the receipt, in print order. Shared by both renderers. */
+function receiptLines(trip: MeterTrip): ReceiptLine[] {
+  const lines: ReceiptLine[] = [
+    { label: "Date", value: formatDashDate(trip.endedAt) },
+    { label: "Start", value: formatDashTime(trip.startedAt) },
+    { label: "End", value: formatDashTime(trip.endedAt) },
+    { label: "Distance", value: formatMeterDistance(trip.distanceM) },
+    { label: "Trip time", value: formatMeterClock(trip.elapsedMs) },
+    { label: "Waiting", value: formatMeterClock(trip.waitingMs) },
+    {
+      label: "Tariff",
+      value: `${trip.tariff === "new" ? "New rates" : "Old rates"} · ${
+        trip.period === "night" ? "Night" : "Day"
+      }`,
+    },
+  ];
+  if (trip.period === "night") {
+    lines.push({
+      label: "Night surcharge",
+      value: `+${Math.round((NIGHT_MULTIPLIER - 1) * 100)}%`,
+    });
+  }
+  lines.push({ label: "Flag fall", value: money(FLAG_FALL) });
+  lines.push({ label: "Metered fare", value: money(trip.fare) });
+  if (trip.extra > 0) lines.push({ label: "Extras", value: money(trip.extra) });
+  lines.push({ label: "Total", value: money(trip.total), strong: true });
+  return lines;
+}
+
+/** Plain-text receipt, for sharing or a text-only printer. */
+export function buildMeterReceiptText(
+  trip: MeterTrip,
+  branding: ReceiptBranding = {},
+): string {
+  const header = [
+    branding.title ?? "GET TAXI METER",
+    branding.subtitle ?? null,
+    trip.plate ? `Vehicle ${trip.plate}` : null,
+    trip.driver ? `Driver ${trip.driver}` : null,
+  ].filter(Boolean) as string[];
+
+  const body = receiptLines(trip).map((l) => `${l.label}: ${l.value}`);
+  return [...header, "", ...body, "", "Thank you for riding."].join("\n");
+}
+
+/** Printable receipt sized for an 80 mm roll, and readable on A4 too. */
+export function buildMeterReceiptHtml(
+  trip: MeterTrip,
+  branding: ReceiptBranding = {},
+): string {
+  const title = escapeHtml(branding.title ?? "GET TAXI METER");
+  const subtitle = branding.subtitle ? escapeHtml(branding.subtitle) : null;
+  const rows = receiptLines(trip)
+    .map(
+      (l) =>
+        `<tr class="${l.strong ? "total" : ""}"><td>${escapeHtml(
+          l.label,
+        )}</td><td class="v">${escapeHtml(l.value)}</td></tr>`,
+    )
+    .join("");
+
+  const meta = [
+    trip.plate ? `Vehicle ${escapeHtml(trip.plate)}` : null,
+    trip.driver ? `Driver ${escapeHtml(trip.driver)}` : null,
+  ]
+    .filter(Boolean)
+    .join(" &middot; ");
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${title} receipt</title>
+<style>
+  @page { margin: 8mm; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #111; margin: 0 auto; max-width: 320px; padding: 12px; }
+  h1 { font-size: 15px; letter-spacing: 1px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .sub { font-size: 11px; text-align: center; color: #555; margin: 0 0 2px; }
+  .meta { font-size: 11px; text-align: center; color: #555; margin: 0 0 10px; }
+  hr { border: none; border-top: 1px dashed #999; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  td { padding: 3px 0; }
+  td.v { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total td { font-size: 15px; font-weight: 700; padding-top: 8px; border-top: 1px solid #111; }
+  .foot { font-size: 10px; color: #666; text-align: center; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1>${title}</h1>
+  ${subtitle ? `<p class="sub">${subtitle}</p>` : ""}
+  ${meta ? `<p class="meta">${meta}</p>` : ""}
+  <hr />
+  <table>${rows}</table>
+  <hr />
+  <p class="foot">Fare metered on ${
+    trip.obdSamples >= trip.gpsSamples && trip.obdSamples > 0
+      ? "the vehicle&rsquo;s OBD-II speed"
+      : "GPS"
+  } &middot; ${trip.obdSamples} OBD / ${trip.gpsSamples} GPS samples</p>
+  <p class="foot">Thank you for riding.</p>
+</body>
+</html>`;
+}

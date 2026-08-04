@@ -23,6 +23,13 @@ export type MeterTariff = "old" | "new";
 /** Which sensor produced the distance for the most recent sample. */
 export type MeterSource = "obd" | "gps" | "none";
 
+/**
+ * Which shift the hire is billed on. A physical TEKSI meter has a DAY/NIGHT
+ * key because the night shift carries a surcharge on the whole fare; the meter
+ * screen has the same two keys.
+ */
+export type MeterPeriod = "day" | "night";
+
 // --- Tariff constants (same TEKSI Malaysia tariffs as `calculateFare`) ---
 
 /** Flag fall, in RM. Covers the first {@link FLAG_FALL_DISTANCE_M}. */
@@ -39,6 +46,22 @@ export const INCREMENT_TIME_MS = 36_000;
 export const NEW_TARIFF_PER_KM = 1.0;
 /** Per-minute charge, in RM ("new" tariff). */
 export const NEW_TARIFF_PER_MIN = 0.3;
+
+// --- Night shift ---
+
+/** First hour of the night shift (inclusive), in local time. */
+export const NIGHT_START_HOUR = 0;
+/** First hour back on the day shift (exclusive end of the night), local time. */
+export const NIGHT_END_HOUR = 6;
+/** Surcharge applied to the whole fare on the night shift: +50%. */
+export const NIGHT_MULTIPLIER = 1.5;
+
+// --- Extras ---
+
+/** One press of the EXTRA − / + keys, in RM. */
+export const EXTRA_STEP = 0.5;
+/** Ceiling for extras. Keeps the extras display inside its four digits. */
+export const MAX_EXTRA = 99.5;
 
 // --- Sampling tunables ---
 
@@ -317,6 +340,26 @@ export interface MeterFareOptions {
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
+ * Whether `at` falls on the night shift, in the device's local time.
+ *
+ * Written to survive the window being moved: a shift that wraps past midnight
+ * (say 22:00 → 06:00) is handled by the second branch.
+ */
+export function isNightPeriod(at: Date | number = Date.now()): boolean {
+  const d = at instanceof Date ? at : new Date(at);
+  const hour = d.getHours();
+  if (!Number.isFinite(hour)) return false;
+  return NIGHT_START_HOUR <= NIGHT_END_HOUR
+    ? hour >= NIGHT_START_HOUR && hour < NIGHT_END_HOUR
+    : hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
+}
+
+/** The fare multiplier the DAY / NIGHT key selects. */
+export function periodMultiplier(period: MeterPeriod): number {
+  return period === "night" ? NIGHT_MULTIPLIER : 1;
+}
+
+/**
  * Fare for the meter's current totals.
  *
  * Matches `calculateFare` in utils/maps.ts, with one deliberate improvement:
@@ -366,6 +409,27 @@ export function computeMeterFare(
   };
 }
 
+/**
+ * Move the extras total by `steps` presses of the − / + keys.
+ *
+ * Extras are the charges the meter cannot measure — booking fee, luggage, a
+ * toll the driver paid — so they are only ever entered by hand. Clamped to
+ * [0, {@link MAX_EXTRA}] and rounded to sen, so no sequence of presses can put
+ * a negative or unrenderable number on the display.
+ */
+export function adjustExtra(current: number, steps: number): number {
+  const base = Number.isFinite(current) ? current : 0;
+  const delta = Number.isFinite(steps) ? steps : 0;
+  return round2(Math.min(MAX_EXTRA, Math.max(0, base + delta * EXTRA_STEP)));
+}
+
+/** What the passenger pays: the metered fare plus hand-entered extras. */
+export function meterGrandTotal(fareTotal: number, extra: number): number {
+  const fare = Number.isFinite(fareTotal) ? Math.max(0, fareTotal) : 0;
+  const add = Number.isFinite(extra) ? Math.max(0, extra) : 0;
+  return round2(fare + add);
+}
+
 /** "1:04:07" past an hour, otherwise "04:07". */
 export function formatMeterDuration(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -376,10 +440,33 @@ export function formatMeterDuration(ms: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
+/**
+ * Always "HH:MM:SS", zero-padded — the fixed-width form the meter's segment
+ * display needs, where digits must not shuffle sideways as the trip crosses an
+ * hour. Past 99 hours the field simply grows rather than wrapping.
+ */
+export function formatMeterClock(ms: number): string {
+  const total = Math.max(0, Math.floor((Number.isFinite(ms) ? ms : 0) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
 /** Metres as the driver reads them: "740 m" below a km, else "3.42 km". */
 export function formatMeterDistance(meters: number): string {
   const m = Math.max(0, meters);
   return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(2)} km`;
+}
+
+/**
+ * Distance for the segment display: kilometres to two decimals, unit-free,
+ * because the display renders "km" as its own smaller label.
+ */
+export function formatMeterKm(meters: number): string {
+  const m = Math.max(0, Number.isFinite(meters) ? meters : 0);
+  return (m / 1000).toFixed(2);
 }
 
 /** Short label for the active source, used on the meter's source badge. */
