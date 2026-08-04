@@ -297,19 +297,27 @@ export function fitMoneyPanel(input: MoneyPanelInput): MoneyPanelFit {
     });
   }
 
+  // The thumb floor holds even where the box cannot pay for it. A key too small
+  // to hit is worse than a panel that overflows — the driver can still read a
+  // clipped panel, but cannot press a 16pt key at a junction — so this floors
+  // exactly as `MIN_READOUT_PT` does, and the panel's overflow is the backstop.
   const keyHeight = Math.max(
-    Math.min(MIN_KEY_HEIGHT, innerHeight),
+    MIN_KEY_HEIGHT,
     Math.min(maxKeyHeight, innerHeight * 0.46),
   );
 
+  // What is left for the readout once the keys have taken theirs. A measured
+  // box with nothing left is *not* an unmeasured one: handing 0 to
+  // `fitReadoutBox` would fall through to the width axis and draw a full-size
+  // fare across a panel with no room for it, which is the very clipping this
+  // function exists to prevent. So a spent box lands on the legibility floor.
+  const readoutRoom = innerHeight - keyHeight - gap;
+
   return Object.freeze({
-    readoutSize: fitReadoutBox(
-      innerWidth,
-      Math.max(0, innerHeight - keyHeight - gap),
-      chars,
-      reservedWidth,
-      maxReadout,
-    ),
+    readoutSize:
+      readoutRoom > 0
+        ? fitReadoutBox(innerWidth, readoutRoom, chars, reservedWidth, maxReadout)
+        : Math.round(Math.min(maxReadout, MIN_READOUT_PT)),
     keyHeight: Math.round(keyHeight),
   });
 }
