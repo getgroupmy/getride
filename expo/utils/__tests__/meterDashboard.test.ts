@@ -160,6 +160,20 @@ describe("resolveMeterBack", () => {
   it("refuses to leave the console with a fare accruing", () => {
     expect(resolveMeterBack({ onMeterPanel: true, running: true })).toBe("blocked");
   });
+
+  it("refuses to leave a hire that stopped but was never declared", () => {
+    // The fare has stopped, but the record is not written until the driver has
+    // declared the hire — walking out now would lose it just the same.
+    expect(
+      resolveMeterBack({ onMeterPanel: true, running: false, ending: true }),
+    ).toBe("blocked");
+  });
+
+  it("still steps back onto the meter from another panel while one is ending", () => {
+    expect(
+      resolveMeterBack({ onMeterPanel: false, running: false, ending: true }),
+    ).toBe("panel");
+  });
 });
 
 describe("waypoint readings", () => {

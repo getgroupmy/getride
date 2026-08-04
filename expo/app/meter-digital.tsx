@@ -27,6 +27,17 @@
  * is written are folded into it (`patchMeterTripWaypoints`), because the fare
  * may not wait for a dongle.
  *
+ * Ending a hire is two steps, because a fare and a receipt are not the same
+ * thing. END stops the meter at the instant it is pressed and freezes the
+ * totals; what the machine cannot measure is then declared by the driver —
+ * passengers, luggage, the tolls they laid out, and whether either end was an
+ * airport (a flat surcharge the meter has no way to detect). Only once all of
+ * that is answered is the record written, so a hire is never logged with the
+ * meter guessing on the passenger's behalf; the other way out of the form is
+ * back into the hire, which resumes accrual from now rather than billing the
+ * seconds it took to fill in. That vocabulary is pure and tested in
+ * `utils/meterTripDetails.ts`.
+ *
  * All accrual and tariff maths live in `utils/taxiMeter.ts` (pure + tested);
  * this screen owns the 1 Hz clock, the sensors, and the layout. What the
  * status panel says lives in `utils/meterDashboard.ts`, the trip log in
@@ -82,6 +93,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -108,9 +120,11 @@ import {
   Cpu,
   MapPin,
   MapPinOff,
+  Luggage as LuggageIcon,
   Minus,
   Moon,
   Pause,
+  Plane,
   Play,
   Plus,
   Printer,
@@ -121,6 +135,7 @@ import {
   Sun,
   Trash2,
   User,
+  Users,
   Wifi,
   X,
 } from "lucide-react-native";
@@ -172,6 +187,27 @@ import {
   type MeterProfile,
 } from "@/utils/meterSettings";
 import { fetchMeterProfiles } from "@/utils/meterSettingsStore";
+  adjustCharges,
+  AIRPORT_SURCHARGE,
+  airportSurchargeFor,
+  chargesFromText,
+  chargesToText,
+  createTripDetailsDraft,
+  describeAirportLeg,
+  describeMissingTripDetails,
+  formatPaxLuggage,
+  isTripDetailsComplete,
+  MAX_CHARGES,
+  MAX_LUGGAGE,
+  MAX_PAX,
+  MIN_LUGGAGE,
+  MIN_PAX,
+  resolveTripDetails,
+  sanitizeChargesText,
+  type MeterAirport,
+  type MeterTripDetails,
+  type MeterTripDetailsDraft,
+} from "@/utils/meterTripDetails";
 import { buildMeterReceiptHtml } from "@/utils/meterReceipt";
 import {
   clearMeterTrips,
@@ -256,6 +292,20 @@ interface LiveFix {
 
 /** Which end of the hire a stamp belongs to. */
 type MeterEnd = "pickup" | "dropoff";
+
+/**
+ * A hire that has been ended but not yet closed.
+ *
+ * END stops the fare at the instant it is pressed — the passenger is never
+ * billed for the time the declaration takes to fill in — so the totals and the
+ * moment are frozen here while the driver answers, and the record is written
+ * from this snapshot rather than from whatever the meter looks like at confirm.
+ */
+interface PendingEnd {
+  state: MeterState;
+  endedAt: number;
+  dropoff: MeterWaypoint;
+}
 
 /** A box the layout pass actually gave a field, in points. */
 interface MeasuredBox {
@@ -416,6 +466,16 @@ export default function MeterDigitalScreen() {
   /** The two ends of the hire. Null until the meter stamps them. */
   const [pickup, setPickupState] = useState<MeterWaypoint | null>(null);
   const [dropoff, setDropoffState] = useState<MeterWaypoint | null>(null);
+  /** The end-of-hire declaration, while the driver is filling it in. */
+  const [detailsDraft, setDetailsDraft] = useState<MeterTripDetailsDraft>(() =>
+    createTripDetailsDraft(),
+  );
+  /** The keyed charges field's own text, so a half-typed "12." survives a render. */
+  const [chargesText, setChargesText] = useState<string>("");
+  /** The hire that has been ended and is waiting on its declaration. */
+  const [pendingEnd, setPendingEnd] = useState<PendingEnd | null>(null);
+  /** What the driver declared for the hire just closed, once they confirmed it. */
+  const [tripDetails, setTripDetails] = useState<MeterTripDetails | null>(null);
   /** The "connecting to the vehicle" popup, raised by a blocked START press. */
   const [connectPromptOpen, setConnectPromptOpen] = useState<boolean>(false);
   /** The "where to?" popup, raised by a back press off the idle meter. */
@@ -467,6 +527,9 @@ export default function MeterDigitalScreen() {
   const backAction = resolveMeterBack({
     onMeterPanel: tab === "ehailing",
     running: meter.running,
+    // A hire that has stopped but has not been declared is not yet on the roll:
+    // there is no leaving the console with one open either.
+    ending: pendingEnd !== null,
   });
   const backBlocked = backAction === "blocked";
 
@@ -880,6 +943,11 @@ export default function MeterDigitalScreen() {
   const surcharge = meterExtraSurcharge(profile, { luggage, passengers });
   const extrasTotal = Math.round((extra + surcharge) * 100) / 100;
   const grandTotal = meterGrandTotal(fare.total, extrasTotal);
+  // What the passenger owes: the metered fare, the keyed-in charges, and the
+  // airport surcharge once the driver has declared one. Before that there is no
+  // surcharge to add — the meter cannot tell an airport from any other kerb.
+  const airportSurcharge = tripDetails?.airportSurcharge ?? 0;
+  const grandTotal = meterGrandTotal(fare.total, extra, airportSurcharge);
 
   // The end-of-hire total is drawn in a card that is itself a share of the
   // glass, so the digits are fitted to the card rather than to the viewport.
@@ -1017,6 +1085,15 @@ export default function MeterDigitalScreen() {
       beginTrip(km);
     });
   }, [beginTrip, profile, readOdometerOnce]);
+  const beginTrip = useCallback(() => {
+    const at = Date.now();
+    setMeter((prev) => startMeter(prev, at));
+    // A fresh hire, so nothing from the last one may follow it onto the roll.
+    recordedTripRef.current = null;
+    setTripDetails(null);
+    setWaypoint("dropoff", null);
+    captureWaypoint("pickup", at);
+  }, [captureWaypoint, setWaypoint]);
 
   /** Give up on the pending START — the driver closed the popup. */
   const closeConnectPrompt = useCallback(() => {
@@ -1072,20 +1149,69 @@ export default function MeterDigitalScreen() {
     );
     setWaypoint("pickup", null);
     setWaypoint("dropoff", null);
+    // The declaration belongs to the hire that carried it, never to the next
+    // passenger: the form opens blank again.
+    setTripDetails(null);
+    setDetailsDraft(createTripDetailsDraft());
+    setChargesText("");
     recordedTripRef.current = null;
   }, [profile.freePassengers, profile.nightEndHour, profile.nightStartHour, setWaypoint]);
 
-  /** End the hire: stamp the drop-off, stop accruing, write the record. */
+  /**
+   * End the hire: stop accruing, stamp the drop-off, and ask for the
+   * declaration.
+   *
+   * The fare stops here and nowhere else. Passengers, luggage, the tolls the
+   * driver laid out and whether either end was an airport are things only the
+   * driver knows, and the meter has to be told them before it can print a
+   * receipt — but the passenger is not billed for the asking, so the totals are
+   * frozen the moment END is pressed and the record is written from that
+   * snapshot once the form is answered (`confirmEndTrip`).
+   */
   const handleEndTrip = useCallback(() => {
     const endedAt = Date.now();
     const stopped = pauseMeter(meter);
     setMeter(stopped);
-    // Stamped before the record is written so the row carries the drop-off from
-    // the start; the odometer and the address are folded in as they answer.
+    // Stamped now rather than at confirm: this is where the passenger got out.
+    // The odometer and the address are folded in as they answer.
     const dropoffWaypoint = captureWaypoint("dropoff", endedAt);
-    void recordMeterTrip(stopped, {
+    // Whatever was pressed into the EXTRA keys during the hire is the same
+    // money the form asks about, so it opens with that already keyed in.
+    setDetailsDraft(createTripDetailsDraft(extra));
+    setChargesText(chargesToText(extra));
+    setPendingEnd({ state: stopped, endedAt, dropoff: dropoffWaypoint });
+  }, [captureWaypoint, extra, meter]);
+
+  /**
+   * Put the passenger back in the car: the hire never ended.
+   *
+   * The way out of the declaration that does not close a fare. Accrual resumes
+   * from now (`startMeter`), so the seconds spent in the form are not billed,
+   * and the drop-off stamp is dropped because the hire did not finish there.
+   */
+  const resumeEndedTrip = useCallback(() => {
+    setPendingEnd(null);
+    setWaypoint("dropoff", null);
+    setMeter((prev) => startMeter(prev, Date.now()));
+  }, [setWaypoint]);
+
+  /** Close the hire on the declared details: write the record, show the total. */
+  const confirmEndTrip = useCallback(() => {
+    if (!pendingEnd) return;
+    const details = resolveTripDetails(detailsDraft);
+    // The confirm key is gated on the same check, so this is the backstop
+    // rather than the gate: an undeclared hire is never written.
+    if (!details) return;
+
+    setPendingEnd(null);
+    setTripDetails(details);
+    // The console's EXTRA panel shows what was actually charged, not what the
+    // keys happened to be on when the driver pressed END.
+    setExtra(details.charges);
+
+    void recordMeterTrip(pendingEnd.state, {
       id: uuidv4(),
-      endedAt,
+      endedAt: pendingEnd.endedAt,
       tariff,
       period,
       // The card the hire was opened on, and the extras as they were actually
@@ -1094,10 +1220,15 @@ export default function MeterDigitalScreen() {
       rates,
       nightMultiplier: profile.nightMultiplier,
       extra: extrasTotal,
+      extra: details.charges,
+      pax: details.pax,
+      luggage: details.luggage,
+      airport: details.airport,
+      airportSurcharge: details.airportSurcharge,
       plate,
       driver: driverName,
       pickup: pickupRef.current,
-      dropoff: dropoffWaypoint,
+      dropoff: dropoffRef.current ?? pendingEnd.dropoff,
     }).then(({ trip, trips: list }) => {
       setLastTrip(trip);
       setTrips(list);
@@ -1137,6 +1268,42 @@ export default function MeterDigitalScreen() {
     },
     [profile.extraStep, profile.maxExtra],
   );
+  }, [detailsDraft, driverName, pendingEnd, period, plate, tariff]);
+
+  /* --- The declaration's own keys --- */
+
+  const setPax = useCallback((pax: number) => {
+    setDetailsDraft((prev) => ({ ...prev, pax }));
+  }, []);
+
+  const setLuggage = useCallback((luggage: number) => {
+    setDetailsDraft((prev) => ({ ...prev, luggage }));
+  }, []);
+
+  const setAirport = useCallback((airport: MeterAirport) => {
+    setDetailsDraft((prev) => ({ ...prev, airport }));
+  }, []);
+
+  /** The keyed charges field: the text is the driver's, the value is the meter's. */
+  const handleChargesText = useCallback((text: string) => {
+    const cleaned = sanitizeChargesText(text);
+    setChargesText(cleaned);
+    setDetailsDraft((prev) => ({ ...prev, charges: chargesFromText(cleaned) }));
+  }, []);
+
+  /** The − / + keys beside the field, for a driver wearing gloves in the dark. */
+  const handleChargesStep = useCallback(
+    (steps: number) => {
+      const charges = adjustCharges(detailsDraft.charges, steps);
+      setChargesText(chargesToText(charges));
+      setDetailsDraft((prev) => ({ ...prev, charges }));
+    },
+    [detailsDraft.charges],
+  );
+
+  const handleExtra = useCallback((steps: number) => {
+    setExtra((prev) => adjustExtra(prev, steps));
+  }, []);
 
   const printReceipt = useCallback(
     async (trip: MeterTrip | null) => {
@@ -1501,6 +1668,11 @@ export default function MeterDigitalScreen() {
       chars: fareText.length,
       // The fare only carries its caption once there is an extra to total up.
       textLines: extrasTotal > 0 ? [ui.panelLabel, ui.smallText] : [ui.panelLabel],
+      // The fare only carries its caption once there is something to total up.
+      textLines:
+        extra > 0 || airportSurcharge > 0
+          ? [ui.panelLabel, ui.smallText]
+          : [ui.panelLabel],
     });
     const extraFit = fitMoneyPanel({
       ...shared,
@@ -1514,6 +1686,15 @@ export default function MeterDigitalScreen() {
       keyHeight: Math.min(fareFit.keyHeight, extraFit.keyHeight),
     };
   }, [extrasTotal, extraBox, extraText.length, fareBox, fareText.length, ui]);
+  }, [
+    airportSurcharge,
+    extra,
+    extraBox,
+    extraText.length,
+    fareBox,
+    fareText.length,
+    ui,
+  ]);
 
   const fareCard = (
     <View
@@ -1574,6 +1755,10 @@ export default function MeterDigitalScreen() {
       {extrasTotal > 0 ? (
         <FitText style={styles.fareTotalLine} size={ui.smallText}>
           TOTAL WITH EXTRA · RM {grandTotal.toFixed(2)}
+      {extra > 0 || airportSurcharge > 0 ? (
+        <FitText style={styles.fareTotalLine} size={ui.smallText} testID="meter-digital-grand">
+          {airportSurcharge > 0 ? "TOTAL WITH EXTRA + AIRPORT" : "TOTAL WITH EXTRA"} · RM{" "}
+          {grandTotal.toFixed(2)}
         </FitText>
       ) : null}
     </View>
@@ -1638,6 +1823,96 @@ export default function MeterDigitalScreen() {
           ? `RM ${surcharge.toFixed(2)} BAGS & SEATS · ${profile.currency} ${profile.extraStep.toFixed(2)} PER PRESS`
           : `RM ${profile.extraStep.toFixed(2)} PER PRESS · TOLLS, FEES, LUGGAGE`}
       </FitText>
+    </View>
+  );
+
+  /* --- The end-of-hire declaration --- */
+
+  // Priced off the snapshot END froze rather than off the live meter: the fare
+  // stopped when the driver pressed the key, and nothing the form does moves it.
+  const pendingFare = useMemo(
+    () =>
+      pendingEnd
+        ? computeMeterFare(pendingEnd.state, {
+            tariff,
+            multiplier: periodMultiplier(period),
+          })
+        : null,
+    [pendingEnd, period, tariff],
+  );
+  const draftAirportSurcharge = airportSurchargeFor(detailsDraft.airport);
+  const declaredTotal = meterGrandTotal(
+    pendingFare?.total ?? 0,
+    detailsDraft.charges,
+    draftAirportSurcharge,
+  );
+  const detailsComplete = isTripDetailsComplete(detailsDraft);
+  const missingDetails = describeMissingTripDetails(detailsDraft);
+
+  /** One question of the declaration: the heading, and the keys that answer it. */
+  const detailSection = (
+    Icon: typeof CarTaxiFront,
+    label: string,
+    hint: string | null,
+    children: React.ReactNode,
+  ) => (
+    <View style={[styles.detailSection, { gap: Math.round(ui.gap * 0.6) }]}>
+      <View style={[styles.detailHead, { gap: Math.round(ui.gap * 0.6) }]}>
+        <Icon color={DASH.accent} size={ui.iconSize} />
+        <FitText style={styles.panelLabel} size={ui.panelLabel}>
+          {label}
+        </FitText>
+        {hint ? (
+          <FitText style={styles.detailHint} size={ui.captionText}>
+            {hint}
+          </FitText>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  );
+
+  /**
+   * A row of count keys, `from` to `to`. The answer is one tap on a number the
+   * driver can hit without looking — a keypad on a windscreen mount is not a
+   * thing anyone uses at the kerb with a passenger waiting.
+   */
+  const countChips = (
+    from: number,
+    to: number,
+    value: number | null,
+    onSelect: (n: number) => void,
+    testPrefix: string,
+  ) => (
+    <View style={[styles.chipWrap, { gap: Math.round(ui.gap * 0.6) }]}>
+      {Array.from({ length: to - from + 1 }, (_, i) => from + i).map((n) => {
+        const active = value === n;
+        return (
+          <TouchableOpacity
+            key={n}
+            style={[
+              styles.countChip,
+              {
+                height: ui.keyHeight,
+                minWidth: Math.round(ui.keyHeight * 1.15),
+                paddingHorizontal: Math.round(ui.pad * 0.5),
+                borderRadius: Math.round(ui.radius * 0.6),
+              },
+              active && styles.countChipActive,
+            ]}
+            onPress={() => onSelect(n)}
+            activeOpacity={0.8}
+            testID={`${testPrefix}-${n}`}
+          >
+            <FitText
+              style={[styles.countChipText, active && styles.countChipTextActive]}
+              size={ui.rowText}
+            >
+              {String(n)}
+            </FitText>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 
@@ -1874,6 +2149,9 @@ export default function MeterDigitalScreen() {
             // so those rows simply keep the shape they were written with.
             const odometerSpan = formatOdometerSpan(trip.pickup, trip.dropoff);
             const placeSpan = formatPlaceSpan(trip.pickup, trip.dropoff);
+            // Likewise null on a record from before the meter asked for them.
+            const occupancy = formatPaxLuggage(trip.pax, trip.luggage);
+            const airportLeg = describeAirportLeg(trip.airport);
             return (
             <View key={trip.id} style={[styles.panel, styles.tripRow, panelStyle(ui)]}>
               <View style={[styles.tripWhen, { width: ui.tripWhenWidth }]}>
@@ -1893,7 +2171,12 @@ export default function MeterDigitalScreen() {
                   {trip.tariff === "new" ? "New rates" : "Old rates"} ·{" "}
                   {trip.period === "night" ? "Night" : "Day"} · {trip.obdSamples} OBD /{" "}
                   {trip.gpsSamples} GPS
-                  {trip.extra > 0 ? ` · extras RM ${trip.extra.toFixed(2)}` : ""}
+                  {occupancy ? ` · ${occupancy}` : ""}
+                  {airportLeg ? ` · ${airportLeg.toLowerCase()}` : ""}
+                  {trip.extra > 0 ? ` · charges RM ${trip.extra.toFixed(2)}` : ""}
+                  {trip.airportSurcharge > 0
+                    ? ` · airport RM ${trip.airportSurcharge.toFixed(2)}`
+                    : ""}
                   {odometerSpan ? ` · ODO ${odometerSpan}` : ""}
                 </FitText>
                 {placeSpan ? (
@@ -2565,6 +2848,324 @@ export default function MeterDigitalScreen() {
         })}
       </View>
 
+      {/* The end-of-hire declaration. The fare has already stopped; what is
+          still missing is everything the meter cannot measure — who was in the
+          car, what they were carrying, what the driver laid out, and whether
+          either end was an airport. The hire is not written until it is
+          answered, and the only other way out is back into the hire. */}
+      <Modal
+        visible={pendingEnd !== null}
+        transparent
+        animationType="fade"
+        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
+        // Deliberately inert: a hire that has stopped but has not been declared
+        // is not on the roll yet, so it cannot be dismissed away. The two keys
+        // at the foot are the ways out — close it, or go back to driving it.
+        onRequestClose={() => {}}
+      >
+        <View style={[styles.modalBackdrop, { padding: ui.pad }]}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                padding: ui.pad * 1.2,
+                gap: Math.round(ui.gap * 0.8),
+                borderRadius: Math.round(ui.radius * 1.3),
+                // Wider than the other popups: this one is a form, and its
+                // count keys have to sit on one row apiece.
+                maxWidth: Math.min(760, winWidth * 0.94),
+                maxHeight: winHeight - ui.pad * 2,
+              },
+            ]}
+            testID="meter-digital-details-modal"
+          >
+            <View style={[styles.modalHeader, { gap: ui.gap }]}>
+              <FitText style={styles.modalTitle} size={ui.rowText}>
+                END OF HIRE
+              </FitText>
+              <FitText
+                style={styles.detailsHeaderAmount}
+                size={ui.rowText}
+                testID="meter-digital-details-total"
+              >
+                RM {declaredTotal.toFixed(2)}
+              </FitText>
+            </View>
+            <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
+              The meter has stopped — the fare below is settled. Declare the hire
+              to close it: every answer goes on the receipt and into the trip log.
+            </Text>
+
+            <ScrollView
+              style={styles.modalRowsScroll}
+              contentContainerStyle={[styles.detailsBody, { gap: ui.gap }]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+            >
+              {detailSection(
+                Users,
+                "PASSENGERS",
+                null,
+                countChips(
+                  MIN_PAX,
+                  MAX_PAX,
+                  detailsDraft.pax,
+                  setPax,
+                  "meter-digital-details-pax",
+                ),
+              )}
+              {detailSection(
+                LuggageIcon,
+                "LUGGAGE",
+                "PIECES CARRIED",
+                countChips(
+                  MIN_LUGGAGE,
+                  MAX_LUGGAGE,
+                  detailsDraft.luggage,
+                  setLuggage,
+                  "meter-digital-details-luggage",
+                ),
+              )}
+              {detailSection(
+                Receipt,
+                "TOLL / OTHER CHARGES",
+                `UP TO RM ${MAX_CHARGES.toFixed(2)}`,
+                <>
+                  <View style={[styles.chargesRow, { gap: ui.gap }]}>
+                    <TouchableOpacity
+                      style={[
+                        styles.key,
+                        styles.chargesKey,
+                        {
+                          height: ui.keyHeight,
+                          width: Math.round(ui.keyHeight * 1.5),
+                          borderRadius: Math.round(ui.radius * 0.65),
+                        },
+                        detailsDraft.charges <= 0 && styles.keyDisabled,
+                      ]}
+                      disabled={detailsDraft.charges <= 0}
+                      onPress={() => handleChargesStep(-1)}
+                      activeOpacity={0.8}
+                      testID="meter-digital-details-charges-down"
+                    >
+                      <Minus color={DASH.accent} size={ui.iconSize} />
+                    </TouchableOpacity>
+                    <View
+                      style={[
+                        styles.chargesField,
+                        {
+                          height: ui.keyHeight,
+                          gap: Math.round(ui.gap * 0.7),
+                          paddingHorizontal: ui.pad,
+                          borderRadius: Math.round(ui.radius * 0.65),
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.currency, { fontSize: ui.currencySize }]}
+                        allowFontScaling={false}
+                      >
+                        RM
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.chargesInput,
+                          { fontSize: Math.round(ui.rowText * 1.25) },
+                        ]}
+                        value={chargesText}
+                        onChangeText={handleChargesText}
+                        placeholder="0.00"
+                        placeholderTextColor={DASH.dim}
+                        keyboardType="decimal-pad"
+                        inputMode="decimal"
+                        selectionColor={DASH.accent}
+                        allowFontScaling={false}
+                        maxLength={7}
+                        testID="meter-digital-details-charges"
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.key,
+                        styles.chargesKey,
+                        {
+                          height: ui.keyHeight,
+                          width: Math.round(ui.keyHeight * 1.5),
+                          borderRadius: Math.round(ui.radius * 0.65),
+                        },
+                      ]}
+                      onPress={() => handleChargesStep(1)}
+                      activeOpacity={0.8}
+                      testID="meter-digital-details-charges-up"
+                    >
+                      <Plus color={DASH.accent} size={ui.iconSize} />
+                    </TouchableOpacity>
+                  </View>
+                  <Text
+                    style={[
+                      styles.bodyMuted,
+                      {
+                        fontSize: ui.captionText,
+                        lineHeight: Math.round(ui.captionText * 1.45),
+                      },
+                    ]}
+                    allowFontScaling={false}
+                  >
+                    Tolls you paid, a booking fee, a luggage charge. Type the
+                    figure or step it in RM {EXTRA_STEP.toFixed(2)}. Leave it at
+                    zero if there were none.
+                  </Text>
+                </>,
+              )}
+              {detailSection(
+                Plane,
+                "AIRPORT",
+                `SURCHARGE RM ${AIRPORT_SURCHARGE.toFixed(2)}`,
+                <View style={[styles.tariffRow, { gap: ui.gap }]}>
+                  {(
+                    [
+                      { key: "none" as const, title: "NEITHER", hint: "No surcharge" },
+                      {
+                        key: "pickup" as const,
+                        title: "AIRPORT PICKUP",
+                        hint: `+ RM ${AIRPORT_SURCHARGE.toFixed(2)}`,
+                      },
+                      {
+                        key: "dropoff" as const,
+                        title: "AIRPORT DROP-OFF",
+                        hint: `+ RM ${AIRPORT_SURCHARGE.toFixed(2)}`,
+                      },
+                    ]
+                  ).map((opt) => {
+                    const active = detailsDraft.airport === opt.key;
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[
+                          styles.tariffChip,
+                          chipStyle(ui),
+                          active && styles.tariffChipActive,
+                        ]}
+                        onPress={() => setAirport(opt.key)}
+                        activeOpacity={0.85}
+                        testID={`meter-digital-details-airport-${opt.key}`}
+                      >
+                        <FitText
+                          style={[
+                            styles.tariffChipTitle,
+                            { color: active ? DASH.accent : DASH.text },
+                          ]}
+                          size={ui.rowText}
+                        >
+                          {opt.title}
+                        </FitText>
+                        <FitText style={styles.tariffChipHint} size={ui.captionText}>
+                          {opt.hint}
+                        </FitText>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>,
+              )}
+            </ScrollView>
+
+            {/* What the declaration has done to the fare, line by line, so the
+                driver reads the total they are about to charge rather than
+                discovering it on the receipt. */}
+            <View style={[styles.detailsTotals, { gap: Math.round(ui.gap * 0.4) }]}>
+              <View style={[styles.modalRow, { gap: ui.gap }]}>
+                <Text
+                  style={[styles.modalRowLabel, { fontSize: ui.bodyText }]}
+                  allowFontScaling={false}
+                >
+                  Metered fare
+                </Text>
+                <Text
+                  style={[styles.modalRowValue, { fontSize: ui.bodyText }]}
+                  allowFontScaling={false}
+                >
+                  RM {(pendingFare?.total ?? 0).toFixed(2)}
+                </Text>
+              </View>
+              {detailsDraft.charges > 0 ? (
+                <View style={[styles.modalRow, { gap: ui.gap }]}>
+                  <Text
+                    style={[styles.modalRowLabel, { fontSize: ui.bodyText }]}
+                    allowFontScaling={false}
+                  >
+                    Tolls &amp; charges
+                  </Text>
+                  <Text
+                    style={[styles.modalRowValue, { fontSize: ui.bodyText }]}
+                    allowFontScaling={false}
+                  >
+                    RM {detailsDraft.charges.toFixed(2)}
+                  </Text>
+                </View>
+              ) : null}
+              {draftAirportSurcharge > 0 ? (
+                <View style={[styles.modalRow, { gap: ui.gap }]}>
+                  <Text
+                    style={[styles.modalRowLabel, { fontSize: ui.bodyText }]}
+                    allowFontScaling={false}
+                  >
+                    {describeAirportLeg(detailsDraft.airport) ?? "Airport"}
+                  </Text>
+                  <Text
+                    style={[styles.modalRowValue, { fontSize: ui.bodyText }]}
+                    allowFontScaling={false}
+                  >
+                    RM {draftAirportSurcharge.toFixed(2)}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {missingDetails ? (
+              <FitText
+                style={styles.detailsMissing}
+                size={ui.captionText}
+                testID="meter-digital-details-missing"
+              >
+                {missingDetails.toUpperCase()}
+              </FitText>
+            ) : null}
+
+            <View style={[styles.modalActions, { gap: ui.gap }]}>
+              <TouchableOpacity
+                style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
+                onPress={resumeEndedTrip}
+                activeOpacity={0.85}
+                testID="meter-digital-details-resume"
+              >
+                <Play color={DASH.text} size={ui.iconSize} />
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                  RESUME HIRE
+                </FitText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.wideButton,
+                  wideButtonStyle(ui),
+                  { backgroundColor: detailsComplete ? DASH.ok : DASH.disabled },
+                  !detailsComplete && styles.buttonDisabled,
+                ]}
+                disabled={!detailsComplete}
+                onPress={confirmEndTrip}
+                activeOpacity={0.85}
+                testID="meter-digital-details-confirm"
+              >
+                <Receipt color={DASH.text} size={ui.iconSize} />
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                  END TRIP · RM {declaredTotal.toFixed(2)}
+                </FitText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* The end-of-hire total: the moment the receipt exists. */}
       <Modal
         visible={totalOpen}
@@ -2646,9 +3247,37 @@ export default function MeterDigitalScreen() {
                   { label: "Distance", value: formatMeterDistance(lastTrip.distanceM) },
                   { label: "Trip time", value: formatMeterClock(lastTrip.elapsedMs) },
                   { label: "Waiting", value: formatMeterClock(lastTrip.waitingMs) },
+                  // What the driver declared, in the words the receipt uses.
+                  ...(lastTrip.pax !== null
+                    ? [{ label: "Passengers", value: String(lastTrip.pax) }]
+                    : []),
+                  ...(lastTrip.luggage !== null
+                    ? [{ label: "Luggage", value: String(lastTrip.luggage) }]
+                    : []),
+                  ...(describeAirportLeg(lastTrip.airport)
+                    ? [
+                        {
+                          label: "Airport",
+                          value: describeAirportLeg(lastTrip.airport) as string,
+                        },
+                      ]
+                    : []),
                   { label: "Metered fare", value: `RM ${lastTrip.fare.toFixed(2)}` },
                   ...(lastTrip.extra > 0
-                    ? [{ label: "Extras", value: `RM ${lastTrip.extra.toFixed(2)}` }]
+                    ? [
+                        {
+                          label: "Tolls & charges",
+                          value: `RM ${lastTrip.extra.toFixed(2)}`,
+                        },
+                      ]
+                    : []),
+                  ...(lastTrip.airportSurcharge > 0
+                    ? [
+                        {
+                          label: "Airport surcharge",
+                          value: `RM ${lastTrip.airportSurcharge.toFixed(2)}`,
+                        },
+                      ]
                     : []),
                   {
                     label: "Measured on",
@@ -3261,4 +3890,61 @@ const styles = StyleSheet.create({
   modalRowLabel: { color: DASH.muted, fontWeight: "600" as const },
   modalRowValue: { color: DASH.text, fontWeight: "700" as const },
   modalActions: { flexDirection: "row", marginTop: 2 },
+
+  /* End-of-hire declaration */
+  detailsHeaderAmount: {
+    color: DASH.segment,
+    fontWeight: "900" as const,
+    letterSpacing: 0.6,
+    flexShrink: 0,
+  },
+  detailsBody: { paddingBottom: 4 },
+  detailSection: {},
+  detailHead: { flexDirection: "row", alignItems: "center" },
+  // The hint rides the far end of its heading — "up to RM 99.50", the surcharge
+  // a key adds — where it answers the question before the key is pressed.
+  detailHint: {
+    flex: 1,
+    textAlign: "right",
+    color: DASH.dim,
+    fontWeight: "700" as const,
+    letterSpacing: 0.6,
+  },
+  // The count keys wrap rather than scroll sideways: every answer has to be
+  // visible at a glance, and a hidden "8" is an answer the driver cannot give.
+  chipWrap: { flexDirection: "row", flexWrap: "wrap" },
+  countChip: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: DASH.accent,
+    overflow: "hidden",
+  },
+  countChipActive: { backgroundColor: DASH.accent },
+  countChipText: { color: DASH.accent, fontWeight: "800" as const },
+  countChipTextActive: { color: DASH.bgDeep },
+  chargesRow: { flexDirection: "row", alignItems: "center" },
+  chargesKey: { flex: 0 },
+  chargesField: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: DASH.bgDeep,
+    borderWidth: 1,
+    borderColor: DASH.panelEdge,
+  },
+  chargesInput: {
+    flex: 1,
+    color: DASH.segment,
+    fontWeight: "900" as const,
+    letterSpacing: 1,
+    padding: 0,
+  },
+  detailsTotals: {
+    alignSelf: "stretch",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: DASH.panelEdge,
+    paddingTop: 6,
+  },
+  detailsMissing: { color: DASH.warn, fontWeight: "800" as const, letterSpacing: 0.6 },
 });

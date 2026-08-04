@@ -15,6 +15,10 @@ const TRIP: MeterTrip = {
   period: "day",
   fare: 16.65,
   extra: 2.5,
+  pax: 2,
+  luggage: 1,
+  airport: "none",
+  airportSurcharge: 0,
   total: 19.15,
   obdSamples: 1500,
   gpsSamples: 120,
@@ -61,8 +65,41 @@ describe("buildMeterReceiptHtml", () => {
     expect(night).toContain("+50%");
   });
 
-  it("omits the extras line when nothing was added by hand", () => {
-    expect(buildMeterReceiptHtml({ ...TRIP, extra: 0 })).not.toContain("Extras");
+  it("omits the charges line when nothing was keyed in by hand", () => {
+    const html = buildMeterReceiptHtml({ ...TRIP, extra: 0 });
+    expect(html).not.toContain("Tolls");
+    expect(buildMeterReceiptHtml(TRIP)).toContain("Tolls &amp; charges");
+  });
+
+  it("prints what the driver declared at the end of the hire", () => {
+    const html = buildMeterReceiptHtml(TRIP);
+    expect(html).toContain("Passengers");
+    expect(html).toContain("Luggage");
+  });
+
+  it("names the airport leg and prints its surcharge on its own line", () => {
+    const html = buildMeterReceiptHtml({
+      ...TRIP,
+      airport: "pickup",
+      airportSurcharge: 3,
+      total: 22.15,
+    });
+    expect(html).toContain("Airport pickup");
+    expect(html).toContain("Airport surcharge");
+    expect(html).toContain("RM 3.00");
+    expect(html).toContain("RM 22.15");
+  });
+
+  it("says nothing about an airport on a hire that touched none", () => {
+    const html = buildMeterReceiptHtml(TRIP);
+    expect(html).not.toContain("Airport");
+  });
+
+  it("leaves out a declaration the meter never asked for", () => {
+    // A record from a build before the end-of-hire form existed.
+    const html = buildMeterReceiptHtml({ ...TRIP, pax: null, luggage: null });
+    expect(html).not.toContain("Passengers");
+    expect(html).not.toContain("Luggage");
   });
 
   it("prints where the hire ran and what the odometer read at each end", () => {

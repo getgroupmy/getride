@@ -396,4 +396,12 @@ describe("extras", () => {
     // Negative inputs are clamped rather than subtracted from the passenger.
     expect(meterGrandTotal(-3, -2)).toBe(0);
   });
+
+  it("adds every declared charge, each clamped on its own", () => {
+    // Keyed-in tolls and an airport surcharge are separate lines on the
+    // receipt, so they arrive here separately rather than pre-summed.
+    expect(meterGrandTotal(8.63, 2.5, 3)).toBe(14.13);
+    expect(meterGrandTotal(4)).toBe(4);
+    expect(meterGrandTotal(4, 2, -9, Number.NaN)).toBe(6);
+  });
 });

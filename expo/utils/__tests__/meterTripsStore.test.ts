@@ -13,6 +13,7 @@ import {
   type MeterTrip,
 } from "@/utils/meterTripsStore";
 import type { MeterWaypoint } from "@/utils/meterDashboard";
+import { AIRPORT_SURCHARGE } from "@/utils/meterTripDetails";
 import {
   computeMeterFare,
   createMeterState,
@@ -91,6 +92,59 @@ describe("buildMeterTrip", () => {
 
   it("adds hand-entered extras onto the metered fare", () => {
     expect(tripFrom(finishedState(), 2.5).total).toBe(8.25);
+  });
+
+  it("stores the end-of-hire declaration and charges the airport surcharge", () => {
+    const state = finishedState();
+    const trip = buildMeterTrip(state, computeMeterFare(state), {
+      id: "t",
+      endedAt: T0 + 600_000,
+      tariff: "old",
+      period: "day",
+      extra: 2.5,
+      pax: 3,
+      luggage: 2,
+      airport: "dropoff",
+      airportSurcharge: AIRPORT_SURCHARGE,
+    });
+    expect(trip).toMatchObject({
+      pax: 3,
+      luggage: 2,
+      airport: "dropoff",
+      airportSurcharge: AIRPORT_SURCHARGE,
+      fare: 5.75,
+      extra: 2.5,
+    });
+    expect(trip.total).toBe(5.75 + 2.5 + AIRPORT_SURCHARGE);
+  });
+
+  it("derives the surcharge from the leg when the caller passes none", () => {
+    const state = finishedState();
+    const make = (airport: "none" | "pickup") =>
+      buildMeterTrip(state, computeMeterFare(state), {
+        id: "t",
+        endedAt: T0,
+        tariff: "old",
+        period: "day",
+        extra: 0,
+        pax: 1,
+        luggage: 0,
+        airport,
+      });
+    // A record can never claim an airport leg it did not bill for, or bill for
+    // one it did not claim.
+    expect(make("pickup").airportSurcharge).toBe(AIRPORT_SURCHARGE);
+    expect(make("none").airportSurcharge).toBe(0);
+  });
+
+  it("has no declaration at all when the caller made none", () => {
+    const trip = tripFrom(finishedState());
+    expect(trip).toMatchObject({
+      pax: null,
+      luggage: null,
+      airport: "none",
+      airportSurcharge: 0,
+    });
   });
 
   it("carries the night surcharge into the stored fare", () => {
@@ -210,6 +264,22 @@ describe("the log on disk", () => {
     expect(list[0]).toMatchObject({ startedAt: 5, tariff: "old", period: "day", total: 0 });
   });
 
+  it("reads a record written before the meter asked for a declaration", async () => {
+    await AsyncStorage.setItem(
+      METER_TRIPS_KEY,
+      JSON.stringify([{ id: "legacy", endedAt: 5, fare: 6.1, extra: 0, total: 6.1 }]),
+    );
+    const [trip] = await loadMeterTrips();
+    // No counts to print, no surcharge invented, and the total it charged.
+    expect(trip).toMatchObject({
+      pax: null,
+      luggage: null,
+      airport: "none",
+      airportSurcharge: 0,
+      total: 6.1,
+    });
+  });
+
   it("reads a record written before the meter stamped its ends", async () => {
     // The shape the log had until the ends existed: no pickup, no dropoff.
     await AsyncStorage.setItem(
@@ -299,5 +369,22 @@ describe("recordMeterTrip", () => {
     expect(trip.fare).toBe(8.63);
     expect(trip.total).toBe(9.63);
     expect(trips.map((t) => t.id)).toEqual(["recorded"]);
+  });
+
+  it("carries the declaration onto the roll", async () => {
+    const { trip } = await recordMeterTrip(finishedState(), {
+      id: "declared",
+      endedAt: T0 + 600_000,
+      tariff: "old",
+      period: "day",
+      extra: 0,
+      pax: 4,
+      luggage: 0,
+      airport: "pickup",
+      airportSurcharge: AIRPORT_SURCHARGE,
+    });
+    expect(trip).toMatchObject({ pax: 4, luggage: 0, airport: "pickup" });
+    expect(trip.total).toBe(5.75 + AIRPORT_SURCHARGE);
+    expect((await loadMeterTrips())[0].airportSurcharge).toBe(AIRPORT_SURCHARGE);
   });
 });

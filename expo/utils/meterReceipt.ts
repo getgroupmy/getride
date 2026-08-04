@@ -8,7 +8,9 @@
  * the honest capability: the meter can print, it just does not own the printer.
  *
  * Building the document is pure so its contents can be asserted in a test —
- * particularly the rule that a night-shift fare says so on the paper.
+ * particularly the rules that a night-shift fare says so on the paper, and that
+ * every charge above the metered fare (keyed-in tolls, an airport surcharge) is
+ * printed on its own line rather than folded into the total.
  */
 
 import {
@@ -23,6 +25,7 @@ import {
   formatWaypointOdometer,
   formatWaypointPlace,
 } from "@/utils/meterDashboard";
+import { describeAirportLeg } from "@/utils/meterTripDetails";
 import type { MeterTrip } from "@/utils/meterTripsStore";
 
 export interface ReceiptBranding {
@@ -87,6 +90,16 @@ function receiptLines(trip: MeterTrip): ReceiptLine[] {
       }`,
     },
   );
+
+  // The end-of-hire declaration. A record from before the meter asked has none
+  // of it, and prints no line rather than a line the driver never stated.
+  if (trip.pax !== null) lines.push({ label: "Passengers", value: String(trip.pax) });
+  if (trip.luggage !== null) {
+    lines.push({ label: "Luggage", value: String(trip.luggage) });
+  }
+  const airportLeg = describeAirportLeg(trip.airport);
+  if (airportLeg) lines.push({ label: "Airport", value: airportLeg });
+
   if (trip.period === "night") {
     lines.push({
       label: "Night surcharge",
@@ -95,7 +108,12 @@ function receiptLines(trip: MeterTrip): ReceiptLine[] {
   }
   lines.push({ label: "Flag fall", value: money(FLAG_FALL) });
   lines.push({ label: "Metered fare", value: money(trip.fare) });
-  if (trip.extra > 0) lines.push({ label: "Extras", value: money(trip.extra) });
+  if (trip.extra > 0) {
+    lines.push({ label: "Tolls & charges", value: money(trip.extra) });
+  }
+  if (trip.airportSurcharge > 0) {
+    lines.push({ label: "Airport surcharge", value: money(trip.airportSurcharge) });
+  }
   lines.push({ label: "Total", value: money(trip.total), strong: true });
   return lines;
 }

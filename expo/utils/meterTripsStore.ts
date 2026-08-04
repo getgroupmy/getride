@@ -13,6 +13,12 @@
  * already settled — so the record is written immediately and completed by
  * `patchMeterTripWaypoints`. Nothing that was measured or charged is rewritable.
  *
+ * It also carries the end-of-hire declaration — passengers, luggage, keyed-in
+ * charges and whether either end was an airport (`utils/meterTripDetails.ts`).
+ * Those are stated by the driver before the record is written, so unlike the
+ * waypoints they are complete from the first write. A record from a build before
+ * the meter asked has `pax`/`luggage` null, and prints no such line.
+ *
  * Shaping a record and summing the log are pure (and tested); this module only
  * loads, appends, patches and trims.
  */
@@ -23,6 +29,14 @@ import {
   normalizeMeterWaypoint,
   type MeterWaypoint,
 } from "@/utils/meterDashboard";
+import {
+  airportSurchargeFor,
+  clampLuggage,
+  clampPax,
+  normalizeAirport,
+  sanitizeCharges,
+  type MeterAirport,
+} from "@/utils/meterTripDetails";
 import {
   computeMeterFare,
   meterGrandTotal,
@@ -51,9 +65,19 @@ export interface MeterTrip {
   period: MeterPeriod;
   /** Metered fare in RM, night surcharge already applied. */
   fare: number;
-  /** Hand-entered extras in RM. */
+  /** Tolls and other charges the driver keyed in, in RM. */
   extra: number;
-  /** What the passenger paid: `fare` + `extra`. */
+  /**
+   * Passengers carried and pieces of luggage, as the driver declared them at
+   * the end of the hire. Null only on a record written before the meter asked.
+   */
+  pax: number | null;
+  luggage: number | null;
+  /** Which end of the hire — if either — was an airport. */
+  airport: MeterAirport;
+  /** The airport surcharge actually charged, in RM. Zero when neither end was. */
+  airportSurcharge: number;
+  /** What the passenger paid: `fare` + `extra` + `airportSurcharge`. */
   total: number;
   /** Samples each sensor contributed, so a fare can be traced to its source. */
   obdSamples: number;
@@ -82,6 +106,16 @@ export interface BuildMeterTripInput {
   /** The card's night surcharge, when it is not the built-in one. */
   nightMultiplier?: number;
   extra: number;
+  /** The end-of-hire declaration. Omitted only by callers that predate it. */
+  pax?: number | null;
+  luggage?: number | null;
+  airport?: MeterAirport | null;
+  /**
+   * The surcharge to charge for the airport leg. Defaulted from `airport` when
+   * the caller does not pass one, so a record can never claim an airport leg it
+   * did not bill for — or bill for one it did not claim.
+   */
+  airportSurcharge?: number | null;
   plate?: string | null;
   driver?: string | null;
   pickup?: MeterWaypoint | null;
@@ -101,7 +135,12 @@ export function buildMeterTrip(
   fare: MeterFare,
   input: BuildMeterTripInput,
 ): MeterTrip {
-  const extra = Math.max(0, Number.isFinite(input.extra) ? input.extra : 0);
+  const extra = sanitizeCharges(input.extra);
+  const airport = normalizeAirport(input.airport) ?? "none";
+  const airportSurcharge =
+    typeof input.airportSurcharge === "number" && Number.isFinite(input.airportSurcharge)
+      ? Math.max(0, input.airportSurcharge)
+      : airportSurchargeFor(airport);
   return {
     id: input.id,
     startedAt: state.startedAt ?? input.endedAt,
@@ -113,7 +152,11 @@ export function buildMeterTrip(
     period: input.period,
     fare: fare.total,
     extra,
-    total: meterGrandTotal(fare.total, extra),
+    pax: clampPax(input.pax),
+    luggage: clampLuggage(input.luggage),
+    airport,
+    airportSurcharge,
+    total: meterGrandTotal(fare.total, extra, airportSurcharge),
     obdSamples: state.obdSamples,
     gpsSamples: state.gpsSamples,
     plate: input.plate?.trim() ? input.plate.trim() : null,
@@ -153,6 +196,13 @@ function normalizeTrips(value: unknown): MeterTrip[] {
     if (!raw || typeof raw !== "object") continue;
     const t = raw as Partial<MeterTrip>;
     if (typeof t.id !== "string" || typeof t.endedAt !== "number") continue;
+    const airport = normalizeAirport(t.airport) ?? "none";
+    // A record from before the declaration existed has no surcharge line, and
+    // one is never invented for it: its stored total is what was charged.
+    const airportSurcharge =
+      typeof t.airportSurcharge === "number" && Number.isFinite(t.airportSurcharge)
+        ? Math.max(0, t.airportSurcharge)
+        : airportSurchargeFor(airport);
     out.push({
       id: t.id,
       startedAt: typeof t.startedAt === "number" ? t.startedAt : t.endedAt,
@@ -164,10 +214,18 @@ function normalizeTrips(value: unknown): MeterTrip[] {
       period: t.period === "night" ? "night" : "day",
       fare: typeof t.fare === "number" ? t.fare : 0,
       extra: typeof t.extra === "number" ? t.extra : 0,
+      pax: clampPax(t.pax),
+      luggage: clampLuggage(t.luggage),
+      airport,
+      airportSurcharge,
       total:
         typeof t.total === "number"
           ? t.total
-          : meterGrandTotal(typeof t.fare === "number" ? t.fare : 0, 0),
+          : meterGrandTotal(
+              typeof t.fare === "number" ? t.fare : 0,
+              typeof t.extra === "number" ? t.extra : 0,
+              airportSurcharge,
+            ),
       obdSamples: typeof t.obdSamples === "number" ? t.obdSamples : 0,
       gpsSamples: typeof t.gpsSamples === "number" ? t.gpsSamples : 0,
       plate: typeof t.plate === "string" ? t.plate : null,
