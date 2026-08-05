@@ -139,6 +139,85 @@ async function fetchPartnerTypeEntriesRemote(): Promise<SettingEntry[]> {
   }
 }
 
+type PartnerTypeMeta = {
+  description?: string;
+  iconUrl?: string;
+  enabled: boolean;
+  priority: number;
+};
+
+/** Index the admin `partner-type` catalog by lowercased name. */
+function indexPartnerTypes(entries: readonly SettingEntry[]): Map<string, PartnerTypeMeta> {
+  const byName = new Map<string, PartnerTypeMeta>();
+  for (const e of entries) {
+    const n = String(e.values?.name ?? "").trim();
+    if (!n) continue;
+    const shortInfo =
+      typeof e.values?.shortInfo === "string" ? (e.values.shortInfo as string).trim() : "";
+    const desc =
+      typeof e.values?.description === "string" ? (e.values.description as string).trim() : "";
+    const iconUrl =
+      typeof e.values?.iconUrl === "string" ? (e.values.iconUrl as string).trim() : "";
+    const rawPriority = Number(e.values?.displayPriority);
+    byName.set(n.toLowerCase(), {
+      description: shortInfo.length > 0 ? shortInfo : desc.length > 0 ? desc : undefined,
+      iconUrl: iconUrl.length > 0 ? iconUrl : undefined,
+      // Matches PartnerTypePicker / admin-settings-partner-type: absent means on.
+      enabled: Boolean(e.values?.enabled ?? true),
+      priority: Number.isFinite(rawPriority) ? rawPriority : Number.POSITIVE_INFINITY,
+    });
+  }
+  return byName;
+}
+
+/**
+ * Shape the partner's assigned `partner_types` into service-mode options,
+ * following the admin `partner-type` catalog: a type the admin has switched
+ * off is dropped, and the list is ordered by the admin's `displayPriority`
+ * rather than by whatever order the names happen to sit in on the partner row.
+ *
+ * A name with no matching catalog entry is kept (sorted last): the catalog may
+ * simply not have synced, and dropping it could empty the list and send the
+ * modal back to its legacy TEKSI + eHailing default — a worse lie than showing
+ * a type whose entry has since been renamed. Only an explicit `enabled: false`
+ * removes a mode. Duplicates are collapsed case-insensitively.
+ */
+export function buildPartnerModeOptions(
+  assigned: readonly unknown[],
+  entries: readonly SettingEntry[]
+): PartnerModeOption[] {
+  const byName = indexPartnerTypes(entries);
+  const seen = new Set<string>();
+  const options: { option: PartnerModeOption; priority: number; order: number }[] = [];
+
+  for (const raw of assigned) {
+    const name = String(raw ?? "").trim();
+    if (name.length === 0) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const meta = byName.get(key);
+    if (meta && !meta.enabled) continue;
+    options.push({
+      option: {
+        id: name,
+        name,
+        description: meta?.description,
+        iconUrl: meta?.iconUrl,
+      },
+      priority: meta?.priority ?? Number.POSITIVE_INFINITY,
+      order: options.length,
+    });
+  }
+
+  return options
+    .sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return a.order - b.order;
+    })
+    .map((o) => o.option);
+}
+
 export async function loadAssignedPartnerModeOptions(
   userId: string | null | undefined,
   getEntries: GetEntries
@@ -153,37 +232,7 @@ export async function loadAssignedPartnerModeOptions(
       console.log("[partnerModeOptions] cache empty — fetching partner-type entries from Supabase");
       entries = await fetchPartnerTypeEntriesRemote();
     }
-    const byName = new Map<string, { description?: string; iconUrl?: string }>();
-    for (const e of entries) {
-      const n = String(e.values?.name ?? "").trim();
-      if (!n) continue;
-      const shortInfo =
-        typeof e.values?.shortInfo === "string"
-          ? (e.values.shortInfo as string).trim()
-          : "";
-      const desc =
-        typeof e.values?.description === "string"
-          ? (e.values.description as string).trim()
-          : "";
-      const iconUrl =
-        typeof e.values?.iconUrl === "string"
-          ? (e.values.iconUrl as string).trim()
-          : "";
-      byName.set(n.toLowerCase(), {
-        description:
-          shortInfo.length > 0 ? shortInfo : desc.length > 0 ? desc : undefined,
-        iconUrl: iconUrl.length > 0 ? iconUrl : undefined,
-      });
-    }
-    return assigned
-      .map((name) => String(name).trim())
-      .filter((name) => name.length > 0)
-      .map((name) => ({
-        id: name,
-        name,
-        description: byName.get(name.toLowerCase())?.description,
-        iconUrl: byName.get(name.toLowerCase())?.iconUrl,
-      }));
+    return buildPartnerModeOptions(assigned, entries);
   } catch (e) {
     console.log("[partnerModeOptions] load failed", e);
     return [];

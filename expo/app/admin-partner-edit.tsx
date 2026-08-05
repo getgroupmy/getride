@@ -86,6 +86,7 @@ export default function AdminPartnerEditScreen() {
     };
   }, [partner?.id]);
   const [vehicleSearch, setVehicleSearch] = useState<string>("");
+  const [saving, setSaving] = useState<boolean>(false);
   const [partnerTypes, setPartnerTypes] = useState<string[]>(
     partner?.partnerTypes && partner.partnerTypes.length > 0
       ? partner.partnerTypes
@@ -172,7 +173,7 @@ export default function AdminPartnerEditScreen() {
     );
   }
 
-  const onSave = () => {
+  const onSave = async () => {
     if (!guard()) return;
     if (!serviceAreaComplete) {
       Alert.alert(
@@ -192,7 +193,8 @@ export default function AdminPartnerEditScreen() {
       );
       return;
     }
-    updatePartner(partner.id, {
+    setSaving(true);
+    const result = await updatePartner(partner.id, {
       vehicle: selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.model}`.trim() : "",
       plate: selectedVehicle ? selectedVehicle.plate : "",
       vehicleType: selectedVehicle?.vehicleType,
@@ -204,6 +206,18 @@ export default function AdminPartnerEditScreen() {
       serviceStates: serviceArea.states,
       serviceCities: serviceArea.cities,
     });
+    setSaving(false);
+    // The partner's own app reads `partner_types` straight off this row (it is
+    // what the service-mode modal lists), so a rejected write that still said
+    // "Saved" left the operator believing they had changed what the partner
+    // sees. Report the failure instead.
+    if (!result.ok) {
+      Alert.alert(
+        "Not saved",
+        `The partner could not be updated on the server.\n\n${result.error ?? "Unknown error."}`
+      );
+      return;
+    }
     Alert.alert("Saved", "Partner has been updated.", [
       { text: "OK", onPress: () => router.back() },
     ]);
@@ -457,13 +471,16 @@ export default function AdminPartnerEditScreen() {
           )}
 
           <TouchableOpacity
-            onPress={onSave}
-            style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
+            onPress={() => void onSave()}
+            disabled={saving}
+            style={[styles.submitBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.6 : 1 }]}
             testID="edit-partner-save"
             activeOpacity={0.9}
           >
             <Save color={Colors.onAccent} size={18} />
-            <Text style={[styles.submitText, { color: Colors.onAccent }]}>Save changes</Text>
+            <Text style={[styles.submitText, { color: Colors.onAccent }]}>
+              {saving ? "Saving…" : "Save changes"}
+            </Text>
           </TouchableOpacity>
 
           <View style={{ height: 24 }} />
