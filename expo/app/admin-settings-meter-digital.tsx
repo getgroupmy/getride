@@ -911,14 +911,14 @@ export default function AdminSettingsMeterDigitalScreen() {
               )}
               {switchRow(
                 "Start without odometer",
-                "Off means a hire cannot open until the reader returns the vehicle's odometer (PID A6).",
+                "Applies only with no reader linked — a hire opened on a connected reader always requires the odometer (PID A6). Off means no hire opens without it at all.",
                 draft.allowStartWithoutOdometer,
                 (next) => setDraft((p) => ({ ...p, allowStartWithoutOdometer: next })),
                 "meter-settings-allow-start-without-odo",
               )}
               {switchRow(
                 "Read the odometer",
-                "Ask the reader for the odometer at pickup and drop-off. Turn off for fleets whose cars don't publish it.",
+                "Ask the reader for the odometer at pickup and drop-off. Turn off for fleets whose cars don't publish it — otherwise a connected reader that can't return it blocks the hire.",
                 draft.readOdometer,
                 (next) => setDraft((p) => ({ ...p, readOdometer: next })),
                 "meter-settings-read-odo",

@@ -3,6 +3,7 @@ import {
   DEFAULT_TANK_CAPACITY_L,
   MAX_TANK_CAPACITY_L,
   MIN_LEARN_DISTANCE_KM,
+  ODOMETER_READ_ATTEMPTS,
   computeFuelRange,
   defaultFuelProfile,
   estimateConsumption,
@@ -17,6 +18,7 @@ import {
   normalizeFuelProfile,
   profileForVin,
   readFuelSnapshot,
+  readOdometerKm,
   validateFuelProfileInput,
   type FuelProfile,
   type FuelSnapshot,
@@ -333,5 +335,40 @@ describe("display helpers", () => {
   it("defaults a fresh profile to a plausible car", () => {
     expect(defaultFuelProfile().tankCapacityL).toBe(DEFAULT_TANK_CAPACITY_L);
     expect(defaultFuelProfile().consumptionL100).toBe(DEFAULT_CONSUMPTION_L_PER_100KM);
+  });
+});
+
+describe("readOdometerKm", () => {
+  const FRAME = "41 A6 00 01 E2 40"; // 123456 → 12345.6 km
+
+  it("decodes the odometer off the first good answer", async () => {
+    const send = jest.fn().mockResolvedValue(FRAME);
+    await expect(readOdometerKm(send, { delayMs: 0 })).resolves.toBeCloseTo(12345.6, 3);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith("01A6");
+  });
+
+  it("retries an adapter that was busy rather than calling the reading absent", async () => {
+    // One unanswered command is not proof that a car has no odometer: the
+    // adapter serves the 1 Hz sweep at the same time and clones answer BUSY.
+    const send = jest
+      .fn()
+      .mockResolvedValueOnce("BUSY")
+      .mockRejectedValueOnce(new Error("timed out"))
+      .mockResolvedValueOnce(FRAME);
+    await expect(readOdometerKm(send, { delayMs: 0 })).resolves.toBeCloseTo(12345.6, 3);
+    expect(send).toHaveBeenCalledTimes(3);
+  });
+
+  it("gives up honestly on a car that does not publish PID A6", async () => {
+    const send = jest.fn().mockResolvedValue("NO DATA");
+    await expect(readOdometerKm(send, { delayMs: 0 })).resolves.toBeNull();
+    expect(send).toHaveBeenCalledTimes(ODOMETER_READ_ATTEMPTS);
+  });
+
+  it("never reports a reading from a link that only ever threw", async () => {
+    const send = jest.fn().mockRejectedValue(new Error("no session"));
+    await expect(readOdometerKm(send, { attempts: 2, delayMs: 0 })).resolves.toBeNull();
+    expect(send).toHaveBeenCalledTimes(2);
   });
 });

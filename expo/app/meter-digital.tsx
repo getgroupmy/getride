@@ -30,10 +30,14 @@
  * pickup odometer is taken *before* the fare opens whenever a real reader is
  * linked (`meterReadsOdometerBeforeStart`): it is the one reading that cannot
  * be recovered later, since by the time a late answer lands the car has moved.
- * The drop-off is stamped the same way when the hire ends — but chased rather
- * than waited for, because END must stop the fare at the instant it is pressed
- * — and both ends go onto the trip log and the printed receipt: readings that
- * answer after the record is written are folded into it
+ * With a reader linked it is also **compulsory** — the ask is retried, and a
+ * car that will not answer it at all refuses the hire (`meterOdometerGate`)
+ * rather than opening one that prints a dash where its start mileage belongs.
+ * A fleet whose cars do not publish PID A6 turns the odometer read off on the
+ * rate card instead. The drop-off is stamped the same way when the hire ends —
+ * but chased rather than waited for, because END must stop the fare at the
+ * instant it is pressed — and both ends go onto the trip log and the printed
+ * receipt: readings that answer after the record is written are folded into it
  * (`patchMeterTripWaypoints`), because the fare may not wait for a dongle.
  *
  * Ending a hire is two steps, because a fare and a receipt are not the same
@@ -158,9 +162,7 @@ import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import RotateDeviceNotice from "@/components/RotateDeviceNotice";
 import SegmentDisplay from "@/components/SegmentDisplay";
 import { TRANSPORT_LABEL } from "@/utils/canbus/types";
-import { OBD_MODE_CURRENT } from "@/utils/canbus/obd";
-import { PID_ODOMETER } from "@/utils/canbus/fuelRange";
-import { decodeReading } from "@/utils/canbus/vehicleScan";
+import { readOdometerKm } from "@/utils/canbus/fuelRange";
 import { formatDisplayAddress } from "@/utils/addressFormatter";
 import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
 import { reverseGeocode } from "@/utils/maps";
@@ -642,26 +644,28 @@ export default function MeterDigitalScreen() {
     [setWaypoint],
   );
 
+  /** A *real* reader is on the bus at this instant — Demo Mode is not one. */
+  const isObdLinkedNow = useCallback((): boolean => {
+    const session = canbusRef.current;
+    return session.phase === "online" && !session.simulated;
+  }, []);
+
   /**
-   * The odometer the cluster is showing, read once as an end is stamped.
+   * The odometer the cluster is showing, read as an end of the hire is stamped.
    *
    * Generic OBD-II publishes it as mode-01 PID A6, which plenty of cars simply
-   * do not implement — those answer NO DATA and the reading stays a dash. Demo
-   * Mode has no adapter to ask at all, and a simulated odometer would be a
-   * number the vehicle never reported.
+   * do not implement — those answer NO DATA however many times they are asked,
+   * and the reading stays a dash. What is *not* a car without an odometer is an
+   * adapter that was busy with the 1 Hz sweep for one command, so the ask is
+   * retried (`readOdometerKm`) before the reading is called absent: with a live
+   * reader that missing answer now holds the hire up rather than merely leaving
+   * a blank on the receipt. Demo Mode has no adapter to ask at all, and a
+   * simulated odometer would be a number the vehicle never reported.
    */
   const readOdometerOnce = useCallback(async (): Promise<number | null> => {
-    const session = canbusRef.current;
-    if (session.phase !== "online" || session.simulated) return null;
-    try {
-      const raw = await sendCommandRef.current(OBD_MODE_CURRENT + PID_ODOMETER);
-      const reading = decodeReading(PID_ODOMETER, raw);
-      return typeof reading?.numeric === "number" ? reading.numeric : null;
-    } catch (e) {
-      console.log("[meter-digital] odometer unavailable", e);
-      return null;
-    }
-  }, []);
+    if (!isObdLinkedNow()) return null;
+    return readOdometerKm((command) => sendCommandRef.current(command));
+  }, [isObdLinkedNow]);
 
   const readWaypointOdometer = useCallback(
     async (end: MeterEnd, at: number) => {
@@ -1121,7 +1125,14 @@ export default function MeterDigitalScreen() {
    *
    * With no reader on the bus there is nothing to ask and the press is not
    * held, unless the card requires the reading — there the missing answer is
-   * exactly what the gate refuses the hire on.
+   * exactly what the gate refuses the hire on. With a reader linked the reading
+   * is compulsory whatever the card allows: a hire that opens beside a live
+   * OBD-II session and prints a dash for its start mileage has lost the one
+   * number the car was right there to give.
+   *
+   * The link is re-read at the moment the answer lands rather than trusted from
+   * the render that started the press — a reader that dropped mid-read is no
+   * longer a live one, and the card decides that case as it always did.
    */
   const startHire = useCallback(() => {
     if (!meterReadsOdometerBeforeStart(profile, obdLinked)) {
@@ -1131,16 +1142,18 @@ export default function MeterDigitalScreen() {
     setOdometerChecking(true);
     void readOdometerOnce().then((km) => {
       setOdometerChecking(false);
-      const gate = meterOdometerGate(profile, km);
+      const gate = meterOdometerGate(profile, km, isObdLinkedNow());
       if (!gate.canStart) {
         Alert.alert("Odometer required", gate.reason ?? "");
         return;
       }
-      // Asked either way: a car that answered NO DATA is not asked again a
-      // moment later, so a reading the meter could not get stays a dash.
+      // Asked either way: a car that answered NO DATA to every attempt is not
+      // asked again a moment later, so a reading the meter could not get stays
+      // a dash — which, with a reader linked, the gate above has already
+      // refused the hire on.
       beginTrip(km, true);
     });
-  }, [beginTrip, obdLinked, profile, readOdometerOnce]);
+  }, [beginTrip, isObdLinkedNow, obdLinked, profile, readOdometerOnce]);
 
   /** Give up on the pending START — the driver closed the popup. */
   const closeConnectPrompt = useCallback(() => {
