@@ -10,6 +10,7 @@
  */
 
 import { NativeModules, TurboModuleRegistry } from "react-native";
+import { loadOptionalNativeModule } from "@/utils/nativeModuleGuard";
 
 /**
  * `react-native-ble-plx` registers its iOS/Android module under this name
@@ -19,15 +20,26 @@ const BLE_NATIVE_MODULE = "BlePlx";
 
 let cache: any | null | undefined;
 
-/** The `react-native-ble-plx` module, or null when it cannot be loaded. */
+/**
+ * The `react-native-ble-plx` module, or null when it cannot be loaded.
+ *
+ * Loaded the same way as the other two transports: the package is not imported
+ * unless its native module is linked, and the import runs inside the guard
+ * (`utils/nativeModuleGuard.ts`) rather than a bare try/catch, which Metro
+ * defeats for anything a package throws at import time. Skipping the import
+ * can never disable a working build — `describeBleAvailability` already
+ * requires the same linkage before it calls Bluetooth LE usable.
+ */
 export function loadBleModule(): any | null {
   if (cache !== undefined) return cache;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    cache = require("react-native-ble-plx");
-  } catch {
+  if (!isBleNativeLinked()) {
     cache = null;
+    return cache;
   }
+  cache = loadOptionalNativeModule("react-native-ble-plx", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require("react-native-ble-plx");
+  });
   return cache;
 }
 

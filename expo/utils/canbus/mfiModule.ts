@@ -17,6 +17,7 @@
  */
 
 import { NativeModules, TurboModuleRegistry } from "react-native";
+import { loadOptionalNativeModule } from "@/utils/nativeModuleGuard";
 
 /**
  * The name the library registers its iOS module under — `@objc(RNBluetoothClassic)`
@@ -30,19 +31,26 @@ let cache: any | null | undefined;
  * The `react-native-bluetooth-classic` default export (a `BluetoothModule`
  * instance), or null when it cannot be loaded.
  *
- * The package builds that instance at import time, so the require is guarded:
- * a load failure must degrade to "MFi unavailable", never take down the screen
- * that is only asking which transports exist.
+ * The package builds that instance at import time — handing the native module
+ * straight to a `NativeEventEmitter`, which iOS rejects with an invariant when
+ * it is null — so the import is skipped entirely unless the native side is
+ * linked, exactly as in `tcpModule.ts`, and the import that does happen runs
+ * inside the guard (a try/catch alone does not survive an import-time throw;
+ * see `utils/nativeModuleGuard.ts`). A load failure must degrade to "MFi
+ * unavailable", never take down the screen that is only asking which transports
+ * exist.
  */
 export function loadMfiModule(): any | null {
   if (cache !== undefined) return cache;
-  try {
+  if (!isMfiNativeLinked()) {
+    cache = null;
+    return cache;
+  }
+  cache = loadOptionalNativeModule("react-native-bluetooth-classic", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require("react-native-bluetooth-classic");
-    cache = mod?.default ?? mod ?? null;
-  } catch {
-    cache = null;
-  }
+    return mod?.default ?? mod ?? null;
+  });
   return cache;
 }
 

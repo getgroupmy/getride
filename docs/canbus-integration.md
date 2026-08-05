@@ -412,7 +412,22 @@ availability rules that a unit test can pin down.
   `new NativeEventEmitter(NativeModules.TcpSockets)` at *import* time. Without
   the native module that argument is null, which RN rejects with an invariant,
   so an unguarded top-level import would take down the reader screen instead of
-  reporting Wi-Fi as unavailable. `tcpModule.ts` owns that guard.
+  reporting Wi-Fi as unavailable. `tcpModule.ts` owns that guard — and a
+  try/catch around the require is **not** it. Metro hands an error thrown by the
+  outermost require of a tick to `ErrorUtils.reportFatalError` rather than
+  rethrowing it (`metro-runtime`'s `guardedLoadModule`), so the invariant
+  reached the red box even though the call was wrapped: opening Meter Digital in
+  Expo Go crashed on a transport probe that was only asking which links exist.
+  Two defences now, both in `tcpModule.ts` and mirrored in `mfiModule.ts` /
+  `bleModule.ts`: the package is not imported at all unless its native module is
+  linked (`isTcpNativeLinked()` first — availability already required it, so
+  skipping the import can never disable a working build), and the import that
+  does happen runs inside `utils/nativeModuleGuard.ts`, which catches both the
+  throw and the fatal report. The same guard covers every other optional native
+  package that touches its native side at import time —
+  `react-native-exit-app`'s `TurboModuleRegistry.getEnforcing` spec
+  (`utils/appExit.ts`) and `expo-screen-orientation`'s `requireNativeModule`
+  (`utils/screenOrientation.ts`).
 - **Autolinking.** Unlike `react-native-bluetooth-classic`, no platform needs
   excluding: the library's `android/build.gradle` resolves React Native through
   `safeExtGet` + a dynamic version, so it picks up the host project's SDK and

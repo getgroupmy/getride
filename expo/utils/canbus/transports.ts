@@ -83,9 +83,13 @@ function optionalRequire(moduleName: string): any | null {
  *
  * `react-native-tcp-socket` is a real dependency, so the JS resolves wherever
  * the bundle runs; only the native-module lookup says whether this binary can
- * actually open a socket. Both are needed before a connect is attempted,
- * because the package throws at import time when its native side is missing
- * (see `tcpModule.ts`).
+ * actually open a socket. Both are needed before a connect is attempted.
+ *
+ * `loadTcpModule` returns null unless the native side is linked — the package
+ * throws at import time without it (see `tcpModule.ts`) — so `moduleInstalled`
+ * reads false in exactly the builds `nativeModuleLinked` already does. The copy
+ * is unaffected: `describeWifiAvailability` says the same thing whichever half
+ * is missing.
  */
 function wifiAvailability(): { available: boolean; reason?: string; guidance?: string } {
   const mod = loadTcpModule();

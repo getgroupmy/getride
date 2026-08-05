@@ -31,23 +31,30 @@
  */
 
 import { BackHandler, Platform } from "react-native";
+import { loadOptionalNativeModule } from "@/utils/nativeModuleGuard";
 
 let cache: { exitApp?: () => void } | null | undefined;
 
-/** The `react-native-exit-app` module, or null when it isn't in this binary. */
+/**
+ * The `react-native-exit-app` module, or null when it isn't in this binary.
+ *
+ * `getEnforcing` throws when the native side is missing — an older installed
+ * build, Expo Go, or the web bundle. Not an error, just an answer; but it is
+ * thrown from inside the require, which Metro turns into a fatal report rather
+ * than something a try/catch here could see, so the load goes through
+ * `loadOptionalNativeModule` (see `utils/nativeModuleGuard.ts`).
+ */
 function loadExitModule(): { exitApp?: () => void } | null {
   if (cache !== undefined) return cache;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require("react-native-exit-app");
-    const resolved = mod?.default ?? mod ?? null;
-    cache = typeof resolved?.exitApp === "function" ? resolved : null;
-  } catch (e) {
-    // getEnforcing throws when the native side is missing — an older installed
-    // build, Expo Go, or the web bundle. Not an error, just an answer.
-    console.log("[appExit] native exit module unavailable", e);
-    cache = null;
-  }
+  const resolved = loadOptionalNativeModule<{ exitApp?: () => void }>(
+    "react-native-exit-app",
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mod = require("react-native-exit-app");
+      return mod?.default ?? mod ?? null;
+    },
+  );
+  cache = typeof resolved?.exitApp === "function" ? resolved : null;
   return cache ?? null;
 }
 
