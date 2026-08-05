@@ -317,8 +317,34 @@ describe("allowedMeterSources", () => {
 });
 
 describe("meterOdometerGate", () => {
-  it("lets a hire open without an odometer by default", () => {
+  it("lets a hire open without an odometer by default, with no reader to ask", () => {
     expect(meterOdometerGate(profile(), null).canStart).toBe(true);
+    expect(meterOdometerGate(profile(), null, false).canStart).toBe(true);
+  });
+
+  it("makes the reading compulsory once a real reader is linked", () => {
+    // The card's allowance is about a meter working blind. With the reader
+    // connected the car was right there to answer, and the pickup mileage
+    // cannot be recovered once the hire has opened.
+    const lenient = profile({ allowStartWithoutOdometer: true });
+    const gate = meterOdometerGate(lenient, null, true);
+    expect(gate.canStart).toBe(false);
+    expect(gate.reason).toContain("odometer");
+    expect(meterOdometerGate(lenient, Number.NaN, true).canStart).toBe(false);
+    expect(meterOdometerGate(lenient, -1, true).canStart).toBe(false);
+    expect(meterOdometerGate(lenient, 128_450.6, true).canStart).toBe(true);
+    expect(meterOdometerGate(lenient, 0, true).canStart).toBe(true);
+  });
+
+  it("does not compel a reading the linked card would never take", () => {
+    // Read switched off, or a card that never speaks to the bus: a linked
+    // reader changes nothing, because this meter is not asking for a reading.
+    expect(meterOdometerGate(profile({ readOdometer: false }), null, true).canStart).toBe(
+      true,
+    );
+    expect(meterOdometerGate(profile({ sourceMode: "gps" }), null, true).canStart).toBe(
+      true,
+    );
   });
 
   it("blocks a hire with no odometer when the card requires one", () => {

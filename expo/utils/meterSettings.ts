@@ -3,9 +3,11 @@
  *
  * Everything `app/meter-digital.tsx` is *told* rather than decides for itself
  * lives in one profile: which sensors it may bill on, whether a hire may open
- * without an odometer reading, which of the five console panels are shown and
- * which of those may be tapped, and the rate card (flag fare, distance charge,
- * time charge, night surcharge, luggage/passenger extras).
+ * without an odometer reading where there is no reader to ask for one — with a
+ * reader linked the reading is always required — which of the five console
+ * panels are shown and which of those may be tapped, and the rate card (flag
+ * fare, distance charge, time charge, night surcharge, luggage/passenger
+ * extras).
  *
  * Profiles are scoped the way commission rates are: one `master` card is the
  * global one, and country / state / city / suburb cards override it. The meter
@@ -100,7 +102,12 @@ export interface MeterProfile {
 
   // --- Sensors ---
   sourceMode: MeterSourceMode;
-  /** May a hire open before the vehicle has reported an odometer? */
+  /**
+   * May a hire open before the vehicle has reported an odometer?
+   *
+   * Only where there is no reader on the bus to ask: with a real reader linked
+   * the reading is compulsory whatever this says (`meterOdometerGate`).
+   */
   allowStartWithoutOdometer: boolean;
   /** Read the vehicle's odometer (PID A6) at each end of a hire at all. */
   readOdometer: boolean;
@@ -662,9 +669,11 @@ export function meterReadsOdometer(profile: MeterProfile): boolean {
  * time the adapter answers, the car has already moved. So whenever there is a
  * reader on the bus to ask, the meter asks it first and opens the hire on the
  * answer — a live link is never billed from a pickup stamped with a dash that
- * fills itself in a second later. The read is a handful of milliseconds on an
- * adapter that is already answering the 1 Hz sweep, which is a fair price for a
- * receipt whose start mileage is the one the cluster actually showed.
+ * fills itself in a second later, and a linked reader that will not answer at
+ * all refuses the hire rather than opening one (`meterOdometerGate`). The read
+ * is a handful of milliseconds on an adapter that is already answering the 1 Hz
+ * sweep, which is a fair price for a receipt whose start mileage is the one the
+ * cluster actually showed.
  *
  * Without a link there is nothing to ask, so the press is not held — unless the
  * card *requires* the reading, where the missing answer is the whole point: the
@@ -685,22 +694,39 @@ export function meterReadsOdometerBeforeStart(
  * Whether a hire may open, as far as the *odometer* is concerned.
  *
  * The sensor the hire opens on is gated separately (`evaluateMeterStart`); this
- * is the extra condition a fleet can impose on top of it — no odometer reading,
- * no hire — so the pickup mileage on the receipt is never a blank.
+ * is the condition on top of it — no odometer reading, no hire — so the pickup
+ * mileage on the receipt is never a blank.
  *
- * It only applies where the reading is obtainable. A card that switches the
- * read off, or that bills on GPS only and so never speaks to the bus, has no
- * way to produce an odometer: holding the hire for one would not be strictness
- * but a meter that can never be started at all.
+ * It only applies where the reading is obtainable at all. A card that switches
+ * the read off, or that bills on GPS only and so never speaks to the bus, has
+ * no way to produce an odometer: holding the hire for one would not be
+ * strictness but a meter that can never be started.
+ *
+ * Where it *is* obtainable, a live reader makes it **compulsory** — the card's
+ * "start without odometer" allowance does not apply to a hire that opens with
+ * the reader connected. That allowance exists for the meter working blind, not
+ * for a dash printed beside a linked OBD-II session: the car was right there
+ * answering, and the pickup mileage is the one reading that cannot be recovered
+ * afterwards. A fleet whose cars genuinely do not publish PID A6 turns the
+ * odometer read off rather than starting hires that lose it.
  */
 export function meterOdometerGate(
   profile: MeterProfile,
   odometerKm: number | null | undefined,
+  /** A *real* reader is on the bus right now — never Demo Mode. */
+  obdLinked: boolean = false,
 ): { canStart: boolean; reason: string | null } {
-  if (profile.allowStartWithoutOdometer) return { canStart: true, reason: null };
   if (!meterReadsOdometer(profile)) return { canStart: true, reason: null };
   const has = typeof odometerKm === "number" && Number.isFinite(odometerKm) && odometerKm >= 0;
   if (has) return { canStart: true, reason: null };
+  if (obdLinked) {
+    return {
+      canStart: false,
+      reason:
+        "The reader is connected but did not return the vehicle's odometer (mode-01 PID A6), and a hire opened on a live reader must be stamped with it. Check the reader and try again — if this vehicle does not publish the odometer at all, an administrator can turn the odometer read off for this rate card.",
+    };
+  }
+  if (profile.allowStartWithoutOdometer) return { canStart: true, reason: null };
   return {
     canStart: false,
     reason:

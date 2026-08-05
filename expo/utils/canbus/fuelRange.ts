@@ -21,7 +21,7 @@
  * without a vehicle — see utils/__tests__/fuelRange.test.ts.
  */
 
-import type { VehicleReading } from "./vehicleScan";
+import { decodeReading, type VehicleReading } from "./vehicleScan";
 
 /* ------------------------------------------------------------------ *
  * PIDs this module reads
@@ -223,6 +223,60 @@ export function readFuelSnapshot(readings: VehicleReading[]): FuelSnapshot {
     speedKmh: numericReading(byPid, PID_SPEED),
     fuelType: byPid.get(PID_FUEL_TYPE)?.value ?? null,
   };
+}
+
+/* ------------------------------------------------------------------ *
+ * Reading the odometer off a live adapter
+ * ------------------------------------------------------------------ */
+
+/**
+ * How many times PID A6 is asked before the reading is called absent.
+ *
+ * One unanswered command is not proof that a car has no odometer. The adapter
+ * serves a single command at a time while the 1 Hz sweep is still running, and
+ * ELM327 clones answer `BUSY`, `STOPPED` or a truncated frame often enough that
+ * a single ask is a coin toss — which matters now that a missing reading holds
+ * a hire up rather than merely leaving a dash on the receipt.
+ */
+export const ODOMETER_READ_ATTEMPTS = 3;
+
+/** Pause between attempts, long enough for the adapter to finish its answer. */
+export const ODOMETER_RETRY_DELAY_MS = 250;
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Ask a live reader for the odometer the cluster is showing (mode 01 PID A6).
+ *
+ * Returns the reading in km, or `null` once every attempt has come back empty
+ * — which on a car that simply does not implement A6 is the honest answer, and
+ * the only one: generic OBD-II has no second odometer. PID 31 (distance since
+ * the codes were cleared) is *not* a substitute — it is reset by any scan-tool
+ * clear, so billing a receipt's start mileage on it would print a number that
+ * is not the car's mileage.
+ *
+ * `send` is `useCanbus().sendCommand`; a thrown command (timeout, dropped link)
+ * counts as one failed attempt rather than aborting the read.
+ */
+export async function readOdometerKm(
+  send: (command: string) => Promise<string>,
+  options?: { attempts?: number; delayMs?: number },
+): Promise<number | null> {
+  const attempts = Math.max(1, Math.floor(options?.attempts ?? ODOMETER_READ_ATTEMPTS));
+  const delayMs = Math.max(0, options?.delayMs ?? ODOMETER_RETRY_DELAY_MS);
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0 && delayMs > 0) await wait(delayMs);
+    try {
+      const raw = await send("01" + PID_ODOMETER);
+      const numeric = decodeReading(PID_ODOMETER, raw)?.numeric;
+      if (typeof numeric === "number" && Number.isFinite(numeric) && numeric >= 0) {
+        return numeric;
+      }
+    } catch (e) {
+      console.log("[fuelRange] odometer read failed", e);
+    }
+  }
+  return null;
 }
 
 /* ------------------------------------------------------------------ *
