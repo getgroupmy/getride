@@ -534,6 +534,52 @@ export default function AdminSettingsDisplayScreen() {
         </View>
 
         <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>
+          Connection Status Popups
+        </Text>
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginBottom: 12 }]}
+          testID="display-row-connected-popup"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Show &quot;Connected&quot; popup</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              On app launch, show the success popup when Supabase is reachable
+            </Text>
+          </View>
+          <Switch
+            value={settings.connectedPopupEnabled}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] connectedPopupEnabled -> ${v}`);
+              update("connectedPopupEnabled", v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-connected-popup"
+          />
+        </View>
+        <View
+          style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+          testID="display-row-connection-failed-popup"
+        >
+          <View style={styles.rowInfo}>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Show &quot;Not Connected&quot; popup</Text>
+            <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+              On app launch, show the failure popup when Supabase can&apos;t be reached
+            </Text>
+          </View>
+          <Switch
+            value={settings.connectionFailedPopupEnabled}
+            onValueChange={(v) => {
+              console.log(`[DisplaySettings] connectionFailedPopupEnabled -> ${v}`);
+              update("connectionFailedPopupEnabled", v);
+            }}
+            trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+            thumbColor="#fff"
+            testID="display-switch-connection-failed-popup"
+          />
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 24 }]}>
           Recent Locations
         </Text>
         <View

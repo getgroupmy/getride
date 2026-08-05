@@ -10,6 +10,7 @@ import { TabletFrame } from "@/components/TabletFrame";
 import { useResponsive } from "@/hooks/useResponsive";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AdminDataProvider } from "@/contexts/AdminDataContext";
 import { AdminAccessProvider } from "@/contexts/AdminAccessContext";
@@ -35,6 +36,7 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { authState, isLoading, serverReachable, isSupabaseAuth, serverError, serverDetails } = useAuth();
+  const { settings: displaySettings, loaded: displaySettingsLoaded } = useDisplaySettings();
   const segments = useSegments();
   const router = useRouter();
   const connectionAlertShown = useRef<boolean>(false);
@@ -51,19 +53,36 @@ function RootLayoutNav() {
     if (isLoading) return;
     if (connectionAlertShown.current) return;
     if (isSupabaseAuth && serverReachable === null) return;
+    // Wait for the admin display settings to load so the toggles below reflect
+    // the admin's choice rather than the momentary defaults (both default on).
+    if (!displaySettingsLoaded) return;
     connectionAlertShown.current = true;
     const connected = isSupabaseAuth ? !!serverReachable : false;
+    // Admins can silence either popup independently from Display Settings.
+    const allowed = connected
+      ? displaySettings.connectedPopupEnabled
+      : displaySettings.connectionFailedPopupEnabled;
     console.log(
-      "[RootLayoutNav] Showing connection status modal connected=",
+      "[RootLayoutNav] Connection status modal connected=",
       connected,
       "isSupabaseAuth=",
       isSupabaseAuth,
       "serverReachable=",
-      serverReachable
+      serverReachable,
+      "allowed=",
+      allowed
     );
+    if (!allowed) return;
     setIsConnected(connected);
     setShowConnectionModal(true);
-  }, [isLoading, serverReachable, isSupabaseAuth]);
+  }, [
+    isLoading,
+    serverReachable,
+    isSupabaseAuth,
+    displaySettingsLoaded,
+    displaySettings.connectedPopupEnabled,
+    displaySettings.connectionFailedPopupEnabled,
+  ]);
 
   useEffect(() => {
     if (isLoading) return;
