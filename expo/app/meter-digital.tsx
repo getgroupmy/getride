@@ -127,7 +127,9 @@ import {
   BatteryFull,
   BatteryLow,
   BatteryMedium,
+  Car,
   CarTaxiFront,
+  CheckCircle2,
   ClipboardList,
   Cloud,
   CloudOff,
@@ -226,6 +228,16 @@ import {
   type MeterTripDetails,
   type MeterTripDetailsDraft,
 } from "@/utils/meterTripDetails";
+import {
+  describeMeterVehicle,
+  resolveMeterPlate,
+  resolveMeterVehicleLaunch,
+} from "@/utils/meterVehicleLaunch";
+import {
+  claimVehicle,
+  fetchAssignableVehicles,
+  type AssignableVehicle,
+} from "@/utils/vehicleAssignmentStore";
 import { buildMeterReceiptHtml } from "@/utils/meterReceipt";
 import {
   clearMeterTrips,
@@ -499,6 +511,22 @@ export default function MeterDigitalScreen() {
   /** The "where to?" popup, raised by a back press off the idle meter. */
   const [exitPromptOpen, setExitPromptOpen] = useState<boolean>(false);
 
+  /* --- The car the meter is fitted in --- */
+
+  // A meter bills for one vehicle, and the driver has already told the app
+  // which one that is by claiming it (`vehicle_active_session`). So the console
+  // opens on the vehicle still connected to this account and asks nothing; with
+  // no such session it *asks*, because taking a car claims it away from every
+  // other driver assigned to it. `resolveMeterVehicleLaunch` owns that rule.
+  const [vehicle, setVehicle] = useState<AssignableVehicle | null>(null);
+  const [vehicleRows, setVehicleRows] = useState<AssignableVehicle[]>([]);
+  const [vehicleLoading, setVehicleLoading] = useState<boolean>(false);
+  const [vehicleNote, setVehicleNote] = useState<string | null>(null);
+  const [vehiclePickerOpen, setVehiclePickerOpen] = useState<boolean>(false);
+  const [claimingId, setClaimingId] = useState<string | null>(null);
+  /** The picker is raised at most once per visit — after that it is the driver's. */
+  const vehicleAskedRef = useRef<boolean>(false);
+
   const [trips, setTrips] = useState<MeterTrip[]>([]);
   const [lastTrip, setLastTrip] = useState<MeterTrip | null>(null);
   const [totalOpen, setTotalOpen] = useState<boolean>(false);
@@ -743,6 +771,103 @@ export default function MeterDigitalScreen() {
       cancelled = true;
     };
   }, []);
+
+  // --- The vehicle the meter is running in ---
+  //
+  // The console is opened either by the driver or by the launch buffer
+  // (`resolveMeterAutoLaunch`), and in both cases the car it bills for is
+  // whichever one this account still has claimed. That session is read once on
+  // arrival: a live one binds silently, anything else raises the picker. The
+  // ask is a request rather than a gate — the console works unbound, because a
+  // fleet whose vehicles are not in the app yet must not lose its meter.
+  const loadVehicles = useCallback(
+    async (options: { ask: boolean }) => {
+      const userId = authState.userId;
+      const canRead = !!userId && authState.isSupabaseSession;
+      if (!canRead) {
+        // Nothing is known about the fleet on a legacy local-PIN session, and an
+        // empty list is not an answer — so nothing is asked.
+        setVehicleRows([]);
+        setVehicleNote(null);
+        return;
+      }
+      setVehicleLoading(true);
+      let rows: AssignableVehicle[] = [];
+      let ok = true;
+      try {
+        rows = await fetchAssignableVehicles(userId);
+      } catch (e) {
+        ok = false;
+        console.log("[meter-digital] vehicle load failed", e);
+      } finally {
+        setVehicleLoading(false);
+      }
+      const decision = resolveMeterVehicleLaunch({ vehicles: rows, canRead: ok });
+      setVehicleRows(decision.choices);
+      setVehicleNote(decision.reason === "bound" ? null : decision.message);
+      console.log(
+        "[meter-digital] vehicle:",
+        decision.reason,
+        decision.vehicle ? describeMeterVehicle(decision.vehicle) : "(none)",
+      );
+      if (decision.vehicle) {
+        setVehicle(decision.vehicle);
+        return;
+      }
+      setVehicle(null);
+      // Asked once per visit to the console: after that the plate chip is how
+      // the driver reopens it, so a dismissed picker stays dismissed.
+      if (decision.prompt && options.ask && !vehicleAskedRef.current) {
+        vehicleAskedRef.current = true;
+        setVehiclePickerOpen(true);
+      }
+    },
+    [authState.isSupabaseSession, authState.userId],
+  );
+
+  useEffect(() => {
+    void loadVehicles({ ask: true });
+  }, [loadVehicles]);
+
+  /** Take the car the driver picked, then bind the meter to it. */
+  const handlePickVehicle = useCallback(
+    async (row: AssignableVehicle) => {
+      if (!row.selectable || claimingId) return;
+      const userId = authState.userId;
+      if (userId && authState.isSupabaseSession && !row.inUseByMe) {
+        setClaimingId(row.vehicle.id);
+        const res = await claimVehicle(row.vehicle.id, userId);
+        setClaimingId(null);
+        if (!res.ok) {
+          // The claim is the single place a session is taken, so its refusal is
+          // reported as it stands rather than smoothed over.
+          Alert.alert(
+            "Can't use this vehicle",
+            res.reason === "vehicle_in_use"
+              ? "Another driver is out in this vehicle. Pick a different one."
+              : res.reason === "user_busy"
+                ? "You are already driving another vehicle. Go offline on that one first."
+                : res.reason === "not_assigned"
+                  ? "You are not assigned to this vehicle."
+                  : "Couldn't select this vehicle. Please try again.",
+          );
+          void loadVehicles({ ask: false });
+          return;
+        }
+      }
+      setVehicle(row);
+      setVehicleNote(null);
+      setVehiclePickerOpen(false);
+      console.log("[meter-digital] vehicle bound:", describeMeterVehicle(row));
+    },
+    [authState.isSupabaseSession, authState.userId, claimingId, loadVehicles],
+  );
+
+  const openVehiclePicker = useCallback(() => {
+    vehicleAskedRef.current = true;
+    setVehiclePickerOpen(true);
+    void loadVehicles({ ask: false });
+  }, [loadVehicles]);
 
   // --- The rate cards, and where this meter is ---
   //
@@ -1100,7 +1225,9 @@ export default function MeterDigitalScreen() {
 
   // --- Driver identity, as the permit screen handed it over ---
   const driverName = (params.driver ?? authState.profileName ?? "DRIVER").toUpperCase();
-  const plate = params.plate ?? null;
+  // The car the meter is actually bound to, falling back to the one the permit
+  // screen handed over — see `resolveMeterPlate`.
+  const plate = resolveMeterPlate(vehicle, params.plate);
   const license = params.license ?? null;
   const photo = params.photo ?? authState.profileAvatar ?? null;
 
@@ -1509,23 +1636,37 @@ export default function MeterDigitalScreen() {
           <FitText style={styles.driverName} size={ui.nameSize} lines={2} minimumScale={0.55}>
             {driverName}
           </FitText>
-          <View
+          {/* The plate is also the way in and out of the vehicle picker: the
+              car the meter is billing for is the one fact on this panel the
+              driver can change, and a shift that started in the wrong one must
+              be fixable without leaving the console. */}
+          <TouchableOpacity
             style={[
               styles.plateChip,
+              !vehicle && styles.plateChipUnbound,
               {
                 gap: Math.round(ui.gap * 0.8),
                 paddingVertical: Math.round(ui.pad * 0.35),
                 paddingHorizontal: Math.round(ui.pad * 0.7),
               },
             ]}
+            onPress={openVehiclePicker}
+            activeOpacity={0.85}
+            testID="meter-digital-vehicle-chip"
           >
-            <FitText style={styles.plateChipLabel} size={ui.captionText}>
-              PLATE
+            <FitText
+              style={[styles.plateChipLabel, !vehicle && styles.plateChipLabelUnbound]}
+              size={ui.captionText}
+            >
+              {vehicle ? "PLATE" : "VEHICLE"}
             </FitText>
-            <FitText style={styles.plateChipValue} size={ui.rowText}>
-              {plate ?? "—"}
+            <FitText
+              style={[styles.plateChipValue, !vehicle && styles.plateChipValueUnbound]}
+              size={ui.rowText}
+            >
+              {plate ?? "SELECT"}
             </FitText>
-          </View>
+          </TouchableOpacity>
           <View style={[styles.licenseRow, { gap: Math.round(ui.gap * 0.8) }]}>
             <FitText style={styles.licenseLabel} size={ui.captionText}>
               LICENSE
@@ -3556,6 +3697,152 @@ export default function MeterDigitalScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Which car the meter is in. Raised by itself only when this account has
+          no vehicle claimed — a live session binds silently — and reopened from
+          the plate chip whenever the driver changes car. Dismissible on
+          purpose: the console runs unbound rather than stranding a driver whose
+          fleet is not in the app yet. */}
+      <Modal
+        visible={vehiclePickerOpen}
+        transparent
+        animationType="fade"
+        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
+        onRequestClose={() => setVehiclePickerOpen(false)}
+      >
+        <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                padding: ui.pad * 1.4,
+                gap: ui.gap,
+                borderRadius: Math.round(ui.radius * 1.3),
+                maxWidth: Math.min(620, winWidth * 0.86),
+                maxHeight: winHeight - ui.pad * 3,
+              },
+            ]}
+            testID="meter-digital-vehicle-modal"
+          >
+            <View style={styles.modalHeader}>
+              <FitText style={styles.modalTitle} size={ui.rowText}>
+                SELECT VEHICLE
+              </FitText>
+              <TouchableOpacity
+                onPress={() => setVehiclePickerOpen(false)}
+                style={[
+                  styles.modalClose,
+                  { width: ui.headerButton, height: ui.headerButton },
+                ]}
+                testID="meter-digital-vehicle-close"
+              >
+                <X color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
+              {vehicleNote ??
+                "Pick the vehicle you are driving. The meter bills for it, and the plate goes on every receipt."}
+            </Text>
+            {vehicleLoading ? (
+              <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
+                <ActivityIndicator color={DASH.accent} size="small" />
+                <FitText style={styles.statusLineText} size={ui.rowText}>
+                  Reading your vehicles…
+                </FitText>
+              </View>
+            ) : null}
+            {/* Scrolls only where it has to — the card is already bounded by the
+                glass, and a driver with two cars should not get a scroll area
+                the height of the console. */}
+            <ScrollView
+              style={styles.modalRowsScroll}
+              contentContainerStyle={[styles.modalRows, { gap: ui.gap }]}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              {vehicleRows.length === 0 && !vehicleLoading ? (
+                <Text
+                  style={[
+                    styles.emptyText,
+                    { fontSize: ui.rowText, lineHeight: Math.round(ui.rowText * 1.5) },
+                  ]}
+                  allowFontScaling={false}
+                >
+                  No vehicle is assigned to this account. Add one from the Teksi
+                  screen, or carry on — the meter still runs, it just has no plate
+                  to print.
+                </Text>
+              ) : (
+                vehicleRows.map((row) => {
+                  const bound = vehicle?.vehicle.id === row.vehicle.id;
+                  const claiming = claimingId === row.vehicle.id;
+                  return (
+                    <TouchableOpacity
+                      key={row.vehicle.id}
+                      style={[
+                        styles.panel,
+                        styles.vehicleRow,
+                        panelStyle(ui),
+                        bound && styles.vehicleRowBound,
+                        !row.selectable && styles.vehicleRowLocked,
+                      ]}
+                      onPress={() => void handlePickVehicle(row)}
+                      disabled={!row.selectable || claimingId !== null}
+                      activeOpacity={0.85}
+                      testID={`meter-digital-vehicle-${row.vehicle.id}`}
+                    >
+                      <Car
+                        color={row.selectable ? DASH.accent : DASH.dim}
+                        size={ui.iconSize}
+                      />
+                      <View style={styles.vehicleFacts}>
+                        <FitText style={styles.vehiclePlate} size={ui.rowText}>
+                          {row.vehicle.plate || "—"}
+                        </FitText>
+                        <FitText style={styles.vehicleMeta} size={ui.captionText} lines={2}>
+                          {describeMeterVehicle(row)} · {row.statusLabel}
+                        </FitText>
+                      </View>
+                      {claiming ? (
+                        <ActivityIndicator color={DASH.accent} size="small" />
+                      ) : bound ? (
+                        <CheckCircle2 color={DASH.ok} size={ui.iconSize} />
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+            <View style={[styles.modalActions, { gap: ui.gap }]}>
+              <TouchableOpacity
+                style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
+                onPress={() => void loadVehicles({ ask: false })}
+                disabled={vehicleLoading}
+                activeOpacity={0.85}
+                testID="meter-digital-vehicle-refresh"
+              >
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                  REFRESH
+                </FitText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.wideButton,
+                  wideButtonStyle(ui),
+                  { backgroundColor: DASH.accent },
+                ]}
+                onPress={() => setVehiclePickerOpen(false)}
+                activeOpacity={0.85}
+                testID="meter-digital-vehicle-dismiss"
+              >
+                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                  {vehicle ? "DONE" : "NOT NOW"}
+                </FitText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -3689,13 +3976,22 @@ const styles = StyleSheet.create({
     backgroundColor: DASH.plate,
     borderRadius: 8,
   },
+  // Unbound: the chip stops pretending to be a number plate and reads as the
+  // control it is, so an unassigned meter is never mistaken for an assigned one.
+  plateChipUnbound: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: DASH.warn,
+  },
   plateChipLabel: { color: "#5A4A00", fontWeight: "800" as const, flexShrink: 0 },
+  plateChipLabelUnbound: { color: DASH.warn },
   plateChipValue: {
     color: "#1A1A1A",
     fontWeight: "900" as const,
     letterSpacing: 0.5,
     flexShrink: 1,
   },
+  plateChipValueUnbound: { color: DASH.warn },
   licenseRow: { flexDirection: "row", alignItems: "center" },
   licenseLabel: { color: DASH.muted, fontWeight: "700" as const, flexShrink: 0 },
   licenseValue: { color: DASH.muted, fontWeight: "700" as const, flexShrink: 1 },
@@ -3811,6 +4107,12 @@ const styles = StyleSheet.create({
   clearCard: { alignItems: "center", justifyContent: "center" },
   clearCardText: { fontWeight: "800" as const, letterSpacing: 0.6 },
 
+  vehicleRow: { flexDirection: "row", alignItems: "center" },
+  vehicleRowBound: { borderColor: DASH.ok },
+  vehicleRowLocked: { opacity: 0.55 },
+  vehicleFacts: { flex: 1, gap: 2, minWidth: 0 },
+  vehiclePlate: { color: DASH.text, fontWeight: "900" as const, letterSpacing: 0.5 },
+  vehicleMeta: { color: DASH.muted, fontWeight: "600" as const },
   tripRow: { flexDirection: "row", alignItems: "center" },
   tripWhen: { gap: 2, flexShrink: 0 },
   tripDate: { color: DASH.text, fontWeight: "800" as const },

@@ -930,7 +930,7 @@ export default function AdminSettingsMeterDigitalScreen() {
               <GroupTitle Colors={Colors} icon={Rocket} title="Driver launch" />
               {switchRow(
                 "Open the meter on launch",
-                "Drivers with the TEKSI partner type land on the meter console when they sign in or reopen the app, instead of the passenger map. An in-progress ride is still restored first, and leaving the console does not bounce them back into it.",
+                "Drivers with the TEKSI partner type land on the meter console when they sign in or reopen the app, instead of the passenger map. An in-progress ride is still restored first, and leaving the console does not bounce them back into it. The meter opens on whichever vehicle the driver still has claimed, and asks them to pick one when they have none.",
                 draft.autoLaunch,
                 (next) => setDraft((p) => ({ ...p, autoLaunch: next })),
                 "meter-settings-auto-launch",
