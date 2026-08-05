@@ -199,21 +199,29 @@ export function resolveMeterLeave(raw: MeterLeaveConfig | null | undefined): Met
 }
 
 /**
- * Whether this platform lets an app close itself, and what to tell the driver
- * when it does not.
+ * Whether the driver can be put back on the home screen from here, and what to
+ * tell them when they cannot.
  *
- * Android has a sanctioned way out (`BackHandler.exitApp`). iOS does not — a
- * process that kills itself is a crash as far as Apple is concerned — and a
- * browser tab cannot close one it did not open. Where the platform refuses, the
- * console says so plainly instead of drawing a key that silently does nothing:
- * the driver leaves the app the way the platform expects, and the point of the
- * setting (not being signed out) holds either way.
+ * Android always can (`BackHandler.exitApp`). iOS has no public API for it, so
+ * it depends on whether the native exit module was compiled into *this* binary
+ * — `canLeaveApp()` in `utils/appExit.ts` answers that, and it is passed in
+ * rather than guessed at here so this stays pure and testable. A browser tab
+ * cannot close one it did not open, ever.
+ *
+ * Where it cannot happen the console says so plainly instead of drawing a key
+ * that silently does nothing: the driver leaves the app the way the platform
+ * expects, and the point of the setting — not being signed out — holds either
+ * way.
  */
-export function describeMeterExit(os: string): { supported: boolean; note: string } {
-  if (os === "android") {
+export function describeMeterExit(
+  os: string,
+  /** Does this build have a way to close itself? See `canLeaveApp()`. */
+  canExit: boolean = os === "android",
+): { supported: boolean; note: string } {
+  if (canExit && os !== "web") {
     return {
       supported: true,
-      note: "The app closes. You stay signed in — reopening comes straight back here.",
+      note: "The app closes and you are back on the home screen. You stay signed in — reopening comes straight back here.",
     };
   }
   if (os === "web") {
@@ -222,9 +230,18 @@ export function describeMeterExit(os: string): { supported: boolean; note: strin
       note: "A browser tab cannot close itself. Close this tab to leave — you stay signed in, so reopening comes straight back here.",
     };
   }
+  if (os === "ios") {
+    // The capability is compiled in, so an iOS build that says no is one made
+    // before it shipped — the same shape of answer the CANBus transports give
+    // for a missing driver: an update, not a setting.
+    return {
+      supported: false,
+      note: "This build cannot close itself — it was made before that was possible, and a newer build will do it. For now, swipe up from the bottom of the screen to leave: you stay signed in, so reopening comes straight back here.",
+    };
+  }
   return {
     supported: false,
-    note: "iOS does not let an app close itself. Swipe up from the bottom of the screen to leave — you stay signed in, so reopening comes straight back here.",
+    note: "This platform does not let an app close itself. Leave the app the usual way — you stay signed in, so reopening comes straight back here.",
   };
 }
 

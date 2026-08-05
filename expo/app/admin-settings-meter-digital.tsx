@@ -65,6 +65,7 @@ import {
   createMeterProfileDraft,
   DEFAULT_METER_PROFILE,
   describeMeterRates,
+  describeMissingMeterColumns,
   METER_PANEL_IDS,
   METER_PANEL_LABELS,
   meterProfileScopeLabel,
@@ -79,6 +80,7 @@ import {
 import {
   deleteMeterProfile,
   fetchMeterProfiles,
+  meterSettingsMissingGroups,
   saveMeterPanelAccess,
   saveMeterProfile,
   type MeterSettingsSource,
@@ -182,6 +184,8 @@ export default function AdminSettingsMeterDigitalScreen() {
 
   const [profiles, setProfiles] = useState<MeterProfile[]>([]);
   const [source, setSource] = useState<MeterSettingsSource>("supabase");
+  /** Column groups the live database has refused — a migration behind. */
+  const [missingColumns, setMissingColumns] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [busy, setBusy] = useState<boolean>(false);
 
@@ -198,6 +202,9 @@ export default function AdminSettingsMeterDigitalScreen() {
     const res = await fetchMeterProfiles();
     setProfiles(res.profiles);
     setSource(res.source);
+    // Asked after every read: the store learns a column is missing by being
+    // refused one, so this is only known once something has been tried.
+    setMissingColumns(meterSettingsMissingGroups());
     setLoading(false);
   }, []);
 
@@ -343,6 +350,13 @@ export default function AdminSettingsMeterDigitalScreen() {
     }
     setEditorOpen(false);
     await load();
+
+    // The save succeeded, but a database a migration behind quietly dropped the
+    // columns those switches live in. Said out loud here rather than left to be
+    // discovered by reopening the card and finding the switch back where it
+    // started — which is what a broken toggle looks like.
+    const dropped = describeMissingMeterColumns(meterSettingsMissingGroups());
+    if (dropped) Alert.alert("Saved, with one part left out", dropped);
   }, [guard, load, mergedDraft]);
 
   /**
@@ -738,6 +752,24 @@ export default function AdminSettingsMeterDigitalScreen() {
             >
               <Text style={[styles.noteBody, { color: Colors.text }]}>
                 You have read-only access on this page — rate cards can be viewed but not changed.
+              </Text>
+            </View>
+          )}
+
+          {describeMissingMeterColumns(missingColumns) && (
+            <View
+              style={[
+                styles.noteBox,
+                {
+                  backgroundColor: (Colors.warning ?? "#F59E0B") + "15",
+                  borderColor: (Colors.warning ?? "#F59E0B") + "40",
+                  marginTop: 12,
+                },
+              ]}
+              testID="meter-settings-missing-columns"
+            >
+              <Text style={[styles.noteBody, { color: Colors.text }]}>
+                {describeMissingMeterColumns(missingColumns)}
               </Text>
             </View>
           )}

@@ -4,6 +4,7 @@ import {
   createMeterProfileDraft,
   DEFAULT_METER_PROFILE,
   describeMeterRates,
+  describeMissingMeterColumns,
   hasMeterSurcharges,
   meterExtraSurcharge,
   meterOdometerGate,
@@ -200,6 +201,34 @@ describe("normalizeMeterProfile", () => {
     const legacy = row();
     delete (legacy as Partial<MeterSettingsRow>).auto_launch;
     expect(normalizeMeterProfile(legacy)!.autoLaunch).toBe(false);
+  });
+});
+
+describe("describeMissingMeterColumns", () => {
+  it("says nothing about a fully migrated database", () => {
+    expect(describeMissingMeterColumns([])).toBeNull();
+  });
+
+  it("names the setting and its migration, so a switch that will not stick explains itself", () => {
+    // The bug this exists for: on a database without 0085 the leave switch
+    // saves, reports success and comes back off — which reads exactly like a
+    // broken switch unless the editor says why.
+    const notice = describeMissingMeterColumns(["leave"])!;
+    expect(notice).toContain("Leave the meter");
+    expect(notice).toContain("0085");
+    expect(notice).toContain("cannot be saved");
+    // And the rest of the card is not implicated in it.
+    expect(notice).toContain("Every other setting");
+  });
+
+  it("names both when the database is behind by two migrations", () => {
+    const notice = describeMissingMeterColumns(["auto_launch", "leave"])!;
+    expect(notice).toContain("0084");
+    expect(notice).toContain("0085");
+  });
+
+  it("ignores a group id it does not know", () => {
+    expect(describeMissingMeterColumns(["something_else"])).toBeNull();
   });
 });
 
