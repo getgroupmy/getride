@@ -8,6 +8,7 @@ import { ConnectionStatusModal } from "@/components/ConnectionStatusModal";
 import { SplashScreenComponent } from "@/components/SplashScreenComponent";
 import { TabletFrame } from "@/components/TabletFrame";
 import { useResponsive } from "@/hooks/useResponsive";
+import { useAlwaysOn } from "@/hooks/useAlwaysOn";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
@@ -43,6 +44,9 @@ function RootLayoutNav() {
   const [showConnectionModal, setShowConnectionModal] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const { isTablet } = useResponsive();
+  // Hold the screen awake on the admin-configured "Always ON" pages (defaults:
+  // the Teksi console, the e-hailing queue and the digital meter).
+  useAlwaysOn();
   // The launch buffer (`/welcome-back`) is entered once per app session. It runs
   // the launch decision — restore an in-progress ride, or open a TEKSI driver
   // into the meter — and replaces itself with the destination, so the passenger
@@ -212,6 +216,7 @@ function RootLayoutNav() {
       <Stack.Screen name="admin-settings-service" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-display" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-mock" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="admin-settings-always-on" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-commission" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-meter-digital" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="admin-settings-get-coin" options={{ animation: "slide_from_right", gestureEnabled: false }} />
