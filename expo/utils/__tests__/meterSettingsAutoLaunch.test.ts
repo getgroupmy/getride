@@ -145,6 +145,69 @@ describe("writes against a database without auto_launch", () => {
   });
 });
 
+describe("a database behind by more than one migration", () => {
+  /** The 0085 columns, which a project on 0084 has not got either. */
+  const missingLeaveColumn = {
+    message: "column meter_digital_settings.leave_passenger_action does not exist",
+    code: "42703",
+  };
+
+  it("drops each refused group in turn rather than giving up on the table", async () => {
+    const sb = createSupabaseMock();
+    const store = loadStore(sb);
+    sb.queueResult({ data: null, error: missingColumn });
+    sb.queueResult({ data: null, error: missingLeaveColumn });
+    sb.queueResult({ data: [{ id: "row-1", level: "master" }], error: null });
+
+    const res = await store.fetchMeterProfiles();
+
+    expect(res.source).toBe("supabase");
+    expect(res.profiles).toHaveLength(1);
+    // Both defaults are "what the console did before the column existed".
+    expect(res.profiles[0].autoLaunch).toBe(false);
+    expect(res.profiles[0].leave.passenger).toBe("passenger");
+
+    const third = selectedColumns(sb.queries[2]);
+    expect(third).not.toContain("auto_launch");
+    expect(third).not.toContain("leave_passenger_action");
+    expect(third).toContain("flag_fare");
+  });
+
+  it("saves the fare against a database with no leave columns", async () => {
+    const sb = createSupabaseMock();
+    const store = loadStore(sb);
+    sb.queueResult({ data: null, error: missingLeaveColumn });
+    sb.queueResult({ data: null, error: null });
+
+    const res = await store.saveMeterProfile(
+      card({ leave: { passenger: "exit", ehailing: "app", ehailingUrl: null, ehailingLabel: null } }),
+    );
+
+    expect(res).toMatchObject({ ok: true, source: "supabase" });
+    const retried = payload(sb.queries[1], "update");
+    expect(retried).not.toHaveProperty("leave_passenger_action");
+    expect(retried).toHaveProperty("auto_launch");
+    expect(retried.flag_fare).toBe(4);
+  });
+
+  it("never narrows a write over a column that is not droppable", async () => {
+    const sb = createSupabaseMock();
+    const store = loadStore(sb);
+    sb.queueResult({
+      data: null,
+      error: { message: "column meter_digital_settings.flag_fare does not exist", code: "42703" },
+    });
+
+    const res = await store.saveMeterProfile(card());
+
+    // A fare is not a field the meter may default, so there is no retry: the
+    // schema error takes the store's usual path and the card is kept on the
+    // device rather than written down without its rate.
+    expect(sb.queries).toHaveLength(1);
+    expect(res).toMatchObject({ ok: true, source: "local" });
+  });
+});
+
 describe("the geography remembered for the next launch", () => {
   it("round-trips what the meter resolved", async () => {
     const sb = createSupabaseMock();

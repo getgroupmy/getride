@@ -64,10 +64,13 @@
  * Leaving is a mode change, not a step back. The five tabs are panels of one
  * instrument, so back returns to the meter from any of them; back *from* the
  * meter raises a popup asking where the driver is going — passenger mode
- * (`/`), e-hailing (`/partner-ehailing`), or nowhere. While a fare is accruing
- * there is no leaving at all: the key is dead and the Android hardware back is
- * swallowed, so a running hire cannot be walked out of. `resolveMeterBack`
- * decides all three cases.
+ * (`/`), e-hailing (`/partner-ehailing`), or nowhere. What those two keys
+ * actually do is the operator's (`utils/meterLeave.ts`, resolved off the rate
+ * card): the passenger key can close the app instead, without signing the
+ * driver out, and the e-hailing key can open another dispatch app instead of
+ * this one's screen. While a fare is accruing there is no leaving at all: the
+ * key is dead and the Android hardware back is swallowed, so a running hire
+ * cannot be walked out of. `resolveMeterBack` decides all three cases.
  *
  * The screen is landscape-only, and that is a gate rather than a hint: the
  * console is *not drawn at all* in a portrait viewport. It pins the device to
@@ -134,6 +137,8 @@ import {
   Cloud,
   CloudOff,
   Cpu,
+  ExternalLink,
+  LogOut,
   MapPin,
   MapPinOff,
   Luggage as LuggageIcon,
@@ -193,6 +198,12 @@ import {
   type MeterLinkTone,
   type MeterWaypoint,
 } from "@/utils/meterDashboard";
+import {
+  describeMeterExit,
+  describeMeterLinkFailure,
+  resolveMeterLeave,
+  type MeterLeaveOption,
+} from "@/utils/meterLeave";
 import {
   allowedMeterSources,
   describeMeterRates,
@@ -616,11 +627,53 @@ export default function MeterDigitalScreen() {
     }, [handleBack]),
   );
 
-  /** Leave the console for another mode. The meter is idle, so nothing is lost. */
+  /**
+   * What the two keys of the leave popup do on this card.
+   *
+   * Passenger mode can be an app exit for a fleet whose drivers never ride as
+   * passengers, and e-hailing can be somebody else's dispatch app — both are
+   * resolved in `utils/meterLeave.ts`, so the console only presses them.
+   */
+  const leaveOptions = useMemo(() => resolveMeterLeave(profile.leave), [profile.leave]);
+
+  /** Leave the console. The meter is idle, so nothing is lost by any of them. */
   const leaveMeter = useCallback(
-    (target: "/" | "/partner-ehailing") => {
-      setExitPromptOpen(false);
-      router.replace(target as never);
+    (option: MeterLeaveOption) => {
+      if (option.action === "route" && option.route) {
+        setExitPromptOpen(false);
+        router.replace(option.route as never);
+        return;
+      }
+
+      if (option.action === "exit") {
+        const exit = describeMeterExit(Platform.OS);
+        if (!exit.supported) {
+          // Nothing to press here — the platform does not let an app close
+          // itself. Say how to leave instead of drawing a key that does
+          // nothing; the point of the setting (staying signed in) holds either
+          // way, so the popup is left open behind the notice.
+          Alert.alert("Leaving the app", exit.note);
+          return;
+        }
+        setExitPromptOpen(false);
+        BackHandler.exitApp();
+        return;
+      }
+
+      if (!option.url) return;
+      const { url } = option;
+      // Opened without asking `canOpenURL` first: on Android 11+ that answers
+      // false for any scheme the manifest does not declare in <queries>, and a
+      // rate card may name any dispatch app at all. So the open is attempted and
+      // the failure reported, rather than the key refusing a link that would
+      // have worked. The console is left where it is — the other app comes up
+      // over it, and coming back to GET.ride comes back to the meter.
+      void Linking.openURL(url)
+        .then(() => setExitPromptOpen(false))
+        .catch((e) => {
+          console.log("[meter] leave link failed", url, e);
+          Alert.alert("Could not open that app", describeMeterLinkFailure(url));
+        });
     },
     [router],
   );
@@ -3738,28 +3791,43 @@ export default function MeterDigitalScreen() {
               The meter is idle. Where to?
             </Text>
             <View style={[styles.modalActions, { gap: ui.gap }]}>
-              <TouchableOpacity
-                style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
-                onPress={() => leaveMeter("/")}
-                activeOpacity={0.85}
-                testID="meter-digital-exit-passenger"
-              >
-                <User color={DASH.text} size={ui.iconSize} />
-                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                  PASSENGER MODE
-                </FitText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
-                onPress={() => leaveMeter("/partner-ehailing")}
-                activeOpacity={0.85}
-                testID="meter-digital-exit-ehailing"
-              >
-                <CarTaxiFront color={DASH.text} size={ui.iconSize} />
-                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                  E-HAILING
-                </FitText>
-              </TouchableOpacity>
+              {[leaveOptions.passenger, leaveOptions.ehailing].map((option) => {
+                const Icon =
+                  option.action === "exit"
+                    ? LogOut
+                    : option.action === "link"
+                      ? ExternalLink
+                      : option.key === "passenger"
+                        ? User
+                        : CarTaxiFront;
+                return (
+                  <View
+                    key={option.key}
+                    style={[styles.exitChoice, { gap: Math.round(ui.gap * 0.4) }]}
+                  >
+                    <TouchableOpacity
+                      style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
+                      onPress={() => leaveMeter(option)}
+                      activeOpacity={0.85}
+                      testID={`meter-digital-exit-${option.key}`}
+                    >
+                      <Icon color={DASH.text} size={ui.iconSize} />
+                      <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                        {option.label}
+                      </FitText>
+                    </TouchableOpacity>
+                    {/* What the key does, in words: the two are configurable, so
+                        a driver must never have to press one to find out. */}
+                    <FitText
+                      style={styles.exitChoiceHint}
+                      size={Math.round(ui.bodyText * 0.9)}
+                      lines={2}
+                    >
+                      {option.hint}
+                    </FitText>
+                  </View>
+                );
+              })}
             </View>
             <View style={[styles.modalActions, { gap: ui.gap }]}>
               <TouchableOpacity
@@ -4291,6 +4359,9 @@ const styles = StyleSheet.create({
   modalRowLabel: { color: DASH.muted, fontWeight: "600" as const },
   modalRowValue: { color: DASH.text, fontWeight: "700" as const },
   modalActions: { flexDirection: "row", marginTop: 2 },
+  /** One key of the leave popup: the button, and what it does under it. */
+  exitChoice: { flex: 1 },
+  exitChoiceHint: { color: DASH.muted, textAlign: "center" },
 
   /* End-of-hire declaration */
   detailsHeaderAmount: {

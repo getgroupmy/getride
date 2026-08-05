@@ -16,11 +16,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
 import {
-  METER_AUTO_LAUNCH_COLUMN,
-  METER_SETTINGS_COLUMNS,
-  METER_SETTINGS_COLUMNS_LEGACY,
+  meterOptionalGroupNamed,
   meterPanelsToRow,
   meterProfileToRow,
+  meterRowWithoutGroups,
+  meterSettingsColumns,
   normalizeMeterProfile,
   type MeterPanelAccess,
   type MeterPanelId,
@@ -48,37 +48,70 @@ const LOCAL_KEY = "meter:settings:local";
 const GEO_KEY = "meter:settings:geo";
 
 /**
- * True once the database has told us it has no `auto_launch` column (0081
- * applied, 0084 not).
+ * The optional column groups this database has told us it does not have — the
+ * 0084 redirect boolean, the 0085 leave-the-meter keys.
  *
- * One boolean the meter can default is not worth losing the rate cards over, so
- * a read or a write that trips on it is retried without the column and every
- * later call skips it — the same shape as `rideRequestsStore`'s retry for
- * columns an older database is missing. Reset only by a fresh app launch, which
- * is when a newly applied migration would be picked up anyway.
+ * A handful of fields the meter can perfectly well default are not worth losing
+ * the rate cards over, so a read or a write that trips on one is retried without
+ * that group and every later call skips it — the same shape as
+ * `rideRequestsStore`'s retry for columns an older database is missing. Reset
+ * only by a fresh app launch, which is when a newly applied migration would be
+ * picked up anyway.
  */
-let autoLaunchColumnMissing = false;
+const missingGroups: string[] = [];
 
-/** True when the error is specifically the 0084 column being absent. */
-function isMissingAutoLaunchColumn(err: unknown): boolean {
+/**
+ * The optional group an error is about, or null when it is some other failure.
+ *
+ * Returns null for a group already known missing, so a retry can never loop:
+ * the second attempt has already dropped those columns, and an error naming
+ * them again is a real one.
+ */
+function missingOptionalGroup(err: unknown): { id: string; migration: string } | null {
+  if (!isMissingSchemaError(err)) return null;
   const msg =
     typeof err === "object" && err !== null
       ? `${String((err as { message?: string }).message ?? "")} ${String(
           (err as { code?: string }).code ?? "",
         )}`
       : String(err ?? "");
-  return msg.includes(METER_AUTO_LAUNCH_COLUMN) && isMissingSchemaError(err);
+  const group = meterOptionalGroupNamed(msg);
+  if (!group || missingGroups.includes(group.id)) return null;
+  return group;
 }
 
-/** A row shaped for a database that predates 0084. */
-function withoutAutoLaunch<T extends Record<string, unknown>>(row: T): Omit<T, "auto_launch"> {
-  const { [METER_AUTO_LAUNCH_COLUMN]: _dropped, ...rest } = row as Record<string, unknown>;
-  return rest as Omit<T, "auto_launch">;
+/** Remember a group as absent, so the next call doesn't ask for it again. */
+function dropGroup(group: { id: string; migration: string }): void {
+  console.log(
+    `[meter-settings] migration ${group.migration} not applied — continuing without ${group.id}`,
+  );
+  missingGroups.push(group.id);
 }
 
-/** The write payload for this database — with the 0084 column, or without it. */
+/** The write payload shaped for whatever columns this database actually has. */
 function writeRow<T extends Record<string, unknown>>(row: T): Record<string, unknown> {
-  return autoLaunchColumnMissing ? withoutAutoLaunch(row) : row;
+  return meterRowWithoutGroups(row, missingGroups);
+}
+
+/**
+ * Run a query, retrying without any optional column group the database refuses.
+ *
+ * A project can be behind by more than one migration at a time (0081 with
+ * neither 0084 nor 0085), so this loops: each refusal drops one group and tries
+ * again with the narrower shape, and an error naming nothing droppable — a
+ * missing table, an RLS refusal — is rethrown as itself. It cannot spin, because
+ * a group is only ever dropped once and there are finitely many.
+ */
+async function runDroppingMissingGroups<T>(run: () => Promise<T>): Promise<T> {
+  for (;;) {
+    try {
+      return await run();
+    } catch (e) {
+      const group = missingOptionalGroup(e);
+      if (!group) throw e;
+      dropGroup(group);
+    }
+  }
 }
 
 /** True when the error says the table isn't in the database yet. */
@@ -153,19 +186,12 @@ export async function fetchMeterProfiles(): Promise<MeterProfilesResult> {
         return data;
       };
 
-      let data: unknown;
-      try {
-        data = await read(
-          autoLaunchColumnMissing ? METER_SETTINGS_COLUMNS_LEGACY : METER_SETTINGS_COLUMNS,
-        );
-      } catch (e) {
-        if (!isMissingAutoLaunchColumn(e)) throw e;
-        // 0081 without 0084: read the rest of the card and let auto-launch
-        // default to off rather than losing every rate in the database.
-        console.log("[meter-settings] auto_launch column missing — reading without it");
-        autoLaunchColumnMissing = true;
-        data = await read(METER_SETTINGS_COLUMNS_LEGACY);
-      }
+      // A column a migration added later is dropped from the select rather than
+      // costing the meter every rate in the database — the fields it carries
+      // all have a safe default (`normalizeMeterProfile`).
+      const data = await runDroppingMissingGroups(() =>
+        read(meterSettingsColumns(missingGroups)),
+      );
 
       const profiles = ((data ?? []) as unknown[])
         .map(normalizeMeterProfile)
@@ -229,16 +255,8 @@ export async function saveMeterProfile(
         return null;
       };
 
-      try {
-        const refused = await write(writeRow(row));
-        if (refused) return refused;
-      } catch (e) {
-        if (!isMissingAutoLaunchColumn(e)) throw e;
-        console.log("[meter-settings] auto_launch column missing — saving without it");
-        autoLaunchColumnMissing = true;
-        const refused = await write(withoutAutoLaunch(row));
-        if (refused) return refused;
-      }
+      const refused = await runDroppingMissingGroups(() => write(writeRow(row)));
+      if (refused) return refused;
       return { ok: true, source: "supabase" };
     } catch (e) {
       if (isPermissionDeniedError(e)) {
@@ -342,15 +360,7 @@ export async function saveMeterPanelAccess(
           if (error) throw error;
           return (inserted ?? [])[0] as { id: string } | undefined;
         };
-        let row: { id: string } | undefined;
-        try {
-          row = await insert(writeRow(fullRow));
-        } catch (e) {
-          if (!isMissingAutoLaunchColumn(e)) throw e;
-          console.log("[meter-settings] auto_launch column missing — creating card without it");
-          autoLaunchColumnMissing = true;
-          row = await insert(withoutAutoLaunch(fullRow));
-        }
+        const row = await runDroppingMissingGroups(() => insert(writeRow(fullRow)));
         return { ok: true, source: "supabase", id: row?.id };
       }
       return {

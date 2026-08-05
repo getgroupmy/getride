@@ -1,0 +1,264 @@
+/**
+ * Leaving the meter — what the console's two exit keys do.
+ *
+ * A back press on the meter panel is not a step back but a *mode change*
+ * (`resolveMeterBack`), so the console asks which mode: passenger, e-hailing, or
+ * stay. Which is right depends entirely on the operator, and two fleets want
+ * different things out of the same two keys:
+ *
+ *   * **Passenger mode** is meaningless to a fleet whose drivers never ride as
+ *     passengers on the shift phone. Those operators want the key to *close the
+ *     app* instead — without signing the driver out, so the next shift opens
+ *     straight back onto the meter rather than through the PIN.
+ *   * **E-hailing** is in-app for a GET.ride fleet, but a taxi company that
+ *     dispatches through somebody else's driver app wants the key to open *that*
+ *     app instead of a screen this one doesn't use.
+ *
+ * So both keys are configured on the rate card (Admin → Settings → Meter Digital
+ * Setting → Leave the meter) and resolved here. Everything in this file is pure
+ * and tested (`utils/__tests__/meterLeave.test.ts`); the screen owns only the
+ * pressing.
+ *
+ * The promise it keeps is the rest of the meter's: a configured value is used
+ * only when it is usable. A key configured to open an app but carrying no link
+ * the device could ever open falls back to the in-app screen rather than being
+ * drawn as a button that does nothing.
+ */
+
+/** What the passenger key does. */
+export type MeterLeavePassengerAction = "passenger" | "exit";
+
+/** What the e-hailing key does. */
+export type MeterLeaveEhailingAction = "app" | "link";
+
+/** The leave-the-meter half of a rate card. */
+export interface MeterLeaveConfig {
+  passenger: MeterLeavePassengerAction;
+  ehailing: MeterLeaveEhailingAction;
+  /** The app link the e-hailing key opens under `link`, e.g. `partnerapp://`. */
+  ehailingUrl: string | null;
+  /** What that key is called on the console. Defaults to E-HAILING. */
+  ehailingLabel: string | null;
+}
+
+/** Both keys in-app: the console as it behaved before the card could say. */
+export const DEFAULT_METER_LEAVE: MeterLeaveConfig = {
+  passenger: "passenger",
+  ehailing: "app",
+  ehailingUrl: null,
+  ehailingLabel: null,
+};
+
+/** How a key is pressed: go somewhere in-app, close the app, or open another. */
+export type MeterLeaveAction = "route" | "exit" | "link";
+
+/** One key of the leave popup, resolved. */
+export interface MeterLeaveOption {
+  /** Which key this is — the popup draws them in this order. */
+  key: "passenger" | "ehailing";
+  action: MeterLeaveAction;
+  /** Where a `route` press goes. Null for the other two. */
+  route: "/" | "/partner-ehailing" | null;
+  /** What a `link` press opens. Null for the other two. */
+  url: string | null;
+  /** The key's caption, already in the console's upper case. */
+  label: string;
+  /** One line under it, so a driver knows what the key will do before it does it. */
+  hint: string;
+}
+
+export interface MeterLeaveOptions {
+  passenger: MeterLeaveOption;
+  ehailing: MeterLeaveOption;
+}
+
+/**
+ * Schemes a rate card may never send a driver to.
+ *
+ * `Linking.openURL` is a browser on the web build, where these are script
+ * execution and local-file reads rather than "open an app" — an admin-entered
+ * string is not a reason to run either.
+ */
+const BLOCKED_SCHEMES = ["javascript", "data", "file", "blob", "vbscript", "about"];
+
+/** Longest link accepted. Deep links are short; anything longer is a mistake. */
+const MAX_URL_LENGTH = 512;
+
+/** Longest key caption. The console shrinks text to fit, but not forever. */
+const MAX_LABEL_LENGTH = 22;
+
+/**
+ * The link as the console would open it, or null when it could not.
+ *
+ * A link has to *name the app it opens* — a scheme — because that is the whole
+ * mechanism: `grabdriver://`, `myfleet://jobs`, `https://…` for an app that
+ * claims a universal link. A bare "grabdriver" or "open the driver app" is a
+ * note to a human, not something a device can act on, so it is refused here
+ * rather than drawn as a key that fails on every press.
+ */
+export function normalizeMeterLeaveUrl(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const url = raw.trim();
+  if (url.length === 0 || url.length > MAX_URL_LENGTH) return null;
+  // Whitespace inside a link is always a typo — a real one percent-encodes it.
+  if (/\s/.test(url)) return null;
+  const scheme = /^([a-zA-Z][a-zA-Z0-9+.\-]*):/.exec(url)?.[1]?.toLowerCase();
+  if (!scheme) return null;
+  if (BLOCKED_SCHEMES.includes(scheme)) return null;
+  return url;
+}
+
+/** A key caption as the console prints it, or null when none was entered. */
+export function normalizeMeterLeaveLabel(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const label = raw.trim().replace(/\s+/g, " ");
+  if (label.length === 0) return null;
+  return label.slice(0, MAX_LABEL_LENGTH);
+}
+
+/** Narrow a stored value down to a passenger action, defaulting to in-app. */
+export function normalizeMeterLeavePassenger(raw: unknown): MeterLeavePassengerAction {
+  return typeof raw === "string" && raw.trim().toLowerCase() === "exit"
+    ? "exit"
+    : "passenger";
+}
+
+/** Narrow a stored value down to an e-hailing action, defaulting to in-app. */
+export function normalizeMeterLeaveEhailing(raw: unknown): MeterLeaveEhailingAction {
+  return typeof raw === "string" && raw.trim().toLowerCase() === "link" ? "link" : "app";
+}
+
+/**
+ * Narrow anything that claims to be a leave configuration down to one.
+ *
+ * Takes the whole thing missing, because it can be: a rate card cached on the
+ * device by a build older than this feature has no leave half at all, and the
+ * meter reads that cache when it has no signal. A console that crashed on the
+ * back key rather than offering last year's two options would be a poor trade.
+ */
+export function normalizeMeterLeave(raw: unknown): MeterLeaveConfig {
+  const c = (raw ?? {}) as Partial<MeterLeaveConfig>;
+  return {
+    passenger: normalizeMeterLeavePassenger(c.passenger),
+    ehailing: normalizeMeterLeaveEhailing(c.ehailing),
+    ehailingUrl: normalizeMeterLeaveUrl(c.ehailingUrl),
+    ehailingLabel: normalizeMeterLeaveLabel(c.ehailingLabel),
+  };
+}
+
+/**
+ * The two keys of the leave popup for this card.
+ *
+ * The one rule worth stating: an e-hailing key set to open another app but
+ * carrying no usable link falls back to the in-app screen. A card can be saved
+ * only with a link that parses (`validateMeterLeave`), but a row written by hand
+ * or by an older build can still say `link` and mean nothing — and a dead key on
+ * a console is worse than the screen the driver didn't want.
+ */
+export function resolveMeterLeave(raw: MeterLeaveConfig | null | undefined): MeterLeaveOptions {
+  const config = normalizeMeterLeave(raw);
+  const passenger: MeterLeaveOption =
+    config.passenger === "exit"
+      ? {
+          key: "passenger",
+          action: "exit",
+          route: null,
+          url: null,
+          label: "EXIT",
+          hint: "Close the app — you stay signed in",
+        }
+      : {
+          key: "passenger",
+          action: "route",
+          route: "/",
+          url: null,
+          label: "PASSENGER MODE",
+          hint: "Book a ride as a passenger",
+        };
+
+  const url = config.ehailing === "link" ? normalizeMeterLeaveUrl(config.ehailingUrl) : null;
+  const ehailing: MeterLeaveOption = url
+    ? {
+        key: "ehailing",
+        action: "link",
+        route: null,
+        url,
+        label: (normalizeMeterLeaveLabel(config.ehailingLabel) ?? "E-HAILING APP").toUpperCase(),
+        hint: "Open the dispatch app — the meter stays open behind it",
+      }
+    : {
+        key: "ehailing",
+        action: "route",
+        route: "/partner-ehailing",
+        url: null,
+        label: (normalizeMeterLeaveLabel(config.ehailingLabel) ?? "E-HAILING").toUpperCase(),
+        hint: "Take e-hailing jobs in this app",
+      };
+
+  return { passenger, ehailing };
+}
+
+/**
+ * Whether this platform lets an app close itself, and what to tell the driver
+ * when it does not.
+ *
+ * Android has a sanctioned way out (`BackHandler.exitApp`). iOS does not — a
+ * process that kills itself is a crash as far as Apple is concerned — and a
+ * browser tab cannot close one it did not open. Where the platform refuses, the
+ * console says so plainly instead of drawing a key that silently does nothing:
+ * the driver leaves the app the way the platform expects, and the point of the
+ * setting (not being signed out) holds either way.
+ */
+export function describeMeterExit(os: string): { supported: boolean; note: string } {
+  if (os === "android") {
+    return {
+      supported: true,
+      note: "The app closes. You stay signed in — reopening comes straight back here.",
+    };
+  }
+  if (os === "web") {
+    return {
+      supported: false,
+      note: "A browser tab cannot close itself. Close this tab to leave — you stay signed in, so reopening comes straight back here.",
+    };
+  }
+  return {
+    supported: false,
+    note: "iOS does not let an app close itself. Swipe up from the bottom of the screen to leave — you stay signed in, so reopening comes straight back here.",
+  };
+}
+
+/** What the console could not do, when a link refuses to open. */
+export function describeMeterLinkFailure(url: string): string {
+  return `The meter could not open ${url}. Check that app is installed on this device, or ask an administrator to check the link on the rate card.`;
+}
+
+/**
+ * Whether this leave configuration can be saved, and what is wrong when it
+ * cannot.
+ *
+ * Only the thing the database cannot express: a key set to open another app has
+ * to carry a link that could open one.
+ */
+export function validateMeterLeave(config: MeterLeaveConfig | null | undefined): string | null {
+  if (normalizeMeterLeaveEhailing(config?.ehailing) !== "link") return null;
+  if (!normalizeMeterLeaveUrl(config?.ehailingUrl)) {
+    return "Enter the app link the E-hailing key should open — it has to start with a scheme, e.g. driverapp:// or https://.";
+  }
+  return null;
+}
+
+/**
+ * What is worth saying about this card's leave keys, for the admin card list.
+ *
+ * Only the answers that differ from the console's own: a card whose popup
+ * offers passenger mode and the in-app e-hailing screen is every card, and
+ * printing that on all of them would bury the one that closes the app.
+ */
+export function describeMeterLeave(config: MeterLeaveConfig | null | undefined): string[] {
+  const { passenger, ehailing } = resolveMeterLeave(config);
+  const lines: string[] = [];
+  if (passenger.action === "exit") lines.push("Leave key closes the app");
+  if (ehailing.action === "link") lines.push(`E-hailing opens ${ehailing.url}`);
+  return lines;
+}
