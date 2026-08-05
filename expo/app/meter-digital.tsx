@@ -155,6 +155,7 @@ import {
   Wifi,
   X,
 } from "lucide-react-native";
+import { useAdminData } from "@/contexts/AdminDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useCanbus } from "@/hooks/useCanbus";
@@ -166,6 +167,8 @@ import SegmentDisplay from "@/components/SegmentDisplay";
 import { TRANSPORT_LABEL } from "@/utils/canbus/types";
 import { readOdometerKm } from "@/utils/canbus/fuelRange";
 import { formatDisplayAddress } from "@/utils/addressFormatter";
+import { loadDriverPermitData, type DriverPermitData } from "@/utils/driverPermitSource";
+import { resolveMeterDriver } from "@/utils/meterDriverIdentity";
 import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
 import { reverseGeocode } from "@/utils/maps";
 import { resolveOrientationGate } from "@/utils/orientationLock";
@@ -432,6 +435,7 @@ export default function MeterDigitalScreen() {
     photo?: string;
   }>();
   const { authState } = useAuth();
+  const { getEntries } = useAdminData();
   const { appIconUri } = useBranding();
   const battery = useDeviceBattery();
 
@@ -510,6 +514,19 @@ export default function MeterDigitalScreen() {
   const [connectPromptOpen, setConnectPromptOpen] = useState<boolean>(false);
   /** The "where to?" popup, raised by a back press off the idle meter. */
   const [exitPromptOpen, setExitPromptOpen] = useState<boolean>(false);
+
+  /* --- Who is driving --- */
+
+  // The DRIVER panel prints the taxi driver permit, not the account. The permit
+  // screen hands its fields over as route params, but the launch buffer opens
+  // the console bare — so the meter loads the permit itself and keeps the
+  // params only as a seed, which is what stops the panel flickering from the
+  // profile name to the permit name on the way in. `resolveMeterDriver` owns
+  // the priority between the three sources.
+  const [permit, setPermit] = useState<DriverPermitData | null>(null);
+  /** Read through a ref so a settings sync never re-fires the permit load. */
+  const getEntriesRef = useRef(getEntries);
+  getEntriesRef.current = getEntries;
 
   /* --- The car the meter is fitted in --- */
 
@@ -771,6 +788,47 @@ export default function MeterDigitalScreen() {
       cancelled = true;
     };
   }, []);
+
+  // --- The permit behind the DRIVER panel ---
+  //
+  // Read on arrival, from the same source the permit card on the Teksi screen
+  // is drawn from, so a console reached on launch shows the same driver as one
+  // reached by pressing Meter Digital. It also recovers the one field a route
+  // cannot carry: a cropped permit portrait is a data URL, far too long for a
+  // param, so the permit screen only ever passed hosted photos.
+  //
+  // Keyed on the *identity* of the configured document set rather than on
+  // `getEntries`, whose identity changes on every admin-data sync: the load
+  // reaches the network and can re-run AI extraction, and this console stays
+  // mounted for a whole shift. It still re-reads when the document actually
+  // configured for the permit changes, which is the only change that alters
+  // what it would find.
+  const permitDocsKey = getEntries("required-documents")
+    .map((d) => d.id)
+    .join("|");
+
+  useEffect(() => {
+    const userId = authState.userId;
+    if (!userId) {
+      setPermit(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await loadDriverPermitData(userId, getEntriesRef.current, "TEKSI");
+        if (cancelled) return;
+        console.log("[meter-digital] permit linked:", data.linked, "name:", data.name);
+        setPermit(data);
+      } catch (e) {
+        // The panel keeps whatever the params and the account gave it.
+        console.log("[meter-digital] permit load failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authState.userId, permitDocsKey]);
 
   // --- The vehicle the meter is running in ---
   //
@@ -1223,13 +1281,38 @@ export default function MeterDigitalScreen() {
         ? "Demo Mode — virtual data, the meter bills on GPS"
         : canbusState.error ?? "No reader connected — the meter is billing on GPS";
 
-  // --- Driver identity, as the permit screen handed it over ---
-  const driverName = (params.driver ?? authState.profileName ?? "DRIVER").toUpperCase();
-  // The car the meter is actually bound to, falling back to the one the permit
-  // screen handed over — see `resolveMeterPlate`.
-  const plate = resolveMeterPlate(vehicle, params.plate);
-  const license = params.license ?? null;
-  const photo = params.photo ?? authState.profileAvatar ?? null;
+  // --- Driver identity, off the permit however the console was reached ---
+  const identity = useMemo(
+    () =>
+      resolveMeterDriver(
+        {
+          driver: params.driver,
+          license: params.license,
+          photo: params.photo,
+          plate: params.plate,
+        },
+        permit,
+        {
+          profileName: authState.profileName,
+          profileAvatar: authState.profileAvatar,
+        },
+      ),
+    [
+      authState.profileAvatar,
+      authState.profileName,
+      params.driver,
+      params.license,
+      params.photo,
+      params.plate,
+      permit,
+    ],
+  );
+  const driverName = identity.name;
+  // The car the meter is actually bound to, falling back to the permit's —
+  // see `resolveMeterPlate`.
+  const plate = resolveMeterPlate(vehicle, identity.plate);
+  const license = identity.license;
+  const photo = identity.photo;
 
   /* --- Controls --- */
 

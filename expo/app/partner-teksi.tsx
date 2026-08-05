@@ -73,6 +73,7 @@ import { PlaceGatesList } from "@/components/PlaceGates";
 import PartnerModeSelectModal, { type PartnerModeOption } from "@/components/PartnerModeSelectModal";
 import { loadAssignedPartnerModeOptions } from "@/utils/partnerModeOptions";
 import { loadDriverPermitData, type DriverPermitData } from "@/utils/driverPermitSource";
+import { PERMIT_STOCK_PHOTO } from "@/utils/meterDriverIdentity";
 import { checkPartnerModeDocuments, summarizeDocIssues } from "@/utils/partnerModeDocCheck";
 import {
   fetchAssignableVehicles,
@@ -477,8 +478,7 @@ export default function DriverTeksiScreen() {
     expiryDate: "—",
     address: "—",
     authority: "KETUA PENGARAH",
-    photoUri:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=faces",
+    photoUri: PERMIT_STOCK_PHOTO,
     linked: false,
     sourceDoc: null,
     requiredDocumentId: null,

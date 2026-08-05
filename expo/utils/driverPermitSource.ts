@@ -9,6 +9,7 @@ import {
   type ProviderDocumentRow,
 } from "@/utils/providerDocumentsStore";
 import { loadDocumentSourceAssignments } from "@/utils/serviceAssignmentsStore";
+import { PERMIT_STOCK_PHOTO } from "@/utils/meterDriverIdentity";
 import {
   verifyDocumentWithAi,
   type TaxiPermitFields,
@@ -77,8 +78,7 @@ const FALLBACK_PERMIT: Omit<DriverPermitData, "linked" | "sourceDoc" | "required
   expiryDate: "—",
   address: "—",
   authority: "KETUA PENGARAH",
-  photoUri:
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=faces",
+  photoUri: PERMIT_STOCK_PHOTO,
 };
 
 function formatDate(value: string | null | undefined): string {
