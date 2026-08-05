@@ -12,6 +12,7 @@ import {
   DEFAULT_METER_LEAVE,
   describeMeterExit,
   describeMeterLeave,
+  normalizeMeterLeave,
   normalizeMeterLeaveLabel,
   normalizeMeterLeaveUrl,
   resolveMeterLeave,
@@ -136,6 +137,83 @@ describe("resolveMeterLeave", () => {
   it("keeps a card's caption on the in-app key too", () => {
     const { ehailing } = resolveMeterLeave(config({ ehailingLabel: "jobs" }));
     expect(ehailing).toMatchObject({ action: "route", label: "JOBS" });
+  });
+});
+
+describe("resolveMeterLeave with a catalogue app", () => {
+  const picked = config({ ehailing: "link", ehailingAppId: "grab-driver" });
+
+  it("launches by package on an Android phone", () => {
+    const { ehailing } = resolveMeterLeave(picked, "android");
+    expect(ehailing).toMatchObject({
+      action: "link",
+      url: "intent://#Intent;package=com.grabtaxi.driver2;end",
+      label: "GRAB DRIVER",
+    });
+  });
+
+  it("offers the store on a platform it has no way into", () => {
+    // The catalogue knows Grab's Android package, which says nothing about the
+    // iPhone build — so the key installs rather than pretending to launch.
+    const withStore = {
+      ...picked,
+      ehailingStores: { ios: "https://apps.apple.com/app/id123", android: null, huawei: null },
+    };
+    const { ehailing } = resolveMeterLeave(withStore, "ios");
+    expect(ehailing).toMatchObject({
+      action: "link",
+      url: null,
+      store: "https://apps.apple.com/app/id123",
+    });
+    expect(ehailing.hint).toContain("Install Grab Driver");
+  });
+
+  it("falls back to the in-app screen when it can neither open nor install", () => {
+    // Nothing for this platform at all: better the screen the operator didn't
+    // pick than a key that does nothing.
+    const { ehailing } = resolveMeterLeave(picked, "ios");
+    expect(ehailing).toMatchObject({ action: "route", route: "/partner-ehailing" });
+  });
+
+  it("carries the Play page as the store on Android, derived from the package", () => {
+    const { ehailing } = resolveMeterLeave(picked, "android");
+    expect(ehailing.store).toBe(
+      "https://play.google.com/store/apps/details?id=com.grabtaxi.driver2",
+    );
+  });
+
+  it("prefers the store page the operator entered over the derived one", () => {
+    const own = {
+      ...picked,
+      ehailingStores: { ios: null, android: "https://play.google.com/store/apps/details?id=x", huawei: null },
+    };
+    expect(resolveMeterLeave(own, "android").ehailing.store).toBe(
+      "https://play.google.com/store/apps/details?id=x",
+    );
+  });
+
+  it("lets a typed link answer for the platform the catalogue cannot", () => {
+    const both = { ...picked, ehailingUrl: "grabdriver://" };
+    expect(resolveMeterLeave(both, "ios").ehailing.url).toBe("grabdriver://");
+    // ...while the catalogue still wins where it does know the way in.
+    expect(resolveMeterLeave(both, "android").ehailing.url).toContain("intent://");
+  });
+
+  it("drops an app id that names nothing in the catalogue", () => {
+    const stale = config({ ehailing: "link", ehailingAppId: "app-that-was-removed" });
+    expect(normalizeMeterLeave(stale).ehailingAppId).toBeNull();
+    // ...and with no link either, the key goes back to the in-app screen.
+    expect(resolveMeterLeave(stale, "android").ehailing.action).toBe("route");
+  });
+
+  it("names the key after the app when the operator gave no caption", () => {
+    expect(resolveMeterLeave(picked, "android").ehailing.label).toBe("GRAB DRIVER");
+    const captioned = { ...picked, ehailingLabel: "Jobs" };
+    expect(resolveMeterLeave(captioned, "android").ehailing.label).toBe("JOBS");
+  });
+
+  it("is saveable on the strength of the app alone", () => {
+    expect(validateMeterLeave(picked)).toBeNull();
   });
 });
 

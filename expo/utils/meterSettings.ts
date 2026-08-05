@@ -31,10 +31,6 @@
 import {
   DEFAULT_METER_LEAVE,
   normalizeMeterLeave,
-  normalizeMeterLeaveEhailing,
-  normalizeMeterLeaveLabel,
-  normalizeMeterLeavePassenger,
-  normalizeMeterLeaveUrl,
   validateMeterLeave,
   type MeterLeaveConfig,
 } from "@/utils/meterLeave";
@@ -228,6 +224,10 @@ export interface MeterSettingsRow {
   leave_ehailing_action: string;
   leave_ehailing_url: string | null;
   leave_ehailing_label: string | null;
+  leave_ehailing_app_id: string | null;
+  leave_ehailing_store_ios: string | null;
+  leave_ehailing_store_android: string | null;
+  leave_ehailing_store_huawei: string | null;
   show_meter: boolean;
   show_trips: boolean;
   show_printer: boolean;
@@ -298,6 +298,14 @@ export const METER_LEAVE_COLUMNS = [
   "leave_ehailing_label",
 ];
 
+/** The 0086 columns: which app the e-hailing key names, and its store pages. */
+export const METER_LEAVE_APP_COLUMNS = [
+  "leave_ehailing_app_id",
+  "leave_ehailing_store_ios",
+  "leave_ehailing_store_android",
+  "leave_ehailing_store_huawei",
+];
+
 export const METER_OPTIONAL_COLUMN_GROUPS: MeterOptionalColumnGroup[] = [
   {
     id: "auto_launch",
@@ -310,6 +318,12 @@ export const METER_OPTIONAL_COLUMN_GROUPS: MeterOptionalColumnGroup[] = [
     migration: "0085",
     label: "Leave the meter",
     columns: METER_LEAVE_COLUMNS,
+  },
+  {
+    id: "leave_app",
+    migration: "0086",
+    label: "Dispatch app & store links",
+    columns: METER_LEAVE_APP_COLUMNS,
   },
 ];
 
@@ -344,6 +358,7 @@ const METER_SETTINGS_COLUMN_LIST = [
   "read_odometer",
   "auto_launch",
   ...METER_LEAVE_COLUMNS,
+  ...METER_LEAVE_APP_COLUMNS,
   "show_meter",
   "show_trips",
   "show_printer",
@@ -503,12 +518,18 @@ export function normalizeMeterProfile(raw: unknown): MeterProfile | null {
     // Same story as auto-launch: a row from a database that predates 0085
     // carries none of these, and the default is the console's original
     // behaviour — passenger mode and the in-app e-hailing screen.
-    leave: {
-      passenger: normalizeMeterLeavePassenger(r.leave_passenger_action),
-      ehailing: normalizeMeterLeaveEhailing(r.leave_ehailing_action),
-      ehailingUrl: normalizeMeterLeaveUrl(r.leave_ehailing_url),
-      ehailingLabel: normalizeMeterLeaveLabel(r.leave_ehailing_label),
-    },
+    leave: normalizeMeterLeave({
+      passenger: r.leave_passenger_action,
+      ehailing: r.leave_ehailing_action,
+      ehailingUrl: r.leave_ehailing_url,
+      ehailingLabel: r.leave_ehailing_label,
+      ehailingAppId: r.leave_ehailing_app_id,
+      ehailingStores: {
+        ios: r.leave_ehailing_store_ios,
+        android: r.leave_ehailing_store_android,
+        huawei: r.leave_ehailing_store_huawei,
+      },
+    }),
 
     panels: {
       meter: { show: bool(r.show_meter, true), tap: bool(r.tap_meter, true) },
@@ -620,6 +641,10 @@ export function meterProfileToRow(
     // never written down as one it could.
     leave_ehailing_url: leave.ehailingUrl,
     leave_ehailing_label: leave.ehailingLabel,
+    leave_ehailing_app_id: leave.ehailingAppId,
+    leave_ehailing_store_ios: leave.ehailingStores.ios,
+    leave_ehailing_store_android: leave.ehailingStores.android,
+    leave_ehailing_store_huawei: leave.ehailingStores.huawei,
     ...meterPanelsToRow(panels),
     currency: profile.currency,
     flag_fare: rates.flagFare,

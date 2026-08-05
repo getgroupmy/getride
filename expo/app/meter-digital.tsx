@@ -199,6 +199,8 @@ import {
   type MeterWaypoint,
 } from "@/utils/meterDashboard";
 import { canLeaveApp, leaveApp } from "@/utils/appExit";
+import { currentStorePlatform } from "@/utils/installedApps";
+import { STORE_LABELS } from "@/utils/meterLeaveApps";
 import {
   describeMeterExit,
   describeMeterLinkFailure,
@@ -645,7 +647,14 @@ export default function MeterDigitalScreen() {
    * passengers, and e-hailing can be somebody else's dispatch app — both are
    * resolved in `utils/meterLeave.ts`, so the console only presses them.
    */
-  const leaveOptions = useMemo(() => resolveMeterLeave(profile.leave), [profile.leave]);
+  // Resolved for *this* phone: one card names one app, but an Android package
+  // and an iPhone scheme are different ways in, and the store to offer differs
+  // again on a Huawei with no Play Store.
+  const storePlatform = useMemo(() => currentStorePlatform(), []);
+  const leaveOptions = useMemo(
+    () => resolveMeterLeave(profile.leave, storePlatform),
+    [profile.leave, storePlatform],
+  );
   /** The popup's two keys in the order it draws them, keys row then hints row. */
   const leaveKeys = useMemo(
     () => [leaveOptions.passenger, leaveOptions.ehailing],
@@ -677,7 +686,38 @@ export default function MeterDigitalScreen() {
         return;
       }
 
-      if (!option.url) return;
+      /** Send the driver to the store page for this phone, if the card has one. */
+      const offerStore = (title: string, message: string) => {
+        const store = option.store;
+        if (!store) {
+          Alert.alert(title, message);
+          return;
+        }
+        Alert.alert(title, message, [
+          { text: "Not now", style: "cancel" },
+          {
+            text: `Open ${STORE_LABELS[storePlatform]}`,
+            onPress: () => {
+              void Linking.openURL(store).catch((e) => {
+                console.log("[meter] store link failed", store, e);
+                Alert.alert("Could not open the store", describeMeterLinkFailure(store));
+              });
+            },
+          },
+        ]);
+      };
+
+      // A card can name an app the catalogue cannot open on *this* platform —
+      // an Android package says nothing about the iPhone build — so the key
+      // offers the install instead of pretending it can launch it.
+      if (!option.url) {
+        offerStore(
+          "App not set up for this phone",
+          `${option.label} cannot be opened from this device yet. Install it, or ask an administrator to add its link for this platform.`,
+        );
+        return;
+      }
+
       const { url } = option;
       // Opened without asking `canOpenURL` first: on Android 11+ that answers
       // false for any scheme the manifest does not declare in <queries>, and a
@@ -689,10 +729,12 @@ export default function MeterDigitalScreen() {
         .then(() => setExitPromptOpen(false))
         .catch((e) => {
           console.log("[meter] leave link failed", url, e);
-          Alert.alert("Could not open that app", describeMeterLinkFailure(url));
+          // The overwhelmingly likely reason is that the driver's phone does
+          // not have the app, so the store comes with the apology.
+          offerStore("Could not open that app", describeMeterLinkFailure(url));
         });
     },
-    [router],
+    [router, storePlatform],
   );
 
   // Latest sensor readings, held in refs so the 1 Hz tick can read them without
