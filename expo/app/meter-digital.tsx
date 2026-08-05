@@ -11,28 +11,17 @@
  *     in Demo Mode. The meter switches over silently and says which source it
  *     is billing on, so the driver always knows what the fare is based on.
  *
- * A hire is *armed* before it opens, the way a meter is armed before the
- * passenger gets in. Where the operator's rate card allows the vehicle bus,
- * START raises a sequence of three questions, none of them skippable
- * (`resolveMeterStartSequence`):
- *
- *  1. **Which sensors bill this hire** — the bus on its own, or the bus with
- *     GPS behind it. The card is the ceiling: the driver narrows what it
- *     allows, never widens it, so an OBD-only card offers the one choice and a
- *     GPS-only card has no sequence at all.
- *  2. **The vehicle link** — both choices bill on the car, so the reader has to
- *     be answering before a fare may open. The attempt is made from the popup.
- *  3. **The pickup odometer** — read off the cluster (mode-01 PID A6) *before*
- *     the fare opens, because a hire that has already begun cannot be un-begun
- *     when the car turns out not to publish it. What happens when it does not
- *     is the card's call (`meterOdometerGate`).
- *
- * Where the card bills on **GPS only** the bus has been taken away entirely, so
- * there is nothing to choose, link or read: the hire opens on the fix, and a
- * press with none yet is held until one lands (`evaluateMeterStart`). Resuming
- * from a pause is deliberately not gated either: a fare under way must keep
- * measuring on whatever it still has, GPS included — unless the driver armed
- * the hire on the bus alone, which is what that choice means.
+ * A hire *opens* on the sensor it will be billed on, though: without one, START
+ * is greyed and a press raises the popup instead of a fare — the press is held
+ * and the hire opens by itself the moment that sensor arrives
+ * (`evaluateMeterStart`). Which sensor that is comes from the operator's rate
+ * card: where the card allows the bus it is the vehicle link (the link attempt
+ * is made from the popup, and GPS is only the fallback for a hire already
+ * running, not the thing one begins on); where the card bills on **GPS only**
+ * the bus has been taken away entirely, so the hire opens on the fix instead —
+ * waiting for a reader there would be waiting for a sensor that could never
+ * release the gate. Resuming from a pause is deliberately not gated either: a
+ * fare under way must keep measuring on whatever it still has.
  *
  * The TRIP STATUS panel names the connection type in both states — GPS, the
  * vehicle bus, or both — and once a hire is open it also carries the odometer
@@ -55,8 +44,7 @@
  * `utils/meterTripDetails.ts`.
  *
  * All accrual and tariff maths live in `utils/taxiMeter.ts` (pure + tested);
- * this screen owns the 1 Hz clock, the sensors, and the layout. Arming a hire
- * lives in `utils/meterStartSequence.ts`, what the
+ * this screen owns the 1 Hz clock, the sensors, and the layout. What the
  * status panel says lives in `utils/meterDashboard.ts`, the trip log in
  * `utils/meterTripsStore.ts` and the receipt in `utils/meterReceipt.ts` — all
  * pure, all tested, so this file stays a dashboard.
@@ -136,7 +124,6 @@ import {
   Cloud,
   CloudOff,
   Cpu,
-  Gauge,
   MapPin,
   MapPinOff,
   Luggage as LuggageIcon,
@@ -205,14 +192,6 @@ import {
   type MeterPanelId,
   type MeterProfile,
 } from "@/utils/meterSettings";
-import {
-  describeMeterStartMode,
-  IDLE_ODOMETER,
-  meterSourcesForMode,
-  resolveMeterStartSequence,
-  type MeterOdometerCapture,
-  type MeterStartMode,
-} from "@/utils/meterStartSequence";
 import { fetchMeterProfiles, subscribeMeterSettings } from "@/utils/meterSettingsStore";
 import {
   adjustCharges,
@@ -504,20 +483,8 @@ export default function MeterDigitalScreen() {
   const [pendingEnd, setPendingEnd] = useState<PendingEnd | null>(null);
   /** What the driver declared for the hire just closed, once they confirmed it. */
   const [tripDetails, setTripDetails] = useState<MeterTripDetails | null>(null);
-  /**
-   * The start-of-hire popup, raised by every START press on a card that allows
-   * the vehicle bus: the billing source, the link, and the pickup odometer, in
-   * that order. On a GPS-only card it is the older "waiting for a fix" notice.
-   */
-  const [startPromptOpen, setStartPromptOpen] = useState<boolean>(false);
-  /**
-   * Which sensors the driver chose for this hire, narrowing the card's own
-   * permission. Held until the meter is cleared, so it is frozen for the life
-   * of the hire exactly as the rate card is.
-   */
-  const [startMode, setStartMode] = useState<MeterStartMode | null>(null);
-  /** Where the pickup odometer read has got to, for the popup's last step. */
-  const [odoCapture, setOdoCapture] = useState<MeterOdometerCapture>(IDLE_ODOMETER);
+  /** The "connecting to the vehicle" popup, raised by a blocked START press. */
+  const [connectPromptOpen, setConnectPromptOpen] = useState<boolean>(false);
   /** The "where to?" popup, raised by a back press off the idle meter. */
   const [exitPromptOpen, setExitPromptOpen] = useState<boolean>(false);
 
@@ -544,16 +511,13 @@ export default function MeterDigitalScreen() {
   const [billing, setBilling] = useState(() =>
     resolveMeterProfile({ profiles: [] }),
   );
+  /** How many bags and passengers the card is charging for on this hire. */
+  /** True while a required odometer read is holding a START press. */
+  const [odometerChecking, setOdometerChecking] = useState<boolean>(false);
+
   const profile = billing.profile;
   const configured = billing.level !== "default";
-  /** What the operator's card allows — the ceiling on what a hire may bill on. */
-  const cardSources = allowedMeterSources(profile.sourceMode);
-  /**
-   * What this hire actually bills on: the card's permission narrowed by the
-   * driver's own choice at START. A driver may take a sensor away ("OBD-II
-   * only"), never hand one back the card has ruled out.
-   */
-  const sources = meterSourcesForMode(cardSources, startMode);
+  const sources = allowedMeterSources(profile.sourceMode);
 
   /* --- Leaving the console --- */
 
@@ -730,27 +694,19 @@ export default function MeterDigitalScreen() {
    * moment they press END — not when a dongle or a geocoder answers.
    */
   const captureWaypoint = useCallback(
-    (
-      end: MeterEnd,
-      at: number,
-      /**
-       * A reading the start sequence has already taken — including one it took
-       * and got nothing back from (`{ km: null }`). Omitted means "go and ask":
-       * the adapter answers one command at a time, so a reading that has
-       * already been had is never asked for twice.
-       */
-      odometer?: { km: number | null },
-    ): MeterWaypoint => {
+    (end: MeterEnd, at: number, odometerKm: number | null = null): MeterWaypoint => {
       const fix = fixRef.current;
       const waypoint: MeterWaypoint = {
         at,
-        odometerKm: odometer?.km ?? null,
+        odometerKm,
         latitude: fix?.latitude ?? null,
         longitude: fix?.longitude ?? null,
         place: null,
       };
       setWaypoint(end, waypoint);
-      if (!odometer) void readWaypointOdometer(end, at);
+      // A reading the start gate already took is not asked for a second time —
+      // the adapter answers one command at a time.
+      if (odometerKm === null) void readWaypointOdometer(end, at);
       if (fix) void resolveWaypointPlace(end, at, fix.latitude, fix.longitude);
       return waypoint;
     },
@@ -1100,21 +1056,6 @@ export default function MeterDigitalScreen() {
   });
   const startBlocked = !started && !startGate.canStart;
 
-  // The three questions a START press has to answer before a fare may open:
-  // which sensors bill this hire, is the vehicle answering, and what does the
-  // cluster read. The card's own permission is what the choice is offered from
-  // — the driver narrows it, never widens it.
-  const startSequence = resolveMeterStartSequence({
-    sources: cardSources,
-    mode: startMode,
-    obdLinked,
-    obdDemo,
-    readsOdometer: meterReadsOdometer(profile),
-    allowWithoutOdometer: profile.allowStartWithoutOdometer,
-    odometer: odoCapture,
-    gate: startGate,
-  });
-
   // The reader's own state, separate from what the meter is billing on: a
   // demo link is amber (it exists but cannot bill), never the red of no link.
   const readerColor = obdLinked
@@ -1143,130 +1084,80 @@ export default function MeterDigitalScreen() {
 
   /** Open the hire: the fare starts accruing and the pickup is stamped. */
   const beginTrip = useCallback(
-    (odometer?: { km: number | null }) => {
+    (odometerKm: number | null = null) => {
       const at = Date.now();
       setMeter((prev) => startMeter(prev, at));
       // A fresh hire, so nothing from the last one may follow it onto the roll.
       recordedTripRef.current = null;
       setTripDetails(null);
       setWaypoint("dropoff", null);
-      captureWaypoint("pickup", at, odometer);
+      captureWaypoint("pickup", at, odometerKm);
     },
     [captureWaypoint, setWaypoint],
   );
 
-  /** Give up on the START — the driver closed the popup. */
-  const closeStartPrompt = useCallback(() => {
-    pendingStartRef.current = false;
-    setStartPromptOpen(false);
-  }, []);
-
   /**
-   * A START press.
+   * Open the hire, after the card's odometer condition.
    *
-   * Where the card allows the vehicle bus, this raises the start sequence: the
-   * driver picks what bills the hire (the bus alone, or the bus with GPS behind
-   * it), the reader is linked, and the pickup odometer is read — a fare cannot
-   * open before all three are answered.
-   *
-   * A **GPS-only card** has no bus and so no sequence: there is nothing to
-   * choose, nothing to link and no odometer to read. The press opens the hire
-   * on the fix, or is held until one lands.
+   * A card can require the vehicle's odometer before a fare may begin, so the
+   * pickup mileage on the receipt is never a blank. The reading is taken here
+   * rather than after the start, because a hire that has already opened cannot
+   * be un-opened when the car turns out not to publish PID A6.
    */
-  const handleStart = useCallback(() => {
-    if (!cardSources.obd) {
-      if (startGate.canStart) {
-        beginTrip();
-        return;
-      }
-      // The press is not thrown away: it is held, and the hire opens by itself
-      // the moment the fix arrives.
-      pendingStartRef.current = true;
-      setStartPromptOpen(true);
+  const startHire = useCallback(() => {
+    // Nothing to wait for when the card does not require the reading, or when
+    // it could not produce one anyway (read switched off, or a GPS-only card
+    // that never speaks to the bus).
+    if (profile.allowStartWithoutOdometer || !meterReadsOdometer(profile)) {
+      beginTrip();
       return;
     }
-    // Every press starts the sequence from the top: the reading belongs to the
-    // moment this passenger got in, never to the last press.
-    setOdoCapture(IDLE_ODOMETER);
-    setStartPromptOpen(true);
-  }, [beginTrip, cardSources.obd, startGate.canStart]);
+    setOdometerChecking(true);
+    void readOdometerOnce().then((km) => {
+      setOdometerChecking(false);
+      const gate = meterOdometerGate(profile, km);
+      if (!gate.canStart) {
+        Alert.alert("Odometer required", gate.reason ?? "");
+        return;
+      }
+      beginTrip(km);
+    });
+  }, [beginTrip, profile, readOdometerOnce]);
 
-  // The held START on a GPS-only card, released by the first fix landing.
+  /** Give up on the pending START — the driver closed the popup. */
+  const closeConnectPrompt = useCallback(() => {
+    pendingStartRef.current = false;
+    setConnectPromptOpen(false);
+  }, []);
+
+  const handleStart = useCallback(() => {
+    if (startGate.canStart) {
+      startHire();
+      return;
+    }
+    // The press is not thrown away: it is held, the link attempt is made, and
+    // the hire opens by itself the moment the sensor arrives. On a GPS-only
+    // card there is no reader to attempt — the held press is released by the
+    // fix landing instead, so the press only waits.
+    pendingStartRef.current = true;
+    setConnectPromptOpen(true);
+    if (startGate.opensOn === "vehicle" && !canbus.connecting) {
+      void canbus
+        .connect()
+        .catch((e) => console.log("[meter-digital] connect failed", e));
+    }
+  }, [canbus, startGate.canStart, startGate.opensOn, startHire]);
+
+  // The held START, released by the link coming up. It goes through the same
+  // odometer gate as a direct press — a card that requires the reading requires
+  // it however the hire was opened.
   useEffect(() => {
     if (!pendingStartRef.current) return;
     if (!startGate.canStart) return;
     pendingStartRef.current = false;
-    setStartPromptOpen(false);
-    beginTrip();
-  }, [beginTrip, startGate.canStart]);
-
-  /**
-   * Link the reader as soon as the sequence is waiting on it — one attempt per
-   * press, so a reader that refuses leaves the driver a TRY AGAIN key rather
-   * than looping. `useCanbus` is already auto-connecting; this is the attempt
-   * the press itself makes.
-   */
-  const linkAttemptedRef = useRef<boolean>(false);
-  useEffect(() => {
-    if (!startPromptOpen) {
-      linkAttemptedRef.current = false;
-      return;
-    }
-    if (startSequence.step !== "link" || startSequence.connecting) return;
-    if (linkAttemptedRef.current) return;
-    linkAttemptedRef.current = true;
-    void canbus.connect().catch((e) => console.log("[meter-digital] connect failed", e));
-  }, [canbus, startPromptOpen, startSequence.connecting, startSequence.step]);
-
-  /**
-   * The pickup odometer, taken *before* the fare opens.
-   *
-   * A hire that has already begun cannot be un-begun when the car turns out not
-   * to publish PID A6, so the reading is had here and the card's condition
-   * applied to it while the meter is still idle. A car that answers nothing is
-   * recorded as answering nothing — never as a mileage the meter invented.
-   */
-  const odoReadRef = useRef<number>(0);
-  useEffect(() => {
-    if (!startPromptOpen || !startSequence.shouldRead) return;
-    // Keyed like the waypoint patches: an answer to a read the driver has
-    // already moved on from (a second press, a READ AGAIN) is dropped rather
-    // than landing on top of the newer one.
-    odoReadRef.current += 1;
-    const token = odoReadRef.current;
-    setOdoCapture({ status: "reading", km: null });
-    void readOdometerOnce().then((km) => {
-      if (odoReadRef.current !== token) return;
-      setOdoCapture(
-        km === null ? { status: "unavailable", km: null } : { status: "captured", km },
-      );
-    });
-  }, [readOdometerOnce, startPromptOpen, startSequence.shouldRead]);
-
-  /** Ask the vehicle again — the reader may have been asleep the first time. */
-  const retryOdometer = useCallback(() => setOdoCapture(IDLE_ODOMETER), []);
-
-  /**
-   * Open the hire the sequence has armed.
-   *
-   * The card's odometer condition is re-applied here rather than trusted from
-   * what the popup rendered with: a link can drop between the reading and the
-   * press, and `meterOdometerGate` is the rule, not the button's colour.
-   */
-  const confirmStart = useCallback(() => {
-    if (!startSequence.canStart) return;
-    const km = odoCapture.status === "captured" ? odoCapture.km : null;
-    const gate = meterOdometerGate(profile, km);
-    if (!gate.canStart) {
-      Alert.alert("Odometer required", gate.reason ?? "");
-      return;
-    }
-    setStartPromptOpen(false);
-    // The reading has already been had — or the card asked for none — so the
-    // pickup is stamped with what the sequence got rather than sending a second
-    // command to an adapter that answers one at a time.
-    beginTrip({ km });
-  }, [beginTrip, odoCapture, profile, startSequence.canStart]);
+    setConnectPromptOpen(false);
+    startHire();
+  }, [startGate.canStart, startHire]);
 
   const handlePauseToggle = useCallback(() => {
     // Resuming is deliberately not gated on the link: a hire already under way
@@ -1293,10 +1184,6 @@ export default function MeterDigitalScreen() {
     setDetailsDraft(createTripDetailsDraft());
     setChargesText("");
     recordedTripRef.current = null;
-    // The billing source and the odometer belong to the hire that has just
-    // finished: the next passenger is asked again rather than inheriting them.
-    setStartMode(null);
-    setOdoCapture(IDLE_ODOMETER);
   }, [profile.nightEndHour, profile.nightStartHour, setWaypoint]);
 
   /**
@@ -1618,9 +1505,8 @@ export default function MeterDigitalScreen() {
   const tripControls = (
     <View style={[styles.controlRow, { gap: ui.gap }]}>
       {/* Greyed without the sensor the hire opens on, but never inert: the
-          press is what raises the start sequence — the billing source, the
-          vehicle link and the pickup odometer — or, on a GPS-only card, holds
-          the hire until the first fix lands. */}
+          press is what raises the popup and holds the hire until that sensor
+          arrives — the car answering, or the first fix landing. */}
       <TouchableOpacity
         style={[
           styles.primaryButton,
@@ -1639,18 +1525,31 @@ export default function MeterDigitalScreen() {
           startBlocked && styles.primaryButtonBlocked,
         ]}
         onPress={meter.running ? handleEndTrip : started ? handleNewTrip : handleStart}
+        // A card that requires the odometer holds the press while the reader is
+        // asked. One press, one read — a second would queue behind it.
+        disabled={odometerChecking}
         activeOpacity={0.85}
         testID="meter-digital-toggle"
       >
-        <CarTaxiFront
-          color={startBlocked ? DASH.muted : "#fff"}
-          size={Math.round(ui.buttonText * 1.3)}
-        />
+        {odometerChecking ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <CarTaxiFront
+            color={startBlocked ? DASH.muted : "#fff"}
+            size={Math.round(ui.buttonText * 1.3)}
+          />
+        )}
         <FitText
           style={[styles.primaryButtonText, startBlocked && styles.primaryButtonTextBlocked]}
           size={ui.buttonText}
         >
-          {meter.running ? "END TRIP" : started ? "NEW TRIP" : "START TRIP"}
+          {odometerChecking
+            ? "READING ODOMETER…"
+            : meter.running
+              ? "END TRIP"
+              : started
+                ? "NEW TRIP"
+                : "START TRIP"}
         </FitText>
       </TouchableOpacity>
       {started ? (
@@ -3385,17 +3284,15 @@ export default function MeterDigitalScreen() {
         </View>
       </Modal>
 
-      {/* Opening a hire: the billing source, the vehicle link and the pickup
-          odometer, in that order, none of them skippable. On a GPS-only card
-          there is no sequence — the bus has been taken away — so it is the
-          older notice of what the fix is waiting on, which closes itself and
-          opens the hire the moment one lands. */}
+      {/* The blocked START: what the meter is waiting for, and the two ways
+          out of it. It closes itself — and opens the hire — the moment the
+          vehicle answers. */}
       <Modal
-        visible={startPromptOpen}
+        visible={connectPromptOpen}
         transparent
         animationType="fade"
         supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
-        onRequestClose={closeStartPrompt}
+        onRequestClose={closeConnectPrompt}
       >
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
           <View
@@ -3409,273 +3306,125 @@ export default function MeterDigitalScreen() {
                 maxHeight: winHeight - ui.pad * 3,
               },
             ]}
-            testID="meter-digital-start-modal"
+            testID="meter-digital-connect-modal"
           >
             <View style={styles.modalHeader}>
               <FitText style={styles.modalTitle} size={ui.rowText}>
-                {/* Named after what the press is actually doing: a GPS-only
-                    card has no hire to arm, only a fix to wait for. */}
-                {cardSources.obd ? "START HIRE" : "GPS SIGNAL"}
+                {/* Named after what the hire is actually waiting for: a
+                    GPS-only card has no vehicle link to offer. */}
+                {startGate.opensOn === "gps" ? "GPS SIGNAL" : "VEHICLE LINK"}
               </FitText>
               <TouchableOpacity
-                onPress={closeStartPrompt}
+                onPress={closeConnectPrompt}
                 style={[
                   styles.modalClose,
                   { width: ui.headerButton, height: ui.headerButton },
                 ]}
-                testID="meter-digital-start-close"
+                testID="meter-digital-connect-close"
               >
                 <X color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
               </TouchableOpacity>
             </View>
-
-            {!cardSources.obd ? (
-              /* GPS-only card. The reader is not a thing to fix — the card has
-                 ruled it out — so the only action offered is the one that can
-                 actually release the gate: the location permission. */
-              <>
-                <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
-                  {startGate.connecting ? (
-                    <ActivityIndicator color={DASH.warn} size="small" />
-                  ) : gpsDenied ? (
-                    <MapPinOff color={DASH.danger} size={ui.iconSize} />
-                  ) : (
-                    <MapPin color={DASH.ok} size={ui.iconSize} />
-                  )}
-                  <FitText
-                    style={[styles.statusLineText, styles.statusFlex]}
-                    size={ui.rowText}
-                    testID="meter-digital-start-title"
-                  >
-                    {startGate.title}
-                  </FitText>
-                </View>
-                <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
-                  {startGate.message}
-                </Text>
-                <View style={[styles.modalActions, { gap: ui.gap }]}>
-                  <TouchableOpacity
-                    style={[
-                      styles.wideButton,
-                      wideButtonStyle(ui),
-                      { backgroundColor: DASH.accent },
-                      !gpsDenied && styles.buttonDisabled,
-                    ]}
-                    disabled={!gpsDenied}
-                    onPress={() => {
-                      void Linking.openSettings().catch((e) =>
-                        console.log("[meter-digital] open settings failed", e),
-                      );
-                    }}
-                    activeOpacity={0.85}
-                    testID="meter-digital-connect-location"
-                  >
-                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                      {gpsDenied ? "LOCATION SETTINGS" : "WAITING FOR FIX"}
-                    </FitText>
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
-                  {startSequence.connecting ||
-                  startSequence.shouldRead ||
-                  odoCapture.status === "reading" ? (
-                    <ActivityIndicator color={DASH.warn} size="small" />
-                  ) : startSequence.step === "mode" ? (
-                    <CarTaxiFront color={DASH.accent} size={ui.iconSize} />
-                  ) : startSequence.step === "link" ? (
-                    <Cpu color={readerColor} size={ui.iconSize} />
-                  ) : startSequence.step === "odometer" ? (
-                    <Gauge color={DASH.warn} size={ui.iconSize} />
-                  ) : (
-                    <CarTaxiFront color={DASH.ok} size={ui.iconSize} />
-                  )}
-                  <FitText
-                    style={[styles.statusLineText, styles.statusFlex]}
-                    size={ui.rowText}
-                    testID="meter-digital-start-title"
-                  >
-                    {startSequence.title}
-                  </FitText>
-                </View>
-                <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
-                  {startSequence.message}
-                </Text>
-
-                {startSequence.step === "mode" ? (
-                  /* The choice, offered from what the card allows. Picking one
-                     narrows the sensors this hire may bill on; it can never
-                     hand back one the operator has ruled out. */
-                  <View style={[styles.tariffRow, { gap: ui.gap }]}>
-                    {startSequence.options.map((opt) => (
-                      <TouchableOpacity
-                        key={opt.mode}
-                        style={[styles.tariffChip, chipStyle(ui)]}
-                        onPress={() => setStartMode(opt.mode)}
-                        activeOpacity={0.85}
-                        testID={`meter-digital-start-mode-${opt.mode}`}
-                      >
-                        <FitText
-                          style={[styles.tariffChipTitle, { color: DASH.text }]}
-                          size={ui.rowText}
-                        >
-                          {opt.label}
-                        </FitText>
-                        <Text
-                          style={[
-                            styles.tariffChipHint,
-                            {
-                              fontSize: ui.captionText,
-                              lineHeight: Math.round(ui.captionText * 1.4),
-                            },
-                          ]}
-                          allowFontScaling={false}
-                        >
-                          {opt.detail}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+            <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
+              {startGate.connecting ? (
+                <ActivityIndicator color={DASH.warn} size="small" />
+              ) : startGate.opensOn === "gps" ? (
+                gpsDenied ? (
+                  <MapPinOff color={DASH.danger} size={ui.iconSize} />
                 ) : (
-                  <>
-                    {/* What was chosen, and the way back to the choice while the
-                        hire is still only being armed. */}
-                    <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
-                      <FitText
-                        style={[styles.startModeLine, styles.statusFlex]}
-                        size={ui.captionText}
-                        testID="meter-digital-start-mode"
-                      >
-                        BILLING · {describeMeterStartMode(startSequence.mode)}
-                      </FitText>
-                      {startSequence.options.length > 1 ? (
-                        <TouchableOpacity
-                          onPress={() => setStartMode(null)}
-                          activeOpacity={0.7}
-                          testID="meter-digital-start-change"
-                        >
-                          <FitText style={styles.startChangeText} size={ui.captionText}>
-                            CHANGE
-                          </FitText>
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-
-                    {startSequence.odometerText ? (
-                      <View
-                        style={[
-                          styles.startOdometer,
-                          { padding: ui.pad, borderRadius: Math.round(ui.radius * 0.8) },
-                        ]}
-                      >
-                        <FitText style={styles.startOdometerLabel} size={ui.captionText}>
-                          PICKUP ODOMETER
-                        </FitText>
-                        <SegmentDisplay
-                          value={startSequence.odometerText}
-                          size={Math.round(ui.rowText * 1.35)}
-                          color={DASH.segment}
-                          testID="meter-digital-start-odometer"
-                        />
-                      </View>
-                    ) : null}
-
-                    <View style={[styles.modalActions, { gap: ui.gap }]}>
-                      {startSequence.step === "link" ? (
-                        <>
-                          <TouchableOpacity
-                            style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
-                            onPress={() => {
-                              closeStartPrompt();
-                              router.push("/obd2-reader" as never);
-                            }}
-                            activeOpacity={0.85}
-                            testID="meter-digital-connect-settings"
-                          >
-                            <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                              READER SETTINGS
-                            </FitText>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[
-                              styles.wideButton,
-                              wideButtonStyle(ui),
-                              { backgroundColor: DASH.accent },
-                              startSequence.connecting && styles.buttonDisabled,
-                            ]}
-                            disabled={startSequence.connecting}
-                            onPress={() => {
-                              void canbus
-                                .connect()
-                                .catch((e) => console.log("[meter-digital] connect failed", e));
-                            }}
-                            activeOpacity={0.85}
-                            testID="meter-digital-connect-retry"
-                          >
-                            {startSequence.connecting ? (
-                              <ActivityIndicator color={DASH.text} size="small" />
-                            ) : (
-                              <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                                TRY AGAIN
-                              </FitText>
-                            )}
-                          </TouchableOpacity>
-                        </>
-                      ) : (
-                        <>
-                          {/* A car can be slow to answer PID A6 — asking again
-                              is cheaper than refusing the hire over it. */}
-                          {odoCapture.status === "unavailable" ? (
-                            <TouchableOpacity
-                              style={[
-                                styles.wideButton,
-                                wideButtonStyle(ui),
-                                styles.ghostButton,
-                              ]}
-                              onPress={retryOdometer}
-                              activeOpacity={0.85}
-                              testID="meter-digital-start-odometer-retry"
-                            >
-                              <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                                READ AGAIN
-                              </FitText>
-                            </TouchableOpacity>
-                          ) : null}
-                          <TouchableOpacity
-                            style={[
-                              styles.wideButton,
-                              wideButtonStyle(ui),
-                              { backgroundColor: DASH.ok },
-                              !startSequence.canStart && styles.buttonDisabled,
-                            ]}
-                            disabled={!startSequence.canStart}
-                            onPress={confirmStart}
-                            activeOpacity={0.85}
-                            testID="meter-digital-start-confirm"
-                          >
-                            {startSequence.step === "odometer" &&
-                            odoCapture.status !== "unavailable" ? (
-                              <ActivityIndicator color={DASH.text} size="small" />
-                            ) : (
-                              <>
-                                <CarTaxiFront
-                                  color={DASH.text}
-                                  size={Math.round(ui.wideButtonText * 1.2)}
-                                />
-                                <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                                  START HIRE
-                                </FitText>
-                              </>
-                            )}
-                          </TouchableOpacity>
-                        </>
-                      )}
-                    </View>
-                  </>
-                )}
-              </>
+                  <MapPin color={DASH.ok} size={ui.iconSize} />
+                )
+              ) : (
+                <Cpu color={readerColor} size={ui.iconSize} />
+              )}
+              <FitText
+                style={[styles.statusLineText, styles.statusFlex]}
+                size={ui.rowText}
+                testID="meter-digital-connect-title"
+              >
+                {startGate.title}
+              </FitText>
+            </View>
+            <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
+              {startGate.message}
+            </Text>
+            {/* What the popup offers follows what the hire is waiting for. On a
+                GPS-only card the reader is not a thing to fix — the card has
+                ruled it out — so the only action is the one that can actually
+                release the gate: the location permission. */}
+            {startGate.opensOn === "gps" ? (
+              <View style={[styles.modalActions, { gap: ui.gap }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.wideButton,
+                    wideButtonStyle(ui),
+                    { backgroundColor: DASH.accent },
+                    !gpsDenied && styles.buttonDisabled,
+                  ]}
+                  disabled={!gpsDenied}
+                  onPress={() => {
+                    void Linking.openSettings().catch((e) =>
+                      console.log("[meter-digital] open settings failed", e),
+                    );
+                  }}
+                  activeOpacity={0.85}
+                  testID="meter-digital-connect-location"
+                >
+                  {gpsDenied ? (
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      LOCATION SETTINGS
+                    </FitText>
+                  ) : (
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      WAITING FOR FIX
+                    </FitText>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={[styles.modalActions, { gap: ui.gap }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.wideButton,
+                    wideButtonStyle(ui),
+                    styles.ghostButton,
+                  ]}
+                  onPress={() => {
+                    closeConnectPrompt();
+                    router.push("/obd2-reader" as never);
+                  }}
+                  activeOpacity={0.85}
+                  testID="meter-digital-connect-settings"
+                >
+                  <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                    READER SETTINGS
+                  </FitText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.wideButton,
+                    wideButtonStyle(ui),
+                    { backgroundColor: DASH.accent },
+                    startGate.connecting && styles.buttonDisabled,
+                  ]}
+                  disabled={startGate.connecting}
+                  onPress={() => {
+                    void canbus
+                      .connect()
+                      .catch((e) => console.log("[meter-digital] connect failed", e));
+                  }}
+                  activeOpacity={0.85}
+                  testID="meter-digital-connect-retry"
+                >
+                  {startGate.connecting ? (
+                    <ActivityIndicator color={DASH.text} size="small" />
+                  ) : (
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      TRY AGAIN
+                    </FitText>
+                  )}
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </View>
@@ -4118,23 +3867,6 @@ const styles = StyleSheet.create({
   modalRowLabel: { color: DASH.muted, fontWeight: "600" as const },
   modalRowValue: { color: DASH.text, fontWeight: "700" as const },
   modalActions: { flexDirection: "row", marginTop: 2 },
-
-  /* Arming a hire */
-  startModeLine: { color: DASH.muted, fontWeight: "800" as const, letterSpacing: 0.8 },
-  startChangeText: { color: DASH.accent, fontWeight: "800" as const, letterSpacing: 0.8 },
-  // The pickup reading is drawn as the cluster shows it — a lit readout — so
-  // the driver checks it against the dash rather than reading it as prose.
-  startOdometer: {
-    alignItems: "center",
-    backgroundColor: DASH.bgDeep,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DASH.panelEdge,
-  },
-  startOdometerLabel: {
-    color: DASH.muted,
-    fontWeight: "800" as const,
-    letterSpacing: 1.2,
-  },
 
   /* End-of-hire declaration */
   detailsHeaderAmount: {
