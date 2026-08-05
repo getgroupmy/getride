@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter, useFocusEffect } from "expo-router";
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
+import QrScanCamera, { useQrCameraPermission } from "@/components/QrScanCamera";
 import {
   ChevronLeft,
   Coins,
@@ -169,7 +169,7 @@ export default function WalletTradeScreen() {
 
   const [scanVisible, setScanVisible] = useState<boolean>(false);
   const [scanError, setScanError] = useState<string>("");
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission] = useQrCameraPermission();
   const scanLockRef = useRef<boolean>(false);
 
   // Send approval handshake: the request we're waiting on, then its outcome.
@@ -198,10 +198,10 @@ export default function WalletTradeScreen() {
     setScanVisible(true);
   };
 
-  const handleScanned = useCallback((result: BarcodeScanningResult) => {
-    if (scanLockRef.current || !result?.data) return;
+  const handleScanned = useCallback((data: string) => {
+    if (scanLockRef.current || !data) return;
     scanLockRef.current = true;
-    const parsed = parseRecipient(result.data);
+    const parsed = parseRecipient(data);
     if (!parsed) {
       setScanError("That QR code isn't a GET wallet code. Try another.");
       // Re-arm after a moment so the user can point at a different code.
@@ -213,7 +213,7 @@ export default function WalletTradeScreen() {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
-    setRecipientInput(result.data.trim());
+    setRecipientInput(data.trim());
     setError("");
     setSuccessNote("");
     setScanVisible(false);
@@ -772,11 +772,11 @@ export default function WalletTradeScreen() {
       >
         <View style={styles.scanContainer} testID="trade-scan-modal">
           {permission?.granted ? (
-            <CameraView
+            <QrScanCamera
               style={StyleSheet.absoluteFill}
-              facing="back"
-              barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-              onBarcodeScanned={handleScanned}
+              active={scanVisible}
+              onScanned={handleScanned}
+              testID="trade-scan-camera"
             />
           ) : null}
           <SafeAreaView style={styles.scanOverlay} edges={["top", "bottom"]}>

@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
+import QrScanCamera, { useQrCameraPermission } from "@/components/QrScanCamera";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -190,7 +190,7 @@ export default function WalletScanScreen() {
   const { authState } = useAuth();
   const userId = authState.userId ?? "";
 
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission] = useQrCameraPermission();
   const [torchOn, setTorchOn] = useState<boolean>(false);
   const [helpVisible, setHelpVisible] = useState<boolean>(false);
   const [balances, setBalances] = useState<WalletBalances | null>(null);
@@ -266,13 +266,13 @@ export default function WalletScanScreen() {
     return scannedData.length > 42 ? `${scannedData.slice(0, 42)}…` : scannedData;
   }, [scannedData]);
 
-  const handleScanned = useCallback((result: BarcodeScanningResult) => {
-    if (scanLockRef.current || !result?.data) return;
+  const handleScanned = useCallback((data: string) => {
+    if (scanLockRef.current || !data) return;
     scanLockRef.current = true;
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
-    setScannedData(result.data);
+    setScannedData(data);
     setAmountText("");
     setPayError("");
     setPaidAmount(null);
@@ -390,12 +390,12 @@ export default function WalletScanScreen() {
   return (
     <View style={styles.container} testID="wallet-scan-screen">
       {granted ? (
-        <CameraView
+        <QrScanCamera
           style={StyleSheet.absoluteFill}
-          facing="back"
-          enableTorch={torchOn}
-          barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-          onBarcodeScanned={payVisible ? undefined : handleScanned}
+          torch={torchOn}
+          active={!payVisible}
+          onScanned={handleScanned}
+          testID="wallet-scan-camera"
         />
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.cameraFallback]} />
