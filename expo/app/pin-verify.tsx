@@ -158,7 +158,7 @@ export default function PinVerifyScreen() {
           if (!usedSupabasePin) {
             await login(phoneNumber || "");
           }
-          router.replace("/" as any);
+          router.replace("/welcome-back" as any);
         }
       }, 300);
     }

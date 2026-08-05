@@ -88,7 +88,6 @@ import HeatmapOverlay from "@/components/HeatmapOverlay";
 import { useAirportAreas, applyAirportAreaFilter, AirportArea } from "@/utils/airportAreas";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useCanbus } from "@/hooks/useCanbus";
-import { useMeterAutoLaunch } from "@/hooks/useMeterAutoLaunch";
 import { TRANSPORT_LABEL, type CanTransportKind } from "@/utils/canbus/types";
 import { formatTelemetryValue } from "@/utils/canbus/obd";
 
@@ -232,12 +231,6 @@ export default function DriverTeksiScreen() {
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [creditBalance, setCreditBalance] = useState<number>(0);
   const [walletBalance, setWalletBalance] = useState<number>(0);
-
-  // Tablets are sent here at launch rather than to the passenger map, so this
-  // screen is where a tablet's auto-launch into the meter is decided. Harmless
-  // on a phone: `index` has already consumed the launch by the time a driver can
-  // navigate here by hand, so arriving from the menu never redirects.
-  useMeterAutoLaunch({ enabled: true });
 
   // Live GET.credit balance from the wallet store (refreshes on focus).
   useFocusEffect(

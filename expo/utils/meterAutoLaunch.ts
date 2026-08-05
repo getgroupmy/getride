@@ -21,8 +21,9 @@
  *
  * The first two are pure and live here (tested in
  * `utils/__tests__/meterAutoLaunch.test.ts`); the third is the caller's, and is
- * why `hooks/useMeterAutoLaunch.ts` runs only once the restore check has come
- * back empty.
+ * why the `/welcome-back` launch buffer (`app/welcome-back.tsx`) only asks about
+ * the meter once its ride-restore lookups have come back empty
+ * (`resolveLaunchDestination`).
  *
  * Everything defaults to *not* redirecting. A driver taken somewhere they did
  * not ask to go because a field was missing is a worse failure than one extra

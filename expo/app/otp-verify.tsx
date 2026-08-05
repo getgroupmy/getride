@@ -101,7 +101,7 @@ export default function OTPVerifyScreen() {
             const synced = userId ? await resyncAuthPassword(userId) : false;
             if (synced) {
               console.log("[otp-verify] resyncAuth: auth password re-synced, going home");
-              router.replace("/" as any);
+              router.replace("/welcome-back" as any);
             } else {
               // Resync failed (e.g. no profile PIN) — fall back to pin-setup
               // so the user can establish a PIN and re-sync the auth password.
@@ -115,7 +115,7 @@ export default function OTPVerifyScreen() {
           } else if (!hasPinSet(phoneNumber || "")) {
             router.replace({ pathname: "/pin-setup" as any, params: { phoneNumber, firstName: res.name ?? "" } });
           } else {
-            router.replace("/" as any);
+            router.replace("/welcome-back" as any);
           }
           return;
         }
@@ -131,7 +131,7 @@ export default function OTPVerifyScreen() {
           } else if (!hasPinSet(phoneNumber || "")) {
             router.replace({ pathname: "/name-entry" as any, params: { phoneNumber } });
           } else {
-            router.replace("/" as any);
+            router.replace("/welcome-back" as any);
           }
         } else {
           setError("Invalid OTP code. Please try again.");
