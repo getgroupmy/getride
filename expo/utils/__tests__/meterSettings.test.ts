@@ -40,6 +40,10 @@ function row(overrides: Partial<MeterSettingsRow> = {}): MeterSettingsRow {
     leave_ehailing_action: "app",
     leave_ehailing_url: null,
     leave_ehailing_label: null,
+    leave_ehailing_app_id: null,
+    leave_ehailing_store_ios: null,
+    leave_ehailing_store_android: null,
+    leave_ehailing_store_huawei: null,
     show_meter: true,
     show_trips: true,
     show_printer: true,
@@ -162,6 +166,8 @@ describe("normalizeMeterProfile", () => {
         leave_ehailing_action: "link",
         leave_ehailing_url: "driverapp://jobs",
         leave_ehailing_label: "Fleet app",
+        leave_ehailing_app_id: "grab-driver",
+        leave_ehailing_store_ios: "https://apps.apple.com/app/id123",
       }),
     )!;
     expect(configured.leave).toEqual({
@@ -169,6 +175,12 @@ describe("normalizeMeterProfile", () => {
       ehailing: "link",
       ehailingUrl: "driverapp://jobs",
       ehailingLabel: "Fleet app",
+      ehailingAppId: "grab-driver",
+      ehailingStores: {
+        ios: "https://apps.apple.com/app/id123",
+        android: null,
+        huawei: null,
+      },
     });
 
     // A database that predates 0085 returns none of these keys: the console
@@ -182,6 +194,8 @@ describe("normalizeMeterProfile", () => {
       ehailing: "app",
       ehailingUrl: null,
       ehailingLabel: null,
+      ehailingAppId: null,
+      ehailingStores: { ios: null, android: null, huawei: null },
     });
   });
 

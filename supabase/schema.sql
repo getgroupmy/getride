@@ -4280,6 +4280,14 @@ create table if not exists public.meter_digital_settings (
   leave_ehailing_url     text,
   leave_ehailing_label   text,
 
+  -- 0086: the dispatch app by name rather than by link, and where to install it
+  -- on a phone that does not have it (one store per platform — none of the
+  -- three addresses can be derived from another).
+  leave_ehailing_app_id        text,
+  leave_ehailing_store_ios     text,
+  leave_ehailing_store_android text,
+  leave_ehailing_store_huawei  text,
+
   -- Console panels: shown, and tappable
   show_meter    boolean not null default true,
   show_trips    boolean not null default true,
@@ -4333,14 +4341,18 @@ create table if not exists public.meter_digital_settings (
   updated_at timestamptz not null default now()
 );
 
--- 0084/0085: added after the table shipped, so an existing project picks them
--- up here. Both default to what the console did before they existed.
+-- 0084/0085/0086: added after the table shipped, so an existing project picks
+-- them up here. Each defaults to what the console did before it existed.
 alter table public.meter_digital_settings
   add column if not exists auto_launch boolean not null default false,
   add column if not exists leave_passenger_action text not null default 'passenger',
   add column if not exists leave_ehailing_action  text not null default 'app',
   add column if not exists leave_ehailing_url     text,
-  add column if not exists leave_ehailing_label   text;
+  add column if not exists leave_ehailing_label   text,
+  add column if not exists leave_ehailing_app_id        text,
+  add column if not exists leave_ehailing_store_ios     text,
+  add column if not exists leave_ehailing_store_android text,
+  add column if not exists leave_ehailing_store_huawei  text;
 
 do $$
 begin

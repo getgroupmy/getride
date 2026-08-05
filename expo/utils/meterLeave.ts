@@ -25,6 +25,13 @@
  * drawn as a button that does nothing.
  */
 
+import {
+  meterLeaveAppById,
+  meterLeaveAppLink,
+  meterLeaveAppStore,
+  type StorePlatform,
+} from "@/utils/meterLeaveApps";
+
 /** What the passenger key does. */
 export type MeterLeavePassengerAction = "passenger" | "exit";
 
@@ -39,6 +46,22 @@ export interface MeterLeaveConfig {
   ehailingUrl: string | null;
   /** What that key is called on the console. Defaults to E-HAILING. */
   ehailingLabel: string | null;
+  /**
+   * A catalogue app the operator picked (`utils/meterLeaveApps.ts`), or null
+   * for a hand-entered link.
+   *
+   * Stored beside the link rather than instead of it, because the two answer
+   * different questions: the id is what lets each platform be given its own
+   * way in (an Android package launches by intent, an iPhone needs the app's
+   * scheme), while the link stays the operator's own override and the only
+   * thing a card needs when the app is not in the catalogue at all.
+   */
+  ehailingAppId: string | null;
+  /**
+   * Where to send a driver whose phone does not have the app — one store page
+   * per platform, since none of them can be derived from another.
+   */
+  ehailingStores: { ios: string | null; android: string | null; huawei: string | null };
 }
 
 /** Both keys in-app: the console as it behaved before the card could say. */
@@ -47,12 +70,14 @@ export const DEFAULT_METER_LEAVE: MeterLeaveConfig = {
   ehailing: "app",
   ehailingUrl: null,
   ehailingLabel: null,
+  ehailingAppId: null,
+  ehailingStores: { ios: null, android: null, huawei: null },
 };
 
 /** How a key is pressed: go somewhere in-app, close the app, or open another. */
 export type MeterLeaveAction = "route" | "exit" | "link";
 
-/** One key of the leave popup, resolved. */
+/** One key of the leave popup, resolved for the device it is drawn on. */
 export interface MeterLeaveOption {
   /** Which key this is — the popup draws them in this order. */
   key: "passenger" | "ehailing";
@@ -61,6 +86,15 @@ export interface MeterLeaveOption {
   route: "/" | "/partner-ehailing" | null;
   /** What a `link` press opens. Null for the other two. */
   url: string | null;
+  /**
+   * Where to send a driver whose phone does not have that app.
+   *
+   * Set on a `link` key when the card carries a store page for this platform —
+   * used when the open fails, and used *instead* of the open where the
+   * catalogue has no way in on this platform (an Android package tells us
+   * nothing about the iPhone build).
+   */
+  store: string | null;
   /** The key's caption, already in the console's upper case. */
   label: string;
   /** One line under it, so a driver knows what the key will do before it does it. */
@@ -138,11 +172,20 @@ export function normalizeMeterLeaveEhailing(raw: unknown): MeterLeaveEhailingAct
  */
 export function normalizeMeterLeave(raw: unknown): MeterLeaveConfig {
   const c = (raw ?? {}) as Partial<MeterLeaveConfig>;
+  const stores = (c.ehailingStores ?? {}) as Partial<MeterLeaveConfig["ehailingStores"]>;
   return {
     passenger: normalizeMeterLeavePassenger(c.passenger),
     ehailing: normalizeMeterLeaveEhailing(c.ehailing),
     ehailingUrl: normalizeMeterLeaveUrl(c.ehailingUrl),
     ehailingLabel: normalizeMeterLeaveLabel(c.ehailingLabel),
+    // An id that names nothing in the catalogue is dropped rather than kept:
+    // it would show as a picked app the editor could not name.
+    ehailingAppId: meterLeaveAppById(c.ehailingAppId)?.id ?? null,
+    ehailingStores: {
+      ios: normalizeMeterLeaveUrl(stores.ios),
+      android: normalizeMeterLeaveUrl(stores.android),
+      huawei: normalizeMeterLeaveUrl(stores.huawei),
+    },
   };
 }
 
@@ -155,7 +198,17 @@ export function normalizeMeterLeave(raw: unknown): MeterLeaveConfig {
  * or by an older build can still say `link` and mean nothing — and a dead key on
  * a console is worse than the screen the driver didn't want.
  */
-export function resolveMeterLeave(raw: MeterLeaveConfig | null | undefined): MeterLeaveOptions {
+export function resolveMeterLeave(
+  raw: MeterLeaveConfig | null | undefined,
+  /**
+   * The device the keys are being drawn for. A card names one app but each
+   * platform reaches it differently — an Android package launches by intent, an
+   * iPhone needs that app's own scheme — so the same card resolves to different
+   * links on different phones. Omitted (the admin previewing a card, a test)
+   * only the operator's own typed link is considered.
+   */
+  platform?: StorePlatform,
+): MeterLeaveOptions {
   const config = normalizeMeterLeave(raw);
   const passenger: MeterLeaveOption =
     config.passenger === "exit"
@@ -164,6 +217,7 @@ export function resolveMeterLeave(raw: MeterLeaveConfig | null | undefined): Met
           action: "exit",
           route: null,
           url: null,
+          store: null,
           label: "EXIT",
           hint: "Close the app — you stay signed in",
         }
@@ -172,28 +226,52 @@ export function resolveMeterLeave(raw: MeterLeaveConfig | null | undefined): Met
           action: "route",
           route: "/",
           url: null,
+          store: null,
           label: "PASSENGER MODE",
           hint: "Book a ride as a passenger",
         };
 
-  const url = config.ehailing === "link" ? normalizeMeterLeaveUrl(config.ehailingUrl) : null;
-  const ehailing: MeterLeaveOption = url
-    ? {
-        key: "ehailing",
-        action: "link",
-        route: null,
-        url,
-        label: (normalizeMeterLeaveLabel(config.ehailingLabel) ?? "E-HAILING APP").toUpperCase(),
-        hint: "Open the dispatch app — the meter stays open behind it",
-      }
-    : {
-        key: "ehailing",
-        action: "route",
-        route: "/partner-ehailing",
-        url: null,
-        label: (normalizeMeterLeaveLabel(config.ehailingLabel) ?? "E-HAILING").toUpperCase(),
-        hint: "Take e-hailing jobs in this app",
-      };
+  const app = meterLeaveAppById(config.ehailingAppId);
+  const named = normalizeMeterLeaveLabel(config.ehailingLabel) ?? app?.name ?? null;
+
+  let url: string | null = null;
+  let store: string | null = null;
+  if (config.ehailing === "link") {
+    // The catalogue's own way in wins where it has one for this platform, since
+    // it is the entry the operator actually picked; the typed link is the
+    // override and the only answer for an app the catalogue does not carry.
+    url =
+      (platform ? meterLeaveAppLink(app, platform) : null) ??
+      normalizeMeterLeaveUrl(config.ehailingUrl);
+    store = platform
+      ? (config.ehailingStores[platform] ?? meterLeaveAppStore(app, platform))
+      : null;
+  }
+
+  // A key with neither a way into the app nor a way to install it is a dead
+  // key, and the in-app screen the operator didn't pick still beats that.
+  const ehailing: MeterLeaveOption =
+    url || store
+      ? {
+          key: "ehailing",
+          action: "link",
+          route: null,
+          url,
+          store,
+          label: (named ?? "E-HAILING APP").toUpperCase(),
+          hint: url
+            ? "Open the dispatch app — the meter stays open behind it"
+            : `Install ${named ?? "the dispatch app"} to take jobs`,
+        }
+      : {
+          key: "ehailing",
+          action: "route",
+          route: "/partner-ehailing",
+          url: null,
+          store: null,
+          label: (named ?? "E-HAILING").toUpperCase(),
+          hint: "Take e-hailing jobs in this app",
+        };
 
   return { passenger, ehailing };
 }
@@ -259,8 +337,11 @@ export function describeMeterLinkFailure(url: string): string {
  */
 export function validateMeterLeave(config: MeterLeaveConfig | null | undefined): string | null {
   if (normalizeMeterLeaveEhailing(config?.ehailing) !== "link") return null;
+  // Either way of naming the app will do: one picked from the list, or a link
+  // typed in. A card carrying neither would draw a key that does nothing.
+  if (meterLeaveAppById(config?.ehailingAppId)) return null;
   if (!normalizeMeterLeaveUrl(config?.ehailingUrl)) {
-    return "Enter the app link the E-hailing key should open — it has to start with a scheme, e.g. driverapp:// or https://.";
+    return "Choose the dispatch app from the list, or enter its app link — it has to start with a scheme, e.g. driverapp:// or https://.";
   }
   return null;
 }
@@ -273,9 +354,15 @@ export function validateMeterLeave(config: MeterLeaveConfig | null | undefined):
  * printing that on all of them would bury the one that closes the app.
  */
 export function describeMeterLeave(config: MeterLeaveConfig | null | undefined): string[] {
-  const { passenger, ehailing } = resolveMeterLeave(config);
+  const normalized = normalizeMeterLeave(config);
+  const app = meterLeaveAppById(normalized.ehailingAppId);
   const lines: string[] = [];
-  if (passenger.action === "exit") lines.push("Leave key closes the app");
-  if (ehailing.action === "link") lines.push(`E-hailing opens ${ehailing.url}`);
+  if (normalized.passenger === "exit") lines.push("Leave key closes the app");
+  if (normalized.ehailing === "link") {
+    // Named by app where the operator picked one — an admin scanning a list of
+    // cards wants "Grab Driver", not an intent URL.
+    const target = app?.name ?? normalized.ehailingUrl;
+    if (target) lines.push(`E-hailing opens ${target}`);
+  }
   return lines;
 }

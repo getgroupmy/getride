@@ -36,6 +36,7 @@ import { Country, State, City } from "country-state-city";
 import {
   ArrowLeft,
   Building2,
+  Check,
   Gauge,
   Globe2,
   Home,
@@ -54,12 +55,23 @@ import {
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
+import { detectApp } from "@/utils/installedApps";
 import {
   describeMeterLeave,
   normalizeMeterLeaveUrl,
   type MeterLeaveEhailingAction,
   type MeterLeavePassengerAction,
 } from "@/utils/meterLeave";
+import {
+  describeAppPresence,
+  meterLeaveAppById,
+  meterLeaveAppLink,
+  meterLeaveAppStore,
+  METER_LEAVE_APPS,
+  STORE_LABELS,
+  type AppPresence,
+  type StorePlatform,
+} from "@/utils/meterLeaveApps";
 import {
   canApplyMeterPanelLive,
   createMeterProfileDraft,
@@ -289,12 +301,67 @@ export default function AdminSettingsMeterDigitalScreen() {
   );
 
   /**
+   * Which catalogue apps this device can see.
+   *
+   * Probed once when the editor opens on a link card, and only ever used to
+   * *label* rows — see `utils/meterLeaveApps.ts` on why a negative answer means
+   * "not found among the apps this build can ask about" rather than "not
+   * installed". Picking an app is never gated on it: the admin's phone is not
+   * the fleet's.
+   */
+  const [presence, setPresence] = useState<Record<string, AppPresence>>({});
+
+  useEffect(() => {
+    if (!editorOpen || draft.leave.ehailing !== "link") return;
+    let live = true;
+    void (async () => {
+      const found: Record<string, AppPresence> = {};
+      for (const app of METER_LEAVE_APPS) {
+        // Asked about with whatever this device could actually launch.
+        found[app.id] = await detectApp(
+          meterLeaveAppLink(app, Platform.OS === "ios" ? "ios" : "android"),
+        );
+      }
+      if (live) setPresence(found);
+    })();
+    return () => {
+      live = false;
+    };
+  }, [draft.leave.ehailing, editorOpen]);
+
+  /** Point the card at a catalogue app, filling in what the catalogue knows. */
+  const pickLeaveApp = useCallback((appId: string | null) => {
+    setDraft((p) => {
+      const app = meterLeaveAppById(appId);
+      return {
+        ...p,
+        leave: {
+          ...p.leave,
+          ehailingAppId: app?.id ?? null,
+          // Play is derivable from the package id, so it is filled in; the
+          // other two are per-app numbers nothing yields, and stay the
+          // operator's to paste. An address already entered is never
+          // overwritten by the pick.
+          ehailingStores: {
+            ...p.leave.ehailingStores,
+            android:
+              p.leave.ehailingStores.android ?? meterLeaveAppStore(app, "android"),
+          },
+        },
+      };
+    });
+  }, []);
+
+  /**
    * The e-hailing link is typed but could never open an app.
    *
    * Only complains about something actually entered — a field still empty is a
    * card that isn't finished yet, which the Save press reports rather than a red
    * border following the admin around the form.
    */
+  /** The catalogue app this card names, if any. */
+  const pickedApp = meterLeaveAppById(draft.leave.ehailingAppId);
+
   const linkInvalid =
     draft.leave.ehailing === "link" &&
     (draft.leave.ehailingUrl ?? "").trim().length > 0 &&
@@ -1029,6 +1096,101 @@ export default function AdminSettingsMeterDigitalScreen() {
                 <>
                   <View style={styles.fieldBlock}>
                     <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
+                      Dispatch app
+                    </Text>
+                    <Text style={[styles.groupHint, { color: Colors.textSecondary }]}>
+                      Pick the app your drivers take jobs in, or choose Other app and enter
+                      its link by hand. Neither iOS nor Android will list a phone&apos;s apps
+                      to us, so &ldquo;on this device&rdquo; only covers the apps below, only
+                      on this phone, and only in a recent build — it is a hint, not the
+                      fleet&apos;s answer.
+                    </Text>
+                    <View style={styles.appList}>
+                      {METER_LEAVE_APPS.map((app) => {
+                        const picked = draft.leave.ehailingAppId === app.id;
+                        const seen = presence[app.id] ?? "unknown";
+                        return (
+                          <TouchableOpacity
+                            key={app.id}
+                            style={[
+                              styles.appRow,
+                              {
+                                backgroundColor: picked ? Colors.accent + "18" : Colors.gray[100],
+                                borderColor: picked ? Colors.accent : Colors.border,
+                              },
+                            ]}
+                            onPress={() => {
+                              if (!editable) {
+                                guard();
+                                return;
+                              }
+                              pickLeaveApp(picked ? null : app.id);
+                            }}
+                            activeOpacity={0.85}
+                            testID={`meter-settings-leave-app-${app.id}`}
+                          >
+                            <View style={styles.cardInfo}>
+                              <Text
+                                style={[
+                                  styles.appName,
+                                  { color: picked ? Colors.accent : Colors.text },
+                                ]}
+                              >
+                                {app.name}
+                              </Text>
+                              <Text style={[styles.appMeta, { color: Colors.textSecondary }]}>
+                                {describeAppPresence(seen)}
+                                {app.iosScheme ? "" : " · needs an iOS link"}
+                              </Text>
+                            </View>
+                            {picked && <Check color={Colors.accent} size={16} />}
+                          </TouchableOpacity>
+                        );
+                      })}
+                      <TouchableOpacity
+                        style={[
+                          styles.appRow,
+                          {
+                            backgroundColor: draft.leave.ehailingAppId
+                              ? Colors.gray[100]
+                              : Colors.accent + "18",
+                            borderColor: draft.leave.ehailingAppId
+                              ? Colors.border
+                              : Colors.accent,
+                          },
+                        ]}
+                        onPress={() => {
+                          if (!editable) {
+                            guard();
+                            return;
+                          }
+                          pickLeaveApp(null);
+                        }}
+                        activeOpacity={0.85}
+                        testID="meter-settings-leave-app-other"
+                      >
+                        <View style={styles.cardInfo}>
+                          <Text
+                            style={[
+                              styles.appName,
+                              {
+                                color: draft.leave.ehailingAppId ? Colors.text : Colors.accent,
+                              },
+                            ]}
+                          >
+                            Other app
+                          </Text>
+                          <Text style={[styles.appMeta, { color: Colors.textSecondary }]}>
+                            Open whatever the link below names
+                          </Text>
+                        </View>
+                        {!draft.leave.ehailingAppId && <Check color={Colors.accent} size={16} />}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.fieldBlock}>
+                    <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
                       App link
                     </Text>
                     <TextInput
@@ -1061,9 +1223,70 @@ export default function AdminSettingsMeterDigitalScreen() {
                     >
                       {linkInvalid
                         ? "A link has to start with a scheme — driverapp://, https:// — so the device knows which app to open."
-                        : "The driver's phone opens whichever app claims this link. The meter stays open behind it."}
+                        : pickedApp
+                          ? `Optional for ${pickedApp.name} on Android, which opens by package. ${
+                              pickedApp.iosScheme
+                                ? "iPhones use the app's own scheme."
+                                : "iPhones need it — without one they are offered the App Store instead."
+                            }`
+                          : "The driver's phone opens whichever app claims this link. The meter stays open behind it."}
                     </Text>
                   </View>
+
+                  {/* Where a driver without the app is sent. One field per
+                      platform because no address yields another: a package id
+                      is the Play page, but App Store and AppGallery pages are
+                      per-app numbers. */}
+                  <View style={styles.fieldBlock}>
+                    <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
+                      Store links (for drivers who don&apos;t have the app)
+                    </Text>
+                    <Text style={[styles.groupHint, { color: Colors.textSecondary }]}>
+                      Offered when the app cannot be opened on a driver&apos;s phone. Huawei is
+                      listed on its own because an HMS device has no Play Store.
+                    </Text>
+                  </View>
+                  {(["ios", "android", "huawei"] as StorePlatform[]).map((platform) => (
+                    <View style={styles.fieldBlock} key={platform}>
+                      <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
+                        {STORE_LABELS[platform]}
+                      </Text>
+                      <TextInput
+                        style={[
+                          styles.input,
+                          {
+                            backgroundColor: Colors.gray[100],
+                            borderColor: Colors.border,
+                            color: Colors.text,
+                          },
+                        ]}
+                        value={draft.leave.ehailingStores[platform] ?? ""}
+                        onChangeText={(t) =>
+                          setDraft((p) => ({
+                            ...p,
+                            leave: {
+                              ...p.leave,
+                              ehailingStores: { ...p.leave.ehailingStores, [platform]: t },
+                            },
+                          }))
+                        }
+                        onFocus={() => setFocusField(null)}
+                        placeholder={
+                          platform === "android"
+                            ? "https://play.google.com/store/apps/details?id=…"
+                            : platform === "ios"
+                              ? "https://apps.apple.com/app/id…"
+                              : "https://appgallery.huawei.com/app/…"
+                        }
+                        placeholderTextColor={Colors.textSecondary}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="url"
+                        editable={editable}
+                        testID={`meter-settings-leave-store-${platform}`}
+                      />
+                    </View>
+                  ))}
                   <View style={styles.fieldBlock}>
                     <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
                       Key caption (optional)
@@ -1494,6 +1717,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between" as const,
   },
   halfField: { width: "48%" as const, marginTop: 12 },
+
+  appList: { gap: 8, marginTop: 8 },
+  appRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  appName: { fontSize: 13, fontWeight: "700" as const },
+  appMeta: { fontSize: 11, marginTop: 2 },
 
   suggestBox: { borderWidth: 1, borderRadius: 12, marginTop: 4, overflow: "hidden" as const },
   suggestRow: { paddingHorizontal: 12, paddingVertical: 10 },
