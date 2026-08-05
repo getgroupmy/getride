@@ -1,5 +1,6 @@
 import {
   isSupabaseConfigured,
+  supabase,
   SUPABASE_URL_RESOLVED,
   SUPABASE_ANON_KEY_RESOLVED,
 } from "@/utils/supabase";
@@ -11,18 +12,22 @@ export const DISPLAY_SETTINGS_ROW_ID = "global";
 type DisplayShape = DisplaySettings;
 
 /**
- * REST endpoint for the singleton settings row.
+ * REST endpoint for the singleton settings row — used for READS only.
  *
- * IMPORTANT: global display settings are read/written with a RAW fetch that
- * sends the project ANON key explicitly (both `apikey` and `Authorization`).
- * We do NOT route these through the shared Supabase SDK client, because that
- * client has `persistSession: true` — so once a regular user logs in via phone
- * auth, every SDK query carries the user's *authenticated* JWT. On this
- * database the global-settings policies effectively only serve the `anon`
- * role, which means logged-in (non-admin) users would silently get zero rows
- * back and fall through to defaults — i.e. the admin's changes never reach
- * them. Forcing the anon role here makes the settings truly global for every
- * device regardless of who is signed in.
+ * IMPORTANT: global display settings are *read* with a RAW fetch that sends the
+ * project ANON key explicitly (both `apikey` and `Authorization`). We do NOT
+ * route the read through the shared Supabase SDK client, because that client
+ * has `persistSession: true` — so once a user logs in via phone auth, every SDK
+ * query carries the user's JWT. Forcing the anon role on the read makes the
+ * settings truly global for every device regardless of who is signed in (the
+ * SELECT policy serves `anon`+`authenticated` with `using (true)`).
+ *
+ * WRITES are the opposite: since migration 0069 the INSERT/UPDATE policies on
+ * this table require `caller_is_admin()`, which is FALSE for an anon-key request
+ * (`auth.uid()` is null). An anon write is therefore silently rejected by RLS —
+ * so the write MUST go through the authenticated SDK client, whose JWT belongs
+ * to the signed-in admin and passes `caller_is_admin()`. See
+ * `updateRemoteDisplaySettings` below.
  */
 const REST_BASE = `${SUPABASE_URL_RESOLVED}/rest/v1/${DISPLAY_SETTINGS_TABLE}`;
 
@@ -61,29 +66,30 @@ export async function fetchRemoteDisplaySettings(): Promise<Partial<DisplaySetti
 }
 
 /**
- * Upserts the full settings JSON to the singleton row using the anon role.
+ * Upserts the full settings JSON to the singleton row.
+ *
+ * The write goes through the authenticated Supabase SDK client (NOT the raw
+ * anon fetch used for reads): the table's INSERT/UPDATE policies require
+ * `caller_is_admin()`, which only passes when the request carries a signed-in
+ * admin's JWT. An anon-key write has `auth.uid() = null` and is rejected by
+ * RLS, which is why admin edits to the global settings never used to land.
  * Returns true on success.
  */
 export async function updateRemoteDisplaySettings(
   settings: DisplaySettings
 ): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured || !supabase) return false;
   try {
-    const res = await fetch(`${REST_BASE}?on_conflict=id`, {
-      method: "POST",
-      headers: {
-        ...anonHeaders(),
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      },
-      body: JSON.stringify({
+    const { error } = await supabase.from(DISPLAY_SETTINGS_TABLE).upsert(
+      {
         id: DISPLAY_SETTINGS_ROW_ID,
         settings,
         updated_at: new Date().toISOString(),
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.log("[displaySettings] update http", res.status, body.slice(0, 200));
+      },
+      { onConflict: "id" }
+    );
+    if (error) {
+      console.log("[displaySettings] update error", error.message);
       return false;
     }
     return true;
