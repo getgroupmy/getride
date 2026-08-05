@@ -46,10 +46,36 @@ export type StorePlatform = "ios" | "android" | "huawei";
 export interface MeterLeaveApp {
   id: string;
   name: string;
-  /** The iOS URL scheme, where it is known for certain. */
+  /**
+   * The app's own URL scheme on iOS, where it is known for certain.
+   *
+   * The only iOS value `canOpenURL` can answer about, so it is also the only
+   * one detection uses (`meterLeaveAppProbe`).
+   */
   iosScheme: string | null;
+  /**
+   * A **universal link** the app claims, which opens it on an iPhone that has
+   * it installed.
+   *
+   * This is how an app with no published scheme is still opened directly, and
+   * it is a fact that can be checked rather than guessed: the domain publishes
+   * `/.well-known/apple-app-site-association` naming the app's bundle id and
+   * the paths it claims, and only a path inside those patterns will do.
+   *
+   * The trade-off is the other half: an iPhone *without* the app follows the
+   * same link in Safari, so it wants to be a path that means something on the
+   * web. There is no way to tell the two apart from here — `openURL` reports
+   * success either way — which is why the store page stays on the card.
+   */
+  iosLink: string | null;
   /** The Android/Huawei package id. */
   androidPackage: string | null;
+  /**
+   * Store pages the catalogue knows for certain. Play is derived from the
+   * package when this is empty; the other two are only ever real addresses
+   * somebody supplied.
+   */
+  stores: { ios: string | null; huawei: string | null };
 }
 
 /**
@@ -61,10 +87,55 @@ export interface MeterLeaveApp {
  * asked for it in the editor.
  */
 export const METER_LEAVE_APPS: MeterLeaveApp[] = [
-  { id: "grab-driver", name: "Grab Driver", iosScheme: null, androidPackage: "com.grabtaxi.driver2" },
-  { id: "uber-driver", name: "Uber Driver", iosScheme: null, androidPackage: "com.ubercab.driver" },
-  { id: "bolt-driver", name: "Bolt Driver", iosScheme: null, androidPackage: "ee.mtakso.driver" },
-  { id: "maxim-driver", name: "Maxim Driver", iosScheme: null, androidPackage: "com.taxsee.driver" },
+  {
+    // GVRIDE (GV CAR VENTURES SDN. BHD.) — one app, one id on both platforms.
+    //
+    // The iOS link is a universal link, not the App Store page: an App Store
+    // URL only ever opens the App Store, even when the app is right there on
+    // the home screen. `ride.gvmalaysia.com` publishes an
+    // apple-app-site-association naming `N57RJ3572T.com.jobtepi.app` and
+    // claiming `/app/*` and `/invite/*`, so a link inside those paths opens the
+    // app itself. An iPhone without it lands on that path in Safari, which is
+    // why the App Store page below stays on the entry.
+    id: "gvride",
+    name: "GVRIDE",
+    iosScheme: null,
+    iosLink: "https://ride.gvmalaysia.com/app/",
+    androidPackage: "com.jobtepi.app",
+    stores: { ios: "https://apps.apple.com/my/app/gvride/id6651835302", huawei: null },
+  },
+  {
+    id: "grab-driver",
+    name: "Grab Driver",
+    iosScheme: null,
+    iosLink: null,
+    androidPackage: "com.grabtaxi.driver2",
+    stores: { ios: null, huawei: null },
+  },
+  {
+    id: "uber-driver",
+    name: "Uber Driver",
+    iosScheme: null,
+    iosLink: null,
+    androidPackage: "com.ubercab.driver",
+    stores: { ios: null, huawei: null },
+  },
+  {
+    id: "bolt-driver",
+    name: "Bolt Driver",
+    iosScheme: null,
+    iosLink: null,
+    androidPackage: "ee.mtakso.driver",
+    stores: { ios: null, huawei: null },
+  },
+  {
+    id: "maxim-driver",
+    name: "Maxim Driver",
+    iosScheme: null,
+    iosLink: null,
+    androidPackage: "com.taxsee.driver",
+    stores: { ios: null, huawei: null },
+  },
 ];
 
 /** The catalogue entry with this id, or null for a hand-entered link. */
@@ -86,9 +157,30 @@ export function meterLeaveAppLink(
   platform: StorePlatform,
 ): string | null {
   if (!app) return null;
-  if (platform === "ios") return app.iosScheme;
+  // The app's own scheme first — it opens nothing but the app. A universal
+  // link is the fallback: it opens the app when installed, and the website
+  // when not, which is still far better than a key that does nothing.
+  if (platform === "ios") return app.iosScheme ?? app.iosLink;
   if (!app.androidPackage) return null;
   return `intent://#Intent;package=${app.androidPackage};end`;
+}
+
+/**
+ * The link detection may ask about — never the same question as launching.
+ *
+ * `canOpenURL` answers "is there something here that handles this?", so an
+ * `https://` universal link always answers *true*: a browser handles it whether
+ * or not the app is installed. Probing one would report every iPhone as having
+ * every app. Only a scheme (iOS) or a package intent (Android) identifies an
+ * app, so anything else returns null and the row honestly says it cannot check.
+ */
+export function meterLeaveAppProbe(
+  app: MeterLeaveApp | null,
+  platform: StorePlatform,
+): string | null {
+  if (!app) return null;
+  if (platform === "ios") return app.iosScheme;
+  return meterLeaveAppLink(app, platform);
 }
 
 /**
@@ -102,7 +194,10 @@ export function meterLeaveAppStore(
   app: MeterLeaveApp | null,
   platform: StorePlatform,
 ): string | null {
-  if (!app?.androidPackage || platform !== "android") return null;
+  if (!app) return null;
+  if (platform === "ios") return app.stores.ios;
+  if (platform === "huawei") return app.stores.huawei;
+  if (!app.androidPackage) return null;
   return `https://play.google.com/store/apps/details?id=${app.androidPackage}`;
 }
 
@@ -145,6 +240,19 @@ export function describeAppPresence(presence: AppPresence): string {
     default:
       return "Can't check here";
   }
+}
+
+/**
+ * What an iPhone driver gets from this entry, in the admin row.
+ *
+ * Worth a line of its own because the three cases behave differently on the one
+ * platform that will not simply launch an app by id — and an operator choosing
+ * an app for a mixed fleet should see which one they are choosing.
+ */
+export function describeAppIosRoute(app: MeterLeaveApp): string {
+  if (app.iosScheme) return "iPhone: opens the app";
+  if (app.iosLink) return "iPhone: opens the app, or the website without it";
+  return "iPhone: needs a link or the App Store page";
 }
 
 /**

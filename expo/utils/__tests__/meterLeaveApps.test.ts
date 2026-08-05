@@ -9,10 +9,12 @@
  */
 
 import {
+  describeAppIosRoute,
   describeAppPresence,
   meterLeaveAppById,
   meterLeaveAppLink,
   meterLeaveAppNeedsLink,
+  meterLeaveAppProbe,
   meterLeaveAppStore,
   METER_LEAVE_APPS,
   storePlatformFor,
@@ -31,18 +33,67 @@ describe("the catalogue itself", () => {
     }
   });
 
-  it("never carries a guessed iOS scheme", () => {
+  it("never carries a guessed iOS route", () => {
     // A wrong scheme is a key that fails on every press, so an entry either
-    // knows the scheme or says it doesn't. Any scheme added later must be a
-    // real one, with a colon.
+    // knows the route or says it doesn't. A universal link has to be https —
+    // that is the only kind iOS will hand to an app.
     for (const app of METER_LEAVE_APPS) {
       if (app.iosScheme !== null) expect(app.iosScheme).toContain(":");
+      if (app.iosLink !== null) expect(app.iosLink.startsWith("https://")).toBe(true);
+    }
+  });
+
+  it("never points iOS at an App Store page as the way in", () => {
+    // An App Store URL opens the App Store, never the app — even with the app
+    // on the home screen. It belongs in `stores`, and only there.
+    for (const app of METER_LEAVE_APPS) {
+      expect(app.iosLink ?? "").not.toContain("apps.apple.com");
+      expect(app.iosScheme ?? "").not.toContain("apps.apple.com");
     }
   });
 
   it("has unique ids, since the card stores one", () => {
     const ids = METER_LEAVE_APPS.map((a) => a.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("GVRIDE", () => {
+  const gv = meterLeaveAppById("gvride")!;
+
+  it("opens the installed app on an iPhone, by universal link", () => {
+    // `ride.gvmalaysia.com` publishes an apple-app-site-association naming
+    // N57RJ3572T.com.jobtepi.app and claiming /app/*, so this path opens the
+    // app itself — which an App Store URL never does.
+    expect(meterLeaveAppLink(gv, "ios")).toBe("https://ride.gvmalaysia.com/app/");
+  });
+
+  it("opens it by package on Android and Huawei", () => {
+    expect(meterLeaveAppLink(gv, "android")).toBe(
+      "intent://#Intent;package=com.jobtepi.app;end",
+    );
+    expect(meterLeaveAppLink(gv, "huawei")).toBe(meterLeaveAppLink(gv, "android"));
+  });
+
+  it("keeps the App Store page as the install route, not the launch route", () => {
+    expect(meterLeaveAppStore(gv, "ios")).toBe(
+      "https://apps.apple.com/my/app/gvride/id6651835302",
+    );
+    expect(meterLeaveAppStore(gv, "android")).toBe(
+      "https://play.google.com/store/apps/details?id=com.jobtepi.app",
+    );
+  });
+
+  it("will not pretend to detect it on an iPhone", () => {
+    // canOpenURL says yes to any https link — a browser handles it — so an
+    // entry reached by universal link cannot be probed at all.
+    expect(meterLeaveAppProbe(gv, "ios")).toBeNull();
+    expect(meterLeaveAppProbe(gv, "android")).toContain("com.jobtepi.app");
+  });
+
+  it("tells the operator what an iPhone will actually do", () => {
+    expect(describeAppIosRoute(gv)).toContain("opens the app");
+    expect(describeAppIosRoute(meterLeaveAppById("grab-driver")!)).toContain("needs a link");
   });
 });
 
