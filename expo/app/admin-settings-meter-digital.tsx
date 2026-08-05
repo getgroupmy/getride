@@ -6,11 +6,12 @@
  * `meter_digital_settings` (migration 0081) and resolved on the driver's device
  * highest-scope-first.
  *
- * A card is four things in one editor — which sensors the meter may bill on,
- * whether a hire may open without the vehicle's odometer, which console panels
- * are shown and which may be tapped, and the rates themselves. All of the
- * shaping, coercion and validation is pure and lives in `utils/meterSettings.ts`;
- * this screen is the form over it.
+ * A card is five things in one editor — which sensors the meter may bill on,
+ * whether a hire may open without the vehicle's odometer, whether a TEKSI driver
+ * opens the app straight into the console, which console panels are shown and
+ * which may be tapped, and the rates themselves. All of the shaping, coercion
+ * and validation is pure and lives in `utils/meterSettings.ts`; this screen is
+ * the form over it.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -44,6 +45,7 @@ import {
   Pencil,
   Plus,
   Luggage,
+  Rocket,
   Satellite,
   Trash2,
   X,
@@ -662,7 +664,7 @@ export default function AdminSettingsMeterDigitalScreen() {
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Meter Digital Setting</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
-            Sensors, console panels & fare rates for the in-app taxi meter
+            Sensors, launch, console panels & fare rates for the in-app taxi meter
           </Text>
         </View>
         <View style={styles.iconBtn} />
@@ -922,6 +924,16 @@ export default function AdminSettingsMeterDigitalScreen() {
                 draft.readOdometer,
                 (next) => setDraft((p) => ({ ...p, readOdometer: next })),
                 "meter-settings-read-odo",
+              )}
+
+              {/* How the driver reaches the console */}
+              <GroupTitle Colors={Colors} icon={Rocket} title="Driver launch" />
+              {switchRow(
+                "Open the meter on launch",
+                "Drivers with the TEKSI partner type land on the meter console when they sign in or reopen the app, instead of the passenger map. An in-progress ride is still restored first, and leaving the console does not bounce them back into it.",
+                draft.autoLaunch,
+                (next) => setDraft((p) => ({ ...p, autoLaunch: next })),
+                "meter-settings-auto-launch",
               )}
 
               {/* Panels */}

@@ -34,6 +34,7 @@ function row(overrides: Partial<MeterSettingsRow> = {}): MeterSettingsRow {
     source_mode: "gps+obd",
     allow_start_without_odometer: true,
     read_odometer: true,
+    auto_launch: false,
     show_meter: true,
     show_trips: true,
     show_printer: true,
@@ -145,6 +146,16 @@ describe("normalizeMeterProfile", () => {
     expect(back.rates).toEqual(p.rates);
     expect(back.panels).toEqual(p.panels);
     expect(back.sourceMode).toBe(p.sourceMode);
+    expect(back.autoLaunch).toBe(p.autoLaunch);
+  });
+
+  it("reads auto-launch, and defaults it off where the column is missing", () => {
+    expect(normalizeMeterProfile(row({ auto_launch: true }))!.autoLaunch).toBe(true);
+    // A database that predates 0084 returns no such key at all: a driver is
+    // never redirected on the strength of an absent field.
+    const legacy = row();
+    delete (legacy as Partial<MeterSettingsRow>).auto_launch;
+    expect(normalizeMeterProfile(legacy)!.autoLaunch).toBe(false);
   });
 });
 

@@ -4265,6 +4265,9 @@ create table if not exists public.meter_digital_settings (
   allow_start_without_odometer boolean not null default true,
   read_odometer                boolean not null default true,
 
+  -- Open /meter-digital at app launch for partners carrying the TEKSI type.
+  auto_launch boolean not null default false,
+
   -- Console panels: shown, and tappable
   show_meter    boolean not null default true,
   show_trips    boolean not null default true,
@@ -4317,6 +4320,10 @@ create table if not exists public.meter_digital_settings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- 0084: added after the table shipped, so an existing project picks it up here.
+alter table public.meter_digital_settings
+  add column if not exists auto_launch boolean not null default false;
 
 create unique index if not exists meter_digital_settings_scope_uidx
   on public.meter_digital_settings (

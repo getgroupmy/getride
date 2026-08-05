@@ -112,6 +112,18 @@ export interface MeterProfile {
   /** Read the vehicle's odometer (PID A6) at each end of a hire at all. */
   readOdometer: boolean;
 
+  // --- How the driver reaches the console ---
+  /**
+   * Open the meter for a TEKSI driver the moment the app is opened.
+   *
+   * A taxi meter is the screen the whole shift is spent on, so an operator can
+   * make it the app's landing screen for the drivers who bill on it: a partner
+   * carrying the `teksi` partner type is taken straight to the console on sign-in
+   * and on every relaunch, instead of the passenger map. Off by default — a
+   * redirect nobody asked for is a worse default than one screen's tap.
+   */
+  autoLaunch: boolean;
+
   // --- Console panels ---
   panels: Record<MeterPanelId, MeterPanelAccess>;
 
@@ -153,6 +165,7 @@ export const DEFAULT_METER_PROFILE: MeterProfile = {
   sourceMode: "gps+obd",
   allowStartWithoutOdometer: true,
   readOdometer: true,
+  autoLaunch: false,
   panels: {
     meter: { show: true, tap: true },
     trips: { show: true, tap: true },
@@ -187,6 +200,7 @@ export interface MeterSettingsRow {
   source_mode: string;
   allow_start_without_odometer: boolean;
   read_odometer: boolean;
+  auto_launch: boolean;
   show_meter: boolean;
   show_trips: boolean;
   show_printer: boolean;
@@ -225,8 +239,19 @@ export interface MeterSettingsRow {
   updated_at: string | null;
 }
 
-/** The columns every read of the table asks for. */
-export const METER_SETTINGS_COLUMNS = [
+/**
+ * The column 0084 added, and the one a database may not have yet.
+ *
+ * Named on its own because both a read and a write have to be able to drop it:
+ * a project running 0081 but not 0084 answers a select naming it with "column
+ * does not exist", which would otherwise take the whole rate-card table away
+ * from the meter over one boolean it can default (`utils/meterSettingsStore.ts`
+ * retries without it, the way `rideRequestsStore` retries a write without a
+ * column the database reports as missing).
+ */
+export const METER_AUTO_LAUNCH_COLUMN = "auto_launch";
+
+const METER_SETTINGS_COLUMN_LIST = [
   "id",
   "level",
   "country",
@@ -237,6 +262,7 @@ export const METER_SETTINGS_COLUMNS = [
   "source_mode",
   "allow_start_without_odometer",
   "read_odometer",
+  "auto_launch",
   "show_meter",
   "show_trips",
   "show_printer",
@@ -273,7 +299,15 @@ export const METER_SETTINGS_COLUMNS = [
   "max_extra",
   "active",
   "updated_at",
-].join(", ");
+];
+
+/** The columns every read of the table asks for. */
+export const METER_SETTINGS_COLUMNS = METER_SETTINGS_COLUMN_LIST.join(", ");
+
+/** The same read for a database that predates 0084. */
+export const METER_SETTINGS_COLUMNS_LEGACY = METER_SETTINGS_COLUMN_LIST.filter(
+  (c) => c !== METER_AUTO_LAUNCH_COLUMN,
+).join(", ");
 
 // --- Coercion helpers -------------------------------------------------------
 //
@@ -340,6 +374,10 @@ export function normalizeMeterProfile(raw: unknown): MeterProfile | null {
       d.allowStartWithoutOdometer,
     ),
     readOdometer: bool(r.read_odometer, d.readOdometer),
+    // A row read from a database that predates 0084 carries no column at all,
+    // and the default is "don't redirect" — a driver is never sent somewhere
+    // they did not ask to go on the strength of a missing field.
+    autoLaunch: bool(r.auto_launch, d.autoLaunch),
 
     panels: {
       meter: { show: bool(r.show_meter, true), tap: bool(r.tap_meter, true) },
@@ -441,6 +479,7 @@ export function meterProfileToRow(
     source_mode: profile.sourceMode,
     allow_start_without_odometer: profile.allowStartWithoutOdometer,
     read_odometer: profile.readOdometer,
+    auto_launch: profile.autoLaunch,
     ...meterPanelsToRow(panels),
     currency: profile.currency,
     flag_fare: rates.flagFare,

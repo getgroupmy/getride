@@ -30,6 +30,10 @@ import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchOngoingRequestForRider, fetchOngoingRequestForPartner } from "@/utils/rideRequestsStore";
 import { buildRestoreTarget } from "@/utils/ongoingRequestRestore";
+import {
+  markMeterAutoLaunchHandled,
+  useMeterAutoLaunch,
+} from "@/hooks/useMeterAutoLaunch";
 
 // Set once per app session so a cold launch restores an ongoing ride exactly
 // once, while later returns to the home screen (after a completed/cancelled
@@ -107,6 +111,10 @@ export default function HomeScreen() {
   const { location, currentAddress: contextAddress, refreshLocation, shouldSkipLocationDetection } = useLocation();
   const hasInitializedFromParams = useRef(false);
   const restoreCheckedRef = useRef<boolean>(false);
+  // True once the restore lookup below has come back with nothing to return to.
+  // Only then may the meter auto-launch claim the launch: an in-progress ride
+  // outranks the screen the next hire is started from.
+  const [restoreSettled, setRestoreSettled] = useState<boolean>(false);
   const [mapKey, setMapKey] = useState<number>(0);
   const [serviceComingSoonVisible, setServiceComingSoonVisible] = useState<boolean>(false);
   const prevColorScheme = useRef<string>(colorScheme);
@@ -167,6 +175,9 @@ export default function HomeScreen() {
           const target = buildRestoreTarget(ongoing);
           if (target) {
             console.log("[index] restoring ongoing request", ongoing.id, ongoing.status);
+            // This launch belongs to the ride, so the meter's auto-launch does
+            // not get to claim it later in the session.
+            markMeterAutoLaunchHandled();
             router.replace(target as any);
             return;
           }
@@ -175,24 +186,38 @@ export default function HomeScreen() {
         // ongoing trip. If so, land on the partner screen with the active ride
         // resumed on top, so back returns to the partner screen.
         const partnerOngoing = await fetchOngoingRequestForPartner(authState.userId);
-        if (cancelled || !partnerOngoing) return;
-        console.log(
-          "[index] restoring partner ongoing ride",
-          partnerOngoing.id,
-          partnerOngoing.status
-        );
-        router.replace({
-          pathname: "/partner-ehailing",
-          params: { resumeRequestId: partnerOngoing.id },
-        } as any);
+        if (cancelled) return;
+        if (partnerOngoing) {
+          console.log(
+            "[index] restoring partner ongoing ride",
+            partnerOngoing.id,
+            partnerOngoing.status
+          );
+          markMeterAutoLaunchHandled();
+          router.replace({
+            pathname: "/partner-ehailing",
+            params: { resumeRequestId: partnerOngoing.id },
+          } as any);
+          return;
+        }
+        // Nothing to return to, so the meter may now decide the launch.
+        setRestoreSettled(true);
       } catch (e) {
         console.log("[index] restore ongoing failed", e);
+        // A lookup that failed has restored nothing either, and leaving the
+        // driver with neither screen would be the worst of both.
+        if (!cancelled) setRestoreSettled(true);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, [authState.isAuthenticated, authState.userId, router]);
+
+  // A driver whose rate card asks for it lands on the taxi meter instead of
+  // this map — but only once the check above has confirmed there is no
+  // in-progress ride to return to first.
+  useMeterAutoLaunch({ enabled: restoreSettled });
 
   // Snap the menu to its nearest resting state (fully open or fully closed).
   // Used when a drag is terminated by the system (e.g. the app-switch gesture)
