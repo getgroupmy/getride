@@ -140,22 +140,43 @@ describe("resolveMeterLeave", () => {
 });
 
 describe("describeMeterExit", () => {
-  it("closes the app on Android, which allows it", () => {
-    expect(describeMeterExit("android").supported).toBe(true);
+  it("closes the app on Android, which always allows it", () => {
+    const android = describeMeterExit("android");
+    expect(android.supported).toBe(true);
+    expect(android.note).toContain("home screen");
   });
 
-  it("tells the driver how to leave where the platform refuses", () => {
-    const ios = describeMeterExit("ios");
-    expect(ios.supported).toBe(false);
-    expect(ios.note).toContain("Swipe up");
+  it("closes it on an iOS build that carries the native exit module", () => {
+    const ios = describeMeterExit("ios", true);
+    expect(ios.supported).toBe(true);
+    expect(ios.note).toContain("home screen");
+  });
 
-    const web = describeMeterExit("web");
+  it("asks an older iOS build to update rather than blaming the setting", () => {
+    // The capability is compiled in, so an iOS build that cannot exit is one
+    // made before it shipped — that is a new build, not a switch.
+    const ios = describeMeterExit("ios", false);
+    expect(ios.supported).toBe(false);
+    expect(ios.note).toContain("newer build");
+    expect(ios.note).toContain("swipe up");
+  });
+
+  it("never claims a browser tab can close itself", () => {
+    // Even told the platform can exit — the web bundle has no such thing.
+    const web = describeMeterExit("web", true);
     expect(web.supported).toBe(false);
     expect(web.note).toContain("tab");
+  });
 
-    // Either way the promise of the setting holds: nobody is signed out.
-    expect(ios.note).toContain("stay signed in");
-    expect(web.note).toContain("stay signed in");
+  it("keeps the promise of the setting in every answer: nobody is signed out", () => {
+    for (const answer of [
+      describeMeterExit("android"),
+      describeMeterExit("ios", true),
+      describeMeterExit("ios", false),
+      describeMeterExit("web"),
+    ]) {
+      expect(answer.note).toContain("stay signed in");
+    }
   });
 });
 

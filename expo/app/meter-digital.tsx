@@ -198,6 +198,7 @@ import {
   type MeterLinkTone,
   type MeterWaypoint,
 } from "@/utils/meterDashboard";
+import { canLeaveApp, leaveApp } from "@/utils/appExit";
 import {
   describeMeterExit,
   describeMeterLinkFailure,
@@ -646,17 +647,18 @@ export default function MeterDigitalScreen() {
       }
 
       if (option.action === "exit") {
-        const exit = describeMeterExit(Platform.OS);
-        if (!exit.supported) {
-          // Nothing to press here — the platform does not let an app close
-          // itself. Say how to leave instead of drawing a key that does
-          // nothing; the point of the setting (staying signed in) holds either
-          // way, so the popup is left open behind the notice.
-          Alert.alert("Leaving the app", exit.note);
+        // Android finishes the activity; iOS goes through the native exit
+        // module, which is only in a binary prebuilt since it landed. Either
+        // way the driver lands on the home screen still signed in — closing the
+        // app is not signing out, so the next launch comes straight back here.
+        const exit = describeMeterExit(Platform.OS, canLeaveApp());
+        if (exit.supported && leaveApp()) {
+          setExitPromptOpen(false);
           return;
         }
-        setExitPromptOpen(false);
-        BackHandler.exitApp();
+        // Nothing to press here — this build has no way to close itself. Say
+        // how to leave instead; the popup stays open behind the notice.
+        Alert.alert("Leaving the app", exit.note);
         return;
       }
 

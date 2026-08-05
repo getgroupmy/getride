@@ -282,8 +282,10 @@ export interface MeterSettingsRow {
 export interface MeterOptionalColumnGroup {
   /** Stable key the store remembers a refusal under. */
   id: string;
-  /** The migration that adds these columns, for the log line. */
+  /** The migration that adds these columns, for the log line and the notice. */
   migration: string;
+  /** What the admin editor calls these settings, for the notice. */
+  label: string;
   columns: string[];
 }
 
@@ -297,9 +299,37 @@ export const METER_LEAVE_COLUMNS = [
 ];
 
 export const METER_OPTIONAL_COLUMN_GROUPS: MeterOptionalColumnGroup[] = [
-  { id: "auto_launch", migration: "0084", columns: [METER_AUTO_LAUNCH_COLUMN] },
-  { id: "leave", migration: "0085", columns: METER_LEAVE_COLUMNS },
+  {
+    id: "auto_launch",
+    migration: "0084",
+    label: "Open the meter on launch",
+    columns: [METER_AUTO_LAUNCH_COLUMN],
+  },
+  {
+    id: "leave",
+    migration: "0085",
+    label: "Leave the meter",
+    columns: METER_LEAVE_COLUMNS,
+  },
 ];
+
+/**
+ * What to tell an admin whose database is missing these column groups.
+ *
+ * Degrading quietly is right for a *driver* — a console that keeps metering is
+ * worth more than one that refuses over a column — but it is wrong for the
+ * person moving the switch: a toggle that saves, reports success and comes back
+ * off is indistinguishable from a broken toggle. So the editor says which
+ * migration is missing rather than leaving them to guess.
+ */
+export function describeMissingMeterColumns(groupIds: readonly string[]): string | null {
+  const groups = METER_OPTIONAL_COLUMN_GROUPS.filter((g) => groupIds.includes(g.id));
+  if (groups.length === 0) return null;
+  const named = groups
+    .map((g) => `“${g.label}” (migration ${g.migration})`)
+    .join(groups.length === 2 ? " and " : ", ");
+  return `The live database has no columns for ${named}. Those settings cannot be saved yet — every driver's console uses the built-in default until the migration is applied in Supabase. Every other setting on the card saves normally.`;
+}
 
 const METER_SETTINGS_COLUMN_LIST = [
   "id",

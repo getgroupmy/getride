@@ -61,6 +61,17 @@ const GEO_KEY = "meter:settings:geo";
 const missingGroups: string[] = [];
 
 /**
+ * The optional groups this database has refused so far.
+ *
+ * The admin editor asks after every load and save: a switch whose column does
+ * not exist saves "successfully" and comes back off, which reads exactly like a
+ * broken switch unless the screen can say which migration is missing.
+ */
+export function meterSettingsMissingGroups(): string[] {
+  return [...missingGroups];
+}
+
+/**
  * The optional group an error is about, or null when it is some other failure.
  *
  * Returns null for a group already known missing, so a retry can never loop:
