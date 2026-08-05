@@ -1075,7 +1075,7 @@ export default function AdminSettingsMeterDigitalScreen() {
               </Text>
               {switchRow(
                 "Passenger key exits the app",
-                "Instead of opening passenger mode, the key closes the app without signing the driver out — the next launch comes straight back to the meter. On iOS and on the web the app cannot close itself, so the driver is told how to leave instead.",
+                "Instead of opening passenger mode, the key closes the app without signing the driver out — the next launch comes straight back to the meter. Android only: iOS gives no app a way to close itself, so iPhone drivers are told to swipe up instead.",
                 draft.leave.passenger === "exit",
                 (next) =>
                   setDraft((p) => ({
