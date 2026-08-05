@@ -4,6 +4,7 @@ import {
   MAX_TANK_CAPACITY_L,
   MIN_LEARN_DISTANCE_KM,
   ODOMETER_READ_ATTEMPTS,
+  ODOMETER_REFRESH_MS,
   computeFuelRange,
   defaultFuelProfile,
   estimateConsumption,
@@ -19,9 +20,11 @@ import {
   profileForVin,
   readFuelSnapshot,
   readOdometerKm,
+  shouldReadOdometer,
   validateFuelProfileInput,
   type FuelProfile,
   type FuelSnapshot,
+  type OdometerStatus,
 } from "@/utils/canbus/fuelRange";
 import { decodeReading, type VehicleReading } from "@/utils/canbus/vehicleScan";
 
@@ -370,5 +373,67 @@ describe("readOdometerKm", () => {
     const send = jest.fn().mockRejectedValue(new Error("no session"));
     await expect(readOdometerKm(send, { attempts: 2, delayMs: 0 })).resolves.toBeNull();
     expect(send).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("shouldReadOdometer", () => {
+  const base = {
+    linked: true,
+    simulated: false,
+    status: "unknown" as OdometerStatus,
+    reading: false,
+    lastAttemptAt: null as number | null,
+    now: 1_000_000,
+  };
+
+  it("reads as soon as a real link is up", () => {
+    expect(shouldReadOdometer(base)).toBe(true);
+  });
+
+  it("never asks without a session", () => {
+    expect(shouldReadOdometer({ ...base, linked: false })).toBe(false);
+  });
+
+  it("never asks the simulator — a fake odometer is not a reading", () => {
+    expect(shouldReadOdometer({ ...base, simulated: true })).toBe(false);
+  });
+
+  it("does not queue a second command behind one in flight", () => {
+    expect(shouldReadOdometer({ ...base, reading: true })).toBe(false);
+  });
+
+  it("holds the reading until the refresh is due, then asks again", () => {
+    const lastAttemptAt = base.now - ODOMETER_REFRESH_MS + 1;
+    expect(shouldReadOdometer({ ...base, status: "ready", lastAttemptAt })).toBe(false);
+    expect(
+      shouldReadOdometer({ ...base, status: "ready", lastAttemptAt: lastAttemptAt - 1 }),
+    ).toBe(true);
+  });
+
+  it("honours a caller's own cadence", () => {
+    expect(
+      shouldReadOdometer({
+        ...base,
+        status: "ready",
+        lastAttemptAt: base.now - 5_000,
+        refreshMs: 1_000,
+      }),
+    ).toBe(true);
+  });
+
+  it("stops asking a car that has already refused the parameter", () => {
+    expect(
+      shouldReadOdometer({
+        ...base,
+        status: "unsupported",
+        lastAttemptAt: base.now - ODOMETER_REFRESH_MS * 10,
+      }),
+    ).toBe(false);
+  });
+
+  it("is not parked by a clock that jumped backwards", () => {
+    expect(
+      shouldReadOdometer({ ...base, status: "ready", lastAttemptAt: base.now + 60_000 }),
+    ).toBe(true);
   });
 });

@@ -10,7 +10,7 @@
  * Only shown to accounts that are also partners — see `useIsPartner`.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -44,6 +44,14 @@ import { useCanbus } from "@/hooks/useCanbus";
 import { useIsPartner } from "@/hooks/useIsPartner";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { formatTelemetryValue, OBD_PIDS } from "@/utils/canbus/obd";
+import {
+  formatKm,
+  ODOMETER_ABSENT_READS,
+  ODOMETER_REFRESH_MS,
+  readOdometerKm,
+  shouldReadOdometer,
+  type OdometerStatus,
+} from "@/utils/canbus/fuelRange";
 import { TRANSPORT_LABEL, type CanTransportKind } from "@/utils/canbus/types";
 import { WIFI_ADAPTER_HOST, WIFI_ADAPTER_PORT } from "@/utils/canbus/config";
 import {
@@ -234,6 +242,98 @@ export default function Obd2ReaderScreen() {
     [state.telemetry]
   );
 
+  /* --- Odometer (mode 01 PID A6) ---------------------------------------
+   *
+   * Read beside the 1 Hz sweep rather than in it: `OBD_PIDS` stays small
+   * because the adapter answers one command at a time, so a parameter that
+   * moves as slowly as a mileage counter has no business costing the whole
+   * sweep a slot. It is asked once as soon as the link is up and then every
+   * ODOMETER_REFRESH_MS while it stays up. Plenty of cars keep the odometer on
+   * the instrument cluster and never put it on the bus, so one that does not
+   * answer says so on the card instead of leaving a driver wondering why the
+   * number never appeared.
+   */
+  const [odometerKm, setOdometerKm] = useState<number | null>(null);
+  const [odometerStatus, setOdometerStatus] = useState<OdometerStatus>("unknown");
+  const odometerStatusRef = useRef<OdometerStatus>("unknown");
+  const odometerReadingRef = useRef<boolean>(false);
+  const odometerAttemptRef = useRef<number | null>(null);
+  const odometerEmptyReadsRef = useRef<number>(0);
+  // `canbus` is a fresh object every render; the sweep re-renders this screen
+  // once a second, so depending on it below would reset the refresh timer
+  // before it could ever elapse. `sendCommand` itself is stable.
+  const sendCommandRef = useRef(canbus.sendCommand);
+  sendCommandRef.current = canbus.sendCommand;
+
+  // A reading belongs to the link that produced it: dropping the reader, or
+  // linking a different one, clears it rather than leaving the last car's
+  // mileage on screen under a new connection.
+  const linkKey = linked ? (device?.id ?? device?.transport ?? "linked") : null;
+
+  useEffect(() => {
+    odometerStatusRef.current = "unknown";
+    odometerReadingRef.current = false;
+    odometerAttemptRef.current = null;
+    odometerEmptyReadsRef.current = 0;
+    setOdometerKm(null);
+    setOdometerStatus("unknown");
+  }, [linkKey]);
+
+  useEffect(() => {
+    if (!linkKey) return;
+    let cancelled = false;
+
+    const attempt = async () => {
+      if (
+        cancelled ||
+        !shouldReadOdometer({
+          linked,
+          simulated: state.simulated,
+          status: odometerStatusRef.current,
+          reading: odometerReadingRef.current,
+          lastAttemptAt: odometerAttemptRef.current,
+          now: Date.now(),
+        })
+      ) {
+        return;
+      }
+      odometerReadingRef.current = true;
+      odometerAttemptRef.current = Date.now();
+      let km: number | null = null;
+      try {
+        km = await readOdometerKm((command) => sendCommandRef.current(command));
+      } finally {
+        odometerReadingRef.current = false;
+      }
+      if (cancelled) return;
+      if (km !== null) {
+        odometerEmptyReadsRef.current = 0;
+        odometerStatusRef.current = "ready";
+        setOdometerKm(km);
+        setOdometerStatus("ready");
+        return;
+      }
+      odometerEmptyReadsRef.current += 1;
+      // A refresh the adapter missed leaves the reading already on screen
+      // alone — never blank a number the vehicle did once report — and only a
+      // car that has stayed silent across whole reads is called odometer-less.
+      if (
+        odometerStatusRef.current === "unknown" &&
+        odometerEmptyReadsRef.current >= ODOMETER_ABSENT_READS
+      ) {
+        odometerStatusRef.current = "unsupported";
+        setOdometerStatus("unsupported");
+      }
+    };
+
+    void attempt();
+    const timer = setInterval(() => void attempt(), ODOMETER_REFRESH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [linkKey, linked, state.simulated]);
+
   const statusLine = canbus.connecting
     ? "Connecting to the reader…"
     : linked && device
@@ -308,7 +408,7 @@ export default function Obd2ReaderScreen() {
                 </Text>
               ) : null}
 
-              {telemetryKeys.length > 0 ? (
+              {telemetryKeys.length > 0 || odometerKm !== null ? (
                 <View style={styles.telemetryGrid}>
                   {telemetryKeys.map((k) => (
                     <View key={k} style={styles.telemetryCell}>
@@ -320,7 +420,28 @@ export default function Obd2ReaderScreen() {
                       </Text>
                     </View>
                   ))}
+                  {odometerKm !== null ? (
+                    <View style={styles.telemetryCell} testID="obd2-odometer">
+                      <Text style={[styles.telemetryValue, { color: Colors.text }]}>
+                        {formatKm(odometerKm)} km
+                      </Text>
+                      <Text style={[styles.telemetryKey, { color: Colors.textSecondary }]}>
+                        Odometer
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
+              ) : null}
+
+              {odometerStatus === "unsupported" ? (
+                <Text
+                  style={[styles.cardBody, { color: Colors.textSecondary, marginTop: 10 }]}
+                  testID="obd2-odometer-unsupported"
+                >
+                  This vehicle does not answer the odometer parameter (mode 01 PID
+                  A6). Most cars keep the odometer on the instrument cluster and
+                  never put it on the diagnostic bus.
+                </Text>
               ) : null}
 
               <View style={styles.actionRow}>
