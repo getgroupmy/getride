@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import { isSupabaseConfigured, supabase, uuidv4 } from "@/utils/supabase";
@@ -24,6 +24,7 @@ import {
   upsertVehicleMakeModel as sbUpsertVehicleMakeModel,
   upsertRegion as sbUpsertRegion,
 } from "@/utils/adminSync";
+import type { AdminWriteResult } from "@/utils/adminSync";
 
 const REGIONS_CATEGORY = "country-states-cities" as const;
 
@@ -800,6 +801,13 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
     entries: SEED_ENTRIES,
   });
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  /**
+   * Latest `data` for callbacks that need to read the current record *and*
+   * return the result of its remote sync (see `updatePartner`) — the `setData`
+   * updater runs during reconciliation, so it can't hand a value back.
+   */
+  const dataRef = useRef<AdminData>(data);
+  dataRef.current = data;
 
   useEffect(() => {
     (async () => {
@@ -1027,17 +1035,24 @@ export const [AdminDataProvider, useAdminData] = createContextHook(() => {
     [update]
   );
 
+  /**
+   * Patch a partner locally and push it to Supabase. Resolves with the remote
+   * write's outcome so a screen can tell the operator when the change was
+   * rejected — the local cache is optimistic and the next hydrate replaces
+   * partners wholesale from the server, so a silent failure would look like a
+   * save that quietly reverted.
+   */
   const updatePartner = useCallback(
-    (id: string, patch: Partial<PartnerRecord>) => {
-      update((p) => {
-        const next = {
-          ...p,
-          partners: p.partners.map((d) => (d.id === id ? { ...d, ...patch } : d)),
-        };
-        const updated = next.partners.find((d) => d.id === id);
-        if (updated) void sbUpsertPartner(updated);
-        return next;
-      });
+    (id: string, patch: Partial<PartnerRecord>): Promise<AdminWriteResult> => {
+      const current = dataRef.current.partners.find((d) => d.id === id);
+      update((p) => ({
+        ...p,
+        partners: p.partners.map((d) => (d.id === id ? { ...d, ...patch } : d)),
+      }));
+      if (!current) {
+        return Promise.resolve({ ok: false, error: "Partner not found." });
+      }
+      return sbUpsertPartner({ ...current, ...patch });
     },
     [update]
   );

@@ -537,21 +537,55 @@ export async function resolvePartnerSupabaseId(displayId: string): Promise<strin
   return data.id;
 }
 
-export async function upsertPartner(p: PartnerRecord): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
+/**
+ * Outcome of an admin write that syncs to Supabase, so the calling screen can
+ * tell the operator the change did not land instead of reporting "Saved" over
+ * a rejected write.
+ */
+export type AdminWriteResult = { ok: boolean; error?: string };
+
+const NOT_CONFIGURED: AdminWriteResult = {
+  ok: false,
+  error: "Not connected to the server.",
+};
+
+/**
+ * Write a partner row.
+ *
+ * An existing row is UPDATEd rather than upserted: `partnerToRow` deliberately
+ * carries no `auth_user_id` (the back office must not be able to re-own a
+ * partner), and an upsert is an `insert … on conflict do update`, so Postgres
+ * still evaluates the INSERT policy's WITH CHECK against the proposed row —
+ * where `auth_user_id` is null. That fails `partners self insert` and the whole
+ * statement is rejected, even when the caller is editing their own row. An
+ * UPDATE only has to satisfy `partners self update` / `partners admin update`
+ * (migration 0083).
+ */
+export async function upsertPartner(p: PartnerRecord): Promise<AdminWriteResult> {
+  if (!isSupabaseConfigured || !supabase) return NOT_CONFIGURED;
   try {
     const existing = await resolvePartnerSupabaseId(p.id);
-    const supabaseId = existing ?? uuidv4();
-    const { error } = await supabase
-      .from("partners")
-      .upsert(partnerToRow(p, supabaseId), { onConflict: "id" });
+    if (existing) {
+      const { id: _id, ...patch } = partnerToRow(p, existing);
+      const { error } = await supabase.from("partners").update(patch).eq("id", existing);
+      if (error) {
+        log("upsertPartner update error", p.id, error.message);
+        return { ok: false, error: error.message };
+      }
+      partnerIdMap.set(p.id, existing);
+      return { ok: true };
+    }
+    const supabaseId = uuidv4();
+    const { error } = await supabase.from("partners").insert(partnerToRow(p, supabaseId));
     if (error) {
-      log("upsertPartner error", p.id, error.message);
-      return;
+      log("upsertPartner insert error", p.id, error.message);
+      return { ok: false, error: error.message };
     }
     partnerIdMap.set(p.id, supabaseId);
+    return { ok: true };
   } catch (e) {
     log("upsertPartner threw", e);
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 

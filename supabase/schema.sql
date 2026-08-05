@@ -3507,6 +3507,26 @@ begin
 end;
 $emergency$;
 
+-- partners — the onboarding flow writes the caller's own row (self policies
+-- from 0025, kept), and the back office writes any row. Without the admin half
+-- (migration 0083) Admin → Partner Edit could never persist a change, because
+-- the client upsert carries no auth_user_id and so fails the self WITH CHECK.
+do $partners_admin$
+begin
+  if to_regclass('public.partners') is null then return; end if;
+  drop policy if exists "partners admin insert" on public.partners;
+  create policy "partners admin insert" on public.partners
+    for insert to public with check (public.caller_is_admin());
+  drop policy if exists "partners admin update" on public.partners;
+  create policy "partners admin update" on public.partners
+    for update to public
+    using (public.caller_is_admin()) with check (public.caller_is_admin());
+  drop policy if exists "partners admin delete" on public.partners;
+  create policy "partners admin delete" on public.partners
+    for delete to public using (public.caller_is_admin());
+end;
+$partners_admin$;
+
 -- user_sessions / user_location_history — launch telemetry (public IP, ISP,
 -- GPS trail). Inserts remain possible pre-login (user_id null) but a caller
 -- can never attribute rows to somebody else; reads are owner/admin only.
