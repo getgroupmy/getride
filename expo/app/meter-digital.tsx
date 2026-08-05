@@ -199,7 +199,11 @@ import {
   type MeterPanelId,
   type MeterProfile,
 } from "@/utils/meterSettings";
-import { fetchMeterProfiles, subscribeMeterSettings } from "@/utils/meterSettingsStore";
+import {
+  fetchMeterProfiles,
+  saveMeterGeo,
+  subscribeMeterSettings,
+} from "@/utils/meterSettingsStore";
 import {
   adjustCharges,
   AIRPORT_SURCHARGE,
@@ -793,12 +797,16 @@ export default function MeterDigitalScreen() {
         });
         const p = places?.[0];
         if (cancelled || !p) return;
-        setGeo({
+        const resolved = {
           country: p.country ?? null,
           state: p.region ?? null,
           city: p.city ?? p.subregion ?? null,
           suburb: p.district ?? p.subregion ?? null,
-        });
+        };
+        setGeo(resolved);
+        // Kept for the next app launch, where the auto-launch check has to know
+        // which card governs before there is any fix to resolve it from.
+        void saveMeterGeo(resolved);
       } catch (e) {
         console.log("[meter-digital] rate-card geography lookup failed", e);
       }

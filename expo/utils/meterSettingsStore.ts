@@ -16,7 +16,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { supabase, isSupabaseConfigured, uuidv4 } from "@/utils/supabase";
 import {
+  METER_AUTO_LAUNCH_COLUMN,
   METER_SETTINGS_COLUMNS,
+  METER_SETTINGS_COLUMNS_LEGACY,
   meterPanelsToRow,
   meterProfileToRow,
   normalizeMeterProfile,
@@ -43,6 +45,41 @@ export interface MeterSettingsSaveResult {
 const TABLE = "meter_digital_settings";
 const CACHE_KEY = "meter:settings:cache";
 const LOCAL_KEY = "meter:settings:local";
+const GEO_KEY = "meter:settings:geo";
+
+/**
+ * True once the database has told us it has no `auto_launch` column (0081
+ * applied, 0084 not).
+ *
+ * One boolean the meter can default is not worth losing the rate cards over, so
+ * a read or a write that trips on it is retried without the column and every
+ * later call skips it — the same shape as `rideRequestsStore`'s retry for
+ * columns an older database is missing. Reset only by a fresh app launch, which
+ * is when a newly applied migration would be picked up anyway.
+ */
+let autoLaunchColumnMissing = false;
+
+/** True when the error is specifically the 0084 column being absent. */
+function isMissingAutoLaunchColumn(err: unknown): boolean {
+  const msg =
+    typeof err === "object" && err !== null
+      ? `${String((err as { message?: string }).message ?? "")} ${String(
+          (err as { code?: string }).code ?? "",
+        )}`
+      : String(err ?? "");
+  return msg.includes(METER_AUTO_LAUNCH_COLUMN) && isMissingSchemaError(err);
+}
+
+/** A row shaped for a database that predates 0084. */
+function withoutAutoLaunch<T extends Record<string, unknown>>(row: T): Omit<T, "auto_launch"> {
+  const { [METER_AUTO_LAUNCH_COLUMN]: _dropped, ...rest } = row as Record<string, unknown>;
+  return rest as Omit<T, "auto_launch">;
+}
+
+/** The write payload for this database — with the 0084 column, or without it. */
+function writeRow<T extends Record<string, unknown>>(row: T): Record<string, unknown> {
+  return autoLaunchColumnMissing ? withoutAutoLaunch(row) : row;
+}
 
 /** True when the error says the table isn't in the database yet. */
 function isMissingSchemaError(err: unknown): boolean {
@@ -107,11 +144,29 @@ async function writeStored(key: string, profiles: MeterProfile[]): Promise<void>
 export async function fetchMeterProfiles(): Promise<MeterProfilesResult> {
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
-        .from(TABLE)
-        .select(METER_SETTINGS_COLUMNS)
-        .order("updated_at", { ascending: false });
-      if (error) throw error;
+      const read = async (columns: string) => {
+        const { data, error } = await supabase!
+          .from(TABLE)
+          .select(columns)
+          .order("updated_at", { ascending: false });
+        if (error) throw error;
+        return data;
+      };
+
+      let data: unknown;
+      try {
+        data = await read(
+          autoLaunchColumnMissing ? METER_SETTINGS_COLUMNS_LEGACY : METER_SETTINGS_COLUMNS,
+        );
+      } catch (e) {
+        if (!isMissingAutoLaunchColumn(e)) throw e;
+        // 0081 without 0084: read the rest of the card and let auto-launch
+        // default to off rather than losing every rate in the database.
+        console.log("[meter-settings] auto_launch column missing — reading without it");
+        autoLaunchColumnMissing = true;
+        data = await read(METER_SETTINGS_COLUMNS_LEGACY);
+      }
+
       const profiles = ((data ?? []) as unknown[])
         .map(normalizeMeterProfile)
         .filter((p): p is MeterProfile => p !== null);
@@ -144,29 +199,45 @@ export async function saveMeterProfile(
 
   if (isSupabaseConfigured && supabase) {
     try {
-      if (id) {
-        const { error } = await supabase.from(TABLE).update(row).eq("id", id);
-        if (error) throw error;
-      } else if (profile.level === "master") {
-        const { data, error: selErr } = await supabase
-          .from(TABLE)
-          .select("id")
-          .eq("level", "master")
-          .limit(1);
-        if (selErr) throw selErr;
-        const existing = (data ?? [])[0] as { id: string } | undefined;
-        const { error } = existing
-          ? await supabase.from(TABLE).update(row).eq("id", existing.id)
-          : await supabase.from(TABLE).insert(row);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from(TABLE).insert(row);
-        if (error) {
-          if (String(error.code ?? "") === "23505") {
-            return { ok: false, error: "A rate card for this exact scope already exists." };
+      const write = async (
+        payload: Record<string, unknown>,
+      ): Promise<MeterSettingsSaveResult | null> => {
+        if (id) {
+          const { error } = await supabase!.from(TABLE).update(payload).eq("id", id);
+          if (error) throw error;
+        } else if (profile.level === "master") {
+          const { data, error: selErr } = await supabase!
+            .from(TABLE)
+            .select("id")
+            .eq("level", "master")
+            .limit(1);
+          if (selErr) throw selErr;
+          const existing = (data ?? [])[0] as { id: string } | undefined;
+          const { error } = existing
+            ? await supabase!.from(TABLE).update(payload).eq("id", existing.id)
+            : await supabase!.from(TABLE).insert(payload);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase!.from(TABLE).insert(payload);
+          if (error) {
+            if (String(error.code ?? "") === "23505") {
+              return { ok: false, error: "A rate card for this exact scope already exists." };
+            }
+            throw error;
           }
-          throw error;
         }
+        return null;
+      };
+
+      try {
+        const refused = await write(writeRow(row));
+        if (refused) return refused;
+      } catch (e) {
+        if (!isMissingAutoLaunchColumn(e)) throw e;
+        console.log("[meter-settings] auto_launch column missing — saving without it");
+        autoLaunchColumnMissing = true;
+        const refused = await write(withoutAutoLaunch(row));
+        if (refused) return refused;
       }
       return { ok: true, source: "supabase" };
     } catch (e) {
@@ -261,13 +332,25 @@ export async function saveMeterPanelAccess(
         // No global row yet: the toggle creates it, from the card the editor is
         // showing plus this change. Its seeded rates are the built-in tariff the
         // meter was already billing on, so nothing about a fare moves.
-        const { data: inserted, error } = await supabase
-          .from(TABLE)
-          .insert(meterProfileToRow({ ...profile, panels }))
-          .select("id")
-          .limit(1);
-        if (error) throw error;
-        const row = (inserted ?? [])[0] as { id: string } | undefined;
+        const fullRow = meterProfileToRow({ ...profile, panels });
+        const insert = async (payload: Record<string, unknown>) => {
+          const { data: inserted, error } = await supabase!
+            .from(TABLE)
+            .insert(payload)
+            .select("id")
+            .limit(1);
+          if (error) throw error;
+          return (inserted ?? [])[0] as { id: string } | undefined;
+        };
+        let row: { id: string } | undefined;
+        try {
+          row = await insert(writeRow(fullRow));
+        } catch (e) {
+          if (!isMissingAutoLaunchColumn(e)) throw e;
+          console.log("[meter-settings] auto_launch column missing — creating card without it");
+          autoLaunchColumnMissing = true;
+          row = await insert(withoutAutoLaunch(fullRow));
+        }
         return { ok: true, source: "supabase", id: row?.id };
       }
       return {
@@ -360,6 +443,57 @@ export function subscribeMeterSettings(onChange: () => void): () => void {
   } catch (e) {
     console.log("[meter-settings] realtime subscribe failed", e);
     return () => {};
+  }
+}
+
+// --- Where this device last metered from ------------------------------------
+
+/** The structured geography a card is matched on. */
+export interface MeterGeo {
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  suburb: string | null;
+}
+
+/**
+ * Remember the geography the console resolved its card on.
+ *
+ * Written by the meter once per session, read at app launch by the auto-launch
+ * check (`hooks/useMeterAutoLaunch.ts`): deciding which card governs the
+ * redirect needs the same country/state/city/suburb the meter matches on, and a
+ * launch is the one moment there is nothing to resolve it from — the first fix
+ * has not arrived, and holding the app on a blank screen while a reverse-geocode
+ * finishes would cost more than the choice is worth. A taxi starts its next
+ * shift where it finished the last one, so last session's geography is the best
+ * answer available for free. With none stored the global card decides.
+ */
+export async function saveMeterGeo(geo: MeterGeo): Promise<void> {
+  try {
+    await AsyncStorage.setItem(GEO_KEY, JSON.stringify(geo));
+  } catch (e) {
+    console.log("[meter-settings] geo write failed", e);
+  }
+}
+
+/** The geography the last meter session ran in, if this device has one. */
+export async function readMeterGeo(): Promise<MeterGeo | null> {
+  try {
+    const raw = await AsyncStorage.getItem(GEO_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<MeterGeo> | null;
+    if (!parsed || typeof parsed !== "object") return null;
+    const pick = (v: unknown): string | null =>
+      typeof v === "string" && v.trim().length > 0 ? v : null;
+    return {
+      country: pick(parsed.country),
+      state: pick(parsed.state),
+      city: pick(parsed.city),
+      suburb: pick(parsed.suburb),
+    };
+  } catch (e) {
+    console.log("[meter-settings] geo read failed", e);
+    return null;
   }
 }
 
