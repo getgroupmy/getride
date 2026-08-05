@@ -427,6 +427,16 @@ function FitText({
   );
 }
 
+/**
+ * The glyph for one key of the leave popup: what it does, not where it goes —
+ * an exit and a jump to another app are both "off this console".
+ */
+function leaveKeyIcon(option: MeterLeaveOption): typeof CarTaxiFront {
+  if (option.action === "exit") return LogOut;
+  if (option.action === "link") return ExternalLink;
+  return option.key === "passenger" ? User : CarTaxiFront;
+}
+
 /** The small caps heading every panel carries. Always one line. */
 function PanelLabel({ ui, children }: { ui: MeterMetrics; children: React.ReactNode }) {
   return (
@@ -636,6 +646,11 @@ export default function MeterDigitalScreen() {
    * resolved in `utils/meterLeave.ts`, so the console only presses them.
    */
   const leaveOptions = useMemo(() => resolveMeterLeave(profile.leave), [profile.leave]);
+  /** The popup's two keys in the order it draws them, keys row then hints row. */
+  const leaveKeys = useMemo(
+    () => [leaveOptions.passenger, leaveOptions.ehailing],
+    [leaveOptions],
+  );
 
   /** Leave the console. The meter is idle, so nothing is lost by any of them. */
   const leaveMeter = useCallback(
@@ -3792,49 +3807,45 @@ export default function MeterDigitalScreen() {
             <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
               The meter is idle. Where to?
             </Text>
+            {/* The keys and their captions are two rows rather than two
+                stacked columns. Every button on this console is sized by
+                `wideButton` + `wideButtonStyle`, and `wideButton` carries
+                `flex: 1` for the row it was written for — in a column that
+                same flex means `flexBasis: 0` and collapses the key to a
+                hairline. So the keys stay in a row, as they are everywhere
+                else, and the captions get a row of their own beneath. */}
             <View style={[styles.modalActions, { gap: ui.gap }]}>
-              {[leaveOptions.passenger, leaveOptions.ehailing].map((option) => {
-                const Icon =
-                  option.action === "exit"
-                    ? LogOut
-                    : option.action === "link"
-                      ? ExternalLink
-                      : option.key === "passenger"
-                        ? User
-                        : CarTaxiFront;
+              {leaveKeys.map((option) => {
+                const Icon = leaveKeyIcon(option);
                 return (
-                  <View
+                  <TouchableOpacity
                     key={option.key}
-                    style={[styles.exitChoice, { gap: Math.round(ui.gap * 0.4) }]}
+                    style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
+                    onPress={() => leaveMeter(option)}
+                    activeOpacity={0.85}
+                    testID={`meter-digital-exit-${option.key}`}
                   >
-                    <TouchableOpacity
-                      style={[
-                        styles.wideButton,
-                        wideButtonStyle(ui),
-                        styles.ghostButton,
-                        styles.exitChoiceButton,
-                      ]}
-                      onPress={() => leaveMeter(option)}
-                      activeOpacity={0.85}
-                      testID={`meter-digital-exit-${option.key}`}
-                    >
-                      <Icon color={DASH.text} size={ui.iconSize} />
-                      <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
-                        {option.label}
-                      </FitText>
-                    </TouchableOpacity>
-                    {/* What the key does, in words: the two are configurable, so
-                        a driver must never have to press one to find out. */}
-                    <FitText
-                      style={styles.exitChoiceHint}
-                      size={Math.round(ui.bodyText * 0.9)}
-                      lines={2}
-                    >
-                      {option.hint}
+                    <Icon color={DASH.text} size={ui.iconSize} />
+                    <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+                      {option.label}
                     </FitText>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
+            </View>
+            {/* What each key does, in words: both are configurable, so a driver
+                must never have to press one to find out. */}
+            <View style={[styles.modalActions, { gap: ui.gap }]}>
+              {leaveKeys.map((option) => (
+                <FitText
+                  key={option.key}
+                  style={styles.exitChoiceHint}
+                  size={Math.round(ui.bodyText * 0.9)}
+                  lines={2}
+                >
+                  {option.hint}
+                </FitText>
+              ))}
             </View>
             <View style={[styles.modalActions, { gap: ui.gap }]}>
               <TouchableOpacity
@@ -4367,18 +4378,8 @@ const styles = StyleSheet.create({
   modalRowValue: { color: DASH.text, fontWeight: "700" as const },
   modalActions: { flexDirection: "row", marginTop: 2 },
   /** One key of the leave popup: the button, and what it does under it. */
-  exitChoice: { flex: 1 },
-  /**
-   * The key inside that column keeps its own height.
-   *
-   * `wideButton` carries `flex: 1` for the action rows it was written for,
-   * where the main axis is horizontal and that governs width. Stacking a hint
-   * under the key makes the main axis vertical, where the same `flex: 1` means
-   * `flexBasis: 0` and collapses the button to nothing — so it is turned off
-   * here and `wideButtonStyle`'s height decides, as it does everywhere else.
-   */
-  exitChoiceButton: { flex: 0 },
-  exitChoiceHint: { color: DASH.muted, textAlign: "center" },
+  /** One key's caption, sharing the row evenly with the other. */
+  exitChoiceHint: { flex: 1, color: DASH.muted, textAlign: "center" },
 
   /* End-of-hire declaration */
   detailsHeaderAmount: {
