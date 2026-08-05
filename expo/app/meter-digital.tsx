@@ -3808,7 +3808,12 @@ export default function MeterDigitalScreen() {
                     style={[styles.exitChoice, { gap: Math.round(ui.gap * 0.4) }]}
                   >
                     <TouchableOpacity
-                      style={[styles.wideButton, wideButtonStyle(ui), styles.ghostButton]}
+                      style={[
+                        styles.wideButton,
+                        wideButtonStyle(ui),
+                        styles.ghostButton,
+                        styles.exitChoiceButton,
+                      ]}
                       onPress={() => leaveMeter(option)}
                       activeOpacity={0.85}
                       testID={`meter-digital-exit-${option.key}`}
@@ -4363,6 +4368,16 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: "row", marginTop: 2 },
   /** One key of the leave popup: the button, and what it does under it. */
   exitChoice: { flex: 1 },
+  /**
+   * The key inside that column keeps its own height.
+   *
+   * `wideButton` carries `flex: 1` for the action rows it was written for,
+   * where the main axis is horizontal and that governs width. Stacking a hint
+   * under the key makes the main axis vertical, where the same `flex: 1` means
+   * `flexBasis: 0` and collapses the button to nothing — so it is turned off
+   * here and `wideButtonStyle`'s height decides, as it does everywhere else.
+   */
+  exitChoiceButton: { flex: 0 },
   exitChoiceHint: { color: DASH.muted, textAlign: "center" },
 
   /* End-of-hire declaration */
