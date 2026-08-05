@@ -63,9 +63,10 @@ import {
   type MeterLeavePassengerAction,
 } from "@/utils/meterLeave";
 import {
+  describeAppIosRoute,
   describeAppPresence,
   meterLeaveAppById,
-  meterLeaveAppLink,
+  meterLeaveAppProbe,
   meterLeaveAppStore,
   METER_LEAVE_APPS,
   STORE_LABELS,
@@ -317,9 +318,10 @@ export default function AdminSettingsMeterDigitalScreen() {
     void (async () => {
       const found: Record<string, AppPresence> = {};
       for (const app of METER_LEAVE_APPS) {
-        // Asked about with whatever this device could actually launch.
+        // Probed, not launched: an https universal link would answer "yes" on
+        // every iPhone, since a browser handles it either way.
         found[app.id] = await detectApp(
-          meterLeaveAppLink(app, Platform.OS === "ios" ? "ios" : "android"),
+          meterLeaveAppProbe(app, Platform.OS === "ios" ? "ios" : "android"),
         );
       }
       if (live) setPresence(found);
@@ -338,14 +340,14 @@ export default function AdminSettingsMeterDigitalScreen() {
         leave: {
           ...p.leave,
           ehailingAppId: app?.id ?? null,
-          // Play is derivable from the package id, so it is filled in; the
-          // other two are per-app numbers nothing yields, and stay the
-          // operator's to paste. An address already entered is never
-          // overwritten by the pick.
+          // Filled in with whatever the catalogue actually knows — Play is
+          // derived from the package id, the others only where a real address
+          // was supplied. An address already entered is never overwritten by
+          // the pick.
           ehailingStores: {
-            ...p.leave.ehailingStores,
-            android:
-              p.leave.ehailingStores.android ?? meterLeaveAppStore(app, "android"),
+            ios: p.leave.ehailingStores.ios ?? meterLeaveAppStore(app, "ios"),
+            android: p.leave.ehailingStores.android ?? meterLeaveAppStore(app, "android"),
+            huawei: p.leave.ehailingStores.huawei ?? meterLeaveAppStore(app, "huawei"),
           },
         },
       };
@@ -1140,7 +1142,8 @@ export default function AdminSettingsMeterDigitalScreen() {
                               </Text>
                               <Text style={[styles.appMeta, { color: Colors.textSecondary }]}>
                                 {describeAppPresence(seen)}
-                                {app.iosScheme ? "" : " · needs an iOS link"}
+                                {" · "}
+                                {describeAppIosRoute(app)}
                               </Text>
                             </View>
                             {picked && <Check color={Colors.accent} size={16} />}

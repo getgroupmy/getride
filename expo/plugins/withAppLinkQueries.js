@@ -23,6 +23,7 @@ const { withAndroidManifest } = require("@expo/config-plugins");
 
 /** The packages the catalogue can point the e-hailing key at. */
 const PACKAGES = [
+  "com.jobtepi.app",
   "com.grabtaxi.driver2",
   "com.ubercab.driver",
   "ee.mtakso.driver",
