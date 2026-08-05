@@ -457,6 +457,10 @@ export interface DisplaySettings {
   showAiTollBooths: boolean;
   /** Show AI-estimated toll charges row in ride-confirm */
   showAiTollCharges: boolean;
+  /** Show the "Connected" popup on launch when Supabase is reachable. */
+  connectedPopupEnabled: boolean;
+  /** Show the "Not Connected to server" popup on launch when Supabase is unreachable. */
+  connectionFailedPopupEnabled: boolean;
   /** Number of recent locations shown on the home bottom sheet */
   recentLocationsCount: number;
   /** Per-box config for the 5 service boxes */
@@ -537,6 +541,8 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   partnerDriveSimEnabled: true,
   showAiTollBooths: true,
   showAiTollCharges: true,
+  connectedPopupEnabled: true,
+  connectionFailedPopupEnabled: true,
   recentLocationsCount: 4,
   serviceBoxes: DEFAULT_SERVICE_BOXES,
   recenterButtonBottom: 459,
