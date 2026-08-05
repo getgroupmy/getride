@@ -279,6 +279,75 @@ export async function readOdometerKm(
   return null;
 }
 
+/**
+ * How long a reading stands before a linked reader is asked again, in ms.
+ *
+ * The odometer is deliberately not one of the PIDs in the 1 Hz sweep
+ * (`OBD_PIDS`), and should not be: the adapter answers one command at a time,
+ * so every parameter added to the sweep slows every other reading on the
+ * screen down. A mileage counter does not need a sample a second either — at
+ * 110 km/h a car covers 0.9 km in 30 s, nine times the 0.1 km the parameter
+ * resolves to — so a screen that wants it live reads it on this slower cadence
+ * beside the sweep instead, at a cost of one command in thirty.
+ */
+export const ODOMETER_REFRESH_MS = 30_000;
+
+/**
+ * How many *whole* empty reads stand behind telling a driver their car has no
+ * odometer.
+ *
+ * `readOdometerKm` already retries within one read, but all of those attempts
+ * fall inside a couple of seconds — an adapter that is wedged, mid-handshake or
+ * saturated by the sweep can miss the lot. Since a screen states the conclusion
+ * in words ("this vehicle does not answer PID A6") and then stops asking, it is
+ * worth a second round on the refresh cadence before saying something about the
+ * vehicle that is not true.
+ */
+export const ODOMETER_ABSENT_READS = 2;
+
+/** What a reader has managed to tell us about this vehicle's odometer. */
+export type OdometerStatus = "unknown" | "ready" | "unsupported";
+
+export interface OdometerPollInput {
+  /** A real session is open. Demo Mode is not one — see `simulated`. */
+  linked: boolean;
+  simulated: boolean;
+  status: OdometerStatus;
+  /** A read is already in flight. */
+  reading: boolean;
+  /** When the last read was *started* (epoch ms), or null if none has been. */
+  lastAttemptAt: number | null;
+  now: number;
+  /** Defaults to {@link ODOMETER_REFRESH_MS}. */
+  refreshMs?: number;
+}
+
+/**
+ * Decide whether to ask the reader for the odometer right now.
+ *
+ * Kept pure so the cadence is testable without a vehicle: the caller owns the
+ * timer and the command, this owns the rules.
+ */
+export function shouldReadOdometer(input: OdometerPollInput): boolean {
+  const { linked, simulated, status, reading, lastAttemptAt, now } = input;
+  // Nothing to ask: no session at all, or a simulator that would answer with a
+  // number the vehicle never reported.
+  if (!linked || simulated) return false;
+  // The adapter serves one command at a time; a second ask would only queue
+  // behind the first to re-answer the same reading.
+  if (reading) return false;
+  // `readOdometerKm` retries before it calls a reading absent, so this is a car
+  // that does not implement A6 rather than one adapter hiccup — asking it again
+  // on every refresh, forever, spends a command it has already refused.
+  if (status === "unsupported") return false;
+  if (lastAttemptAt === null) return true;
+  const refreshMs = Math.max(0, input.refreshMs ?? ODOMETER_REFRESH_MS);
+  // A clock that jumped backwards (NTP correction, a device waking) would
+  // otherwise park the reading until wall time caught up with the last attempt.
+  if (now < lastAttemptAt) return true;
+  return now - lastAttemptAt >= refreshMs;
+}
+
 /* ------------------------------------------------------------------ *
  * Consumption
  * ------------------------------------------------------------------ */
