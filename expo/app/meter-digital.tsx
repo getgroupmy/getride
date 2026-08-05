@@ -27,10 +27,14 @@
  * vehicle bus, or both — and once a hire is open it also carries the odometer
  * the cluster showed at pickup (mode-01 PID A6, read once) and where the
  * passenger got in (reverse-geocoded, or the raw fix when that fails). The
- * drop-off is stamped the same way when the hire ends, and both ends go onto
- * the trip log and the printed receipt: readings that answer after the record
- * is written are folded into it (`patchMeterTripWaypoints`), because the fare
- * may not wait for a dongle.
+ * pickup odometer is taken *before* the fare opens whenever a real reader is
+ * linked (`meterReadsOdometerBeforeStart`): it is the one reading that cannot
+ * be recovered later, since by the time a late answer lands the car has moved.
+ * The drop-off is stamped the same way when the hire ends — but chased rather
+ * than waited for, because END must stop the fare at the instant it is pressed
+ * — and both ends go onto the trip log and the printed receipt: readings that
+ * answer after the record is written are folded into it
+ * (`patchMeterTripWaypoints`), because the fare may not wait for a dongle.
  *
  * Ending a hire is two steps, because a fare and a receipt are not the same
  * thing. END stops the meter at the instant it is pressed and freezes the
@@ -188,6 +192,7 @@ import {
   meterExtraSurcharge,
   meterOdometerGate,
   meterReadsOdometer,
+  meterReadsOdometerBeforeStart,
   resolveMeterProfile,
   type MeterPanelId,
   type MeterProfile,
@@ -694,7 +699,13 @@ export default function MeterDigitalScreen() {
    * moment they press END — not when a dongle or a geocoder answers.
    */
   const captureWaypoint = useCallback(
-    (end: MeterEnd, at: number, odometerKm: number | null = null): MeterWaypoint => {
+    (
+      end: MeterEnd,
+      at: number,
+      odometerKm: number | null = null,
+      /** The start already asked the adapter for this end's odometer. */
+      odometerAsked: boolean = false,
+    ): MeterWaypoint => {
       const fix = fixRef.current;
       const waypoint: MeterWaypoint = {
         at,
@@ -704,9 +715,10 @@ export default function MeterDigitalScreen() {
         place: null,
       };
       setWaypoint(end, waypoint);
-      // A reading the start gate already took is not asked for a second time —
-      // the adapter answers one command at a time.
-      if (odometerKm === null) void readWaypointOdometer(end, at);
+      // A reading the start already took is not asked for a second time — the
+      // adapter answers one command at a time, and a car that has just said NO
+      // DATA to PID A6 will say it again.
+      if (odometerKm === null && !odometerAsked) void readWaypointOdometer(end, at);
       if (fix) void resolveWaypointPlace(end, at, fix.latitude, fix.longitude);
       return waypoint;
     },
@@ -1084,31 +1096,35 @@ export default function MeterDigitalScreen() {
 
   /** Open the hire: the fare starts accruing and the pickup is stamped. */
   const beginTrip = useCallback(
-    (odometerKm: number | null = null) => {
+    (odometerKm: number | null = null, odometerAsked: boolean = false) => {
       const at = Date.now();
       setMeter((prev) => startMeter(prev, at));
       // A fresh hire, so nothing from the last one may follow it onto the roll.
       recordedTripRef.current = null;
       setTripDetails(null);
       setWaypoint("dropoff", null);
-      captureWaypoint("pickup", at, odometerKm);
+      captureWaypoint("pickup", at, odometerKm, odometerAsked);
     },
     [captureWaypoint, setWaypoint],
   );
 
   /**
-   * Open the hire, after the card's odometer condition.
+   * Open the hire, on the vehicle's odometer where there is one to read.
    *
-   * A card can require the vehicle's odometer before a fare may begin, so the
-   * pickup mileage on the receipt is never a blank. The reading is taken here
-   * rather than after the start, because a hire that has already opened cannot
-   * be un-opened when the car turns out not to publish PID A6.
+   * The pickup mileage is the one fact about a hire that cannot be recovered
+   * afterwards — by the time a late answer lands the car has already moved — so
+   * a live reader is asked *before* the fare opens rather than chased after it,
+   * and the hire begins stamped with the reading the cluster was actually
+   * showing when the passenger got in. It also has to happen here for the
+   * card's own condition to mean anything: a hire that has already opened
+   * cannot be un-opened when the car turns out not to publish PID A6.
+   *
+   * With no reader on the bus there is nothing to ask and the press is not
+   * held, unless the card requires the reading — there the missing answer is
+   * exactly what the gate refuses the hire on.
    */
   const startHire = useCallback(() => {
-    // Nothing to wait for when the card does not require the reading, or when
-    // it could not produce one anyway (read switched off, or a GPS-only card
-    // that never speaks to the bus).
-    if (profile.allowStartWithoutOdometer || !meterReadsOdometer(profile)) {
+    if (!meterReadsOdometerBeforeStart(profile, obdLinked)) {
       beginTrip();
       return;
     }
@@ -1120,9 +1136,11 @@ export default function MeterDigitalScreen() {
         Alert.alert("Odometer required", gate.reason ?? "");
         return;
       }
-      beginTrip(km);
+      // Asked either way: a car that answered NO DATA is not asked again a
+      // moment later, so a reading the meter could not get stays a dash.
+      beginTrip(km, true);
     });
-  }, [beginTrip, profile, readOdometerOnce]);
+  }, [beginTrip, obdLinked, profile, readOdometerOnce]);
 
   /** Give up on the pending START — the driver closed the popup. */
   const closeConnectPrompt = useCallback(() => {
@@ -1148,9 +1166,9 @@ export default function MeterDigitalScreen() {
     }
   }, [canbus, startGate.canStart, startGate.opensOn, startHire]);
 
-  // The held START, released by the link coming up. It goes through the same
-  // odometer gate as a direct press — a card that requires the reading requires
-  // it however the hire was opened.
+  // The held START, released by the link coming up. It takes the same odometer
+  // read as a direct press — the reader that has just answered is asked for the
+  // pickup mileage before the fare opens, however the hire was begun.
   useEffect(() => {
     if (!pendingStartRef.current) return;
     if (!startGate.canStart) return;
@@ -1525,8 +1543,8 @@ export default function MeterDigitalScreen() {
           startBlocked && styles.primaryButtonBlocked,
         ]}
         onPress={meter.running ? handleEndTrip : started ? handleNewTrip : handleStart}
-        // A card that requires the odometer holds the press while the reader is
-        // asked. One press, one read — a second would queue behind it.
+        // The press is held while the reader is asked for the pickup mileage.
+        // One press, one read — a second would queue behind it.
         disabled={odometerChecking}
         activeOpacity={0.85}
         testID="meter-digital-toggle"

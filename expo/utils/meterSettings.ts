@@ -655,6 +655,33 @@ export function meterReadsOdometer(profile: MeterProfile): boolean {
 }
 
 /**
+ * Whether the odometer is read *before* the fare opens, rather than chased
+ * after it.
+ *
+ * The pickup mileage is the one reading that cannot be recovered later: by the
+ * time the adapter answers, the car has already moved. So whenever there is a
+ * reader on the bus to ask, the meter asks it first and opens the hire on the
+ * answer — a live link is never billed from a pickup stamped with a dash that
+ * fills itself in a second later. The read is a handful of milliseconds on an
+ * adapter that is already answering the 1 Hz sweep, which is a fair price for a
+ * receipt whose start mileage is the one the cluster actually showed.
+ *
+ * Without a link there is nothing to ask, so the press is not held — unless the
+ * card *requires* the reading, where the missing answer is the whole point: the
+ * absent read is what `meterOdometerGate` then refuses the hire on.
+ *
+ * `obdLinked` means a real session, never Demo Mode: a simulated odometer is a
+ * number no vehicle ever reported, and the meter would rather print a dash.
+ */
+export function meterReadsOdometerBeforeStart(
+  profile: MeterProfile,
+  obdLinked: boolean,
+): boolean {
+  if (!meterReadsOdometer(profile)) return false;
+  return obdLinked || !profile.allowStartWithoutOdometer;
+}
+
+/**
  * Whether a hire may open, as far as the *odometer* is concerned.
  *
  * The sensor the hire opens on is gated separately (`evaluateMeterStart`); this

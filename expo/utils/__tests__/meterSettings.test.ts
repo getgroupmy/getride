@@ -10,6 +10,7 @@ import {
   meterPanelsToRow,
   meterProfileScopeLabel,
   meterReadsOdometer,
+  meterReadsOdometerBeforeStart,
   meterProfileToRow,
   setMeterPanelAccess,
   normalizeMeterProfile,
@@ -339,6 +340,39 @@ describe("meterOdometerGate", () => {
     const gpsOnly = profile({ allowStartWithoutOdometer: false, sourceMode: "gps" });
     expect(meterOdometerGate(gpsOnly, null).canStart).toBe(true);
     expect(meterOdometerGate(gpsOnly, null).reason).toBeNull();
+  });
+});
+
+describe("meterReadsOdometerBeforeStart", () => {
+  it("reads before the fare opens whenever a real reader is on the bus", () => {
+    // The default card allows starting without the reading — that is about a
+    // reader that cannot answer, not about skipping one that can.
+    expect(meterReadsOdometerBeforeStart(profile(), true)).toBe(true);
+    expect(meterReadsOdometerBeforeStart(profile({ sourceMode: "obd" }), true)).toBe(true);
+  });
+
+  it("does not hold the press when there is nothing to ask", () => {
+    // No link (or Demo Mode, which is never `obdLinked`): the pickup mileage is
+    // a dash either way, so the fare should not wait to find that out.
+    expect(meterReadsOdometerBeforeStart(profile(), false)).toBe(false);
+  });
+
+  it("still holds the press with no link when the card requires the reading", () => {
+    // Here the missing answer is the point: the gate refuses the hire on it.
+    const strict = profile({ allowStartWithoutOdometer: false });
+    expect(meterReadsOdometerBeforeStart(strict, false)).toBe(true);
+    expect(meterOdometerGate(strict, null).canStart).toBe(false);
+  });
+
+  it("never asks for a reading this card can never produce", () => {
+    expect(meterReadsOdometerBeforeStart(profile({ readOdometer: false }), true)).toBe(false);
+    expect(meterReadsOdometerBeforeStart(profile({ sourceMode: "gps" }), true)).toBe(false);
+    expect(
+      meterReadsOdometerBeforeStart(
+        profile({ sourceMode: "gps", allowStartWithoutOdometer: false }),
+        false,
+      ),
+    ).toBe(false);
   });
 });
 
