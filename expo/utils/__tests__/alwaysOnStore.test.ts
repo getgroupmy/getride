@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createSupabaseMock, type SupabaseMock } from "@/test-utils/supabaseMock";
+import { createSupabaseMock, findStep, type SupabaseMock } from "@/test-utils/supabaseMock";
 import {
   normalizeRoute,
   sanitizeRoutes,
@@ -21,6 +21,14 @@ const supabaseModule = jest.requireMock("@/utils/supabase") as {
 };
 
 let sb: SupabaseMock;
+
+/**
+ * `settings_entries.id` is a uuid column, so the singleton config row must be
+ * addressed by a valid UUID. Writing a bare "config" string was rejected by
+ * Postgres (22P02) and surfaced as "Save failed" — a bug the chain-recording
+ * mock can't catch on its own, hence these explicit shape assertions.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 beforeEach(async () => {
   await AsyncStorage.clear();
@@ -128,6 +136,15 @@ describe("fetchAlwaysOnConfig", () => {
     expect(config.routes).toEqual(["meter-digital", "navigation"]);
   });
 
+  it("filters the config row by a valid UUID id (not a bare string)", async () => {
+    sb.queueResult({ data: null, error: null });
+    await fetchAlwaysOnConfig();
+    const query = sb.queries.find((q) => q.table === "settings_entries");
+    const idFilter = query?.steps.find((s) => s.method === "eq" && s.args[0] === "id");
+    expect(idFilter).toBeDefined();
+    expect(idFilter?.args[1]).toMatch(UUID_RE);
+  });
+
   it("respects an explicitly empty configured set", async () => {
     sb.queueResult({
       data: { id: "config", values: { routes: "[]" }, updated_at: null },
@@ -162,6 +179,17 @@ describe("saveAlwaysOnConfig", () => {
     expect(result.config?.source).toBe("supabase");
     expect(result.config?.routes).toEqual(["meter-digital", "navigation"]);
     expect(result.config?.configured).toBe(true);
+  });
+
+  it("upserts the config row with a valid UUID id (not a bare string)", async () => {
+    sb.queueResult({ data: null, error: null });
+    await saveAlwaysOnConfig(["meter-digital"]);
+    const query = sb.queries.find((q) => q.table === "settings_entries");
+    const upsert = findStep(query!, "upsert");
+    expect(upsert).toBeDefined();
+    const payload = upsert?.args[0] as { id?: string; category?: string };
+    expect(payload.category).toBe("always-on-pages");
+    expect(payload.id).toMatch(UUID_RE);
   });
 
   it("saves locally when the table is missing", async () => {

@@ -23,7 +23,16 @@ import { supabase, isSupabaseConfigured } from "@/utils/supabase";
 export type AlwaysOnSource = "supabase" | "local" | "default";
 
 export const ALWAYS_ON_CATEGORY = "always-on-pages";
-const CONFIG_ROW_ID = "config";
+/**
+ * `settings_entries.id` is a `uuid` primary key, so the singleton config row's
+ * id has to be a valid UUID — a bare "config" string is rejected by Postgres
+ * with `22P02 invalid input syntax for type uuid`, which isn't a missing-schema
+ * error, so the write surfaced as the "Save failed. Please try again." dialog
+ * (and the read filtered by the same bad id, silently returning nothing). A
+ * fixed sentinel UUID keeps this a single, deterministically-upsertable row
+ * across every device. The value spells "alwayson" in its leading hex bytes.
+ */
+const CONFIG_ROW_ID = "616c7761-7973-4f6e-8000-000000000001";
 const CACHE_KEY = "alwayson:config:cache";
 
 /** Route names (no leading slash) kept always-on until an admin configures a set. */
