@@ -160,7 +160,7 @@ export default function PinSetupScreen() {
             if (isResetFlow) {
               // Forgot-PIN reset: user is already authenticated via OTP.
               // Go straight home — no profile-photo step for existing users.
-              router.replace("/" as any);
+              router.replace("/welcome-back" as any);
             } else {
               // New signup: apply any referral code captured from a deep link
               // so both accounts get their bonus GET.coin. Fire-and-forget —

@@ -459,9 +459,9 @@ export interface MeterGeo {
 /**
  * Remember the geography the console resolved its card on.
  *
- * Written by the meter once per session, read at app launch by the auto-launch
- * check (`hooks/useMeterAutoLaunch.ts`): deciding which card governs the
- * redirect needs the same country/state/city/suburb the meter matches on, and a
+ * Written by the meter once per session, read at app launch by the
+ * `/welcome-back` buffer (`app/welcome-back.tsx`): deciding which card governs
+ * the redirect needs the same country/state/city/suburb the meter matches on, and a
  * launch is the one moment there is nothing to resolve it from — the first fix
  * has not arrived, and holding the app on a blank screen while a reverse-geocode
  * finishes would cost more than the choice is worth. A taxi starts its next

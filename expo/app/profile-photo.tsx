@@ -314,14 +314,14 @@ export default function ProfilePhotoScreen() {
       } else {
         await refreshProfile();
       }
-      router.replace("/" as any);
+      router.replace("/welcome-back" as any);
     } finally {
       setSaving(false);
     }
   };
 
   const handleSkip = () => {
-    router.replace("/" as any);
+    router.replace("/welcome-back" as any);
   };
 
   const firstChar = (firstName || authState.phoneNumber || "U").trim().charAt(0).toUpperCase();

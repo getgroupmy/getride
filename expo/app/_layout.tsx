@@ -41,7 +41,11 @@ function RootLayoutNav() {
   const [showConnectionModal, setShowConnectionModal] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const { isTablet } = useResponsive();
-  const tabletRedirectDone = useRef<boolean>(false);
+  // The launch buffer (`/welcome-back`) is entered once per app session. It runs
+  // the launch decision — restore an in-progress ride, or open a TEKSI driver
+  // into the meter — and replaces itself with the destination, so the passenger
+  // map never flashes on the way to somewhere else.
+  const launchHandled = useRef<boolean>(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -70,27 +74,28 @@ function RootLayoutNav() {
 
     console.log("[RootLayoutNav] Auth check complete. authenticated=", authState.isAuthenticated, "segment=", segments[0]);
 
+    const atRoot =
+      (segments.length as number) === 0 ||
+      (segments[0] as string) === "index" ||
+      segments[0] === undefined;
+
     if (!authState.isAuthenticated && !inAuthGroup) {
       console.log("[RootLayoutNav] Not authenticated -> /onboarding");
       router.replace("/onboarding" as any);
     } else if (authState.isAuthenticated && inAuthGroup) {
-      if (isTablet) {
-        console.log("[RootLayoutNav] Authenticated tablet -> /partner-teksi");
-        tabletRedirectDone.current = true;
-        router.replace("/partner-teksi" as any);
-      } else {
-        console.log("[RootLayoutNav] Authenticated -> /");
-        router.replace("/" as any);
-      }
-    } else if (
-      authState.isAuthenticated &&
-      isTablet &&
-      !tabletRedirectDone.current &&
-      ((segments.length as number) === 0 || (segments[0] as string) === "index" || segments[0] === undefined)
-    ) {
-      console.log("[RootLayoutNav] Tablet detected on root -> /partner-teksi");
-      tabletRedirectDone.current = true;
-      router.replace("/partner-teksi" as any);
+      // Sign-in just finished: send it through the launch buffer, which decides
+      // between the map, a restored ride, or (for a TEKSI driver) the meter.
+      // Tablets go through it too — the buffer resolves the console for them.
+      console.log("[RootLayoutNav] Authenticated -> /welcome-back");
+      launchHandled.current = true;
+      router.replace("/welcome-back" as any);
+    } else if (authState.isAuthenticated && atRoot && !launchHandled.current) {
+      // Cold relaunch with a saved session landed on the map: divert to the
+      // buffer before it renders anything. Guarded so a later "go home" from the
+      // menu is left alone.
+      console.log("[RootLayoutNav] Relaunch on root -> /welcome-back");
+      launchHandled.current = true;
+      router.replace("/welcome-back" as any);
     }
   }, [authState, segments, isLoading, router, isTablet]);
 
@@ -124,6 +129,7 @@ function RootLayoutNav() {
       <Stack.Screen name="pin-verify" options={{ gestureEnabled: false }} />
       <Stack.Screen name="pin-setup" options={{ gestureEnabled: false }} />
       <Stack.Screen name="profile-photo" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="welcome-back" options={{ gestureEnabled: false, animation: "none" }} />
       <Stack.Screen name="change-pin" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="index" options={{ gestureEnabled: false }} />
       <Stack.Screen name="search" options={{ presentation: "modal", gestureEnabled: false }} />
