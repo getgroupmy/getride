@@ -35,6 +35,10 @@ function row(overrides: Partial<MeterSettingsRow> = {}): MeterSettingsRow {
     allow_start_without_odometer: true,
     read_odometer: true,
     auto_launch: false,
+    leave_passenger_action: "passenger",
+    leave_ehailing_action: "app",
+    leave_ehailing_url: null,
+    leave_ehailing_label: null,
     show_meter: true,
     show_trips: true,
     show_printer: true,
@@ -147,6 +151,46 @@ describe("normalizeMeterProfile", () => {
     expect(back.panels).toEqual(p.panels);
     expect(back.sourceMode).toBe(p.sourceMode);
     expect(back.autoLaunch).toBe(p.autoLaunch);
+    expect(back.leave).toEqual(p.leave);
+  });
+
+  it("reads the leave-the-meter keys, defaulting them to the in-app pair", () => {
+    const configured = normalizeMeterProfile(
+      row({
+        leave_passenger_action: "exit",
+        leave_ehailing_action: "link",
+        leave_ehailing_url: "driverapp://jobs",
+        leave_ehailing_label: "Fleet app",
+      }),
+    )!;
+    expect(configured.leave).toEqual({
+      passenger: "exit",
+      ehailing: "link",
+      ehailingUrl: "driverapp://jobs",
+      ehailingLabel: "Fleet app",
+    });
+
+    // A database that predates 0085 returns none of these keys: the console
+    // behaves exactly as it did before the card could say anything about them.
+    const legacy = row();
+    delete (legacy as Partial<MeterSettingsRow>).leave_passenger_action;
+    delete (legacy as Partial<MeterSettingsRow>).leave_ehailing_action;
+    delete (legacy as Partial<MeterSettingsRow>).leave_ehailing_url;
+    expect(normalizeMeterProfile(legacy)!.leave).toEqual({
+      passenger: "passenger",
+      ehailing: "app",
+      ehailingUrl: null,
+      ehailingLabel: null,
+    });
+  });
+
+  it("never writes down a link the console could not open", () => {
+    const p = normalizeMeterProfile(row())!;
+    const written = meterProfileToRow({
+      ...p,
+      leave: { ...p.leave, ehailing: "link", ehailingUrl: "not a link" },
+    });
+    expect(written.leave_ehailing_url).toBeNull();
   });
 
   it("reads auto-launch, and defaults it off where the column is missing", () => {
@@ -506,6 +550,19 @@ describe("validateMeterProfile", () => {
       },
     });
     expect(validateMeterProfile(free)).toContain("charges nothing");
+  });
+
+  it("refuses an e-hailing key pointed at an app it cannot name", () => {
+    const p = profile();
+    expect(
+      validateMeterProfile({ ...p, leave: { ...p.leave, ehailing: "link", ehailingUrl: null } }),
+    ).toContain("app link");
+    expect(
+      validateMeterProfile({
+        ...p,
+        leave: { ...p.leave, ehailing: "link", ehailingUrl: "driverapp://jobs" },
+      }),
+    ).toBeNull();
   });
 
   it("refuses to hide or lock the meter itself", () => {

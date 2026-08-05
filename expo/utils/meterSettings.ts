@@ -5,7 +5,8 @@
  * lives in one profile: which sensors it may bill on, whether a hire may open
  * without an odometer reading where there is no reader to ask for one — with a
  * reader linked the reading is always required — which of the five console
- * panels are shown and which of those may be tapped, and the rate card (flag
+ * panels are shown and which of those may be tapped, what the two keys of the
+ * leave-the-meter popup do (`utils/meterLeave.ts`), and the rate card (flag
  * fare, distance charge, time charge, night surcharge, luggage/passenger
  * extras).
  *
@@ -27,6 +28,16 @@
  * putting a nonsense rate on a passenger's fare.
  */
 
+import {
+  DEFAULT_METER_LEAVE,
+  normalizeMeterLeave,
+  normalizeMeterLeaveEhailing,
+  normalizeMeterLeaveLabel,
+  normalizeMeterLeavePassenger,
+  normalizeMeterLeaveUrl,
+  validateMeterLeave,
+  type MeterLeaveConfig,
+} from "@/utils/meterLeave";
 import {
   EXTRA_STEP,
   MAX_EXTRA,
@@ -124,6 +135,17 @@ export interface MeterProfile {
    */
   autoLaunch: boolean;
 
+  // --- How the driver leaves the console ---
+  /**
+   * What the two keys of the leave-the-meter popup do.
+   *
+   * The passenger key can close the app instead of opening passenger mode
+   * (without signing the driver out), and the e-hailing key can open another
+   * dispatch app instead of `/partner-ehailing`. Resolved in
+   * `utils/meterLeave.ts`.
+   */
+  leave: MeterLeaveConfig;
+
   // --- Console panels ---
   panels: Record<MeterPanelId, MeterPanelAccess>;
 
@@ -166,6 +188,7 @@ export const DEFAULT_METER_PROFILE: MeterProfile = {
   allowStartWithoutOdometer: true,
   readOdometer: true,
   autoLaunch: false,
+  leave: { ...DEFAULT_METER_LEAVE },
   panels: {
     meter: { show: true, tap: true },
     trips: { show: true, tap: true },
@@ -201,6 +224,10 @@ export interface MeterSettingsRow {
   allow_start_without_odometer: boolean;
   read_odometer: boolean;
   auto_launch: boolean;
+  leave_passenger_action: string;
+  leave_ehailing_action: string;
+  leave_ehailing_url: string | null;
+  leave_ehailing_label: string | null;
   show_meter: boolean;
   show_trips: boolean;
   show_printer: boolean;
@@ -240,16 +267,39 @@ export interface MeterSettingsRow {
 }
 
 /**
- * The column 0084 added, and the one a database may not have yet.
+ * The columns a migration added after the table shipped — the ones a live
+ * database may not have yet.
  *
- * Named on its own because both a read and a write have to be able to drop it:
- * a project running 0081 but not 0084 answers a select naming it with "column
- * does not exist", which would otherwise take the whole rate-card table away
- * from the meter over one boolean it can default (`utils/meterSettingsStore.ts`
- * retries without it, the way `rideRequestsStore` retries a write without a
- * column the database reports as missing).
+ * Named as groups because both a read and a write have to be able to drop them:
+ * a project running 0081 but not 0084 answers a select naming `auto_launch`
+ * with "column does not exist", which would otherwise take the whole rate-card
+ * table away from the meter over one boolean it can perfectly well default
+ * (`utils/meterSettingsStore.ts` retries without the group, the way
+ * `rideRequestsStore` retries a write without a column the database reports as
+ * missing). Each later migration that adds columns adds a group here rather
+ * than a second bespoke retry path.
  */
+export interface MeterOptionalColumnGroup {
+  /** Stable key the store remembers a refusal under. */
+  id: string;
+  /** The migration that adds these columns, for the log line. */
+  migration: string;
+  columns: string[];
+}
+
 export const METER_AUTO_LAUNCH_COLUMN = "auto_launch";
+
+export const METER_LEAVE_COLUMNS = [
+  "leave_passenger_action",
+  "leave_ehailing_action",
+  "leave_ehailing_url",
+  "leave_ehailing_label",
+];
+
+export const METER_OPTIONAL_COLUMN_GROUPS: MeterOptionalColumnGroup[] = [
+  { id: "auto_launch", migration: "0084", columns: [METER_AUTO_LAUNCH_COLUMN] },
+  { id: "leave", migration: "0085", columns: METER_LEAVE_COLUMNS },
+];
 
 const METER_SETTINGS_COLUMN_LIST = [
   "id",
@@ -263,6 +313,7 @@ const METER_SETTINGS_COLUMN_LIST = [
   "allow_start_without_odometer",
   "read_odometer",
   "auto_launch",
+  ...METER_LEAVE_COLUMNS,
   "show_meter",
   "show_trips",
   "show_printer",
@@ -301,13 +352,53 @@ const METER_SETTINGS_COLUMN_LIST = [
   "updated_at",
 ];
 
-/** The columns every read of the table asks for. */
-export const METER_SETTINGS_COLUMNS = METER_SETTINGS_COLUMN_LIST.join(", ");
+/** The columns a read asks for, minus any group this database has refused. */
+export function meterSettingsColumns(missingGroups: readonly string[] = []): string {
+  const dropped = droppedColumns(missingGroups);
+  return METER_SETTINGS_COLUMN_LIST.filter((c) => !dropped.has(c)).join(", ");
+}
 
-/** The same read for a database that predates 0084. */
-export const METER_SETTINGS_COLUMNS_LEGACY = METER_SETTINGS_COLUMN_LIST.filter(
-  (c) => c !== METER_AUTO_LAUNCH_COLUMN,
-).join(", ");
+/** The columns every read of a fully migrated database asks for. */
+export const METER_SETTINGS_COLUMNS = meterSettingsColumns();
+
+/** The columns belonging to the groups this database has refused. */
+function droppedColumns(missingGroups: readonly string[]): Set<string> {
+  const dropped = new Set<string>();
+  for (const group of METER_OPTIONAL_COLUMN_GROUPS) {
+    if (!missingGroups.includes(group.id)) continue;
+    for (const column of group.columns) dropped.add(column);
+  }
+  return dropped;
+}
+
+/** A write payload shaped for a database missing these column groups. */
+export function meterRowWithoutGroups<T extends Record<string, unknown>>(
+  row: T,
+  missingGroups: readonly string[],
+): Record<string, unknown> {
+  if (missingGroups.length === 0) return row;
+  const dropped = droppedColumns(missingGroups);
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (!dropped.has(key)) out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * Which optional group a "column does not exist" error is about, if any.
+ *
+ * The caller has already decided the error is a schema one; this only says
+ * *which* group to retry without, so an unrelated missing column is still an
+ * error rather than a silently narrowed write.
+ */
+export function meterOptionalGroupNamed(message: string): MeterOptionalColumnGroup | null {
+  return (
+    METER_OPTIONAL_COLUMN_GROUPS.find((group) =>
+      group.columns.some((column) => message.includes(column)),
+    ) ?? null
+  );
+}
 
 // --- Coercion helpers -------------------------------------------------------
 //
@@ -378,6 +469,16 @@ export function normalizeMeterProfile(raw: unknown): MeterProfile | null {
     // and the default is "don't redirect" — a driver is never sent somewhere
     // they did not ask to go on the strength of a missing field.
     autoLaunch: bool(r.auto_launch, d.autoLaunch),
+
+    // Same story as auto-launch: a row from a database that predates 0085
+    // carries none of these, and the default is the console's original
+    // behaviour — passenger mode and the in-app e-hailing screen.
+    leave: {
+      passenger: normalizeMeterLeavePassenger(r.leave_passenger_action),
+      ehailing: normalizeMeterLeaveEhailing(r.leave_ehailing_action),
+      ehailingUrl: normalizeMeterLeaveUrl(r.leave_ehailing_url),
+      ehailingLabel: normalizeMeterLeaveLabel(r.leave_ehailing_label),
+    },
 
     panels: {
       meter: { show: bool(r.show_meter, true), tap: bool(r.tap_meter, true) },
@@ -469,6 +570,9 @@ export function meterProfileToRow(
   profile: MeterProfile,
 ): Omit<MeterSettingsRow, "id" | "updated_at"> {
   const { rates, panels, level } = profile;
+  // Normalized rather than trusted: a card read from a device cache written by
+  // a build older than the leave keys carries none of them.
+  const leave = normalizeMeterLeave(profile.leave);
   return {
     level,
     country: level === "master" ? null : profile.country,
@@ -480,6 +584,12 @@ export function meterProfileToRow(
     allow_start_without_odometer: profile.allowStartWithoutOdometer,
     read_odometer: profile.readOdometer,
     auto_launch: profile.autoLaunch,
+    leave_passenger_action: leave.passenger,
+    leave_ehailing_action: leave.ehailing,
+    // Only ever stored normalized, so a link the console could not open is
+    // never written down as one it could.
+    leave_ehailing_url: leave.ehailingUrl,
+    leave_ehailing_label: leave.ehailingLabel,
     ...meterPanelsToRow(panels),
     currency: profile.currency,
     flag_fare: rates.flagFare,
@@ -579,6 +689,7 @@ export function createMeterProfileDraft(level: MeterSettingsLevel): MeterProfile
     level,
     label: null,
     rates: { ...DEFAULT_METER_PROFILE.rates },
+    leave: { ...DEFAULT_METER_PROFILE.leave },
     panels: {
       meter: { ...DEFAULT_METER_PROFILE.panels.meter },
       trips: { ...DEFAULT_METER_PROFILE.panels.trips },
@@ -934,6 +1045,9 @@ export function validateMeterProfile(profile: MeterProfile): string | null {
     (rates.timeMode === "per_minute" && rates.perMinuteCharge > 0) ||
     (rates.timeMode === "per_second" && rates.perSecondCharge > 0);
   if (!bills) return "This card charges nothing — every hire would meter at zero.";
+
+  const badLeave = validateMeterLeave(profile.leave);
+  if (badLeave) return badLeave;
 
   if (!profile.panels.meter.show) return "The meter panel cannot be hidden.";
   if (!profile.panels.meter.tap) return "The meter panel cannot be locked.";

@@ -6,12 +6,13 @@
  * `meter_digital_settings` (migration 0081) and resolved on the driver's device
  * highest-scope-first.
  *
- * A card is five things in one editor — which sensors the meter may bill on,
+ * A card is six things in one editor — which sensors the meter may bill on,
  * whether a hire may open without the vehicle's odometer, whether a TEKSI driver
- * opens the app straight into the console, which console panels are shown and
- * which may be tapped, and the rates themselves. All of the shaping, coercion
- * and validation is pure and lives in `utils/meterSettings.ts`; this screen is
- * the form over it.
+ * opens the app straight into the console, what the console's two leave keys do,
+ * which console panels are shown and which may be tapped, and the rates
+ * themselves. All of the shaping, coercion and validation is pure and lives in
+ * `utils/meterSettings.ts` and `utils/meterLeave.ts`; this screen is the form
+ * over it.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -38,6 +39,7 @@ import {
   Gauge,
   Globe2,
   Home,
+  DoorOpen,
   Inbox,
   LayoutGrid,
   Map as MapIcon,
@@ -52,6 +54,12 @@ import {
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import { useReadOnlyGuard } from "@/hooks/useReadOnlyGuard";
+import {
+  describeMeterLeave,
+  normalizeMeterLeaveUrl,
+  type MeterLeaveEhailingAction,
+  type MeterLeavePassengerAction,
+} from "@/utils/meterLeave";
 import {
   canApplyMeterPanelLive,
   createMeterProfileDraft,
@@ -100,6 +108,12 @@ const SOURCE_OPTIONS: { key: MeterSourceMode; label: string; hint: string }[] = 
   { key: "gps", label: "GPS only", hint: "Ignore the reader — always bill on GPS" },
   { key: "gps+obd", label: "GPS + OBD", hint: "Bill on the vehicle, fall back to GPS" },
   { key: "obd", label: "OBD only", hint: "Never bill on GPS" },
+];
+
+/** What the e-hailing key of the leave-the-meter popup opens. */
+const LEAVE_EHAILING_OPTIONS: { key: MeterLeaveEhailingAction; label: string; hint: string }[] = [
+  { key: "app", label: "This app", hint: "Opens the partner e-hailing screen" },
+  { key: "link", label: "Another app", hint: "Opens the app at the link below" },
 ];
 
 const DISTANCE_OPTIONS: { key: MeterDistanceMode; label: string }[] = [
@@ -237,6 +251,7 @@ export default function AdminSettingsMeterDigitalScreen() {
     setDraft({
       ...profile,
       rates: { ...profile.rates },
+      leave: { ...profile.leave },
       panels: {
         meter: { ...profile.panels.meter },
         trips: { ...profile.panels.trips },
@@ -265,6 +280,18 @@ export default function AdminSettingsMeterDigitalScreen() {
     },
     [guard, openEditor],
   );
+
+  /**
+   * The e-hailing link is typed but could never open an app.
+   *
+   * Only complains about something actually entered — a field still empty is a
+   * card that isn't finished yet, which the Save press reports rather than a red
+   * border following the admin around the form.
+   */
+  const linkInvalid =
+    draft.leave.ehailing === "link" &&
+    (draft.leave.ehailingUrl ?? "").trim().length > 0 &&
+    !normalizeMeterLeaveUrl(draft.leave.ehailingUrl);
 
   /** The draft with its text fields folded back on — the card as it would save. */
   const mergedDraft = useCallback((): MeterProfile => {
@@ -611,7 +638,9 @@ export default function AdminSettingsMeterDigitalScreen() {
         </Text>
         <Text style={[styles.cardSub, { color: Colors.textSecondary }]} numberOfLines={2}>
           {profile.label ? `${profile.label} · ` : ""}
-          {describeMeterRates(profile).slice(0, 3).join(" · ")}
+          {[...describeMeterRates(profile).slice(0, 3), ...describeMeterLeave(profile.leave)].join(
+            " · ",
+          )}
         </Text>
       </View>
       <Switch
@@ -934,6 +963,102 @@ export default function AdminSettingsMeterDigitalScreen() {
                 draft.autoLaunch,
                 (next) => setDraft((p) => ({ ...p, autoLaunch: next })),
                 "meter-settings-auto-launch",
+              )}
+
+              {/* Leaving the console */}
+              <GroupTitle Colors={Colors} icon={DoorOpen} title="Leave the meter" />
+              <Text style={[styles.groupHint, { color: Colors.textSecondary }]}>
+                The back key on an idle meter asks the driver where they are going. These
+                two answers are what it offers — the third is always &ldquo;stay on the
+                meter&rdquo;. A running hire cannot be left at all.
+              </Text>
+              {switchRow(
+                "Passenger key exits the app",
+                "Instead of opening passenger mode, the key closes the app without signing the driver out — the next launch comes straight back to the meter. On iOS and on the web the app cannot close itself, so the driver is told how to leave instead.",
+                draft.leave.passenger === "exit",
+                (next) =>
+                  setDraft((p) => ({
+                    ...p,
+                    leave: {
+                      ...p.leave,
+                      passenger: (next ? "exit" : "passenger") as MeterLeavePassengerAction,
+                    },
+                  })),
+                "meter-settings-leave-passenger",
+              )}
+              {segmented(
+                "E-hailing key opens",
+                LEAVE_EHAILING_OPTIONS,
+                draft.leave.ehailing,
+                (key) => setDraft((p) => ({ ...p, leave: { ...p.leave, ehailing: key } })),
+                "meter-settings-leave-ehailing",
+              )}
+              {draft.leave.ehailing === "link" && (
+                <>
+                  <View style={styles.fieldBlock}>
+                    <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
+                      App link
+                    </Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: Colors.gray[100],
+                          borderColor: linkInvalid ? Colors.error : Colors.border,
+                          color: Colors.text,
+                        },
+                      ]}
+                      value={draft.leave.ehailingUrl ?? ""}
+                      onChangeText={(t) =>
+                        setDraft((p) => ({ ...p, leave: { ...p.leave, ehailingUrl: t } }))
+                      }
+                      onFocus={() => setFocusField(null)}
+                      placeholder="e.g. driverapp:// or https://dispatch.example.com"
+                      placeholderTextColor={Colors.textSecondary}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="url"
+                      editable={editable}
+                      testID="meter-settings-leave-url"
+                    />
+                    <Text
+                      style={[
+                        styles.groupHint,
+                        { color: linkInvalid ? Colors.error : Colors.textSecondary },
+                      ]}
+                    >
+                      {linkInvalid
+                        ? "A link has to start with a scheme — driverapp://, https:// — so the device knows which app to open."
+                        : "The driver's phone opens whichever app claims this link. The meter stays open behind it."}
+                    </Text>
+                  </View>
+                  <View style={styles.fieldBlock}>
+                    <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
+                      Key caption (optional)
+                    </Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        {
+                          backgroundColor: Colors.gray[100],
+                          borderColor: Colors.border,
+                          color: Colors.text,
+                        },
+                      ]}
+                      value={draft.leave.ehailingLabel ?? ""}
+                      onChangeText={(t) =>
+                        setDraft((p) => ({ ...p, leave: { ...p.leave, ehailingLabel: t } }))
+                      }
+                      onFocus={() => setFocusField(null)}
+                      placeholder="E-HAILING APP"
+                      placeholderTextColor={Colors.textSecondary}
+                      autoCapitalize="characters"
+                      maxLength={22}
+                      editable={editable}
+                      testID="meter-settings-leave-label"
+                    />
+                  </View>
+                </>
               )}
 
               {/* Panels */}

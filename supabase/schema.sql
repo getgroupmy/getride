@@ -4238,7 +4238,8 @@ revoke all on public.ev_orders from anon;
 -- Everything Admin → Settings → Meter Digital Setting configures for the in-app
 -- taxi meter (`app/meter-digital.tsx`): which sensors it may bill on, whether a
 -- hire may open without an odometer reading, which console panels are shown and
--- which may be tapped, and the rate card itself (flag fare, distance charge per
+-- which may be tapped, what the two leave-the-meter keys do (0085), and the
+-- rate card itself (flag fare, distance charge per
 -- km or per started block, time charge per minute / second / started block, how
 -- the two combine, the night surcharge and the luggage/passenger extras).
 --
@@ -4267,6 +4268,17 @@ create table if not exists public.meter_digital_settings (
 
   -- Open /meter-digital at app launch for partners carrying the TEKSI type.
   auto_launch boolean not null default false,
+
+  -- Leaving the console: what the popup's two keys do. The passenger key can
+  -- close the app instead of opening passenger mode (without signing the driver
+  -- out), and the e-hailing key can open another dispatch app instead of
+  -- /partner-ehailing.
+  leave_passenger_action text not null default 'passenger'
+    check (leave_passenger_action in ('passenger','exit')),
+  leave_ehailing_action  text not null default 'app'
+    check (leave_ehailing_action in ('app','link')),
+  leave_ehailing_url     text,
+  leave_ehailing_label   text,
 
   -- Console panels: shown, and tappable
   show_meter    boolean not null default true,
@@ -4321,9 +4333,35 @@ create table if not exists public.meter_digital_settings (
   updated_at timestamptz not null default now()
 );
 
--- 0084: added after the table shipped, so an existing project picks it up here.
+-- 0084/0085: added after the table shipped, so an existing project picks them
+-- up here. Both default to what the console did before they existed.
 alter table public.meter_digital_settings
-  add column if not exists auto_launch boolean not null default false;
+  add column if not exists auto_launch boolean not null default false,
+  add column if not exists leave_passenger_action text not null default 'passenger',
+  add column if not exists leave_ehailing_action  text not null default 'app',
+  add column if not exists leave_ehailing_url     text,
+  add column if not exists leave_ehailing_label   text;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'meter_digital_settings_leave_passenger_action_check'
+  ) then
+    alter table public.meter_digital_settings
+      add constraint meter_digital_settings_leave_passenger_action_check
+      check (leave_passenger_action in ('passenger','exit'));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'meter_digital_settings_leave_ehailing_action_check'
+  ) then
+    alter table public.meter_digital_settings
+      add constraint meter_digital_settings_leave_ehailing_action_check
+      check (leave_ehailing_action in ('app','link'));
+  end if;
+end $$;
 
 create unique index if not exists meter_digital_settings_scope_uidx
   on public.meter_digital_settings (
