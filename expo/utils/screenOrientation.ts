@@ -10,18 +10,25 @@
  * callers turn that into `OrientationLockState` (`utils/orientationLock.ts`).
  */
 
+import { loadOptionalNativeModule } from "@/utils/nativeModuleGuard";
+
 let cache: any | null | undefined;
 
-/** The `expo-screen-orientation` module, or null when it cannot be loaded. */
+/**
+ * The `expo-screen-orientation` module, or null when it cannot be loaded.
+ *
+ * Loaded through `loadOptionalNativeModule` rather than a bare try/catch: an
+ * Expo module that resolves its native half at import time throws from inside
+ * the require, and Metro reports that as fatal instead of rethrowing it where a
+ * try/catch could see it (`utils/nativeModuleGuard.ts`).
+ */
 function loadScreenOrientation(): any | null {
   if (cache !== undefined) return cache;
-  try {
+  cache = loadOptionalNativeModule("expo-screen-orientation", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require("expo-screen-orientation");
-    cache = mod?.default ?? mod ?? null;
-  } catch {
-    cache = null;
-  }
+    return mod?.default ?? mod ?? null;
+  });
   return cache;
 }
 
