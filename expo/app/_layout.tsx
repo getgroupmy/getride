@@ -29,6 +29,11 @@ import ReferralBonusToast from "@/components/ReferralBonusToast";
 import { RootErrorBoundary } from "@/components/RootErrorBoundary";
 import { installGlobalErrorGuard } from "@/utils/globalErrorGuard";
 import { capturePendingReferral } from "@/utils/referral";
+import {
+  markLaunchHandled,
+  readLaunchSession,
+  resolveRootRedirect,
+} from "@/utils/launchSession";
 
 installGlobalErrorGuard();
 SplashScreen.preventAutoHideAsync();
@@ -51,7 +56,19 @@ function RootLayoutNav() {
   // the launch decision — restore an in-progress ride, or open a TEKSI driver
   // into the meter — and replaces itself with the destination, so the passenger
   // map never flashes on the way to somewhere else.
-  const launchHandled = useRef<boolean>(false);
+  //
+  // "Once per session" is kept in `utils/launchSession.ts` rather than in a ref
+  // here, because this component sits *above* the navigator: anything that
+  // remounts the tree resets the navigation state to the map and would, with a
+  // ref, read that as a fresh cold start and re-enter the buffer — which for a
+  // driver whose card opens the meter is a loop back onto the greeting. The
+  // same module remembers the destination, so a reset puts the driver back on
+  // the console instead of on the passenger map.
+  //
+  // The last redirect issued *from* root, so one that does not take is not
+  // re-issued on every render. Cleared the moment we are somewhere else, so a
+  // later arrival back at root is judged fresh.
+  const rootRedirect = useRef<string | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -102,6 +119,8 @@ function RootLayoutNav() {
       (segments[0] as string) === "index" ||
       segments[0] === undefined;
 
+    if (!atRoot) rootRedirect.current = null;
+
     if (!authState.isAuthenticated && !inAuthGroup) {
       console.log("[RootLayoutNav] Not authenticated -> /onboarding");
       router.replace("/onboarding" as any);
@@ -110,15 +129,21 @@ function RootLayoutNav() {
       // between the map, a restored ride, or (for a TEKSI driver) the meter.
       // Tablets go through it too — the buffer resolves the console for them.
       console.log("[RootLayoutNav] Authenticated -> /welcome-back");
-      launchHandled.current = true;
+      markLaunchHandled();
       router.replace("/welcome-back" as any);
-    } else if (authState.isAuthenticated && atRoot && !launchHandled.current) {
-      // Cold relaunch with a saved session landed on the map: divert to the
-      // buffer before it renders anything. Guarded so a later "go home" from the
-      // menu is left alone.
-      console.log("[RootLayoutNav] Relaunch on root -> /welcome-back");
-      launchHandled.current = true;
-      router.replace("/welcome-back" as any);
+    } else if (authState.isAuthenticated && atRoot) {
+      // We are on the map. Either this is a cold relaunch with a saved session,
+      // which belongs in the buffer before anything renders, or the navigation
+      // state was reset under a user the launch had put somewhere else — in
+      // which case they go back there rather than through the greeting again.
+      // A deliberate "go home" from the menu resolves to null and is left alone.
+      const target = resolveRootRedirect(readLaunchSession());
+      if (target && rootRedirect.current !== target) {
+        console.log("[RootLayoutNav] Root ->", target);
+        rootRedirect.current = target;
+        markLaunchHandled();
+        router.replace(target as any);
+      }
     }
   }, [authState, segments, isLoading, router, isTablet]);
 

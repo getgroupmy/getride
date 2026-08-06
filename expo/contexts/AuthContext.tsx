@@ -11,6 +11,7 @@ import {
 import { parsePinLockSeconds, pinLockMessage } from "@/utils/pinLock";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
 import { isRegistrationBlockedError } from "@/utils/deviceGuard";
+import { resetLaunchSession } from "@/utils/launchSession";
 
 const AUTH_KEY = "@app_auth_state";
 const REGISTERED_USERS_KEY = "@registered_users";
@@ -894,6 +895,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
 
   const logout = async () => {
     try {
+      // The next sign-in is a new launch: it goes back through the buffer, and
+      // must not inherit the screen this account was opened on.
+      resetLaunchSession();
       if (supaEnabled && supabase) {
         await supabase.auth.signOut();
       }

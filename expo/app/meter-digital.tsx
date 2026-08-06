@@ -199,6 +199,7 @@ import {
   type MeterWaypoint,
 } from "@/utils/meterDashboard";
 import { canLeaveApp, leaveApp } from "@/utils/appExit";
+import { clearLaunchDestination } from "@/utils/launchSession";
 import { currentStorePlatform } from "@/utils/installedApps";
 import { STORE_LABELS } from "@/utils/meterLeaveApps";
 import {
@@ -661,12 +662,29 @@ export default function MeterDigitalScreen() {
     [leaveOptions],
   );
 
+  /**
+   * Walk out of the console on purpose.
+   *
+   * The console can be where the launch put this driver (`autoLaunch`), and the
+   * launch remembers that so a navigation-state reset puts them back rather
+   * than dropping them on the passenger map. A driver who *chooses* to leave
+   * has to cancel that memory on the way out — otherwise arriving at the map is
+   * read as the reset it isn't, and the console pulls them straight back in.
+   */
+  const leaveConsole = useCallback(
+    (target: string) => {
+      clearLaunchDestination();
+      router.replace(target as never);
+    },
+    [router],
+  );
+
   /** Leave the console. The meter is idle, so nothing is lost by any of them. */
   const leaveMeter = useCallback(
     (option: MeterLeaveOption) => {
       if (option.action === "route" && option.route) {
         setExitPromptOpen(false);
-        router.replace(option.route as never);
+        leaveConsole(option.route);
         return;
       }
 
@@ -734,7 +752,7 @@ export default function MeterDigitalScreen() {
           offerStore("Could not open that app", describeMeterLinkFailure(url));
         });
     },
-    [router, storePlatform],
+    [leaveConsole, storePlatform],
   );
 
   // Latest sensor readings, held in refs so the 1 Hz tick can read them without
@@ -3024,7 +3042,20 @@ export default function MeterDigitalScreen() {
         {gate === "rotate" ? (
           <RotateDeviceNotice
             state={lockState}
-            onBack={() => router.back()}
+            // A `back()` is only a way out when there is something behind the
+            // console — and when the launch opened it there is not: the buffer
+            // replaced itself with the meter, so the stack is one deep and the
+            // key would be dead, leaving the driver held behind the notice on a
+            // phone that will not turn. Falling through to passenger mode makes
+            // it a way out in both cases; `leaveConsole` clears the launch's
+            // memory so the map is not read as a reset and bounced back here.
+            onBack={() => {
+              if (router.canGoBack()) {
+                router.back();
+                return;
+              }
+              leaveConsole("/");
+            }}
             testID="meter-digital-rotate"
           />
         ) : null}
