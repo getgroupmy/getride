@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   Dimensions,
+  useWindowDimensions,
   Animated,
   Platform,
   Modal,
@@ -92,6 +93,12 @@ export default function HomeScreen() {
   const params = useLocalSearchParams();
   const mapRef = useRef<any>(null);
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
+  // Live viewport dimensions — recompute on rotation so the map/content fill the
+  // screen in landscape. The module-level `width`/`height` from Dimensions.get()
+  // are captured once (in portrait) and never update; using them for the map's
+  // width left it pinned to the portrait width, showing only a left-hand column
+  // of map on a landscape screen.
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const Colors = useColors();
   const { settings: displaySettings, refresh: refreshDisplaySettings } = useDisplaySettings();
   const { colorScheme } = useTheme();
@@ -1222,6 +1229,7 @@ export default function HomeScreen() {
         style={[
           styles.container,
           {
+            width: windowWidth,
             backgroundColor: Colors.background,
             transform: [{ translateX: menuRevealAnim }],
           },
@@ -1245,7 +1253,7 @@ export default function HomeScreen() {
           <MapView
             key={`map-${colorScheme}-${mapKey}`}
             ref={mapRef}
-            style={[styles.map, { height: height + displaySettings.mapHeightOffset, marginTop: -displaySettings.mapHeightOffset }]}
+            style={[styles.map, { width: windowWidth, height: windowHeight + displaySettings.mapHeightOffset, marginTop: -displaySettings.mapHeightOffset }]}
             initialRegion={initialRegion}
             mapType={mapType}
             showsUserLocation
@@ -1274,7 +1282,7 @@ export default function HomeScreen() {
           <WebMap
             key={`webmap-${colorScheme}`}
             ref={mapRef}
-            style={[styles.map, { height: height + displaySettings.mapHeightOffset, marginTop: -displaySettings.mapHeightOffset }]}
+            style={[styles.map, { width: windowWidth, height: windowHeight + displaySettings.mapHeightOffset, marginTop: -displaySettings.mapHeightOffset }]}
             initialRegion={initialRegion}
             dark={colorScheme === "dark"}
             satellite={mapType === "satellite"}
