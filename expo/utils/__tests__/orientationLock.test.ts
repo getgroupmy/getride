@@ -1,6 +1,7 @@
 import {
   isLandscapeSize,
   resolveOrientationGate,
+  rotateNoticeAction,
   rotateNoticeCopy,
   shouldPromptRotate,
   type OrientationLockState,
@@ -93,11 +94,35 @@ describe("shouldPromptRotate", () => {
   });
 });
 
+describe("rotateNoticeAction", () => {
+  it("forces the rotation when the platform has a lock to ask again", () => {
+    // `locked` is the interesting one: the pin was accepted and the glass
+    // stayed portrait, which is exactly the case a second ask can fix.
+    expect(rotateNoticeAction("locked")).toBe("force");
+  });
+
+  it("offers a way out instead when there is no lock to ask", () => {
+    // Web, or a binary with no native module: the answer is cached, so a
+    // Force Rotate key there would be a button that can never work.
+    expect(rotateNoticeAction("unsupported")).toBe("leave");
+  });
+
+  it("does not offer to leave a screen that is still settling", () => {
+    expect(rotateNoticeAction("pending")).toBe("force");
+  });
+});
+
 describe("rotateNoticeCopy", () => {
   it("points at the device's own rotation lock when the app lock was accepted", () => {
     const copy = rotateNoticeCopy("locked");
     expect(copy.title).toMatch(/sideways/i);
     expect(copy.body).toMatch(/rotation lock/i);
+  });
+
+  it("names the key it is shown with, so the copy matches the button", () => {
+    expect(rotateNoticeCopy("locked").body).toMatch(/force rotate/i);
+    // …and never on the state whose key is a way out rather than a retry.
+    expect(rotateNoticeCopy("unsupported").body).not.toMatch(/force rotate/i);
   });
 
   it("says the build cannot rotate for them when the lock is unavailable", () => {

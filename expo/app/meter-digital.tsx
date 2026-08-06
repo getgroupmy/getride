@@ -467,7 +467,7 @@ export default function MeterDigitalScreen() {
   // Landscape-only: pinned while focused, re-asked on every focus, and gated on
   // the viewport the pin actually produced — the console below only renders on
   // `ready`. See `utils/orientationLock.ts`.
-  const lockState = useLandscapeLock();
+  const { state: lockState, forceRotate } = useLandscapeLock();
   const { width: winWidth, height: winHeight } = useWindowDimensions();
   const gate = resolveOrientationGate(lockState, winWidth, winHeight);
 
@@ -3042,13 +3042,19 @@ export default function MeterDigitalScreen() {
         {gate === "rotate" ? (
           <RotateDeviceNotice
             state={lockState}
-            // A `back()` is only a way out when there is something behind the
-            // console — and when the launch opened it there is not: the buffer
-            // replaced itself with the meter, so the stack is one deep and the
-            // key would be dead, leaving the driver held behind the notice on a
-            // phone that will not turn. Falling through to passenger mode makes
-            // it a way out in both cases; `leaveConsole` clears the launch's
-            // memory so the map is not read as a reset and bounced back here.
+            // The key the driver actually wants: ask for the pin again rather
+            // than asking them to turn the phone. The console draws itself as
+            // soon as the viewport comes round — the gate reads the window, so
+            // nothing else has to be re-triggered here.
+            onForceRotate={forceRotate}
+            // Only reached where there is no lock to force (the web build, a
+            // binary older than the native module). A `back()` is itself only a
+            // way out when there is something behind the console — and when the
+            // launch opened it there is not: the buffer replaced itself with
+            // the meter, so the stack is one deep and the key would be dead.
+            // Falling through to passenger mode makes it a way out in both
+            // cases; `leaveConsole` clears the launch's memory so the map is
+            // not read as a reset and bounced straight back here.
             onBack={() => {
               if (router.canGoBack()) {
                 router.back();

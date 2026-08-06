@@ -19,9 +19,13 @@
  * could have turned itself. So the lock is re-applied while the viewport is
  * still portrait, up to `LOCK_ATTEMPTS` times, before the screen is allowed to
  * conclude the rotation is not coming.
+ *
+ * `forceRotate` is that same sequence on demand — the rotate notice's key, for
+ * a device that did not turn on the automatic attempts. It starts the attempt
+ * count over, so the driver can keep pressing it.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Dimensions } from "react-native";
 import { useFocusEffect } from "expo-router";
 
@@ -55,8 +59,22 @@ function viewportIsLandscape(): boolean {
   return isLandscapeSize(width, height);
 }
 
-export function useLandscapeLock(): OrientationLockState {
+export interface LandscapeLock {
+  /** How the pin is going, as far as the screen is concerned. */
+  state: OrientationLockState;
+  /**
+   * Ask for the pin again, from the top.
+   *
+   * The rotate notice's FORCE ROTATE key. A no-op once the screen has been
+   * left, since the lock belongs to whoever is focused.
+   */
+  forceRotate: () => void;
+}
+
+export function useLandscapeLock(): LandscapeLock {
   const [state, setState] = useState<OrientationLockState>("pending");
+  /** The focused run's "ask again", or null while no screen holds the lock. */
+  const restartRef = useRef<(() => void) | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -93,10 +111,20 @@ export function useLandscapeLock(): OrientationLockState {
         })();
       };
 
+      // Pressed by the notice: drop whatever attempt is in flight and start the
+      // count over, so the key keeps working however often it is pressed.
+      restartRef.current = () => {
+        if (settle) clearTimeout(settle);
+        attempts = 0;
+        setState("pending");
+        ask();
+      };
+
       ask();
 
       return () => {
         cancelled = true;
+        restartRef.current = null;
         if (settle) clearTimeout(settle);
         setState("pending");
         void unlockOrientation();
@@ -104,7 +132,11 @@ export function useLandscapeLock(): OrientationLockState {
     }, []),
   );
 
-  return state;
+  const forceRotate = useCallback(() => {
+    restartRef.current?.();
+  }, []);
+
+  return { state, forceRotate };
 }
 
 export default useLandscapeLock;
