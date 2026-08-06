@@ -72,13 +72,18 @@
  * key is dead and the Android hardware back is swallowed, so a running hire
  * cannot be walked out of. `resolveMeterBack` decides all three cases.
  *
- * The screen reads best in landscape, so it still pins the device to landscape
- * while it is focused (`useLandscapeLock`) and hands rotation back on the way
- * out. But that pin is a hint, not a gate: the console is drawn regardless of
- * the viewport it lands in, so a device that will not turn (the web build, a
- * binary made before `expo-screen-orientation` shipped, or a rotation lock left
- * on) gets the meter directly rather than a "turn your device" notice standing
- * between the driver and the console.
+ * The screen is read off a dash mount, so it pins the device to landscape and
+ * *keeps* it pinned for as long as it is focused (`useLandscapeLock`), handing
+ * rotation back on the way out. The pin is held rather than asked once: an
+ * accepted request is not a device that turned, so the hook re-asserts it for
+ * as long as the glass reads portrait, and again whenever the viewport changes
+ * or the app returns to the foreground.
+ *
+ * That pin is still not a *gate*, though: the console is drawn regardless of
+ * the viewport it lands in, so a device that genuinely cannot turn (the web
+ * build, or a binary made before `expo-screen-orientation` shipped) gets the
+ * meter directly rather than a "turn your device" notice standing between the
+ * driver and the console.
  *
  * Nothing here is drawn at a fixed point size. Every padding, icon, key and
  * word comes from `computeMeterMetrics` (pure + tested), which fits the whole
@@ -459,10 +464,10 @@ export default function MeterDigitalScreen() {
   const { appIconUri } = useBranding();
   const battery = useDeviceBattery();
 
-  // Landscape-preferred: the device is pinned to landscape while this screen is
-  // focused, but the pin is a hint, not a gate — the console below draws in
-  // whatever viewport it lands in, so a device that will not turn still gets the
-  // meter rather than a rotate notice. See `utils/orientationLock.ts`.
+  // Landscape, held: the pin is re-asserted for as long as this screen is
+  // focused and the glass reads portrait, rather than asked once and given up
+  // on. It is still not a gate — the console below draws in whatever viewport
+  // it lands in, so a device that cannot turn at all still gets the meter.
   useLandscapeLock();
   const { width: winWidth, height: winHeight } = useWindowDimensions();
 
