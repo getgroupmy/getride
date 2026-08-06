@@ -195,6 +195,9 @@ export default function DriverTeksiScreen() {
   const canbus = useCanbus({
     autoConnect: true,
     allowSimulator: displaySettings.partnerDriveSimEnabled,
+    // Link only the reader the driver set up in Settings — never blind-scan for
+    // a device on the Teksi console.
+    autoConnectSavedOnly: true,
   });
 
   const [region, setRegion] = useState<Region>({
