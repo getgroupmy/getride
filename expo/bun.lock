@@ -59,7 +59,6 @@
         "react-native": "0.81.5",
         "react-native-ble-plx": "^3.5.1",
         "react-native-bluetooth-classic": "1.73.0-rc.17",
-        "react-native-exit-app": "^2.0.0",
         "react-native-gesture-handler": "~2.28.0",
         "react-native-maps": "1.20.1",
         "react-native-safe-area-context": "~5.6.0",
@@ -1790,8 +1789,6 @@
     "react-native-ble-plx": ["react-native-ble-plx@3.5.1", "", { "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-SxksmrUt9jG6DOarrrdkb5c/HBLSfZOKauo/9VQSSi3WJA4bmF78GkrtXrgSoGNk0m1ksacFTjB5DuL39xZq/g=="],
 
     "react-native-bluetooth-classic": ["react-native-bluetooth-classic@1.73.0-rc.17", "", { "dependencies": { "buffer": "^6.0.3" }, "peerDependencies": { "react-native": ">=0.73.1" } }, "sha512-/6jlnDZj3CbMZuCwc6YHTxk6gXiocxGkEDT01wFUGOuBxaNDSUq5rSYh8jm988l2QXGuEhr7WScRBce8t+IJFg=="],
-
-    "react-native-exit-app": ["react-native-exit-app@2.0.0", "", {}, "sha512-vr9e/8jgPcKCBw6qo0QLxfeMiTwExydghbYDqpLZYAGWR+6cbgnhvOxwdYj/JWR7ZtOALrRA4GMGSvU/ayxM7w=="],
 
     "react-native-gesture-handler": ["react-native-gesture-handler@2.28.0", "", { "dependencies": { "@egjs/hammerjs": "^2.0.17", "hoist-non-react-statics": "^3.3.0", "invariant": "^2.2.4" }, "peerDependencies": { "react": "*", "react-native": "*" } }, "sha512-0msfJ1vRxXKVgTgvL+1ZOoYw3/0z1R+Ked0+udoJhyplC2jbVKIJ8Z1bzWdpQRCV3QcQ87Op0zJVE5DhKK2A0A=="],
 

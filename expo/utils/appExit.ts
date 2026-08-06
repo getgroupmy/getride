@@ -6,61 +6,32 @@
  * (`utils/meterLeave.ts`). Closing is *not* signing out: the session is left
  * exactly where it was, so the next launch comes straight back to the console.
  *
- * The two platforms get there differently:
+ * **Android only, by decision.** `BackHandler.exitApp()` finishes the activity
+ * and the driver is back on the home screen — sanctioned, and it works in every
+ * build.
  *
- *   * **Android** has a sanctioned way out — `BackHandler.exitApp()` finishes
- *     the activity and the driver is back on the home screen. Nothing native to
- *     add, so it works in every build.
- *   * **iOS** has no public API for it at all. `react-native-exit-app` provides
- *     one (`exit(0)`), which lands the driver on the home screen — but its
- *     native half only exists in a binary prebuilt since the dependency landed,
- *     so the JS is loaded behind a guarded require for the same reason as the
- *     CANBus transports and `expo-screen-orientation`. The package's entry point
- *     is a TurboModule spec built on `TurboModuleRegistry.getEnforcing`, which
- *     **throws at import time** when the native module is absent — Expo Go, the
- *     web bundle, and every build made before this shipped — so an unguarded
- *     import would take the meter down rather than the app.
+ * iOS has no public API for this at all. The routes that exist are `exit(0)`
+ * (which App Review can treat as a crash) and the private `suspend` selector;
+ * Apple's HIG asks apps not to terminate themselves, and this operator chose not
+ * to carry that risk for one key. So the iPhone answer is deliberate rather than
+ * missing: the console tells the driver to swipe up
+ * (`describeMeterExit`), which leaves them signed in exactly as the setting
+ * promises. The web build cannot close a tab it did not open either.
  *
- * Where neither path exists the caller says how to leave instead of drawing a
- * key that silently does nothing (`describeMeterExit`).
- *
- * Note for whoever ships this: Apple's HIG asks apps not to terminate
- * themselves, and App Review has been known to treat `exit(0)` as a crash. It is
- * behind an operator switch that is off by default, but it is worth knowing
- * before the next submission.
+ * If that decision is ever revisited it is a native module plus a new build —
+ * not an OTA update — and `describeMeterExit`'s second argument is the seam it
+ * would come back through.
  */
 
 import { BackHandler, Platform } from "react-native";
 
-let cache: { exitApp?: () => void } | null | undefined;
-
-/** The `react-native-exit-app` module, or null when it isn't in this binary. */
-function loadExitModule(): { exitApp?: () => void } | null {
-  if (cache !== undefined) return cache;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require("react-native-exit-app");
-    const resolved = mod?.default ?? mod ?? null;
-    cache = typeof resolved?.exitApp === "function" ? resolved : null;
-  } catch (e) {
-    // getEnforcing throws when the native side is missing — an older installed
-    // build, Expo Go, or the web bundle. Not an error, just an answer.
-    console.log("[appExit] native exit module unavailable", e);
-    cache = null;
-  }
-  return cache ?? null;
-}
-
 /**
  * Can this build put the driver back on the home screen?
  *
- * Android always can. iOS can only where the native module was compiled in, so
- * an existing TestFlight/App Store build answers false until it is rebuilt.
+ * Android can. Nothing else does, on purpose — see the file header.
  */
 export function canLeaveApp(): boolean {
-  if (Platform.OS === "android") return true;
-  if (Platform.OS === "ios") return loadExitModule() !== null;
-  return false;
+  return Platform.OS === "android";
 }
 
 /**
@@ -70,20 +41,7 @@ export function canLeaveApp(): boolean {
  * the caller can say so instead.
  */
 export function leaveApp(): boolean {
-  if (Platform.OS === "android") {
-    BackHandler.exitApp();
-    return true;
-  }
-  if (Platform.OS === "ios") {
-    const mod = loadExitModule();
-    if (!mod?.exitApp) return false;
-    try {
-      mod.exitApp();
-      return true;
-    } catch (e) {
-      console.log("[appExit] exit failed", e);
-      return false;
-    }
-  }
-  return false;
+  if (!canLeaveApp()) return false;
+  BackHandler.exitApp();
+  return true;
 }

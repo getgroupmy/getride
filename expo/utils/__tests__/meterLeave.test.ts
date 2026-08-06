@@ -224,19 +224,14 @@ describe("describeMeterExit", () => {
     expect(android.note).toContain("home screen");
   });
 
-  it("closes it on an iOS build that carries the native exit module", () => {
-    const ios = describeMeterExit("ios", true);
-    expect(ios.supported).toBe(true);
-    expect(ios.note).toContain("home screen");
-  });
-
-  it("asks an older iOS build to update rather than blaming the setting", () => {
-    // The capability is compiled in, so an iOS build that cannot exit is one
-    // made before it shipped — that is a new build, not a switch.
-    const ios = describeMeterExit("ios", false);
+  it("does not close itself on iOS, and says so as a fact about the platform", () => {
+    // A deliberate decision, not a missing feature: iOS has no public way to
+    // do it and this app does not reach for the private ones. So the driver is
+    // told how to leave, not that a future build will change it.
+    const ios = describeMeterExit("ios");
     expect(ios.supported).toBe(false);
-    expect(ios.note).toContain("newer build");
-    expect(ios.note).toContain("swipe up");
+    expect(ios.note).toContain("Swipe up");
+    expect(ios.note).not.toContain("build");
   });
 
   it("never claims a browser tab can close itself", () => {
@@ -249,8 +244,7 @@ describe("describeMeterExit", () => {
   it("keeps the promise of the setting in every answer: nobody is signed out", () => {
     for (const answer of [
       describeMeterExit("android"),
-      describeMeterExit("ios", true),
-      describeMeterExit("ios", false),
+      describeMeterExit("ios"),
       describeMeterExit("web"),
     ]) {
       expect(answer.note).toContain("stay signed in");
