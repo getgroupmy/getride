@@ -424,9 +424,8 @@ availability rules that a unit test can pin down.
   skipping the import can never disable a working build), and the import that
   does happen runs inside `utils/nativeModuleGuard.ts`, which catches both the
   throw and the fatal report. The same guard covers every other optional native
-  package that touches its native side at import time —
-  `react-native-exit-app`'s `TurboModuleRegistry.getEnforcing` spec
-  (`utils/appExit.ts`) and `expo-screen-orientation`'s `requireNativeModule`
+  package that touches its native side at import time — currently
+  `expo-screen-orientation`'s `requireNativeModule`
   (`utils/screenOrientation.ts`).
 - **Autolinking.** Unlike `react-native-bluetooth-classic`, no platform needs
   excluding: the library's `android/build.gradle` resolves React Native through

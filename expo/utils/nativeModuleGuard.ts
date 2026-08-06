@@ -4,12 +4,12 @@
  * Several modules here resolve a native-only package through a guarded
  * `require` so a build without its native half degrades to "unavailable"
  * instead of crashing (`utils/canbus/tcpModule.ts`, `mfiModule.ts`,
- * `bleModule.ts`, `utils/appExit.ts`, `utils/screenOrientation.ts`). Packages
- * that touch the native side at *import* time — `react-native-tcp-socket`
- * builds a `NativeEventEmitter` in `Globals.js`, `react-native-bluetooth-classic`
- * does the same in its default export, `react-native-exit-app`'s entry point is
- * a `TurboModuleRegistry.getEnforcing` spec — throw from inside the require
- * itself, which is exactly what those try/catch blocks were written for.
+ * `bleModule.ts`, `utils/screenOrientation.ts`). Packages that touch the native
+ * side at *import* time — `react-native-tcp-socket` builds a
+ * `NativeEventEmitter` in `Globals.js`, `react-native-bluetooth-classic` does
+ * the same in its default export, `expo-screen-orientation` calls
+ * `requireNativeModule` — throw from inside the require itself, which is
+ * exactly what those try/catch blocks were written for.
  *
  * Except a plain try/catch does not catch it. Metro's module loader wraps the
  * *outermost* require of a tick in its own guard:

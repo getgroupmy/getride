@@ -280,11 +280,11 @@ export function resolveMeterLeave(
  * Whether the driver can be put back on the home screen from here, and what to
  * tell them when they cannot.
  *
- * Android always can (`BackHandler.exitApp`). iOS has no public API for it, so
- * it depends on whether the native exit module was compiled into *this* binary
- * — `canLeaveApp()` in `utils/appExit.ts` answers that, and it is passed in
- * rather than guessed at here so this stays pure and testable. A browser tab
- * cannot close one it did not open, ever.
+ * Android always can (`BackHandler.exitApp`). iOS has no public API for it and
+ * this app deliberately does not reach for the private ones, so the answer
+ * there is no — see `utils/appExit.ts`. The capability is passed in rather than
+ * decided here so this stays pure, and so the seam survives if that decision is
+ * ever revisited. A browser tab cannot close one it did not open, ever.
  *
  * Where it cannot happen the console says so plainly instead of drawing a key
  * that silently does nothing: the driver leaves the app the way the platform
@@ -309,12 +309,12 @@ export function describeMeterExit(
     };
   }
   if (os === "ios") {
-    // The capability is compiled in, so an iOS build that says no is one made
-    // before it shipped — the same shape of answer the CANBus transports give
-    // for a missing driver: an update, not a setting.
+    // Deliberate, not missing: iOS has no public way to do this, and the routes
+    // that exist risk App Review treating the app as crashing. Told as a fact
+    // about the platform rather than as something a newer build would fix.
     return {
       supported: false,
-      note: "This build cannot close itself — it was made before that was possible, and a newer build will do it. For now, swipe up from the bottom of the screen to leave: you stay signed in, so reopening comes straight back here.",
+      note: "iOS does not let an app close itself. Swipe up from the bottom of the screen to leave — you stay signed in, so reopening comes straight back here.",
     };
   }
   return {
