@@ -507,6 +507,10 @@ export default function MeterDigitalScreen() {
   const canbus = useCanbus({
     autoConnect: true,
     allowSimulator: displaySettings.partnerDriveSimEnabled,
+    // Only ever link the reader the driver set up — never blind-scan for a
+    // device on the console. A trip that needs OBD with none set sends the
+    // driver to the reader page (see handleStart) instead.
+    autoConnectSavedOnly: true,
   });
 
   const [tab, setTab] = useState<MeterTab>("ehailing");
@@ -652,17 +656,20 @@ export default function MeterDigitalScreen() {
     }, [handleBack]),
   );
 
-  // Re-read the saved printers whenever the console regains focus. The printer
-  // book is edited on a separate screen (`/meter-printer`) with its own
-  // `usePrinter`, so a printer added there is only in device storage until this
-  // instance reloads — without this, returning from setup leaves the console
-  // thinking no printer is configured and PRINT RECEIPT keeps using the OS
-  // print service. `reloadPrinters` is stable (a `useCallback([])`).
+  // Re-read the saved printers and OBD readers whenever the console regains
+  // focus. Both books are edited on separate screens (`/meter-printer`,
+  // `/obd2-reader`) with their own hooks, so a device added there is only in
+  // storage until this instance reloads — without this, returning from setup
+  // leaves the console thinking nothing is configured (PRINT RECEIPT keeps using
+  // the OS service; START keeps sending the driver back to the reader page).
+  // Both reload callbacks are stable (`useCallback([])`).
   const reloadPrinters = printer.reload;
+  const reloadAdapters = canbus.reloadAdapters;
   useFocusEffect(
     useCallback(() => {
       void reloadPrinters();
-    }, [reloadPrinters]),
+      void reloadAdapters();
+    }, [reloadPrinters, reloadAdapters]),
   );
 
   /**
@@ -1538,6 +1545,13 @@ export default function MeterDigitalScreen() {
       startHire();
       return;
     }
+    // The hire needs the vehicle bus but no reader has been set up: send the
+    // driver to the OBD-II reader page to choose one, rather than blind-scanning
+    // for a device. They come back and press START again once a reader is saved.
+    if (startGate.opensOn === "vehicle" && !canbus.defaultAdapter) {
+      router.push("/obd2-reader" as never);
+      return;
+    }
     // The press is not thrown away: it is held, the link attempt is made, and
     // the hire opens by itself the moment the sensor arrives. On a GPS-only
     // card there is no reader to attempt — the held press is released by the
@@ -1549,7 +1563,7 @@ export default function MeterDigitalScreen() {
         .connect()
         .catch((e) => console.log("[meter-digital] connect failed", e));
     }
-  }, [canbus, startGate.canStart, startGate.opensOn, startHire]);
+  }, [canbus, router, startGate.canStart, startGate.opensOn, startHire]);
 
   // The held START, released by the link coming up. It takes the same odometer
   // read as a direct press — the reader that has just answered is asked for the

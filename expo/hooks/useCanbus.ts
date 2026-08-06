@@ -53,6 +53,16 @@ export interface UseCanbusOptions {
    * fall back to the first transport this build supports.
    */
   preferSavedAdapter?: boolean;
+  /**
+   * Only auto-connect when a reader has actually been set up. Without this, an
+   * `autoConnect` mount with no saved reader blind-scans for the first ELM327 it
+   * can find (and, for Bluetooth, holds the radio scanning) — which the meter /
+   * Teksi console must not do: it should link the device the driver chose in
+   * Settings, and nothing else. With the flag on and no reader saved, the hook
+   * stays idle (or starts the simulator when Demo Mode is on) instead of
+   * scanning. Ignored when `autoConnect` is false.
+   */
+  autoConnectSavedOnly?: boolean;
 }
 
 export interface ConnectOptions {
@@ -98,6 +108,7 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     autoConnect = true,
     allowSimulator = false,
     preferSavedAdapter = true,
+    autoConnectSavedOnly = false,
   } = options;
   const sourceId = useId();
   const [state, setState] = useState<CanConnectionState>(INITIAL_STATE);
@@ -274,6 +285,13 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     // endpoint) instead of blindly picking the first supported transport.
     void reloadAdapters().finally(() => {
       if (!mountedRef.current || !autoConnect) return;
+      // With `autoConnectSavedOnly`, never blind-scan on mount: connect only to
+      // the reader the driver actually set up. With none set, stay idle (or run
+      // the simulator when Demo Mode is on) rather than reaching for any device.
+      if (autoConnectSavedOnly && !defaultAdapterRef.current) {
+        if (allowSimulator) startSimulated();
+        return;
+      }
       if (availableTransports.length > 0) {
         void connect();
       } else if (allowSimulator) {
