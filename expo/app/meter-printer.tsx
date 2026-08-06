@@ -383,8 +383,7 @@ export default function MeterPrinterScreen() {
           <Text style={[styles.cardBody, { color: Colors.textSecondary }]}>
             Connect a mini Bluetooth or Wi-Fi thermal printer to print receipts straight from the
             meter — no system print dialog. Add your printer below, then the meter&apos;s
-            end-of-hire receipt and the PRINT RECEIPT button use it automatically. With no printer
-            set up, receipts still fall back to your device&apos;s print service.
+            end-of-hire receipt and the PRINT RECEIPT button use it automatically.
           </Text>
         </View>
 
