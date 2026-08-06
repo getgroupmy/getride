@@ -1787,12 +1787,24 @@ export default function MeterDigitalScreen() {
           );
           return;
         }
+        // No printer configured yet: take the driver to the setup screen to add
+        // one rather than silently using the OS print service — the receipt is
+        // still on the roll (`lastTrip`) to print once a printer is added. Close
+        // the fare-due modal first: a React Native <Modal> renders above pushed
+        // screens, so leaving it open would cover the setup page.
+        if (!directPrinter) {
+          setTotalOpen(false);
+          router.push("/meter-printer");
+          return;
+        }
+        // A printer is saved but this build cannot reach its transport (an older
+        // binary): the OS print service is the honest fallback there.
         await osPrintReceipt(trip);
       } finally {
         setPrinting(false);
       }
     },
-    [directPrinterReady, osPrintReceipt, printer, receiptBranding],
+    [directPrinter, directPrinterReady, osPrintReceipt, printer, receiptBranding, router],
   );
 
   const handleClearLog = useCallback(() => {
@@ -2707,7 +2719,7 @@ export default function MeterDigitalScreen() {
           <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
             {directPrinter
               ? describePrinter(directPrinter)
-              : "Connect a mini Bluetooth or Wi-Fi thermal printer to print receipts straight from the meter. Until then receipts go to the print service your device already has — AirPrint, Google Cloud Print, or a Bluetooth printer set up in the system settings."}
+              : "Connect a mini Bluetooth or Wi-Fi thermal printer to print receipts straight from the meter. Tap Set up printer, or Print receipt, to add one."}
           </Text>
           <TouchableOpacity
             style={[
