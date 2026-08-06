@@ -44,6 +44,14 @@ export interface SavedCanAdapter {
    * reader, which is all a driver with one dongle needs.
    */
   accessory?: string;
+  /**
+   * Bluetooth LE only: the exact peripheral this reader was picked as, from the
+   * in-app scan (`react-native-ble-plx` device id — a per-app UUID on iOS, a MAC
+   * on Android). When present the transport connects to it directly; when absent
+   * (a legacy reader, or "any dongle") it scans and takes the first ELM327 it
+   * sees, the behaviour before the scan picker existed.
+   */
+  deviceId?: string;
   createdAt: string;
   /** Epoch-ms of the last successful link, used to sort the list. */
   lastConnectedAt?: number | null;
@@ -56,6 +64,8 @@ export interface CanAdapterDraft {
   host?: string;
   port?: string | number;
   accessory?: string;
+  /** Bluetooth LE: the peripheral id picked from the in-app scan. */
+  deviceId?: string;
 }
 
 export interface AdapterValidationResult {
@@ -107,6 +117,22 @@ export function normalizeAdapterDraft(
     };
   }
 
+  if (transport === "bluetooth") {
+    const deviceId = (draft.deviceId ?? "").trim();
+    return {
+      ok: true,
+      value: {
+        name: name || `${TRANSPORT_LABEL[transport]} OBD-II reader`,
+        transport,
+        // A device picked from the in-app scan pins the exact peripheral.
+        // Omit rather than store "" so the "any ELM327 dongle" auto-find path is
+        // a missing value, not an empty string to guard against.
+        ...(deviceId ? { deviceId } : {}),
+        lastConnectedAt: null,
+      },
+    };
+  }
+
   if (transport !== "wifi") {
     return {
       ok: true,
@@ -152,6 +178,9 @@ export function describeAdapter(adapter: SavedCanAdapter): string {
       ? `${label} · ${adapter.accessory}`
       : `${label} · paired accessory`;
   }
+  if (adapter.transport === "bluetooth" && adapter.deviceId) {
+    return `${label} · selected from scan`;
+  }
   return `${label} · discovered by scan`;
 }
 
@@ -167,6 +196,14 @@ function isSameDevice(a: SavedCanAdapter, b: SavedCanAdapter): boolean {
   if (b.transport === "wifi") return a.host === b.host && a.port === b.port;
   if (b.transport === "mfi") {
     return normalizeAccessoryKey(a.accessory) === normalizeAccessoryKey(b.accessory);
+  }
+  if (b.transport === "bluetooth") {
+    const aId = (a.deviceId ?? "").trim().toLowerCase();
+    const bId = (b.deviceId ?? "").trim().toLowerCase();
+    // A reader pinned to a specific scanned device is keyed on it, so two
+    // dongles coexist; a legacy "any ELM327" reader (no id) stays one per phone.
+    if (aId || bId) return aId === bId;
+    return true;
   }
   return true;
 }
@@ -231,6 +268,9 @@ export function adapterTransportOptions(
   if (adapter.transport === "wifi") return { host: adapter.host, port: adapter.port };
   if (adapter.transport === "mfi" && adapter.accessory) {
     return { accessory: adapter.accessory };
+  }
+  if (adapter.transport === "bluetooth" && adapter.deviceId) {
+    return { deviceId: adapter.deviceId, nameHint: adapter.name };
   }
   return undefined;
 }

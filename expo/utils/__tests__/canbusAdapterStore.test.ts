@@ -87,6 +87,24 @@ describe("normalizeAdapterDraft", () => {
     expect(usb.value).not.toHaveProperty("host");
   });
 
+  it("pins a Bluetooth LE reader to the device id picked from the scan", () => {
+    const picked = normalizeAdapterDraft({
+      name: "OBDII",
+      transport: "bluetooth",
+      deviceId: "AA:BB:CC:DD:EE:FF",
+    });
+    expect(picked.value).toEqual({
+      name: "OBDII",
+      transport: "bluetooth",
+      deviceId: "AA:BB:CC:DD:EE:FF",
+      lastConnectedAt: null,
+    });
+    // A blank id is omitted, not stored as "" — the auto-find path is a missing
+    // value, matching the pre-scan behaviour.
+    const blank = normalizeAdapterDraft({ transport: "bluetooth", deviceId: "   " });
+    expect(blank.value).not.toHaveProperty("deviceId");
+  });
+
   it("keeps an MFi reader's paired accessory name, and omits a blank one", () => {
     const named = normalizeAdapterDraft({
       transport: "mfi",
@@ -136,6 +154,13 @@ describe("describeAdapter", () => {
       .toBe("Bluetooth MFi · OBDLink MX+");
     expect(describeAdapter(adapter(mfi))).toBe("Bluetooth MFi · paired accessory");
   });
+
+  it("marks a scan-pinned Bluetooth LE reader distinctly from an auto-find one", () => {
+    const ble = { transport: "bluetooth" as const, host: undefined, port: undefined };
+    expect(describeAdapter(adapter({ ...ble, deviceId: "dev-1" })))
+      .toBe("Bluetooth LE · selected from scan");
+    expect(describeAdapter(adapter(ble))).toBe("Bluetooth LE · discovered by scan");
+  });
 });
 
 describe("upsertAdapter", () => {
@@ -161,6 +186,24 @@ describe("upsertAdapter", () => {
     const next = upsertAdapter([ble], { ...ble, id: "b2", name: "Other BLE" });
     expect(next).toHaveLength(1);
     expect(next[0]).toMatchObject({ id: "b1", name: "Other BLE" });
+  });
+
+  it("keys scan-pinned BLE readers on the device id so two dongles coexist", () => {
+    const one = adapter({
+      id: "b1",
+      transport: "bluetooth",
+      host: undefined,
+      port: undefined,
+      deviceId: "dev-1",
+    });
+    // A different picked device is a different reader.
+    const two = { ...one, id: "b2", name: "Spare", deviceId: "dev-2" };
+    expect(upsertAdapter([one], two)).toHaveLength(2);
+    // The same device id (case-insensitive) is the same dongle, updated in place.
+    const renamed = { ...one, id: "b3", name: "Renamed", deviceId: "DEV-1" };
+    const merged = upsertAdapter([one], renamed);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({ id: "b1", name: "Renamed" });
   });
 
   it("keys MFi readers on the paired accessory so two dongles coexist", () => {
@@ -222,6 +265,14 @@ describe("adapterTransportOptions", () => {
     expect(adapterTransportOptions(adapter({ transport: "bluetooth" }))).toBeUndefined();
     expect(adapterTransportOptions(adapter({ transport: "usb" }))).toBeUndefined();
     expect(adapterTransportOptions(null)).toBeUndefined();
+  });
+
+  it("passes the picked device id (and name hint) through for Bluetooth LE", () => {
+    expect(
+      adapterTransportOptions(
+        adapter({ transport: "bluetooth", name: "OBDII", deviceId: "dev-1" }),
+      ),
+    ).toEqual({ deviceId: "dev-1", nameHint: "OBDII" });
   });
 
   it("passes the paired accessory through for MFi, when one was named", () => {

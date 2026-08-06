@@ -353,6 +353,16 @@ class BleTransport implements CanTransport {
   private profile: ResolvedBleProfile | null = null;
   private listeners = new Set<(chunk: string) => void>();
 
+  /**
+   * `deviceId` pins the exact peripheral picked from the in-app scan; `nameHint`
+   * matches a saved name when no id is stored. With neither, the scan falls back
+   * to the ELM327 advertisement heuristic — the behaviour before the picker.
+   */
+  constructor(
+    private preferredDeviceId?: string | null,
+    private nameHint?: string | null,
+  ) {}
+
   async connect(): Promise<CanDeviceInfo> {
     try {
       return await this.openLink();
@@ -374,7 +384,12 @@ class BleTransport implements CanTransport {
     this.manager = new ble.BleManager();
     await waitForBlePoweredOn(this.manager);
 
-    const found = await this.scanForAdapter();
+    // A saved reader carries the exact peripheral id from its scan — connect to
+    // it directly rather than scanning and guessing. Only a legacy reader, or an
+    // "any dongle" one, falls through to the ELM327 / name scan.
+    const found = this.preferredDeviceId
+      ? { id: this.preferredDeviceId, name: this.nameHint ?? null, localName: null }
+      : await this.scanForAdapter();
     this.peripheral = await this.manager.connectToDevice(found.id);
     await this.peripheral.discoverAllServicesAndCharacteristics();
     this.profile = await this.resolveProfile();
@@ -402,8 +417,12 @@ class BleTransport implements CanTransport {
     return this.device;
   }
 
-  /** Resolve on the first advertisement that looks like an ELM327 dongle. */
+  /**
+   * Resolve on the first matching advertisement: the saved name fragment when
+   * one is stored, otherwise the first device that looks like an ELM327 dongle.
+   */
   private async scanForAdapter(): Promise<any> {
+    const hint = (this.nameHint ?? "").trim().toLowerCase();
     try {
       return await withTimeout(
         new Promise<any>((resolve, reject) => {
@@ -415,7 +434,12 @@ class BleTransport implements CanTransport {
                 reject(error);
                 return;
               }
-              if (matchesElmAdvertisement(device)) resolve(device);
+              if (hint) {
+                const name = `${device?.name ?? ""} ${device?.localName ?? ""}`.toLowerCase();
+                if (name.includes(hint)) resolve(device);
+              } else if (matchesElmAdvertisement(device)) {
+                resolve(device);
+              }
             },
           );
         }),
@@ -707,6 +731,81 @@ export function getTransportAvailability(): TransportAvailability[] {
   ];
 }
 
+/** A Bluetooth LE device found by an app-level scan of the OBD add sheet. */
+export interface DiscoveredBleAdapter {
+  id: string;
+  name: string;
+  /** Signal strength, when reported — used to sort nearest-first. */
+  rssi: number | null;
+  /** True when the advertisement looks like an ELM327 OBD-II dongle. */
+  isElm: boolean;
+}
+
+/**
+ * Scan for Bluetooth LE devices and report the named ones found, so the driver
+ * can pick their reader from a list — mirroring the receipt-printer scan.
+ *
+ * An ELM327 BLE dongle never appears in the phone's system Bluetooth list, so
+ * an in-app scan is the only way to see it. Every named device is returned (a
+ * clone with a generic name is still pickable), but the ones whose
+ * advertisement looks like an ELM327 sort to the top. Duplicates collapse to
+ * the strongest sighting, and `onDevice` streams results as they arrive.
+ */
+export async function scanForBleAdapters(opts?: {
+  durationMs?: number;
+  onDevice?: (device: DiscoveredBleAdapter) => void;
+}): Promise<DiscoveredBleAdapter[]> {
+  const availability = bleAvailability();
+  if (!availability.available) {
+    throw new Error(availability.guidance ?? availability.reason ?? "Bluetooth LE is unavailable");
+  }
+  const ble = loadBleModule();
+  await requestBlePermissions();
+  const manager = new ble.BleManager();
+  const found = new Map<string, DiscoveredBleAdapter>();
+  try {
+    await waitForBlePoweredOn(manager);
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, opts?.durationMs ?? BLE_SCAN_TIMEOUT_MS);
+      manager.startDeviceScan(null, { allowDuplicates: true }, (error: any, device: any) => {
+        if (error) {
+          clearTimeout(timer);
+          reject(error);
+          return;
+        }
+        const name = device?.name ?? device?.localName;
+        if (!name || !device?.id) return;
+        const rssi = typeof device.rssi === "number" ? device.rssi : null;
+        const prev = found.get(device.id);
+        if (prev && (prev.rssi ?? -999) >= (rssi ?? -999)) return;
+        const entry: DiscoveredBleAdapter = {
+          id: device.id,
+          name,
+          rssi,
+          isElm: matchesElmAdvertisement(device),
+        };
+        found.set(device.id, entry);
+        opts?.onDevice?.(entry);
+      });
+    });
+  } finally {
+    try {
+      manager.stopDeviceScan();
+    } catch {
+      /* ignore */
+    }
+    try {
+      manager.destroy();
+    } catch {
+      /* ignore */
+    }
+  }
+  return Array.from(found.values()).sort((a, b) => {
+    if (a.isElm !== b.isElm) return a.isElm ? -1 : 1;
+    return (b.rssi ?? -999) - (a.rssi ?? -999);
+  });
+}
+
 /**
  * Per-connection overrides for the two transports a driver can pin down.
  *
@@ -721,6 +820,16 @@ export interface CreateTransportOptions {
   port?: number;
   /** MFi only: name or address of the paired accessory to link with. */
   accessory?: string;
+  /**
+   * Bluetooth LE only: the exact peripheral id to connect to, from the in-app
+   * scan. When set the transport skips the scan and links this device directly.
+   */
+  deviceId?: string;
+  /**
+   * Bluetooth LE only: a name fragment to match in the scan when no `deviceId`
+   * is saved. Absent both, the transport falls back to the ELM327 heuristic.
+   */
+  nameHint?: string;
 }
 
 /** Instantiate the transport for a given kind. */
@@ -735,7 +844,7 @@ export function createTransport(
         options?.port || WIFI_ADAPTER_PORT,
       );
     case "bluetooth":
-      return new BleTransport();
+      return new BleTransport(options?.deviceId, options?.nameHint);
     case "mfi":
       return new MfiTransport(options?.accessory);
     case "usb":

@@ -55,6 +55,10 @@ import {
 import { TRANSPORT_LABEL, type CanTransportKind } from "@/utils/canbus/types";
 import { WIFI_ADAPTER_HOST, WIFI_ADAPTER_PORT } from "@/utils/canbus/config";
 import {
+  scanForBleAdapters,
+  type DiscoveredBleAdapter,
+} from "@/utils/canbus/transports";
+import {
   addCanbusAdapter,
   deleteCanbusAdapter,
   describeAdapter,
@@ -87,7 +91,7 @@ const TRANSPORT_CHOICES: {
   {
     kind: "bluetooth",
     title: "Bluetooth LE",
-    hint: "ELM327 Bluetooth Low Energy dongle. Do not pair it in the phone's Bluetooth settings — it is found automatically.",
+    hint: "ELM327 Bluetooth Low Energy dongle. Not paired in the phone's Bluetooth settings — scan for it here to pick your device.",
   },
   {
     kind: "mfi",
@@ -125,6 +129,12 @@ export default function Obd2ReaderScreen() {
   const [draftPort, setDraftPort] = useState<string>(String(WIFI_ADAPTER_PORT));
   const [draftAccessory, setDraftAccessory] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
+  // Bluetooth LE scan (add sheet): the exact peripheral the driver picked, plus
+  // the live discovered list. A BLE dongle never shows in the phone's system
+  // Bluetooth list, so it can only be found by scanning here.
+  const [draftDeviceId, setDraftDeviceId] = useState<string>("");
+  const [scanning, setScanning] = useState<boolean>(false);
+  const [discovered, setDiscovered] = useState<DiscoveredBleAdapter[]>([]);
 
   const state = canbus.state;
   const online = state.phase === "online";
@@ -152,6 +162,8 @@ export default function Obd2ReaderScreen() {
     setDraftHost(WIFI_ADAPTER_HOST);
     setDraftPort(String(WIFI_ADAPTER_PORT));
     setDraftAccessory("");
+    setDraftDeviceId("");
+    setDiscovered([]);
   }, []);
 
   const handleSaveAdapter = useCallback(async () => {
@@ -162,6 +174,7 @@ export default function Obd2ReaderScreen() {
       host: draftHost,
       port: draftPort,
       accessory: draftAccessory,
+      deviceId: draftDeviceId,
     });
     setSaving(false);
     if (res.error) {
@@ -174,12 +187,55 @@ export default function Obd2ReaderScreen() {
   }, [
     canbus,
     draftAccessory,
+    draftDeviceId,
     draftHost,
     draftKind,
     draftName,
     draftPort,
     resetDraft,
   ]);
+
+  const handleScanBle = useCallback(async () => {
+    setScanning(true);
+    setDiscovered([]);
+    try {
+      const seen = new Map<string, DiscoveredBleAdapter>();
+      await scanForBleAdapters({
+        onDevice: (device) => {
+          seen.set(device.id, device);
+          // Stream results in, ELM-looking dongles first then by signal.
+          setDiscovered(
+            Array.from(seen.values()).sort((a, b) => {
+              if (a.isElm !== b.isElm) return a.isElm ? -1 : 1;
+              return (b.rssi ?? -999) - (a.rssi ?? -999);
+            }),
+          );
+        },
+      });
+    } catch (e: any) {
+      Alert.alert("Bluetooth scan", e?.message ? String(e.message) : "Bluetooth scan failed.");
+    } finally {
+      setScanning(false);
+    }
+  }, []);
+
+  const pickDiscovered = useCallback((device: DiscoveredBleAdapter) => {
+    setDraftDeviceId(device.id);
+    setDraftName((prev) => prev || device.name);
+  }, []);
+
+  // A picked device belongs to the Bluetooth LE flow; switching away from it, or
+  // closing the sheet, drops the selection and the scan results.
+  useEffect(() => {
+    if (draftKind !== "bluetooth") {
+      setDraftDeviceId("");
+      setDiscovered([]);
+    }
+  }, [draftKind]);
+
+  useEffect(() => {
+    if (!addVisible) setDiscovered([]);
+  }, [addVisible]);
 
   const handleSelect = useCallback(
     async (adapter: SavedCanAdapter) => {
@@ -741,11 +797,76 @@ export default function Obd2ReaderScreen() {
                     shows it when you have more than one paired.
                   </Text>
                 </>
+              ) : draftKind === "bluetooth" ? (
+                <>
+                  <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
+                    A Bluetooth LE dongle never shows in your phone&apos;s Bluetooth settings — scan
+                    for it here and pick it from the list. Leave it unselected to auto-connect to the
+                    first ELM327 reader found.
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryButton,
+                      styles.scanButton,
+                      { borderColor: Colors.border },
+                      scanning && styles.buttonDisabled,
+                    ]}
+                    disabled={scanning}
+                    onPress={() => void handleScanBle()}
+                    testID="obd2-scan"
+                  >
+                    {scanning ? (
+                      <ActivityIndicator color={Colors.text} size="small" />
+                    ) : (
+                      <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
+                        Scan for readers
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                  {discovered.length > 0 ? (
+                    <View style={[styles.card, cardStyle, styles.listCard, styles.discoveredCard]}>
+                      {discovered.map((d, idx) => (
+                        <TouchableOpacity
+                          key={d.id}
+                          style={[
+                            styles.adapterRow,
+                            idx > 0 && {
+                              borderTopWidth: StyleSheet.hairlineWidth,
+                              borderTopColor: Colors.border,
+                            },
+                          ]}
+                          onPress={() => pickDiscovered(d)}
+                          activeOpacity={0.7}
+                          testID={`obd2-found-${d.id}`}
+                        >
+                          <Bluetooth
+                            color={draftDeviceId === d.id ? Colors.accent : Colors.textSecondary}
+                            size={18}
+                          />
+                          <View style={styles.adapterInfo}>
+                            <Text style={[styles.adapterName, { color: Colors.text }]} numberOfLines={1}>
+                              {d.name}
+                            </Text>
+                            <Text style={[styles.adapterSub, { color: Colors.textSecondary }]}>
+                              {d.isElm ? "Looks like an ELM327" : "Bluetooth device"}
+                              {typeof d.rssi === "number" ? ` · ${d.rssi} dBm` : ""}
+                            </Text>
+                          </View>
+                          {draftDeviceId === d.id ? (
+                            <Check color={Colors.accent} size={18} strokeWidth={3} />
+                          ) : null}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : scanning ? (
+                    <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
+                      Scanning… make sure the dongle is plugged into the OBD-II port and powered.
+                    </Text>
+                  ) : null}
+                </>
               ) : (
                 <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
-                  {draftKind === "bluetooth"
-                    ? "The reader is discovered by scanning for ELM327 devices — no pairing needed in your phone's Bluetooth settings."
-                    : "The reader is detected over USB-OTG when it is plugged in. Android only."}
+                  The reader is detected over USB-OTG when it is plugged in. Android only.
                 </Text>
               )}
 
@@ -882,5 +1003,7 @@ const styles = StyleSheet.create({
   hostInput: { flex: 2 },
   portInput: { flex: 1 },
   helpText: { fontSize: 12, lineHeight: 18, marginBottom: 16 },
+  scanButton: { flex: undefined, marginBottom: 12 },
+  discoveredCard: { marginTop: 0 },
   sheetSave: { marginBottom: 24 },
 });
