@@ -47,14 +47,31 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-interface ReceiptLine {
+export interface ReceiptLine {
   label: string;
   value: string;
   strong?: boolean;
 }
 
-/** The rows of the receipt, in print order. Shared by both renderers. */
-function receiptLines(trip: MeterTrip): ReceiptLine[] {
+/**
+ * Which sensor the fare was actually metered on, for the footer note.
+ *
+ * Shared so the HTML, the plain-text copy and the thermal-printer (ESC/POS)
+ * render all name the same source — a receipt must never claim OBD-II speed on
+ * a fare that billed on GPS.
+ */
+export function receiptMeteredOnObd(trip: MeterTrip): boolean {
+  return trip.obdSamples >= trip.gpsSamples && trip.obdSamples > 0;
+}
+
+/** The "Fare metered on … · N OBD / M GPS samples" footer, in plain text. */
+export function meterReceiptFooterNote(trip: MeterTrip): string {
+  const source = receiptMeteredOnObd(trip) ? "the vehicle's OBD-II speed" : "GPS";
+  return `Fare metered on ${source} · ${trip.obdSamples} OBD / ${trip.gpsSamples} GPS samples`;
+}
+
+/** The rows of the receipt, in print order. Shared by every renderer. */
+export function meterReceiptLines(trip: MeterTrip): ReceiptLine[] {
   const lines: ReceiptLine[] = [
     { label: "Date", value: formatDashDate(trip.endedAt) },
     { label: "Start", value: formatDashTime(trip.startedAt) },
@@ -133,7 +150,7 @@ export function buildMeterReceiptText(
     trip.driver ? `Driver ${trip.driver}` : null,
   ].filter(Boolean) as string[];
 
-  const body = receiptLines(trip).map((l) => `${l.label}: ${l.value}`);
+  const body = meterReceiptLines(trip).map((l) => `${l.label}: ${l.value}`);
   return [...header, "", ...body, "", "Thank you for riding."].join("\n");
 }
 
@@ -144,7 +161,7 @@ export function buildMeterReceiptHtml(
 ): string {
   const title = escapeHtml(branding.title ?? "GET TAXI METER");
   const subtitle = branding.subtitle ? escapeHtml(branding.subtitle) : null;
-  const rows = receiptLines(trip)
+  const rows = meterReceiptLines(trip)
     .map(
       (l) =>
         `<tr class="${l.strong ? "total" : ""}"><td class="l">${escapeHtml(
@@ -192,9 +209,7 @@ export function buildMeterReceiptHtml(
   <table>${rows}</table>
   <hr />
   <p class="foot">Fare metered on ${
-    trip.obdSamples >= trip.gpsSamples && trip.obdSamples > 0
-      ? "the vehicle&rsquo;s OBD-II speed"
-      : "GPS"
+    receiptMeteredOnObd(trip) ? "the vehicle&rsquo;s OBD-II speed" : "GPS"
   } &middot; ${trip.obdSamples} OBD / ${trip.gpsSamples} GPS samples</p>
   <p class="foot">Thank you for riding.</p>
 </body>
