@@ -257,6 +257,8 @@ import {
   type AssignableVehicle,
 } from "@/utils/vehicleAssignmentStore";
 import { buildMeterReceiptHtml } from "@/utils/meterReceipt";
+import { usePrinter } from "@/hooks/usePrinter";
+import { describePrinter } from "@/utils/printerStore";
 import {
   clearMeterTrips,
   loadMeterTrips,
@@ -573,6 +575,15 @@ export default function MeterDigitalScreen() {
   const [lastTrip, setLastTrip] = useState<MeterTrip | null>(null);
   const [totalOpen, setTotalOpen] = useState<boolean>(false);
   const [printing, setPrinting] = useState<boolean>(false);
+
+  // Direct mini Bluetooth / Wi-Fi thermal printer, set up from the printer tab
+  // (`/meter-printer`). When one is configured and reachable in this build the
+  // receipt goes straight to it; otherwise it falls back to the OS print service.
+  const printer = usePrinter();
+  const directPrinter = printer.defaultPrinter;
+  const directPrinterReady =
+    !!directPrinter &&
+    !!printer.availability.find((a) => a.kind === directPrinter.transport)?.available;
 
   /* --- The admin-configured rate card --- */
 
@@ -1701,15 +1712,19 @@ export default function MeterDigitalScreen() {
     [profile.extraStep, profile.maxExtra],
   );
 
-  const printReceipt = useCallback(
-    async (trip: MeterTrip | null) => {
-      if (!trip) return;
-      const html = buildMeterReceiptHtml(trip, {
-        title: "GET TAXI METER",
-        subtitle: license ? `Licence ${license}` : undefined,
-      });
+  const receiptBranding = useMemo(
+    () => ({
+      title: "GET TAXI METER" as const,
+      subtitle: license ? `Licence ${license}` : undefined,
+    }),
+    [license],
+  );
+
+  /** Send the receipt to the OS print service (AirPrint / browser dialog). */
+  const osPrintReceipt = useCallback(
+    async (trip: MeterTrip) => {
+      const html = buildMeterReceiptHtml(trip, receiptBranding);
       try {
-        setPrinting(true);
         if (Platform.OS === "web") {
           const w = window.open("", "_blank");
           if (w) {
@@ -1733,11 +1748,38 @@ export default function MeterDigitalScreen() {
           "Print failed",
           "Could not reach a printer. Check that one is set up in your device's print settings and try again.",
         );
+      }
+    },
+    [receiptBranding],
+  );
+
+  const printReceipt = useCallback(
+    async (trip: MeterTrip | null) => {
+      if (!trip) return;
+      setPrinting(true);
+      try {
+        // A saved mini printer, when set up and reachable in this build, prints
+        // the receipt directly off the roll — no system dialog. If it cannot be
+        // reached, offer the OS print service rather than failing outright.
+        if (directPrinterReady) {
+          const res = await printer.print(trip, { branding: receiptBranding });
+          if (res.ok) return;
+          Alert.alert(
+            "Printer not reachable",
+            res.error ?? "Could not reach the printer.",
+            [
+              { text: "Cancel", style: "cancel" },
+              { text: "Use system print", onPress: () => void osPrintReceipt(trip) },
+            ],
+          );
+          return;
+        }
+        await osPrintReceipt(trip);
       } finally {
         setPrinting(false);
       }
     },
-    [license],
+    [directPrinterReady, osPrintReceipt, printer, receiptBranding],
   );
 
   const handleClearLog = useCallback(() => {
@@ -2632,20 +2674,44 @@ export default function MeterDigitalScreen() {
         <View style={[styles.panel, panelStyle(ui)]}>
           <PanelLabel ui={ui}>PRINTER</PanelLabel>
           <View style={[styles.statusLineRow, { gap: Math.round(ui.gap * 0.8) }]}>
-            <View style={[dotStyle(ui), { backgroundColor: DASH.warn }]} />
+            <View
+              style={[
+                dotStyle(ui),
+                { backgroundColor: directPrinterReady ? DASH.ok : DASH.warn },
+              ]}
+            />
             <Text
               style={[styles.statusLineText, { fontSize: ui.rowText }]}
               allowFontScaling={false}
             >
-              No dedicated receipt printer is paired with this build
+              {directPrinter
+                ? directPrinterReady
+                  ? `Printing to ${directPrinter.name}`
+                  : `${directPrinter.name} — not available in this build`
+                : "No mini printer set up — receipts use the system print service"}
             </Text>
           </View>
           <Text style={[styles.bodyText, bodyTextStyle(ui)]} allowFontScaling={false}>
-            The meter has no thermal-printer driver of its own, so receipts go to
-            the print service your device already has — AirPrint, Google Cloud
-            Print, or a Bluetooth printer set up in the system settings. Anything
-            the OS can print to, the meter can print to.
+            {directPrinter
+              ? describePrinter(directPrinter)
+              : "Connect a mini Bluetooth or Wi-Fi thermal printer to print receipts straight from the meter. Until then receipts go to the print service your device already has — AirPrint, Google Cloud Print, or a Bluetooth printer set up in the system settings."}
           </Text>
+          <TouchableOpacity
+            style={[
+              styles.wideButton,
+              wideButtonStyle(ui),
+              styles.soloButton,
+              { paddingHorizontal: ui.pad * 2 },
+            ]}
+            onPress={() => router.push("/meter-printer")}
+            activeOpacity={0.85}
+            testID="meter-digital-setup-printer"
+          >
+            <Printer color={DASH.text} size={ui.iconSize} />
+            <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
+              {directPrinter ? "MANAGE PRINTER" : "SET UP PRINTER"}
+            </FitText>
+          </TouchableOpacity>
         </View>
 
         <View style={[styles.panel, panelStyle(ui)]}>

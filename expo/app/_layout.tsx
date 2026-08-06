@@ -192,6 +192,7 @@ function RootLayoutNav() {
       <Stack.Screen name="navigation" options={{ gestureEnabled: false }} />
       <Stack.Screen name="distances" options={{ gestureEnabled: false }} />
       <Stack.Screen name="obd2-reader" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+      <Stack.Screen name="meter-printer" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="vehicle-information" options={{ animation: "slide_from_right", gestureEnabled: false }} />
       <Stack.Screen name="offer-fare" options={{ gestureEnabled: false }} />
       <Stack.Screen name="partner-onboarding" options={{ animation: "slide_from_right", gestureEnabled: false }} />
