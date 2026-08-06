@@ -118,7 +118,7 @@ import {
   type StyleProp,
   type TextStyle,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import * as Network from "expo-network";
@@ -167,6 +167,7 @@ import { useCanbus } from "@/hooks/useCanbus";
 import { useDeviceBattery } from "@/hooks/useDeviceBattery";
 import { useLandscapeLock } from "@/hooks/useLandscapeLock";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import FixedLandscapeStage from "@/components/FixedLandscapeStage";
 import SegmentDisplay from "@/components/SegmentDisplay";
 import { TRANSPORT_LABEL } from "@/utils/canbus/types";
 import { readOdometerKm } from "@/utils/canbus/fuelRange";
@@ -175,6 +176,7 @@ import { loadDriverPermitData, type DriverPermitData } from "@/utils/driverPermi
 import { resolveMeterDriver } from "@/utils/meterDriverIdentity";
 import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
 import { reverseGeocode } from "@/utils/maps";
+import { resolveLandscapeStage, stageInsetTotals } from "@/utils/fixedLandscape";
 import {
   computeMeterMetrics,
   fitDigits,
@@ -472,21 +474,38 @@ export default function MeterDigitalScreen() {
   const { width: winWidth, height: winHeight } = useWindowDimensions();
 
   /**
-   * Every size on the console, fitted to the glass it is drawn on — see
-   * `utils/meterScale.ts`. Nothing below reads a hardcoded point size.
+   * The box the console is drawn in — always landscape.
    *
-   * The insets are handed over with the window, because they are not the
-   * console's to draw in: a landscape phone gives ~100pt of its width to the
-   * sensor housing and the home indicator, and sizing the panels off the raw
-   * window is what pushed the clock's last digits outside its panel.
+   * The OS lock turns the device where the platform allows it; where it does
+   * not (the web build, a binary older than the native module, or an iOS
+   * geometry update that was accepted and then not honoured) this turns the
+   * content instead. Either way the instrument is read horizontally and never
+   * reflows into a tall column. On a landscape viewport the stage is a
+   * passthrough, so the ordinary case pays nothing for it.
    */
-  const ui = useMemo(
+  const stage = useMemo(
     () =>
-      computeMeterMetrics(winWidth, winHeight, {
-        horizontal: insets.left + insets.right,
-        vertical: insets.top + insets.bottom,
+      resolveLandscapeStage(winWidth, winHeight, {
+        top: insets.top,
+        right: insets.right,
+        bottom: insets.bottom,
+        left: insets.left,
       }),
     [insets.bottom, insets.left, insets.right, insets.top, winHeight, winWidth],
+  );
+
+  /**
+   * Every size on the console, fitted to the box it is drawn in — see
+   * `utils/meterScale.ts`. Nothing below reads a hardcoded point size.
+   *
+   * Both the size and the insets come off the stage rather than the window: a
+   * turned console meets the glass's edges on different sides than it thinks,
+   * and sizing the panels off the raw window is what pushed the clock's last
+   * digits outside its panel.
+   */
+  const ui = useMemo(
+    () => computeMeterMetrics(stage.width, stage.height, stageInsetTotals(stage)),
+    [stage],
   );
 
   /* --- What the fields were actually laid out in --- */
@@ -1346,7 +1365,7 @@ export default function MeterDigitalScreen() {
   // The end-of-hire total is drawn in a card that is itself a share of the
   // glass, so the digits are fitted to the card rather than to the viewport.
   const modalAmountSize = useMemo(() => {
-    const cardWidth = Math.min(520, winWidth * 0.8);
+    const cardWidth = Math.min(520, stage.width * 0.8);
     return Math.round(
       Math.max(
         22,
@@ -1356,7 +1375,7 @@ export default function MeterDigitalScreen() {
         ),
       ),
     );
-  }, [ui, winWidth]);
+  }, [ui, stage.width]);
 
   const started = meter.startedAt !== null;
 
@@ -3136,7 +3155,27 @@ export default function MeterDigitalScreen() {
           here — and a dash instrument wants the whole glass. */}
       <StatusBar barStyle="light-content" hidden />
 
-      <SafeAreaView edges={["top", "left", "right"]} style={styles.headerSafe}>
+      {/* Everything above the modals is the instrument, and it is always
+          drawn horizontally: on a glass the OS turned this is a plain
+          flex-1 view, and on one it did not the stage turns the content
+          instead so the console never reflows into a tall column. */}
+      <FixedLandscapeStage stage={stage} testID="meter-digital-stage">
+
+      {/* The safe area is applied by hand rather than by `SafeAreaView`,
+          because a turned console meets the glass on different edges than it
+          thinks: `stage.insets` has already rolled them round, and the raw
+          insets a `SafeAreaView` would read would pad whichever edge happens
+          to be up. */}
+      <View
+        style={[
+          styles.headerSafe,
+          {
+            paddingTop: stage.insets.top,
+            paddingLeft: stage.insets.left,
+            paddingRight: stage.insets.right,
+          },
+        ]}
+      >
         <View
           style={[
             styles.header,
@@ -3186,7 +3225,7 @@ export default function MeterDigitalScreen() {
           <View style={styles.headerSpacer} />
           {statusCluster}
         </View>
-      </SafeAreaView>
+      </View>
 
       <View
         style={[
@@ -3254,6 +3293,7 @@ export default function MeterDigitalScreen() {
           );
         })}
       </View>
+      </FixedLandscapeStage>
 
       {/* The end-of-hire declaration. The fare has already stopped; what is
           still missing is everything the meter cannot measure — who was in the
@@ -3270,6 +3310,7 @@ export default function MeterDigitalScreen() {
         // at the foot are the ways out — close it, or go back to driving it.
         onRequestClose={() => {}}
       >
+        <FixedLandscapeStage stage={stage}>
         <View style={[styles.modalBackdrop, { padding: ui.pad }]}>
           <View
             style={[
@@ -3280,8 +3321,8 @@ export default function MeterDigitalScreen() {
                 borderRadius: Math.round(ui.radius * 1.3),
                 // Wider than the other popups: this one is a form, and its
                 // count keys have to sit on one row apiece.
-                maxWidth: Math.min(760, winWidth * 0.94),
-                maxHeight: winHeight - ui.pad * 2,
+                maxWidth: Math.min(760, stage.width * 0.94),
+                maxHeight: stage.height - ui.pad * 2,
               },
             ]}
             testID="meter-digital-details-modal"
@@ -3571,6 +3612,7 @@ export default function MeterDigitalScreen() {
             </View>
           </View>
         </View>
+        </FixedLandscapeStage>
       </Modal>
 
       {/* The end-of-hire total: the moment the receipt exists. */}
@@ -3584,6 +3626,7 @@ export default function MeterDigitalScreen() {
         supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
         onRequestClose={() => setTotalOpen(false)}
       >
+        <FixedLandscapeStage stage={stage}>
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
           <View
             style={[
@@ -3594,8 +3637,8 @@ export default function MeterDigitalScreen() {
                 borderRadius: Math.round(ui.radius * 1.3),
                 // The card is a share of the glass, never a fixed width: it has
                 // to sit inside a landscape phone as well as a dash tablet.
-                maxWidth: Math.min(520, winWidth * 0.8),
-                maxHeight: winHeight - ui.pad * 3,
+                maxWidth: Math.min(520, stage.width * 0.8),
+                maxHeight: stage.height - ui.pad * 3,
               },
             ]}
             testID="meter-digital-total-modal"
@@ -3755,6 +3798,7 @@ export default function MeterDigitalScreen() {
             </View>
           </View>
         </View>
+        </FixedLandscapeStage>
       </Modal>
 
       {/* The blocked START: what the meter is waiting for, and the two ways
@@ -3767,6 +3811,7 @@ export default function MeterDigitalScreen() {
         supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
         onRequestClose={closeConnectPrompt}
       >
+        <FixedLandscapeStage stage={stage}>
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
           <View
             style={[
@@ -3775,8 +3820,8 @@ export default function MeterDigitalScreen() {
                 padding: ui.pad * 1.4,
                 gap: ui.gap,
                 borderRadius: Math.round(ui.radius * 1.3),
-                maxWidth: Math.min(520, winWidth * 0.8),
-                maxHeight: winHeight - ui.pad * 3,
+                maxWidth: Math.min(520, stage.width * 0.8),
+                maxHeight: stage.height - ui.pad * 3,
               },
             ]}
             testID="meter-digital-connect-modal"
@@ -3901,6 +3946,7 @@ export default function MeterDigitalScreen() {
             )}
           </View>
         </View>
+        </FixedLandscapeStage>
       </Modal>
 
       {/* Leaving the console. The meter is not a screen the driver steps back
@@ -3915,6 +3961,7 @@ export default function MeterDigitalScreen() {
         supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
         onRequestClose={() => setExitPromptOpen(false)}
       >
+        <FixedLandscapeStage stage={stage}>
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
           <View
             style={[
@@ -3923,8 +3970,8 @@ export default function MeterDigitalScreen() {
                 padding: ui.pad * 1.4,
                 gap: ui.gap,
                 borderRadius: Math.round(ui.radius * 1.3),
-                maxWidth: Math.min(520, winWidth * 0.8),
-                maxHeight: winHeight - ui.pad * 3,
+                maxWidth: Math.min(520, stage.width * 0.8),
+                maxHeight: stage.height - ui.pad * 3,
               },
             ]}
             testID="meter-digital-exit-modal"
@@ -4005,6 +4052,7 @@ export default function MeterDigitalScreen() {
             </View>
           </View>
         </View>
+        </FixedLandscapeStage>
       </Modal>
 
       {/* Which car the meter is in. Raised by itself only when this account has
@@ -4019,6 +4067,7 @@ export default function MeterDigitalScreen() {
         supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
         onRequestClose={() => setVehiclePickerOpen(false)}
       >
+        <FixedLandscapeStage stage={stage}>
         <View style={[styles.modalBackdrop, { padding: ui.pad * 1.5 }]}>
           <View
             style={[
@@ -4027,8 +4076,8 @@ export default function MeterDigitalScreen() {
                 padding: ui.pad * 1.4,
                 gap: ui.gap,
                 borderRadius: Math.round(ui.radius * 1.3),
-                maxWidth: Math.min(620, winWidth * 0.86),
-                maxHeight: winHeight - ui.pad * 3,
+                maxWidth: Math.min(620, stage.width * 0.86),
+                maxHeight: stage.height - ui.pad * 3,
               },
             ]}
             testID="meter-digital-vehicle-modal"
@@ -4151,6 +4200,7 @@ export default function MeterDigitalScreen() {
             </View>
           </View>
         </View>
+        </FixedLandscapeStage>
       </Modal>
     </View>
   );
