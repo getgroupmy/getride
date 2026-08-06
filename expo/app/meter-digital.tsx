@@ -72,18 +72,13 @@
  * key is dead and the Android hardware back is swallowed, so a running hire
  * cannot be walked out of. `resolveMeterBack` decides all three cases.
  *
- * The screen is landscape-only, and that is a gate rather than a hint: the
- * console is *not drawn at all* in a portrait viewport. It pins the device to
- * landscape while it is focused (`useLandscapeLock`) and hands rotation back on
- * the way out; where that pin cannot happen — the web build, or a binary made
- * before `expo-screen-orientation` shipped — the rotate notice takes the whole
- * screen until the driver turns the device. The pin and the check run on every
- * focus, so returning here from the reader settings (or anywhere else) with the
- * device back in portrait meets the notice again, not a squeezed meter.
- *
- * The gate covers the drawing only. The sensors, the link and the 1 Hz clock
- * live above it and keep running, because a hire that is open is a fare that is
- * accruing — turning the phone upright must never cost the driver the meter.
+ * The screen reads best in landscape, so it still pins the device to landscape
+ * while it is focused (`useLandscapeLock`) and hands rotation back on the way
+ * out. But that pin is a hint, not a gate: the console is drawn regardless of
+ * the viewport it lands in, so a device that will not turn (the web build, a
+ * binary made before `expo-screen-orientation` shipped, or a rotation lock left
+ * on) gets the meter directly rather than a "turn your device" notice standing
+ * between the driver and the console.
  *
  * Nothing here is drawn at a fixed point size. Every padding, icon, key and
  * word comes from `computeMeterMetrics` (pure + tested), which fits the whole
@@ -167,7 +162,6 @@ import { useCanbus } from "@/hooks/useCanbus";
 import { useDeviceBattery } from "@/hooks/useDeviceBattery";
 import { useLandscapeLock } from "@/hooks/useLandscapeLock";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
-import RotateDeviceNotice from "@/components/RotateDeviceNotice";
 import SegmentDisplay from "@/components/SegmentDisplay";
 import { TRANSPORT_LABEL } from "@/utils/canbus/types";
 import { readOdometerKm } from "@/utils/canbus/fuelRange";
@@ -176,7 +170,6 @@ import { loadDriverPermitData, type DriverPermitData } from "@/utils/driverPermi
 import { resolveMeterDriver } from "@/utils/meterDriverIdentity";
 import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
 import { reverseGeocode } from "@/utils/maps";
-import { resolveOrientationGate } from "@/utils/orientationLock";
 import {
   computeMeterMetrics,
   fitDigits,
@@ -466,12 +459,12 @@ export default function MeterDigitalScreen() {
   const { appIconUri } = useBranding();
   const battery = useDeviceBattery();
 
-  // Landscape-only: pinned while focused, re-asked on every focus, and gated on
-  // the viewport the pin actually produced — the console below only renders on
-  // `ready`. See `utils/orientationLock.ts`.
-  const { state: lockState, forceRotate } = useLandscapeLock();
+  // Landscape-preferred: the device is pinned to landscape while this screen is
+  // focused, but the pin is a hint, not a gate — the console below draws in
+  // whatever viewport it lands in, so a device that will not turn still gets the
+  // meter rather than a rotate notice. See `utils/orientationLock.ts`.
+  useLandscapeLock();
   const { width: winWidth, height: winHeight } = useWindowDimensions();
-  const gate = resolveOrientationGate(lockState, winWidth, winHeight);
 
   /**
    * Every size on the console, fitted to the glass it is drawn on — see
@@ -3132,48 +3125,6 @@ export default function MeterDigitalScreen() {
             ? settingsTab
             : dashboard;
 
-  /* --- The landscape gate --- */
-
-  // Below this line is the instrument, and it is laid out for a windscreen
-  // mount. In portrait it is not drawn: the driver gets the notice on its own
-  // (`rotate`), or a blank console while the device is still turning
-  // (`waiting`). Everything above — the link, the fix, the running hire — is
-  // untouched, so a fare in progress survives the phone being picked up, and
-  // the meter is drawn again the moment the glass is landscape.
-  if (gate !== "ready") {
-    return (
-      <View style={styles.container} testID="meter-digital-gate">
-        <StatusBar barStyle="light-content" hidden />
-        {gate === "rotate" ? (
-          <RotateDeviceNotice
-            state={lockState}
-            // The key the driver actually wants: ask for the pin again rather
-            // than asking them to turn the phone. The console draws itself as
-            // soon as the viewport comes round — the gate reads the window, so
-            // nothing else has to be re-triggered here.
-            onForceRotate={forceRotate}
-            // Only reached where there is no lock to force (the web build, a
-            // binary older than the native module). A `back()` is itself only a
-            // way out when there is something behind the console — and when the
-            // launch opened it there is not: the buffer replaced itself with
-            // the meter, so the stack is one deep and the key would be dead.
-            // Falling through to passenger mode makes it a way out in both
-            // cases; `leaveConsole` clears the launch's memory so the map is
-            // not read as a reset and bounced straight back here.
-            onBack={() => {
-              if (router.canGoBack()) {
-                router.back();
-                return;
-              }
-              leaveConsole("/");
-            }}
-            testID="meter-digital-rotate"
-          />
-        ) : null}
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       {/* The meter draws its own status cluster, so the OS bar is redundant
@@ -4289,8 +4240,9 @@ const styles = StyleSheet.create({
 
   /* Body */
   bodyWrap: { flex: 1 },
-  // Always two columns: the console is only ever drawn in landscape (the gate
-  // above), so there is no portrait fallback layout to fall back to.
+  // Always two columns: the console is laid out for a landscape dash mount and
+  // keeps that shape even when the device did not turn — `computeMeterMetrics`
+  // fits the whole instrument to whatever viewport it lands in.
   grid: { flex: 1, flexDirection: "row" },
   colLeft: { flex: 1 },
   colRight: { flex: 1.85 },
