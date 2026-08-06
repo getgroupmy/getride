@@ -652,6 +652,19 @@ export default function MeterDigitalScreen() {
     }, [handleBack]),
   );
 
+  // Re-read the saved printers whenever the console regains focus. The printer
+  // book is edited on a separate screen (`/meter-printer`) with its own
+  // `usePrinter`, so a printer added there is only in device storage until this
+  // instance reloads — without this, returning from setup leaves the console
+  // thinking no printer is configured and PRINT RECEIPT keeps using the OS
+  // print service. `reloadPrinters` is stable (a `useCallback([])`).
+  const reloadPrinters = printer.reload;
+  useFocusEffect(
+    useCallback(() => {
+      void reloadPrinters();
+    }, [reloadPrinters]),
+  );
+
   /**
    * What the two keys of the leave popup do on this card.
    *
