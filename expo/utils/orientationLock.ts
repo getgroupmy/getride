@@ -90,6 +90,37 @@ export function shouldPromptRotate(
   return resolveOrientationGate(state, width, height) === "rotate";
 }
 
+/**
+ * What the notice's one key does.
+ *
+ * The two states it can be shown in are not the same problem, so they do not
+ * get the same key:
+ *
+ *   * `locked` — the platform *accepted* the pin and the glass stayed portrait
+ *     anyway. The lock is there to be asked again, and asking again is the
+ *     thing most likely to fix it (a request dropped mid-transition, a stale
+ *     geometry update), so the key forces the rotation and the console draws
+ *     itself the moment the device turns.
+ *   * `unsupported` — there is no lock to ask. The web build has none outside
+ *     fullscreen and an older binary has no native module at all; the answer is
+ *     cached, so a second ask returns the same no. A force key here would be a
+ *     dead key, and the driver needs a way out instead.
+ *
+ * `pending` never reaches the notice (the gate draws nothing), and is treated
+ * as the force case for completeness.
+ */
+export type RotateNoticeAction =
+  /** Ask for the landscape pin again. */
+  | "force"
+  /** Nothing to ask — offer a way off the screen. */
+  | "leave";
+
+export function rotateNoticeAction(
+  state: OrientationLockState,
+): RotateNoticeAction {
+  return state === "unsupported" ? "leave" : "force";
+}
+
 /** Title + body for the rotate notice, phrased for why the lock did not take. */
 export function rotateNoticeCopy(state: OrientationLockState): {
   title: string;
@@ -99,7 +130,7 @@ export function rotateNoticeCopy(state: OrientationLockState): {
     return {
       title: "Turn your device sideways",
       body:
-        "Meter Digital runs in landscape. Your device is still upright — if it does not rotate on its own, check that rotation lock is off in Control Centre or Quick Settings.",
+        "Meter Digital runs in landscape. Your device is still upright — press Force Rotate to turn it, or check that rotation lock is off in Control Centre or Quick Settings.",
     };
   }
   return {

@@ -1,10 +1,19 @@
 /**
  * Full-screen "turn your device sideways" cover for landscape-only screens.
  *
- * Shown when the native landscape lock did not take (web, or a build made
- * before `expo-screen-orientation` shipped) and the viewport is still portrait.
- * It covers the screen rather than sitting above the content so the driver
- * cannot half-read a meter that is laid out for a shape they are not holding.
+ * Shown when the viewport is portrait and the landscape pin did not produce a
+ * rotation. It covers the screen rather than sitting above the content so the
+ * driver cannot half-read a meter that is laid out for a shape they are not
+ * holding.
+ *
+ * It carries exactly one key, and which one depends on whether there is a lock
+ * left to ask (`rotateNoticeAction`). Where the platform accepted the pin and
+ * simply did not turn, that key is **Force Rotate**: it asks again, and the
+ * screen behind the notice draws itself the moment the device comes round.
+ * Where there is no lock at all — the web build, a binary older than
+ * `expo-screen-orientation` — forcing is impossible and the key is a way out
+ * instead, so the driver is never held behind a notice by a button that cannot
+ * work.
  */
 
 import React from "react";
@@ -12,18 +21,31 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ArrowLeft, RotateCw } from "lucide-react-native";
 
 import { useColors } from "@/hooks/useColors";
-import { rotateNoticeCopy, type OrientationLockState } from "@/utils/orientationLock";
+import {
+  rotateNoticeAction,
+  rotateNoticeCopy,
+  type OrientationLockState,
+} from "@/utils/orientationLock";
 
 interface Props {
   state: OrientationLockState;
-  /** Optional way out, so the driver is never trapped behind the notice. */
+  /** Ask for the landscape pin again. The key where a lock exists to ask. */
+  onForceRotate?: () => void;
+  /** Way out, for the states where nothing can be forced. */
   onBack?: () => void;
   testID?: string;
 }
 
-export default function RotateDeviceNotice({ state, onBack, testID }: Props) {
+export default function RotateDeviceNotice({
+  state,
+  onForceRotate,
+  onBack,
+  testID,
+}: Props) {
   const Colors = useColors();
   const { title, body } = rotateNoticeCopy(state);
+  const action = rotateNoticeAction(state);
+  const forcing = action === "force" && !!onForceRotate;
 
   return (
     <View
@@ -35,7 +57,17 @@ export default function RotateDeviceNotice({ state, onBack, testID }: Props) {
       </View>
       <Text style={[styles.title, { color: Colors.text }]}>{title}</Text>
       <Text style={[styles.body, { color: Colors.textSecondary }]}>{body}</Text>
-      {onBack ? (
+      {forcing ? (
+        <TouchableOpacity
+          style={[styles.forceButton, { backgroundColor: Colors.accent }]}
+          onPress={onForceRotate}
+          activeOpacity={0.85}
+          testID="rotate-device-notice-force"
+        >
+          <RotateCw color="#fff" size={16} />
+          <Text style={styles.forceButtonText}>Force Rotate</Text>
+        </TouchableOpacity>
+      ) : onBack ? (
         <TouchableOpacity
           style={[styles.backButton, { borderColor: Colors.border }]}
           onPress={onBack}
@@ -68,6 +100,16 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 20, fontWeight: "800" as const, textAlign: "center" },
   body: { fontSize: 14, lineHeight: 21, textAlign: "center" },
+  forceButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 24,
+    marginTop: 8,
+  },
+  forceButtonText: { color: "#fff", fontSize: 14, fontWeight: "800" as const },
   backButton: {
     flexDirection: "row",
     alignItems: "center",
