@@ -11,7 +11,7 @@
  * reports why it is unavailable.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,9 +24,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -55,6 +56,14 @@ import {
   type SavedPrinter,
 } from "@/utils/printerStore";
 import { loadMeterTrips, type MeterTrip } from "@/utils/meterTripsStore";
+import { useLandscapeLock } from "@/hooks/useLandscapeLock";
+import FixedLandscapeStage from "@/components/FixedLandscapeStage";
+import { resolveLandscapeStage } from "@/utils/fixedLandscape";
+import { MODAL_SUPPORTED_ORIENTATIONS } from "@/utils/modalOrientation";
+
+/** Base paddings the stage insets are added onto (see the header / scroll styles). */
+const HEADER_PAD_V = 12;
+const SCREEN_PAD_H = 16;
 
 const TRANSPORT_ICON: Record<PrinterTransportKind, typeof Wifi> = {
   wifi: Wifi,
@@ -96,6 +105,24 @@ export default function MeterPrinterScreen() {
   const insets = useSafeAreaInsets();
   const isLightMode = Colors.background === "#FFFFFF";
   const printer = usePrinter();
+
+  // The printer setup is a panel of the Meter Digital instrument, which is read
+  // off a windscreen mount in landscape. Pin the device sideways where the
+  // platform allows it and back that up with a stage, so the page is read
+  // horizontally either way instead of as a tall portrait column. See
+  // `hooks/useLandscapeLock.ts` and `utils/fixedLandscape.ts`.
+  useLandscapeLock();
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const stage = useMemo(
+    () =>
+      resolveLandscapeStage(winWidth, winHeight, {
+        top: insets.top,
+        right: insets.right,
+        bottom: insets.bottom,
+        left: insets.left,
+      }),
+    [insets.bottom, insets.left, insets.right, insets.top, winHeight, winWidth],
+  );
 
   const [trips, setTrips] = useState<MeterTrip[]>([]);
   const [addVisible, setAddVisible] = useState<boolean>(false);
@@ -359,19 +386,38 @@ export default function MeterPrinterScreen() {
     <View style={[styles.container, { backgroundColor: Colors.background }]}>
       <StatusBar barStyle={isLightMode ? "dark-content" : "light-content"} />
 
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.background }}>
-        <View style={styles.header}>
+      <FixedLandscapeStage
+        stage={stage}
+        style={{ backgroundColor: Colors.background }}
+        testID="meter-printer-stage"
+      >
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: HEADER_PAD_V + stage.insets.top,
+              paddingLeft: SCREEN_PAD_H + stage.insets.left,
+              paddingRight: SCREEN_PAD_H + stage.insets.right,
+            },
+          ]}
+        >
           <TouchableOpacity style={styles.headerButton} onPress={() => router.back()} testID="printer-back">
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>Receipt printer</Text>
           <View style={styles.headerButton} />
         </View>
-      </SafeAreaView>
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: stage.insets.bottom + 32,
+            paddingLeft: SCREEN_PAD_H + stage.insets.left,
+            paddingRight: SCREEN_PAD_H + stage.insets.right,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* --- Intro --- */}
@@ -520,21 +566,26 @@ export default function MeterPrinterScreen() {
           })}
         </View>
       </ScrollView>
+      </FixedLandscapeStage>
 
       {/* --- Add printer sheet --- */}
       <Modal
         visible={addVisible}
         animationType="slide"
         transparent
+        supportedOrientations={MODAL_SUPPORTED_ORIENTATIONS}
         onRequestClose={() => setAddVisible(false)}
       >
+        {/* A Modal is its own native window and does not inherit the stage's
+            transform, so it wraps its own stage to come up in landscape too. */}
+        <FixedLandscapeStage stage={stage}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.modalRoot}
         >
           <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setAddVisible(false)} />
           <View
-            style={[styles.sheet, { backgroundColor: Colors.background, paddingBottom: insets.bottom + 20 }]}
+            style={[styles.sheet, { backgroundColor: Colors.background, paddingBottom: stage.insets.bottom + 20 }]}
           >
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: Colors.text }]}>Add printer</Text>
@@ -636,6 +687,7 @@ export default function MeterPrinterScreen() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+        </FixedLandscapeStage>
       </Modal>
     </View>
   );
