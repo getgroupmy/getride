@@ -18,7 +18,7 @@
 import { PermissionsAndroid, Platform } from "react-native";
 import { getAppRuntime } from "./appRuntime";
 import { describeMissingNativeModule } from "./availability";
-import { isBleNativeLinked, loadBleModule } from "./bleModule";
+import { getSharedBleManager, isBleNativeLinked, loadBleModule } from "./bleModule";
 import {
   describeBleAvailability,
   matchesElmAdvertisement,
@@ -379,9 +379,13 @@ class BleTransport implements CanTransport {
     if (!availability.available) {
       throw new Error(availability.reason ?? "Bluetooth is unavailable");
     }
-    const ble = loadBleModule();
     await requestBlePermissions();
-    this.manager = new ble.BleManager();
+    // The one app-wide BleManager, never a fresh one: a second manager (and the
+    // `destroy()` that would tear it down) invalidates the single native BLE
+    // client this session shares with the receipt printer — see
+    // `getSharedBleManager`.
+    this.manager = getSharedBleManager();
+    if (!this.manager) throw new Error("Bluetooth is unavailable");
     await waitForBlePoweredOn(this.manager);
 
     // A saved reader carries the exact peripheral id from its scan — connect to
@@ -491,13 +495,17 @@ class BleTransport implements CanTransport {
     return () => this.listeners.delete(listener);
   }
 
-  /** Drop the subscription, scan, connection and manager — listeners survive. */
+  /**
+   * Drop the subscription, this session's scan and its connection — but never
+   * the shared manager. `destroy()` on it would invalidate the one native BLE
+   * client the printer also uses; only this transport's own peripheral is
+   * cancelled here, which leaves the rest of the app's BLE untouched.
+   */
   private async releaseHardware(): Promise<void> {
     try {
       this.sub?.remove?.();
       this.manager?.stopDeviceScan?.();
       await this.peripheral?.cancelConnection?.();
-      this.manager?.destroy?.();
     } catch {
       /* ignore */
     }
@@ -759,9 +767,11 @@ export async function scanForBleAdapters(opts?: {
   if (!availability.available) {
     throw new Error(availability.guidance ?? availability.reason ?? "Bluetooth LE is unavailable");
   }
-  const ble = loadBleModule();
   await requestBlePermissions();
-  const manager = new ble.BleManager();
+  // Shared manager — a scan must not create (or later destroy) a second native
+  // BLE client while the reader/printer sessions may be live.
+  const manager = getSharedBleManager();
+  if (!manager) throw new Error("Bluetooth LE is unavailable");
   const found = new Map<string, DiscoveredBleAdapter>();
   try {
     await waitForBlePoweredOn(manager);
@@ -789,13 +799,10 @@ export async function scanForBleAdapters(opts?: {
       });
     });
   } finally {
+    // Stop this scan, but never destroy the shared manager — other BLE
+    // sessions (the OBD reader, the printer) may be relying on it.
     try {
       manager.stopDeviceScan();
-    } catch {
-      /* ignore */
-    }
-    try {
-      manager.destroy();
     } catch {
       /* ignore */
     }
