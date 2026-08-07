@@ -12,3 +12,7 @@ export function loadBleModule(): any | null {
 export function isBleNativeLinked(): boolean {
   return false;
 }
+
+export function getSharedBleManager(): any | null {
+  return null;
+}

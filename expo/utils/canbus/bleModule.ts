@@ -59,3 +59,39 @@ export function isBleNativeLinked(): boolean {
     return false;
   }
 }
+
+let managerCache: any | null | undefined;
+
+/**
+ * The one `BleManager` the whole app shares.
+ *
+ * `react-native-ble-plx` backs every `BleManager` with a *single* native BLE
+ * client, and its own docs say to keep one instance for the app's lifetime:
+ * `new BleManager()` re-creates that native client and `.destroy()` tears it
+ * down — for **every** JS manager at once, not just the one the call was made
+ * on. This app has two independent BLE consumers (the OBD-II reader's live
+ * session and the mini receipt printer's fire-and-forget print job), so two
+ * managers meant the printer's per-job `destroy()` was ripping the native
+ * client out from under the reader's open session: the next command to the
+ * reader (the pickup odometer read) then had no client to answer it and hung
+ * until it timed out, so a trip printed a receipt could not start the next
+ * hire. Sharing one manager — and never destroying it while the app lives —
+ * is the fix and the library's intended usage.
+ *
+ * Returns null when the module can't be loaded (web, or a binary without the
+ * native side), matching {@link loadBleModule}.
+ */
+export function getSharedBleManager(): any | null {
+  if (managerCache !== undefined) return managerCache;
+  const ble = loadBleModule();
+  if (!ble?.BleManager) {
+    managerCache = null;
+    return managerCache;
+  }
+  try {
+    managerCache = new ble.BleManager();
+  } catch {
+    managerCache = null;
+  }
+  return managerCache;
+}
