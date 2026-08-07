@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { CanbusClient } from "@/utils/canbus/canbusClient";
-import { SIMULATOR_TRANSPORT_KIND } from "@/utils/canbus/config";
+import { RECONNECT_INTERVAL_MS, SIMULATOR_TRANSPORT_KIND } from "@/utils/canbus/config";
 import { publishCanbusSession } from "@/utils/canbus/liveStatus";
 import {
   createTransport,
@@ -121,6 +121,36 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
   // identity of `connect` stays stable for callers that memoise on it.
   const defaultAdapterRef = useRef<SavedCanAdapter | null>(null);
 
+  /* --- Auto-reconnect after a live link drops --- */
+
+  // Latest state, read by the reconnect loop without depending on it.
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  // True while we want a real vehicle link kept up — set when a real connect is
+  // attempted, cleared by an explicit disconnect or Demo Mode. The reconnect
+  // loop stops the moment this is false.
+  const wantLinkRef = useRef(false);
+  // The target of the last real connect, replayed on reconnect so a dropped
+  // Wi-Fi endpoint / saved reader comes back as itself.
+  const lastConnectRef = useRef<{
+    kind?: CanTransportKind;
+    options?: ConnectOptions;
+  } | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectingRef = useRef(false);
+  // The link-lost handler, held by ref so `connect` (defined first) can wire the
+  // CanbusClient to it without a declaration cycle.
+  const linkLostRef = useRef<() => void>(() => {});
+
+  const clearReconnect = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
+
   const availability = useMemo(() => getTransportAvailability(), []);
   const availableTransports = useMemo(
     () => availability.filter((a) => a.available).map((a) => a.kind),
@@ -147,6 +177,9 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
   }, []);
 
   const startSimulated = useCallback(() => {
+    // Demo Mode is a deliberate choice, not a real link — stop chasing one.
+    wantLinkRef.current = false;
+    clearReconnect();
     void teardown();
     patch({
       phase: "online",
@@ -163,7 +196,7 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     simRef.current = startSimulator((telemetry, at) =>
       patch({ telemetry, lastUpdate: at }),
     );
-  }, [patch, teardown]);
+  }, [clearReconnect, patch, teardown]);
 
   const reloadAdapters = useCallback(async () => {
     const [list, selectedId] = await Promise.all([
@@ -203,6 +236,11 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
         return;
       }
 
+      // A real transport is being attempted: remember it so a later drop can
+      // reconnect to the same target, and arm the reconnect loop.
+      wantLinkRef.current = true;
+      lastConnectRef.current = { kind, options: connectOptions };
+
       patch({ phase: "connecting", error: null, simulated: false });
       try {
         const transport = createTransport(target, adapterTransportOptions(adapter));
@@ -218,6 +256,10 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
           onProtocol: (protocol, bitrateKbps) =>
             patch({ protocol, bitrateKbps, phase: "online" }),
           onError: (message) => patch({ error: message }),
+          // The adapter stopped answering a session that was live — tear it down
+          // and reconnect rather than keep reporting `online` while every
+          // command times out.
+          onLinkLost: () => linkLostRef.current(),
         });
         clientRef.current = client;
         await client.start();
@@ -249,10 +291,68 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     ],
   );
 
+  /**
+   * Try the last real target again, and keep trying on an interval until it
+   * comes back or the intent is dropped.
+   *
+   * `connect` does the teardown and the state transitions; this only decides
+   * whether to try once more. A single attempt at a time (`reconnectingRef`),
+   * and never once `wantLinkRef` has been cleared by a disconnect / Demo Mode.
+   */
+  const attemptReconnect = useCallback(async () => {
+    clearReconnect();
+    if (reconnectingRef.current) return;
+    if (!mountedRef.current || !wantLinkRef.current) return;
+    reconnectingRef.current = true;
+    try {
+      const args = lastConnectRef.current ?? undefined;
+      await connect(args?.kind, args?.options);
+    } finally {
+      reconnectingRef.current = false;
+    }
+    if (!mountedRef.current || !wantLinkRef.current) return;
+    // Back online — stop. Otherwise (Bluetooth still off, reader still gone)
+    // wait out the interval and try again.
+    if (stateRef.current.phase === "online") return;
+    reconnectTimerRef.current = setTimeout(() => {
+      void attemptReconnect();
+    }, RECONNECT_INTERVAL_MS);
+  }, [clearReconnect, connect]);
+
+  /**
+   * A live link dropped (`CanbusClient.onLinkLost`): stop the dead session
+   * reporting `online` and start reconnecting. Billing and the odometer gate
+   * key off `phase === "online"`, so flipping to `connecting` here is what makes
+   * a hire fall back to GPS (or wait for the reader, per the rate card) instead
+   * of stalling on an odometer read the vanished adapter can never answer.
+   */
+  const handleLinkLost = useCallback(() => {
+    if (!mountedRef.current) return;
+    wantLinkRef.current = true;
+    void teardown();
+    patch({
+      phase: "connecting",
+      error: "Reader disconnected — reconnecting…",
+      telemetry: {},
+      lastUpdate: null,
+      device: null,
+      protocol: null,
+      bitrateKbps: null,
+      simulated: false,
+    });
+    void attemptReconnect();
+  }, [attemptReconnect, patch, teardown]);
+
+  // Keep the ref the CanbusClient calls pointed at the latest handler.
+  linkLostRef.current = handleLinkLost;
+
   const disconnect = useCallback(async () => {
+    // A deliberate disconnect ends the intent to hold a link — stop reconnecting.
+    wantLinkRef.current = false;
+    clearReconnect();
     await teardown();
     patch({ ...INITIAL_STATE });
-  }, [patch, teardown]);
+  }, [clearReconnect, patch, teardown]);
 
   const sendCommand = useCallback(async (command: string) => {
     const client = clientRef.current;
@@ -300,6 +400,8 @@ export function useCanbus(options: UseCanbusOptions = {}): UseCanbusResult {
     });
     return () => {
       mountedRef.current = false;
+      wantLinkRef.current = false;
+      clearReconnect();
       void teardown();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

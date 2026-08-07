@@ -83,6 +83,23 @@ export const POLL_INTERVAL_MS = 1000;
 /** Per-command response timeout, in ms. */
 export const COMMAND_TIMEOUT_MS = 4000;
 
+/**
+ * How many commands in a row must go unanswered before a *live* session is
+ * declared lost.
+ *
+ * Only a genuine non-response counts (a timeout or a write that threw) — an
+ * ELM327 that answers "NO DATA" to an unsupported PID has still answered, so a
+ * car that simply lacks a parameter never trips this. At {@link
+ * COMMAND_TIMEOUT_MS} apiece that is ~12 s of total silence, which reliably
+ * means the adapter has gone (Bluetooth switched off, dongle unplugged, out of
+ * range) rather than one slow reply. Kept deliberately above 1 so a single
+ * hiccup never tears down a working link.
+ */
+export const LINK_LOST_FAILURES = 3;
+
+/** How long to wait between auto-reconnect attempts after a live link drops. */
+export const RECONNECT_INTERVAL_MS = 4000;
+
 /** Timeout for the whole connect+handshake, in ms. */
 export const CONNECT_TIMEOUT_MS = 15000;
 

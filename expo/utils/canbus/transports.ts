@@ -394,6 +394,17 @@ class BleTransport implements CanTransport {
     const found = this.preferredDeviceId
       ? { id: this.preferredDeviceId, name: this.nameHint ?? null, localName: null }
       : await this.scanForAdapter();
+    // Clear any stale handle to this peripheral first. After a Bluetooth
+    // power-cycle the shared manager can still believe the device is connected,
+    // and connecting on top of that yields a link that never delivers data —
+    // the reader looks online but every command times out. Cancelling first
+    // forces a clean GATT connection. A not-connected device rejects here,
+    // which is the normal case and ignored.
+    try {
+      await this.manager.cancelDeviceConnection(found.id);
+    } catch {
+      /* not connected — the expected case on a first connect */
+    }
     this.peripheral = await this.manager.connectToDevice(found.id);
     await this.peripheral.discoverAllServicesAndCharacteristics();
     this.profile = await this.resolveProfile();

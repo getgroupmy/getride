@@ -8,6 +8,7 @@
 
 import {
   COMMAND_TIMEOUT_MS,
+  LINK_LOST_FAILURES,
   POLL_INTERVAL_MS,
 } from "./config";
 import {
@@ -28,6 +29,14 @@ export interface CanbusClientEvents {
   onTelemetry?: (telemetry: Telemetry, at: number) => void;
   onProtocol?: (name: string, bitrateKbps: number | null) => void;
   onError?: (message: string) => void;
+  /**
+   * The adapter has stopped answering entirely on a session that was live —
+   * Bluetooth switched off, the dongle unplugged, the car out of range. Fires
+   * once (never during the initial handshake, which `start()`'s caller already
+   * handles) so the owner can tear the dead session down and reconnect rather
+   * than leave a session reporting `online` while every command times out.
+   */
+  onLinkLost?: () => void;
 }
 
 export class CanbusClient {
@@ -47,6 +56,17 @@ export class CanbusClient {
   private polling = false;
   /** Telemetry sweeps are suspended (see {@link setPollingPaused}). */
   private paused = false;
+  /**
+   * True once the handshake has finished and polling has begun. Command
+   * failures only count toward a lost link after this point — a failure during
+   * the initial handshake is a *failed connect*, which `start()`'s caller
+   * handles, not a live link that dropped.
+   */
+  private live = false;
+  /** Consecutive unanswered commands on a live session; reset by any reply. */
+  private failures = 0;
+  /** `onLinkLost` fires at most once per client instance. */
+  private linkLostReported = false;
 
   constructor(
     private transport: CanTransport,
@@ -71,11 +91,34 @@ export class CanbusClient {
       /* protocol description is best-effort */
     }
 
+    // The handshake succeeded, so from here a run of unanswered commands means
+    // a live link that dropped rather than a connect that never came up.
+    this.live = true;
     this.pollTimer = setInterval(() => {
       void this.pollOnce();
     }, POLL_INTERVAL_MS);
     // Kick an immediate first sweep so the panel populates without waiting.
     void this.pollOnce();
+  }
+
+  /** A command came back — the adapter is answering, so the link is healthy. */
+  private noteReply(): void {
+    this.failures = 0;
+  }
+
+  /**
+   * A command went unanswered (timed out, or the write threw). On a live
+   * session a sustained run of these means the adapter has gone; report it once
+   * so the owner can reconnect. A "NO DATA" reply is *not* a failure — it
+   * arrived, so it resets the counter through {@link noteReply} instead.
+   */
+  private noteFailure(): void {
+    if (!this.live || this.stopped || this.linkLostReported) return;
+    this.failures += 1;
+    if (this.failures >= LINK_LOST_FAILURES) {
+      this.linkLostReported = true;
+      this.events.onLinkLost?.();
+    }
   }
 
   private async pollOnce(): Promise<void> {
@@ -154,6 +197,8 @@ export class CanbusClient {
       this.buffer = "";
       const timer = setTimeout(() => {
         this.waiter = null;
+        // Silence from the adapter — the signal a dropped link is detected on.
+        this.noteFailure();
         reject(new Error(`"${cmd}" timed out`));
       }, COMMAND_TIMEOUT_MS);
 
@@ -165,12 +210,15 @@ export class CanbusClient {
         }
         clearTimeout(timer);
         this.waiter = null;
+        // A reply of any kind (even "NO DATA") means the adapter is alive.
+        this.noteReply();
         resolve(response);
       };
 
       this.transport.write(cmd).catch((e) => {
         clearTimeout(timer);
         this.waiter = null;
+        this.noteFailure();
         reject(e);
       });
     });
@@ -188,6 +236,7 @@ export class CanbusClient {
 
   async stop(): Promise<void> {
     this.stopped = true;
+    this.live = false;
     if (this.pollTimer) clearInterval(this.pollTimer);
     this.pollTimer = null;
     this.unsub?.();
