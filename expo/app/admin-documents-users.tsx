@@ -398,6 +398,8 @@ export default function AdminDocumentsUsersScreen() {
                 onPress={openEdit}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="docs-users-modal-edit"
+                accessibilityRole="button"
+                accessibilityLabel="Edit documents users"
               >
                 <Pencil color={Colors.text} size={18} />
               </TouchableOpacity>

@@ -295,6 +295,8 @@ export default function AdminVehicleEditScreen() {
           onPress={onDelete}
           style={[styles.iconBtn, { backgroundColor: Colors.error + "20" }]}
           testID="edit-vehicle-delete"
+          accessibilityRole="button"
+          accessibilityLabel="Delete"
         >
           <Trash2 color={Colors.error} size={20} />
         </TouchableOpacity>

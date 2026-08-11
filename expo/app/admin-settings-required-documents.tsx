@@ -611,6 +611,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
             onPress={() => openEdit(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`required-documents-edit-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Edit required documents"
           >
             <Pencil color={Colors.accent} size={16} />
           </TouchableOpacity>
@@ -618,6 +620,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
             onPress={() => onDelete(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`required-documents-delete-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete required documents"
           >
             <Trash2 color={Colors.error} size={16} />
           </TouchableOpacity>
@@ -673,6 +677,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="required-documents-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add required documents"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -1482,6 +1488,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="required-documents-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

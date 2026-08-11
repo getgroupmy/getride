@@ -383,6 +383,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`ev-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit EV"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -391,6 +393,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
             onPress={() => onDelete(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`ev-delete-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete EV"
           >
             <Trash2 color={Colors.error} size={16} />
           </TouchableOpacity>
@@ -714,6 +718,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add EV"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -886,6 +892,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

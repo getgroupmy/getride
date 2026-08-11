@@ -177,6 +177,8 @@ export default function AdminSettingsAssignServicePageScreen() {
                       style={styles.clearBtn}
                       hitSlop={8}
                       testID={`assign-clear-${cap}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear"
                     >
                       <Trash2 color={Colors.error} size={16} />
                     </TouchableOpacity>

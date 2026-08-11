@@ -237,6 +237,8 @@ export default function AdminSettingsPushNotificationScreen() {
             onPress={() => openCompose()}
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
             testID="push-notification-add"
+            accessibilityRole="button"
+            accessibilityLabel="Add push notification"
           >
             <Plus color={Colors.onAccent} size={22} />
           </TouchableOpacity>
@@ -342,6 +344,8 @@ export default function AdminSettingsPushNotificationScreen() {
                         onPress={() => openCompose(entry)}
                         style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                         testID={`push-notification-edit-${entry.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel="Edit push notification"
                       >
                         <Pencil color={Colors.accent} size={15} />
                       </TouchableOpacity>
@@ -349,6 +353,8 @@ export default function AdminSettingsPushNotificationScreen() {
                         onPress={() => onDelete(entry)}
                         style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                         testID={`push-notification-delete-${entry.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel="Delete push notification"
                       >
                         <Trash2 color={Colors.error} size={15} />
                       </TouchableOpacity>

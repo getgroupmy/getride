@@ -169,6 +169,8 @@ export default function AdminSettingsApiKeysScreen() {
           disabled={!editable}
           style={[styles.iconBtn, { backgroundColor: editable ? Colors.accent + "20" : Colors.gray[100], opacity: editable ? 1 : 0.5 }]}
           testID="api-keys-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add API keys"
         >
           <Plus color={editable ? Colors.accent : Colors.textSecondary} size={20} />
         </TouchableOpacity>
@@ -261,6 +263,8 @@ export default function AdminSettingsApiKeysScreen() {
                     style={styles.rowDelete}
                     testID={`provider-delete-${p.id}`}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete provider"
                   >
                     <Trash2 color={Colors.error} size={16} />
                   </TouchableOpacity>

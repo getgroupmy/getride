@@ -301,6 +301,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-finance-options-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add EV finance options"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -402,6 +404,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                   onPress={() => openEdit(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`ev-finance-options-edit-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit EV finance options"
                 >
                   <Pencil color={Colors.accent} size={16} />
                 </TouchableOpacity>
@@ -409,6 +413,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                   onPress={() => onDelete(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`ev-finance-options-delete-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete EV finance options"
                 >
                   <Trash2 color={Colors.error} size={16} />
                 </TouchableOpacity>
@@ -662,6 +668,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-finance-options-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

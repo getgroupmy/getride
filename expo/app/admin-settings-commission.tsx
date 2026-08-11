@@ -433,10 +433,10 @@ export default function AdminSettingsCommissionScreen() {
         thumbColor="#fff"
         testID={`commission-active-${rule.id}`}
       />
-      <TouchableOpacity onPress={() => openEdit(rule)} style={styles.ruleBtn} testID={`commission-edit-${rule.id}`}>
+      <TouchableOpacity onPress={() => openEdit(rule)} style={styles.ruleBtn} testID={`commission-edit-${rule.id}`} accessibilityRole="button" accessibilityLabel="Edit commission">
         <Pencil color={Colors.textSecondary} size={16} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => confirmDelete(rule)} style={styles.ruleBtn} testID={`commission-delete-${rule.id}`}>
+      <TouchableOpacity onPress={() => confirmDelete(rule)} style={styles.ruleBtn} testID={`commission-delete-${rule.id}`} accessibilityRole="button" accessibilityLabel="Delete commission">
         <Trash2 color={Colors.error} size={16} />
       </TouchableOpacity>
     </View>
@@ -526,6 +526,8 @@ export default function AdminSettingsCommissionScreen() {
                   style={[styles.masterSaveBtn, { backgroundColor: Colors.accent }]}
                   disabled={busy}
                   testID="commission-master-save"
+                  accessibilityRole="button"
+                  accessibilityLabel="Save"
                 >
                   <Check color="#fff" size={16} />
                 </TouchableOpacity>
@@ -545,6 +547,8 @@ export default function AdminSettingsCommissionScreen() {
                 }}
                 style={[styles.masterRatePill, { backgroundColor: Colors.accent }]}
                 testID="commission-master-edit"
+                accessibilityRole="button"
+                accessibilityLabel="Edit commission"
               >
                 <Text style={styles.masterRateText}>{formatPct(effectiveMasterRate)}</Text>
                 <Pencil color="#fff" size={13} />
@@ -730,6 +734,8 @@ export default function AdminSettingsCommissionScreen() {
               style={[styles.submitBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
               disabled={busy}
               testID="commission-modal-save"
+              accessibilityRole="button"
+              accessibilityLabel="Save"
             >
               {busy ? (
                 <ActivityIndicator color="#fff" size="small" />

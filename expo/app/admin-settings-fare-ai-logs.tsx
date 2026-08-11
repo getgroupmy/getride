@@ -217,6 +217,8 @@ export default function AdminSettingsFareAILogsScreen() {
             onPress={onClear}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
             testID="fare-ai-logs-clear"
+            accessibilityRole="button"
+            accessibilityLabel="Clear"
           >
             <Trash2 color={Colors.danger ?? "#e5484d"} size={20} />
           </TouchableOpacity>

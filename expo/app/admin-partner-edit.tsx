@@ -270,6 +270,8 @@ export default function AdminPartnerEditScreen() {
           onPress={onDelete}
           style={[styles.iconBtn, { backgroundColor: Colors.error + "20" }]}
           testID="edit-partner-delete"
+          accessibilityRole="button"
+          accessibilityLabel="Delete"
         >
           <Trash2 color={Colors.error} size={20} />
         </TouchableOpacity>
@@ -480,6 +482,8 @@ export default function AdminPartnerEditScreen() {
             style={[styles.submitBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.6 : 1 }]}
             testID="edit-partner-save"
             activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel="Save"
           >
             <Save color={Colors.onAccent} size={18} />
             <Text style={[styles.submitText, { color: Colors.onAccent }]}>

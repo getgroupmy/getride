@@ -491,6 +491,8 @@ export default function AdminSettingsApiElifeScreen() {
                   },
                 ]}
                 testID="elife-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color={dirty ? "#000000" : Colors.accent} size="small" />

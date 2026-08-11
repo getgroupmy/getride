@@ -221,6 +221,8 @@ export default function AdminSettingsIpAccessScreen() {
             { backgroundColor: editable ? Colors.accent + "20" : Colors.gray[100], opacity: editable ? 1 : 0.5 },
           ]}
           testID="ip-access-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add IP access"
         >
           <Plus color={editable ? Colors.accent : Colors.textSecondary} size={20} />
         </TouchableOpacity>
@@ -368,6 +370,8 @@ export default function AdminSettingsIpAccessScreen() {
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background, opacity: editable ? 1 : 0.4 }]}
                   testID={`ip-access-edit-${rule.id}`}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit IP access"
                 >
                   <Pencil color={Colors.accent} size={14} />
                 </TouchableOpacity>
@@ -377,6 +381,8 @@ export default function AdminSettingsIpAccessScreen() {
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background, opacity: editable ? 1 : 0.4 }]}
                   testID={`ip-access-delete-${rule.id}`}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete IP access"
                 >
                   <Trash2 color={Colors.error} size={14} />
                 </TouchableOpacity>
@@ -480,6 +486,8 @@ export default function AdminSettingsIpAccessScreen() {
                 disabled={saving}
                 style={[styles.saveBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.7 : 1 }]}
                 testID="ip-access-form-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color={Colors.onAccent} />

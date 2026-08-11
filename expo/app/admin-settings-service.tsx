@@ -291,6 +291,8 @@ export default function AdminSettingsServiceScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`service-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit service"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -302,6 +304,8 @@ export default function AdminSettingsServiceScreen() {
           ]}
           disabled={isDefault}
           testID={`service-delete-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete service"
         >
           <Trash2 color={isDefault ? Colors.textSecondary : Colors.error} size={16} />
         </TouchableOpacity>
@@ -338,6 +342,8 @@ export default function AdminSettingsServiceScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="service-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add service"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -420,6 +426,8 @@ export default function AdminSettingsServiceScreen() {
                         onPress={pickIcon}
                         style={[styles.uploadBtn, { backgroundColor: Colors.accent }]}
                         testID="service-icon-upload"
+                        accessibilityRole="button"
+                        accessibilityLabel="Upload service icon"
                       >
                         <Upload color={Colors.onAccent} size={16} />
                         <Text style={[styles.uploadBtnText, { color: Colors.onAccent }]}>
@@ -538,6 +546,8 @@ export default function AdminSettingsServiceScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="service-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

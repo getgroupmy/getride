@@ -459,6 +459,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
           onPress={() => setProviderPickerOpen(true)}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="payment-gateway-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add payment gateway"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -658,6 +660,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                   onPress={() => openEdit(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`payment-gateway-edit-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit payment gateway"
                 >
                   <Pencil color={Colors.accent} size={16} />
                 </TouchableOpacity>
@@ -665,6 +669,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                   onPress={() => onDelete(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`payment-gateway-delete-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete payment gateway"
                 >
                   <Trash2 color={Colors.error} size={16} />
                 </TouchableOpacity>
@@ -971,6 +977,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="payment-gateway-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

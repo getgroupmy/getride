@@ -285,6 +285,8 @@ export default function AdminSettingsAlwaysOnScreen() {
               { backgroundColor: dirty && editable ? Colors.accent : Colors.gray[300] },
             ]}
             testID="always-on-save"
+            accessibilityRole="button"
+            accessibilityLabel="Save"
           >
             {saving ? (
               <ActivityIndicator color="#fff" />

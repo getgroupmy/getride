@@ -388,6 +388,8 @@ function DocumentReviewModal({
             onPress={onEdit}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
             testID="docs-modal-edit"
+            accessibilityRole="button"
+            accessibilityLabel="Edit documents"
           >
             <Pencil color={Colors.text} size={18} />
           </TouchableOpacity>

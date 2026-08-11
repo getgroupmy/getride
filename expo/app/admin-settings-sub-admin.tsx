@@ -416,6 +416,8 @@ export default function AdminSettingsSubAdminScreen() {
             { backgroundColor: editable ? Colors.accent + "20" : Colors.gray[100], opacity: editable ? 1 : 0.5 },
           ]}
           testID="sub-admin-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add sub admin"
         >
           <Plus color={editable ? Colors.accent : Colors.textSecondary} size={20} />
         </TouchableOpacity>
@@ -531,6 +533,8 @@ export default function AdminSettingsSubAdminScreen() {
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background, opacity: editable ? 1 : 0.4 }]}
                   testID={`sub-admin-edit-${row.id}`}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit sub admin"
                 >
                   <Pencil color={Colors.accent} size={14} />
                 </TouchableOpacity>
@@ -540,6 +544,8 @@ export default function AdminSettingsSubAdminScreen() {
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background, opacity: editable ? 1 : 0.4 }]}
                   testID={`sub-admin-delete-${row.id}`}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete sub admin"
                 >
                   <Trash2 color={Colors.error} size={14} />
                 </TouchableOpacity>
@@ -974,6 +980,8 @@ export default function AdminSettingsSubAdminScreen() {
                 disabled={saving}
                 style={[styles.saveBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.7 : 1 }]}
                 testID="sub-admin-form-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color={Colors.onAccent} />

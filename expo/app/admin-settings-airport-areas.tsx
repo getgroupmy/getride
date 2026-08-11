@@ -1038,6 +1038,8 @@ export default function AdminSettingsAirportAreasScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`airport-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit airport"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -1045,6 +1047,8 @@ export default function AdminSettingsAirportAreasScreen() {
           onPress={() => onDelete(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`airport-delete-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete airport"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -1081,6 +1085,8 @@ export default function AdminSettingsAirportAreasScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="airport-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add airport"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -1291,6 +1297,8 @@ export default function AdminSettingsAirportAreasScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="airport-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

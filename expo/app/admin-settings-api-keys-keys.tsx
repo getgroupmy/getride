@@ -331,7 +331,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                       ) : null}
                     </View>
                   </View>
-                  <TouchableOpacity onPress={() => onDelete(k)} style={styles.smallBtn} hitSlop={8} testID={`key-delete-${k.id}`}>
+                  <TouchableOpacity onPress={() => onDelete(k)} style={styles.smallBtn} hitSlop={8} testID={`key-delete-${k.id}`} accessibilityRole="button" accessibilityLabel="Delete key">
                     <Trash2 color={Colors.error} size={16} />
                   </TouchableOpacity>
                 </View>
@@ -353,7 +353,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                   <TouchableOpacity onPress={() => onToggleReveal(k)} style={styles.inputAction} testID={`key-reveal-${k.id}`}>
                     {isRevealed ? <EyeOff color={Colors.textSecondary} size={18} /> : <Eye color={Colors.textSecondary} size={18} />}
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => onCopy(k)} style={styles.inputAction} testID={`key-copy-${k.id}`}>
+                  <TouchableOpacity onPress={() => onCopy(k)} style={styles.inputAction} testID={`key-copy-${k.id}`} accessibilityRole="button" accessibilityLabel="Copy">
                     <Copy color={Colors.textSecondary} size={18} />
                   </TouchableOpacity>
                 </View>

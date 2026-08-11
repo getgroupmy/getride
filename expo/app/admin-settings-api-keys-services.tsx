@@ -185,6 +185,8 @@ export default function AdminSettingsApiKeysServicesScreen() {
               }}
               style={[styles.iconBtn, { backgroundColor: Colors.accent + "20" }]}
               testID="services-bulk-add"
+              accessibilityRole="button"
+              accessibilityLabel="Add services"
             >
               <CopyPlus color={Colors.accent} size={20} />
             </TouchableOpacity>
@@ -192,6 +194,8 @@ export default function AdminSettingsApiKeysServicesScreen() {
               onPress={() => setShowAdd(true)}
               style={[styles.iconBtn, { backgroundColor: Colors.accent + "20" }]}
               testID="services-add"
+              accessibilityRole="button"
+              accessibilityLabel="Add services"
             >
               <Plus color={Colors.accent} size={20} />
             </TouchableOpacity>
@@ -261,7 +265,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                   </View>
                 </View>
                 {editable ? (
-                  <TouchableOpacity onPress={() => onDelete(s)} style={styles.rowDelete} hitSlop={8} testID={`service-delete-${s.id}`}>
+                  <TouchableOpacity onPress={() => onDelete(s)} style={styles.rowDelete} hitSlop={8} testID={`service-delete-${s.id}`} accessibilityRole="button" accessibilityLabel="Delete service">
                     <Trash2 color={Colors.error} size={16} />
                   </TouchableOpacity>
                 ) : null}

@@ -162,6 +162,8 @@ export default function AdminVehiclesScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="vehicles-add"
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Add vehicles"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>

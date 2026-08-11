@@ -544,6 +544,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               onPress={() => toggleExpanded(entry.id)}
               style={[styles.actionPill, { backgroundColor: Colors.background, borderColor: Colors.border }]}
               testID={`partner-type-expand-${entry.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Expand partner type"
             >
               {expanded ? (
                 <ChevronDown color={Colors.text} size={14} />
@@ -561,6 +563,8 @@ export default function AdminSettingsPartnerTypeScreen() {
             onPress={() => openEdit(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`partner-type-edit-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Edit partner type"
           >
             <Pencil color={Colors.accent} size={16} />
           </TouchableOpacity>
@@ -572,6 +576,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               { backgroundColor: Colors.background, opacity: isDefault ? 0.4 : 1 },
             ]}
             testID={`partner-type-delete-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete partner type"
           >
             <Trash2 color={isDefault ? Colors.textSecondary : Colors.error} size={16} />
           </TouchableOpacity>
@@ -645,6 +651,8 @@ export default function AdminSettingsPartnerTypeScreen() {
             onPress={() => renameAtPath(path, node.name)}
             style={[styles.nodeBtn, { backgroundColor: Colors.background }]}
             testID={`partner-type-node-edit-${node.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Edit partner type"
           >
             <Pencil color={Colors.accent} size={14} />
           </TouchableOpacity>
@@ -653,6 +661,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               onPress={() => addChild(path)}
               style={[styles.nodeBtn, { backgroundColor: Colors.background }]}
               testID={`partner-type-node-add-${node.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Add partner type"
             >
               <Plus color={Colors.success} size={14} />
             </TouchableOpacity>
@@ -661,6 +671,8 @@ export default function AdminSettingsPartnerTypeScreen() {
             onPress={() => removeAtPath(path)}
             style={[styles.nodeBtn, { backgroundColor: Colors.background }]}
             testID={`partner-type-node-delete-${node.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete partner type"
           >
             <Trash2 color={Colors.error} size={14} />
           </TouchableOpacity>
@@ -699,6 +711,8 @@ export default function AdminSettingsPartnerTypeScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="partner-type-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add partner type"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -845,6 +859,8 @@ export default function AdminSettingsPartnerTypeScreen() {
                         disabled={uploadingIcon}
                         style={[styles.iconActionBtn, { backgroundColor: Colors.accent, opacity: uploadingIcon ? 0.6 : 1 }]}
                         testID="partner-type-field-icon-upload"
+                        accessibilityRole="button"
+                        accessibilityLabel="Upload partner type icon"
                       >
                         <ImagePlus color={Colors.onAccent} size={14} />
                         <Text style={[styles.iconActionText, { color: Colors.onAccent }]}>
@@ -1060,6 +1076,8 @@ export default function AdminSettingsPartnerTypeScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="partner-type-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

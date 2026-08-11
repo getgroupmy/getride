@@ -1249,6 +1249,8 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
             onPress={() => openEdit(item)}
             style={styles.iconBtn}
             testID={`edit-${item.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Edit"
           >
             <Pencil size={16} color={isCustom ? Colors.accent : Colors.textSecondary} />
           </TouchableOpacity>
@@ -1257,6 +1259,8 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
               onPress={() => onDelete(item)}
               style={styles.iconBtn}
               testID={`delete-${item.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Delete"
             >
               <Trash2 size={16} color={Colors.error} />
             </TouchableOpacity>
@@ -1651,6 +1655,8 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 disabled={saving}
                 style={[styles.saveBtn, saving && { opacity: 0.6 }]}
                 testID="save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color={Colors.onAccent} />

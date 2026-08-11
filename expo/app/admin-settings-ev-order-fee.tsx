@@ -298,6 +298,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-order-fee-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add EV order fee"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -374,6 +376,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
                   onPress={() => openEdit(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`ev-order-fee-edit-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit EV order fee"
                 >
                   <Pencil color={Colors.accent} size={16} />
                 </TouchableOpacity>
@@ -381,6 +385,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
                   onPress={() => onDelete(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`ev-order-fee-delete-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete EV order fee"
                 >
                   <Trash2 color={Colors.error} size={16} />
                 </TouchableOpacity>
@@ -512,6 +518,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-order-fee-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

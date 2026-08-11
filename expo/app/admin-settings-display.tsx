@@ -1528,6 +1528,8 @@ export default function AdminSettingsDisplayScreen() {
                                 }}
                                 style={[styles.arrangeBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                                 testID={`display-sidemenu-remove-${menu}-${o.id}`}
+                                accessibilityRole="button"
+                                accessibilityLabel="Remove display sidemenu"
                               >
                                 <Trash2 color={Colors.error} size={16} />
                               </TouchableOpacity>

@@ -737,6 +737,8 @@ export default function AdminSettingsMeterDigitalScreen() {
         onPress={() => openEditor(profile)}
         style={styles.iconAction}
         testID={`meter-settings-edit-${profile.id}`}
+        accessibilityRole="button"
+        accessibilityLabel="Edit meter settings"
       >
         <Pencil color={Colors.textSecondary} size={16} />
       </TouchableOpacity>
@@ -744,6 +746,8 @@ export default function AdminSettingsMeterDigitalScreen() {
         onPress={() => confirmDelete(profile)}
         style={styles.iconAction}
         testID={`meter-settings-delete-${profile.id}`}
+        accessibilityRole="button"
+        accessibilityLabel="Delete meter settings"
       >
         <Trash2 color={Colors.error} size={16} />
       </TouchableOpacity>
@@ -1530,6 +1534,8 @@ export default function AdminSettingsMeterDigitalScreen() {
               ]}
               disabled={busy || !editable}
               testID="meter-settings-save"
+              accessibilityRole="button"
+              accessibilityLabel="Save"
             >
               {busy ? (
                 <ActivityIndicator color="#fff" size="small" />

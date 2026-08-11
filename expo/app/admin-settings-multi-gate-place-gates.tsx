@@ -367,6 +367,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`gate-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit gate"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -374,6 +376,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           onPress={() => onDelete(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`gate-delete-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete gate"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -410,6 +414,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="gates-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add gates"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -722,6 +728,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="gate-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

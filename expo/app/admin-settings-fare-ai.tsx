@@ -539,6 +539,8 @@ export default function AdminSettingsFareAIScreen() {
                           onPress={() => removeKey(k.id)}
                           style={styles.deleteBtn}
                           testID={`fare-ai-key-delete-${idx}`}
+                          accessibilityRole="button"
+                          accessibilityLabel="Delete fare ai key"
                         >
                           <Trash2 color={Colors.danger ?? "#e5484d"} size={18} />
                         </TouchableOpacity>
@@ -609,6 +611,8 @@ export default function AdminSettingsFareAIScreen() {
                   { backgroundColor: dirty ? Colors.accent : Colors.gray[300] ?? Colors.border, opacity: saving ? 0.7 : 1 },
                 ]}
                 testID="fare-ai-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color="#000000" />

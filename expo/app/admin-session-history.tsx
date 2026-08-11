@@ -1197,6 +1197,8 @@ export default function AdminSessionHistoryScreen() {
           onPress={onRefresh}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="refresh"
+          accessibilityRole="button"
+          accessibilityLabel="Refresh"
         >
           <RefreshCcw color={Colors.text} size={20} />
         </TouchableOpacity>

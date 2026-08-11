@@ -386,6 +386,8 @@ function VehicleDocReviewModal({
             onPress={onEdit}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
             testID="docs-veh-modal-edit"
+            accessibilityRole="button"
+            accessibilityLabel="Edit documents vehicle"
           >
             <Pencil color={Colors.text} size={18} />
           </TouchableOpacity>

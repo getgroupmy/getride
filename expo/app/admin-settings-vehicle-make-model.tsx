@@ -806,6 +806,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vmm-cat-edit-${lvl}-${name}`}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit vehicle make and model category"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -814,6 +816,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vmm-cat-del-${lvl}-${name}`}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel="Delete vehicle make and model category"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -868,6 +872,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           onPress={() => openEditModel(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vmm-model-edit-${m.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit vehicle make and model model"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -875,6 +881,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           onPress={() => deleteModel(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vmm-model-del-${m.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete vehicle make and model model"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -978,6 +986,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           onPress={openAddPicker}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="vmm-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add vehicle make and model"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -1062,6 +1072,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
               onPress={openAddPicker}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="vmm-empty-add"
+              accessibilityRole="button"
+              accessibilityLabel="Add vehicle make and model"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>
@@ -1331,6 +1343,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                     onPress={saveCategory}
                     style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                     testID="vmm-cat-save"
+                    accessibilityRole="button"
+                    accessibilityLabel="Save"
                   >
                     <Save color={Colors.onAccent} size={18} />
                     <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -1376,6 +1390,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                             { backgroundColor: Colors.accent, borderColor: Colors.accent },
                           ]}
                           testID="vmm-model-icon-upload"
+                          accessibilityRole="button"
+                          accessibilityLabel="Upload vehicle make and model model icon"
                         >
                           <Upload color={Colors.onAccent} size={16} />
                           <Text
@@ -1802,6 +1818,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                     onPress={saveModel}
                     style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                     testID="vmm-model-save"
+                    accessibilityRole="button"
+                    accessibilityLabel="Save"
                   >
                     <Save color={Colors.onAccent} size={18} />
                     <Text style={[styles.submitText, { color: Colors.onAccent }]}>
