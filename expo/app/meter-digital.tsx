@@ -209,6 +209,10 @@ import {
   type MeterLeaveOption,
 } from "@/utils/meterLeave";
 import {
+  meterPrintFinishesHire,
+  resolveMeterPrintRoute,
+} from "@/utils/meterPrintFlow";
+import {
   allowedMeterSources,
   describeMeterRates,
   meterExtraSurcharge,
@@ -1764,37 +1768,75 @@ export default function MeterDigitalScreen() {
     [license],
   );
 
-  /** Send the receipt to the OS print service (AirPrint / browser dialog). */
+  /**
+   * Send the receipt to the OS print service (AirPrint / browser dialog).
+   *
+   * Answers whether the receipt actually went out, since that is what decides
+   * if the hire is finished (`handlePrinted`).
+   */
   const osPrintReceipt = useCallback(
-    async (trip: MeterTrip) => {
+    async (trip: MeterTrip): Promise<boolean> => {
       const html = buildMeterReceiptHtml(trip, receiptBranding);
       try {
         if (Platform.OS === "web") {
           const w = window.open("", "_blank");
-          if (w) {
-            w.document.write(html);
-            w.document.close();
-            w.focus();
-            setTimeout(() => {
-              try {
-                w.print();
-              } catch (e) {
-                console.log("[meter-digital] web print err", e);
-              }
-            }, 300);
-          }
-        } else {
-          await Print.printAsync({ html });
+          if (!w) return false;
+          w.document.write(html);
+          w.document.close();
+          w.focus();
+          setTimeout(() => {
+            try {
+              w.print();
+            } catch (e) {
+              console.log("[meter-digital] web print err", e);
+            }
+          }, 300);
+          return true;
         }
+        await Print.printAsync({ html });
+        return true;
       } catch (e) {
         console.log("[meter-digital] print failed", e);
         Alert.alert(
           "Print failed",
           "Could not reach a printer. Check that one is set up in your device's print settings and try again.",
         );
+        return false;
       }
     },
     [receiptBranding],
+  );
+
+  /**
+   * The receipt is on paper: the hire is over.
+   *
+   * Printing is the last act of a hire, so the console has no further use for
+   * the fare it is still showing — the fare-due card closes, the meter clears
+   * and the driver is left on the meter panel ready to press START, rather than
+   * on a total they have to dismiss by hand. Only the hire the console is
+   * actually holding is finished this way (`meterPrintFinishesHire`): a reprint
+   * off the trip log, or a print after the meter has already been cleared,
+   * leaves the console exactly where it is.
+   */
+  const handlePrinted = useCallback(
+    (trip: MeterTrip) => {
+      if (
+        !meterPrintFinishesHire({
+          printed: true,
+          tripId: trip.id,
+          openHireTripId: recordedTripRef.current,
+        })
+      ) {
+        return;
+      }
+      setTotalOpen(false);
+      // Wherever PRINT RECEIPT was pressed from — the fare-due card, or the
+      // PRINTER panel after a detour through printer setup — the driver lands
+      // back on the meter itself.
+      setTab("ehailing");
+      handleNewTrip();
+    },
+    [handleNewTrip],
   );
 
   const printReceipt = useCallback(
@@ -1802,40 +1844,63 @@ export default function MeterDigitalScreen() {
       if (!trip) return;
       setPrinting(true);
       try {
+        const route = resolveMeterPrintRoute({
+          hasSavedPrinter: directPrinter !== null,
+          printerAvailable: directPrinterReady,
+        });
         // A saved mini printer, when set up and reachable in this build, prints
         // the receipt directly off the roll — no system dialog. If it cannot be
         // reached, offer the OS print service rather than failing outright.
-        if (directPrinterReady) {
+        if (route === "direct") {
           const res = await printer.print(trip, { branding: receiptBranding });
-          if (res.ok) return;
+          if (res.ok) {
+            handlePrinted(trip);
+            return;
+          }
           Alert.alert(
             "Printer not reachable",
             res.error ?? "Could not reach the printer.",
             [
               { text: "Cancel", style: "cancel" },
-              { text: "Use system print", onPress: () => void osPrintReceipt(trip) },
+              {
+                text: "Use system print",
+                onPress: () => {
+                  void osPrintReceipt(trip).then((printed) => {
+                    if (printed) handlePrinted(trip);
+                  });
+                },
+              },
             ],
           );
           return;
         }
         // No printer configured yet: take the driver to the setup screen to add
         // one rather than silently using the OS print service — the receipt is
-        // still on the roll (`lastTrip`) to print once a printer is added. Close
-        // the fare-due modal first: a React Native <Modal> renders above pushed
-        // screens, so leaving it open would cover the setup page.
-        if (!directPrinter) {
+        // still on the roll (`lastTrip`) to print once a printer is added, and
+        // printing it there finishes the hire just the same. Close the fare-due
+        // modal first: a React Native <Modal> renders above pushed screens, so
+        // leaving it open would cover the setup page.
+        if (route === "setup") {
           setTotalOpen(false);
           router.push("/meter-printer");
           return;
         }
         // A printer is saved but this build cannot reach its transport (an older
         // binary): the OS print service is the honest fallback there.
-        await osPrintReceipt(trip);
+        if (await osPrintReceipt(trip)) handlePrinted(trip);
       } finally {
         setPrinting(false);
       }
     },
-    [directPrinter, directPrinterReady, osPrintReceipt, printer, receiptBranding, router],
+    [
+      directPrinter,
+      directPrinterReady,
+      handlePrinted,
+      osPrintReceipt,
+      printer,
+      receiptBranding,
+      router,
+    ],
   );
 
   const handleClearLog = useCallback(() => {
