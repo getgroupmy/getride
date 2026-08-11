@@ -41,6 +41,8 @@ export default function RoleSelectionScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
@@ -66,6 +68,9 @@ export default function RoleSelectionScreen() {
             style={[styles.passengerButton, { backgroundColor: colors.accent }, isLoading && styles.buttonDisabled]}
             onPress={() => handleRoleSelect("passenger")}
             disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Passenger"
+            accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             <Text style={[styles.passengerButtonText, { color: colors.secondary }]}>Passenger</Text>
           </TouchableOpacity>
@@ -74,6 +79,9 @@ export default function RoleSelectionScreen() {
             style={[styles.driverButton, { backgroundColor: colors.gray[100] }, isLoading && styles.buttonDisabled]}
             onPress={() => handleRoleSelect("driver")}
             disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Driver"
+            accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             <Text style={[styles.driverButtonText, { color: colors.text }]}>Driver</Text>
           </TouchableOpacity>

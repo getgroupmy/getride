@@ -130,6 +130,8 @@ export default function AdminLoginScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={[styles.backBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           testID="admin-login-back"
         >
           <ArrowLeft color={Colors.text} size={22} />
@@ -165,6 +167,8 @@ export default function AdminLoginScreen() {
                 style={[styles.whitelistBtn, { backgroundColor: Colors.success, opacity: loading ? 0.7 : 1 }]}
                 onPress={handleWhitelistBypass}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Enter as admin"
                 testID="admin-whitelist-bypass"
               >
                 {loading ? (
@@ -183,6 +187,9 @@ export default function AdminLoginScreen() {
                 mode === "pin" && { backgroundColor: Colors.accent },
               ]}
               onPress={() => setMode("pin")}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: mode === "pin" }}
+              accessibilityLabel="Sign in with PIN"
               testID="admin-tab-pin"
             >
               <KeyRound color={mode === "pin" ? Colors.onAccent : Colors.textSecondary} size={16} />
@@ -201,6 +208,9 @@ export default function AdminLoginScreen() {
                 mode === "credentials" && { backgroundColor: Colors.accent },
               ]}
               onPress={() => setMode("credentials")}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: mode === "credentials" }}
+              accessibilityLabel="Sign in with email and password"
               testID="admin-tab-credentials"
             >
               <User color={mode === "credentials" ? Colors.onAccent : Colors.textSecondary} size={16} />
@@ -244,6 +254,8 @@ export default function AdminLoginScreen() {
                         style={[styles.key, { backgroundColor: Colors.gray[100] }]}
                         onPress={onPressDelete}
                         disabled={loading}
+                        accessibilityRole="button"
+                        accessibilityLabel="Delete"
                         testID="admin-pin-delete"
                       >
                         <Delete color={Colors.text} size={22} />
@@ -256,6 +268,8 @@ export default function AdminLoginScreen() {
                       style={[styles.key, { backgroundColor: Colors.gray[100] }]}
                       onPress={() => onPressDigit(k)}
                       disabled={loading}
+                      accessibilityRole="button"
+                      accessibilityLabel={k}
                       testID={`admin-pin-${k}`}
                     >
                       <Text style={[styles.keyText, { color: Colors.text }]}>{k}</Text>
@@ -276,6 +290,7 @@ export default function AdminLoginScreen() {
                   style={[styles.input, { color: Colors.text }]}
                   placeholder="Username"
                   placeholderTextColor={Colors.textSecondary}
+                  accessibilityLabel="Username"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
@@ -295,9 +310,15 @@ export default function AdminLoginScreen() {
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  accessibilityLabel="Password"
                   testID="admin-password"
                 />
-                <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
+                <TouchableOpacity
+                  onPress={() => setShowPassword((v) => !v)}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                >
                   {showPassword ? (
                     <EyeOff color={Colors.textSecondary} size={18} />
                   ) : (
@@ -313,6 +334,8 @@ export default function AdminLoginScreen() {
                 ]}
                 onPress={handleCredentialsLogin}
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in"
                 testID="admin-login-submit"
               >
                 {loading ? (

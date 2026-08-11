@@ -238,6 +238,9 @@ export default function OTPVerifyScreen() {
             ]}
             onPress={handleResend}
             disabled={timer > 0}
+            accessibilityRole="button"
+            accessibilityLabel={timer > 0 ? `Resend code in ${timer} seconds` : "Resend code"}
+            accessibilityState={{ disabled: timer > 0 }}
           >
             <Text
               style={[

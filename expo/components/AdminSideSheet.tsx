@@ -174,6 +174,8 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
             key={index}
             style={styles.menuItem}
             onPress={item.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
             testID={`admin-menu-${item.label}`}
           >
             <item.icon color={Colors.textSecondary} size={22} />
@@ -190,6 +192,8 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
             onClose();
             setTimeout(() => router.replace("/" as any), 200);
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Passenger Mode"
           testID="passenger-mode-button"
         >
           <Text style={[styles.passengerModeText, { color: Colors.onAccent }]}>Passenger Mode</Text>

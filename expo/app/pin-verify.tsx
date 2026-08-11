@@ -234,6 +234,7 @@ export default function PinVerifyScreen() {
                   maxLength={1}
                   selectTextOnFocus
                   secureTextEntry
+                  accessibilityLabel={`PIN digit ${index + 1} of ${code.length}`}
                   editable={attempts < 3}
                 />
                 <View

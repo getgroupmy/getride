@@ -216,6 +216,8 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
         <TouchableOpacity
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           testID="vehicle-list-back"
         >
           <ArrowLeft color={Colors.text} size={22} />
@@ -259,6 +261,8 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
               <TouchableOpacity
                 key={v.id}
                 style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${v.plate}`}
                 testID={`vehicle-card-${v.id}`}
                 onPress={() => router.push({ pathname: "/admin-vehicle-edit", params: { id: v.id } })}
                 activeOpacity={0.85}
@@ -300,6 +304,9 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
                       <TouchableOpacity
                         onPress={() => router.push({ pathname: "/admin-vehicle-edit", params: { id: v.id } })}
                         style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${v.plate}`}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         testID={`vehicle-edit-${v.id}`}
                       >
                         <Pencil color={Colors.accent} size={16} />
@@ -307,6 +314,9 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
                       <TouchableOpacity
                         onPress={() => onDelete(v)}
                         style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete ${v.plate}`}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         testID={`vehicle-del-${v.id}`}
                       >
                         <Trash2 color={Colors.error} size={16} />
@@ -346,6 +356,8 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
                           key={a.label}
                           onPress={() => handleAction(v, a.label, a.nextStatus)}
                           style={[styles.actionBtn, { backgroundColor: tone + "15", borderColor: tone + "40" }]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${a.label} ${v.plate}`}
                           testID={`vehicle-action-${v.id}-${a.label}`}
                           activeOpacity={0.85}
                         >
@@ -356,6 +368,8 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
                     <TouchableOpacity
                       onPress={() => onCall(v.ownerPhone)}
                       style={[styles.callBtn, { backgroundColor: Colors.accent }]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Call the owner"
                       testID={`vehicle-call-${v.id}`}
                     >
                       <Phone color={Colors.onAccent} size={16} />

@@ -162,6 +162,8 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
         <TouchableOpacity
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           testID="partner-list-back"
         >
           <ArrowLeft color={Colors.text} size={22} />
@@ -174,6 +176,8 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
           <TouchableOpacity
             onPress={() => router.push("/admin-partner-add" as any)}
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
+            accessibilityRole="button"
+            accessibilityLabel="Add a partner"
             testID="partner-list-add"
           >
             <UserPlus color={Colors.onAccent} size={20} />
@@ -248,6 +252,9 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
                       <TouchableOpacity
                         onPress={() => router.push({ pathname: "/admin-partner-edit", params: { id: d.id } } as any)}
                         style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${d.name}`}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         testID={`partner-edit-${d.id}`}
                       >
                         <Pencil color={Colors.accent} size={16} />
@@ -255,6 +262,9 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
                       <TouchableOpacity
                         onPress={() => onDelete(d)}
                         style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete ${d.name}`}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         testID={`partner-more-${d.id}`}
                       >
                         <Trash2 color={Colors.error} size={16} />
@@ -297,6 +307,8 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
                           key={a.label}
                           onPress={() => handleAction(d, a.label, a.nextStatus)}
                           style={[styles.actionBtn, { backgroundColor: tone + "15", borderColor: tone + "40" }]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${a.label} ${d.name}`}
                           testID={`partner-action-${d.id}-${a.label}`}
                           activeOpacity={0.85}
                         >
@@ -307,6 +319,8 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
                     <TouchableOpacity
                       onPress={() => onCall(d.phone)}
                       style={[styles.callBtn, { backgroundColor: Colors.accent }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Call ${d.name}`}
                       testID={`partner-call-${d.id}`}
                     >
                       <Phone color={Colors.onAccent} size={16} />

@@ -73,15 +73,10 @@ export default function OnboardingScreen() {
             <TouchableOpacity
               style={[styles.primaryButton, { backgroundColor: colors.accent }]}
               onPress={() => router.push("/phone-auth" as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Continue with phone"
             >
               <Text style={[styles.primaryButtonText, { color: colors.secondary }]}>Continue with phone</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: colors.gray[100] }]}>
-              <View style={styles.passkeyIcon}>
-                <Text style={styles.passkeyIconText}>🔑</Text>
-              </View>
-              <Text style={[styles.secondaryButtonText, { color: colors.text }]}>Continue with PIN</Text>
             </TouchableOpacity>
 
             <Text style={[styles.terms, { color: colors.textSecondary }]}>
@@ -177,27 +172,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   primaryButtonText: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    borderRadius: 12,
-    paddingVertical: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 12,
-  },
-  passkeyIcon: {
-    width: 24,
-    height: 24,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  passkeyIconText: {
-    fontSize: 18,
-  },
-  secondaryButtonText: {
     fontSize: 17,
     fontWeight: "600",
   },

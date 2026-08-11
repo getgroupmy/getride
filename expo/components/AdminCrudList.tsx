@@ -276,7 +276,10 @@ export default function AdminCrudList({
                 },
               ]}
               testID={`${testID ?? "crud"}-move-up-${entry.id}`}
-              hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+              hitSlop={{ top: 8, bottom: 6, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Move ${titleVal} up`}
+              accessibilityState={{ disabled: isFirst }}
             >
               <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
             </TouchableOpacity>
@@ -291,7 +294,10 @@ export default function AdminCrudList({
                 },
               ]}
               testID={`${testID ?? "crud"}-move-down-${entry.id}`}
-              hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+              hitSlop={{ top: 6, bottom: 8, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Move ${titleVal} down`}
+              accessibilityState={{ disabled: isLast }}
             >
               <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
             </TouchableOpacity>
@@ -305,6 +311,8 @@ export default function AdminCrudList({
           disabled={!onRowPress}
           onPress={() => onRowPress?.(entry)}
           style={styles.rowInfo}
+          accessibilityRole={onRowPress ? "button" : undefined}
+          accessibilityLabel={onRowPress ? `Open ${titleVal}` : undefined}
           testID={`${testID ?? "crud"}-open-${entry.id}`}
         >
           <View style={styles.rowTitleLine}>
@@ -333,6 +341,9 @@ export default function AdminCrudList({
           <TouchableOpacity
             onPress={() => onRowPress(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${titleVal}`}
             testID={`${testID ?? "crud"}-chevron-${entry.id}`}
           >
             <ChevronRight color={Colors.accent} size={16} />
@@ -343,6 +354,9 @@ export default function AdminCrudList({
             <TouchableOpacity
               onPress={() => openEdit(entry)}
               style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${titleVal}`}
               testID={`${testID ?? "crud"}-edit-${entry.id}`}
             >
               <Pencil color={Colors.accent} size={16} />
@@ -350,6 +364,9 @@ export default function AdminCrudList({
             <TouchableOpacity
               onPress={() => onDelete(entry)}
               style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${titleVal}`}
               testID={`${testID ?? "crud"}-delete-${entry.id}`}
             >
               <Trash2 color={Colors.error} size={16} />

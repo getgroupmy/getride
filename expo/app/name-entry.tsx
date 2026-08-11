@@ -43,6 +43,8 @@ export default function NameEntryScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
@@ -70,11 +72,15 @@ export default function NameEntryScreen() {
                 autoFocus
                 autoCapitalize="words"
                 maxLength={50}
+                accessibilityLabel="First name"
               />
               {firstName.length > 0 && (
                 <TouchableOpacity
                   style={[styles.clearButton, { backgroundColor: colors.gray[200] }]}
                   onPress={() => setFirstName("")}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear name"
                 >
                   <X color={colors.textSecondary} size={20} />
                 </TouchableOpacity>
@@ -92,6 +98,9 @@ export default function NameEntryScreen() {
             ]}
             onPress={handleNext}
             disabled={!firstName.trim() || isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Next"
+            accessibilityState={{ disabled: !firstName.trim() || isLoading, busy: isLoading }}
           >
             {isLoading ? (
               <View style={[styles.loadingIndicator, { borderColor: colors.secondary, borderTopColor: "transparent" }]} />
