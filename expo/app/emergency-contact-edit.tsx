@@ -186,7 +186,13 @@ export default function EmergencyContactEditScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <SafeAreaView style={{ backgroundColor: Colors.background }} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleBack} testID="ece-back">
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            testID="ece-back"
+          >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>
@@ -240,6 +246,8 @@ export default function EmergencyContactEditScreen() {
               <TouchableOpacity
                 style={[styles.codeBox, { borderColor: Colors.border, backgroundColor: Colors.background }]}
                 onPress={() => setPickerVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Change dialling code"
                 testID="ece-code"
               >
                 <Text style={[styles.codeText, { color: Colors.text }]}>{countryCode}</Text>

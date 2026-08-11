@@ -304,6 +304,8 @@ export default function MapPickerScreen() {
         <TouchableOpacity
           style={[styles.backButtonInner, { backgroundColor: isLightMode ? '#fff' : 'rgba(0, 0, 0, 0.6)' }]}
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={isLightMode ? '#000' : '#fff'} size={24} />
         </TouchableOpacity>

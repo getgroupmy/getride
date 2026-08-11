@@ -1278,6 +1278,8 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
           onPress={() => router.back()}
           style={styles.headerBtn}
           testID="back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft size={22} color={Colors.text} />
         </TouchableOpacity>

@@ -193,6 +193,8 @@ export default function AdminVehicleAddScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="add-vehicle-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>

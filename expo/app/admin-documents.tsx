@@ -74,6 +74,8 @@ export default function AdminDocumentsScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="admin-documents-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>

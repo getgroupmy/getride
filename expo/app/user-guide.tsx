@@ -610,6 +610,8 @@ export default function UserGuideScreen() {
             onPress={() => router.back()}
             style={styles.headerBtn}
             testID="user-guide-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>

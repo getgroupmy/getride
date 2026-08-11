@@ -42,6 +42,8 @@ export default function DarkModeScreen() {
             style={styles.backButton}
             onPress={handleBack}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={24} />
           </TouchableOpacity>

@@ -312,6 +312,8 @@ export default function ChangeNumberScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={28} />
           </TouchableOpacity>

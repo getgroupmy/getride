@@ -274,7 +274,10 @@ export default function AuthDiagnosticsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>

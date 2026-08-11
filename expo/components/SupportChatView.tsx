@@ -522,7 +522,10 @@ export default function SupportChatView({
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={["top", "bottom"]}>
       <View style={[styles.header, { borderBottomColor: Colors.border }]}>
-        <TouchableOpacity onPress={onBack} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}>
+        <TouchableOpacity onPress={onBack} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
         <View style={[styles.headerAvatar, { backgroundColor: Colors.accent + "30" }]}>

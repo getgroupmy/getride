@@ -670,7 +670,10 @@ export default function OfferFareSideSheet({
           {...panResponder.panHandlers}
         >
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleClose}>
+          <TouchableOpacity style={styles.backButton} onPress={handleClose}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <ArrowLeft color="#000" size={24} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Offer your fare</Text>

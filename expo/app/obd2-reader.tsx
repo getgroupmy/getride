@@ -463,6 +463,8 @@ export default function Obd2ReaderScreen() {
             style={styles.headerButton}
             onPress={() => router.back()}
             testID="obd2-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>

@@ -323,6 +323,8 @@ export default function ReferralCardScreen() {
             style={styles.backBtn}
             onPress={() => router.back()}
             testID="referral-card-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color="#FFFFFF" size={22} />
           </TouchableOpacity>

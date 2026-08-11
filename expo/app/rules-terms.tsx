@@ -38,6 +38,8 @@ export default function RulesTermsScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={24} />
           </TouchableOpacity>

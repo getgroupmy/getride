@@ -182,6 +182,8 @@ export default function OTPVerifyScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>

@@ -16,7 +16,6 @@ import {
   Info,
   Plus,
   ChevronRight,
-  SlidersHorizontal,
   Send,
   Delete,
 } from "lucide-react-native";
@@ -414,7 +413,10 @@ export default function OfferFareScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ArrowLeft color={Colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Offer your fare</Text>
@@ -595,6 +597,8 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButtonBackspace}
                 onPress={() => handleKeyPress("backspace")}
+                accessibilityRole="button"
+                accessibilityLabel="Delete"
               >
                 <Delete color={Colors.text} size={26} />
               </TouchableOpacity>
@@ -608,13 +612,13 @@ export default function OfferFareScreen() {
               style={isValidFare ? styles.findDriverButton : styles.findDriverButtonDisabled}
               onPress={handleFindDriver}
               disabled={!isValidFare}
+              accessibilityRole="button"
+              accessibilityLabel="Find a driver"
+              accessibilityState={{ disabled: !isValidFare }}
             >
               <Text style={isValidFare ? styles.findDriverText : styles.findDriverTextDisabled}>
                 Find a driver
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsButton}>
-              <SlidersHorizontal color="#000000" size={22} />
             </TouchableOpacity>
           </View>
         </View>

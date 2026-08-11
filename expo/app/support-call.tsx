@@ -154,18 +154,30 @@ export default function SupportCallScreen() {
           <TouchableOpacity
             style={[styles.ctrlBtn, { backgroundColor: muted ? Colors.accent : Colors.gray[100] }]}
             onPress={() => setMuted((m) => !m)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: muted }}
+            accessibilityLabel={muted ? "Unmute" : "Mute"}
           >
             {muted ? <MicOff color="#fff" size={24} /> : <Mic color={Colors.text} size={24} />}
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.ctrlBtn, { backgroundColor: speaker ? Colors.accent : Colors.gray[100] }]}
             onPress={() => setSpeaker((s) => !s)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: speaker }}
+            accessibilityLabel={speaker ? "Turn off speaker" : "Turn on speaker"}
           >
             <Volume2 color={speaker ? "#fff" : Colors.text} size={24} />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={[styles.endBtn, { backgroundColor: Colors.error }]} onPress={endCall} testID="end-call">
+        <TouchableOpacity
+          style={[styles.endBtn, { backgroundColor: Colors.error }]}
+          onPress={endCall}
+          accessibilityRole="button"
+          accessibilityLabel="End call"
+          testID="end-call"
+        >
           <PhoneOff color="#fff" size={28} />
         </TouchableOpacity>
         <Text style={[styles.endLabel, { color: Colors.textSecondary }]}>End call</Text>

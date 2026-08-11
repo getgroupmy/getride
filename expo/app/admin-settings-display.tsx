@@ -483,6 +483,8 @@ export default function AdminSettingsDisplayScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="display-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -1272,6 +1274,8 @@ export default function AdminSettingsDisplayScreen() {
                   onPress={() => setPicker({ kind: "vehicle-bar-services" })}
                   style={styles.modalClose}
                   testID="display-picker-back"
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
                 >
                   <ArrowLeft color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1281,6 +1285,8 @@ export default function AdminSettingsDisplayScreen() {
                   onPress={() => setPicker({ kind: "sidemenu", menu: picker.menu })}
                   style={styles.modalClose}
                   testID="display-sidemenu-back"
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
                 >
                   <ArrowLeft color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1296,6 +1302,8 @@ export default function AdminSettingsDisplayScreen() {
                   }}
                   style={styles.modalClose}
                   testID="display-sidemenu-route-back"
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
                 >
                   <ArrowLeft color={Colors.text} size={20} />
                 </TouchableOpacity>

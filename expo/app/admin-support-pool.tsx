@@ -275,7 +275,10 @@ export default function AdminSupportPoolScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={["top", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { borderBottomColor: Colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>

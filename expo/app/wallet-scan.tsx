@@ -553,6 +553,8 @@ export default function WalletScanScreen() {
                       style={styles.payBackBtn}
                       onPress={closePaySheet}
                       testID="wallet-scan-pay-close"
+                      accessibilityRole="button"
+                      accessibilityLabel="Go back"
                     >
                       <ArrowLeft color={wc.textStrong} size={26} />
                     </TouchableOpacity>

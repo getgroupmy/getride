@@ -469,7 +469,10 @@ export default function WalletTradeScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={goBack} testID="trade-back">
+        <TouchableOpacity style={styles.backBtn} onPress={goBack} testID="trade-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ChevronLeft color={wc.textStrong} size={26} />
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>

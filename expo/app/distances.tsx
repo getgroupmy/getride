@@ -44,6 +44,8 @@ export default function DistancesScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={28} />
           </TouchableOpacity>

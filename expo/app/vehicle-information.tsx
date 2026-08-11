@@ -492,6 +492,8 @@ export default function VehicleInformationScreen() {
             style={styles.headerButton}
             onPress={() => router.back()}
             testID="vehicle-info-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>

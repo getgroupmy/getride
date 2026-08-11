@@ -2830,6 +2830,8 @@ export default function DriverTeksiScreen() {
                 ]}
                 onPress={handleCloseStartConfirm}
                 testID="start-confirm-close"
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
               >
                 <ArrowLeft color={Colors.text} size={22} />
               </TouchableOpacity>

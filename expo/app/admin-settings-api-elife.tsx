@@ -250,6 +250,8 @@ export default function AdminSettingsApiElifeScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="elife-api-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>

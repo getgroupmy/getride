@@ -87,7 +87,10 @@ export default function SafetyScreen() {
       <StatusBar barStyle={Colors.background === "#000000" ? "light-content" : "dark-content"} />
       <SafeAreaView style={{ backgroundColor: Colors.background }} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack} testID="safety-back">
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} testID="safety-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>Safety Settings</Text>

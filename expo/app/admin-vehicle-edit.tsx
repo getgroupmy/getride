@@ -116,6 +116,8 @@ export default function AdminVehicleEditScreen() {
           <TouchableOpacity
             onPress={() => router.back()}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={22} />
           </TouchableOpacity>
@@ -275,6 +277,8 @@ export default function AdminVehicleEditScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="edit-vehicle-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>

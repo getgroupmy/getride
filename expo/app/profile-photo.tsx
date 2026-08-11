@@ -397,6 +397,9 @@ export default function ProfilePhotoScreen() {
               <TouchableOpacity
                 onPress={() => closeInstruction(false)}
                 style={styles.modalClose}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 testID="instruction-close"
               >
                 <X color={Colors.textSecondary} size={20} />
@@ -436,6 +439,8 @@ export default function ProfilePhotoScreen() {
               <TouchableOpacity
                 style={[styles.primaryBtn, { backgroundColor: Colors.accent, flex: 1.4 }]}
                 onPress={() => closeInstruction(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Continue"
                 testID="instruction-continue"
               >
                 <Camera color={Colors.onAccent} size={18} />

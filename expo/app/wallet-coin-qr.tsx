@@ -239,6 +239,8 @@ export default function WalletCoinQrScreen() {
             style={styles.backBtn}
             onPress={() => router.back()}
             testID="wallet-coin-qr-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={wc.textStrong} size={22} />
           </TouchableOpacity>

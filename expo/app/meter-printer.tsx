@@ -403,7 +403,10 @@ export default function MeterPrinterScreen() {
             },
           ]}
         >
-          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()} testID="printer-back">
+          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()} testID="printer-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>Receipt printer</Text>

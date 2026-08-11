@@ -379,6 +379,8 @@ export default function AdminTraceFraudScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ChevronLeft color={Colors.text} size={22} />
         </TouchableOpacity>

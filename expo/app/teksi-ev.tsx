@@ -923,6 +923,8 @@ export default function TeksiEvScreen() {
                           borderColor: Colors.border,
                         },
                       ]}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`Exterior colour ${c}`}
                       testID={`ev-ext-${c}`}
                     >
                       <Palette color={sel ? Colors.secondary : Colors.text} size={14} />
@@ -947,6 +949,8 @@ export default function TeksiEvScreen() {
                           borderColor: Colors.border,
                         },
                       ]}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`Interior colour ${c}`}
                       testID={`ev-int-${c}`}
                     >
                       <Sofa color={sel ? Colors.secondary : Colors.text} size={14} />
@@ -1094,6 +1098,8 @@ export default function TeksiEvScreen() {
                     borderColor: wheelsUnlocked ? Colors.accent : Colors.border,
                   },
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel="Unlock wheel choice"
                 testID="ev-wheels-lock"
               >
                 {wheelsUnlocked ? (
@@ -2192,6 +2198,8 @@ export default function TeksiEvScreen() {
                 borderColor: idImageUri ? Colors.accent : Colors.border,
               },
             ]}
+            accessibilityRole="button"
+            accessibilityLabel="Upload your ID"
             testID="ev-id-upload"
           >
             {idImageUri ? (
@@ -2216,6 +2224,8 @@ export default function TeksiEvScreen() {
               onPress={runExtraction}
               disabled={extracting}
               style={[styles.extractBtn, { backgroundColor: Colors.accent, opacity: extracting ? 0.7 : 1 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Read details from the ID"
               testID="ev-extract"
             >
               {extracting ? (
@@ -2313,6 +2323,8 @@ export default function TeksiEvScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="ev-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>

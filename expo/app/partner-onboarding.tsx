@@ -631,6 +631,8 @@ export default function PartnerOnboardingScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="onboard-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={20} />
         </TouchableOpacity>

@@ -131,6 +131,8 @@ export default function WalletShowCodeScreen() {
           style={styles.backBtn}
           onPress={() => router.back()}
           testID="wallet-show-code-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color="#111827" size={24} />
         </TouchableOpacity>

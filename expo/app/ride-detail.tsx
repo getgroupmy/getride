@@ -586,11 +586,15 @@ export default function RideDetailScreen() {
           testID="ride-detail-back"
           onPress={goHome}
           style={[styles.headerBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ChevronLeft color={Colors.text} size={22} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: Colors.text }]}>Ride details</Text>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Share this trip"
           testID="ride-detail-share"
           onPress={onShare}
           style={[styles.headerBtn, { backgroundColor: Colors.gray[100] }]}
@@ -1122,6 +1126,8 @@ export default function RideDetailScreen() {
               style={[styles.modalInput, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200], color: Colors.text }]}
             />
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Email the receipt"
               testID="ride-detail-email-send"
               onPress={onSendEmail}
               disabled={sendingEmail}

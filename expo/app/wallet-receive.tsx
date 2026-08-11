@@ -297,6 +297,8 @@ export default function WalletReceiveScreen() {
             style={styles.backBtn}
             onPress={() => router.back()}
             testID="wallet-receive-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color="#FFFFFF" size={22} />
           </TouchableOpacity>
