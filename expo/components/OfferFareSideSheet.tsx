@@ -22,16 +22,14 @@ import { useColors } from "@/hooks/useColors";
 import { useLocation } from "@/contexts/LocationContext";
 import {
   ArrowLeft,
-  Info,
-  Plus,
-  ChevronRight,
-  SlidersHorizontal,
-  Send,
+  Banknote,
   Delete,
-  X,
-  Search,
+  Info,
   MapPin,
-  Bookmark,
+  Plus,
+  Search,
+  Send,
+  X,
 } from "lucide-react-native";
 import { POPULAR_LOCATIONS } from "@/constants/mockLocations";
 import PartnerModeSelectModal from "@/components/PartnerModeSelectModal";
@@ -711,10 +709,11 @@ export default function OfferFareSideSheet({
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.paymentRow}>
+          {/* Not a control — this row reports the payment method, it does not change it. */}
+          <View style={styles.paymentRow}>
             {paymentMethod === 'cash' ? (
               <View style={[styles.paymentImage, { backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ fontSize: 20 }}>💵</Text>
+                <Banknote color="#1B5E20" size={20} />
               </View>
             ) : (
               <Image
@@ -726,8 +725,7 @@ export default function OfferFareSideSheet({
               />
             )}
             <Text style={styles.paymentText}>{paymentMethod === 'cash' ? 'Cash' : 'DuItNow manual transfer'}</Text>
-            <ChevronRight color="#9CA3AF" size={20} />
-          </TouchableOpacity>
+          </View>
 
           <View style={styles.autoAcceptRow}>
             <Send color="#000" size={20} style={styles.autoAcceptIcon} />
@@ -741,68 +739,88 @@ export default function OfferFareSideSheet({
               onValueChange={setAutoAccept}
               trackColor={{ false: "#E5E5E5", true: "#4a5a3a" }}
               thumbColor={autoAccept ? "#2dabe2" : "#fff"}
+              accessibilityLabel={`Automatically accept the nearest driver for ${currency.symbol} ${currentFare || recommendedFare}`}
             />
           </View>
 
           <View style={styles.locationSection}>
-            <TouchableOpacity 
-              style={styles.locationRow}
-              onPress={() => openEmbeddedSearch('pickup')}
-              activeOpacity={0.7}
-            >
+            <View style={styles.locationRow}>
               <View style={[styles.locationDot, styles.pickupDot]} />
-              <Text style={styles.locationText} numberOfLines={3}>
-                {pickup}
-              </Text>
+              <TouchableOpacity
+                style={styles.locationTextTap}
+                onPress={() => openEmbeddedSearch('pickup')}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Pickup: ${pickup}. Change pickup`}
+              >
+                <Text style={styles.locationText} numberOfLines={3}>
+                  {pickup}
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.entranceBadge}
                 onPress={onEntrancePress}
                 activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel={entrance ? `Entrance ${entrance}. Change entrance` : "Set entrance"}
               >
                 <Text style={styles.entranceText}>
                   Entrance{entrance ? ` ${entrance}` : ""}
                 </Text>
               </TouchableOpacity>
-            </TouchableOpacity>
+            </View>
 
             {destinations.length > 1 ? (
-              <TouchableOpacity 
-                style={styles.locationRow}
-                onPress={onRouteStopsPress}
-                activeOpacity={0.7}
-              >
+              <View style={styles.locationRow}>
                 <View style={[styles.locationDot, styles.destDot]} />
-                <Text style={styles.locationText} numberOfLines={3}>
-                  {destinations.length} route stops
-                </Text>
+                <TouchableOpacity
+                  style={styles.locationTextTap}
+                  onPress={onRouteStopsPress}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${destinations.length} route stops. Manage stops`}
+                >
+                  <Text style={styles.locationText} numberOfLines={3}>
+                    {destinations.length} route stops
+                  </Text>
+                </TouchableOpacity>
                 {destinations.length < 5 && (
                   <TouchableOpacity 
                     style={styles.addButton}
                     onPress={() => openEmbeddedSearch('destination', undefined, true)}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add another stop"
                   >
                     <Plus color="#000" size={20} />
                   </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+              </View>
             ) : (
-              <TouchableOpacity 
-                style={styles.locationRow}
-                onPress={() => openEmbeddedSearch('destination', 0)}
-                activeOpacity={0.7}
-              >
+              <View style={styles.locationRow}>
                 <View style={[styles.locationDot, styles.destDot]} />
-                <Text style={styles.locationText} numberOfLines={3}>
-                  {destinations[0]?.address || destination}
-                </Text>
+                <TouchableOpacity
+                  style={styles.locationTextTap}
+                  onPress={() => openEmbeddedSearch('destination', 0)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Destination: ${destinations[0]?.address || destination}. Change destination`}
+                >
+                  <Text style={styles.locationText} numberOfLines={3}>
+                    {destinations[0]?.address || destination}
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.addButton}
                   onPress={() => openEmbeddedSearch('destination', undefined, true)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add another stop"
                 >
                   <Plus color="#000" size={20} />
                 </TouchableOpacity>
-              </TouchableOpacity>
+              </View>
             )}
           </View>
         </View>
@@ -912,13 +930,14 @@ export default function OfferFareSideSheet({
                 style={isValidFare ? styles.findDriverButton : styles.findDriverButtonDisabled}
                 onPress={handleFindDriver}
                 disabled={!isValidFare}
+                accessibilityRole="button"
+                accessibilityLabel="Find a driver"
+                accessibilityState={{ disabled: !isValidFare }}
+                accessibilityHint={!isValidFare ? "Enter a fare first" : undefined}
               >
                 <Text style={isValidFare ? styles.findDriverText : styles.findDriverTextDisabled}>
                   Find a driver
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.settingsButton}>
-                <SlidersHorizontal color="#000" size={22} />
               </TouchableOpacity>
             </View>
           </View>
@@ -1137,9 +1156,6 @@ function EmbeddedSearchRow({ item, onSelect, usage }: { item: LocationResult; on
         {item.distance && (
           <Text style={styles.embeddedSearchItemDistance}>{item.distance}</Text>
         )}
-        <TouchableOpacity style={styles.embeddedSearchBookmark}>
-          <Bookmark color="#666" size={20} />
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -1285,11 +1301,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#E4405F",
     justifyContent: "center",
     alignItems: "center",
-  },
-  socialIconText: {
-    fontSize: 20,
-    color: "#FFFFFF",
-    fontWeight: "700",
   },
   menuOverlay: {
     position: "absolute",
@@ -1438,6 +1449,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingVertical: 12,
   },
+  // The row is the layout; only the address text is the tap target, so the
+  // chip beside it stays an independent control.
+  locationTextTap: {
+    flex: 1,
+  },
   locationDot: {
     width: 14,
     height: 14,
@@ -1537,15 +1553,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#9CA3AF",
-  },
-  settingsButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: "#2dabe2",
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 12,
   },
   keyboardContainer: {
     backgroundColor: "#d1d5db",
@@ -1789,8 +1796,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: "#888",
-  },
-  embeddedSearchBookmark: {
-    padding: 4,
   },
 });

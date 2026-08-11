@@ -1,6 +1,7 @@
-# UI/UX audit — rider core flow
+# UI/UX audit — rider core and partner surfaces
 
-Audit of the screens every passenger touches on every trip, run against the
+Audit of the screens every passenger touches on every trip, and of the partner
+(driver) surface a driver spends a whole shift in, run against the
 `ui-ux-pro-max` skill (`.claude/skills/ui-ux-pro-max/`, vendored from
 [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
 at `abb7f2f`, MIT).
@@ -300,6 +301,64 @@ screen **while rotating it 15°**, the largest single piece of motion in the app
 - **Opacity cross-fades**, which are not the kind of motion the setting is about.
 - **Gesture-driven values** that follow the finger.
 
+## Partner surface (sixth pass)
+
+11 screens and 6 components, ~26,000 lines, ~250 touchables, and — like the
+rider side before it — **zero** accessibility attributes. A driver spends a
+whole shift here, against a passenger's few minutes.
+
+Now at **142** roles/labels across the surface. What it turned up:
+
+### The same defects, cloned
+
+`components/OfferFareSideSheet.tsx` is a descendant of `ride-confirm.tsx` and
+carried the same three faults, none of which had been noticed because they were
+copied rather than written:
+
+- **The dead settings square** (`SlidersHorizontal`, no `onPress`) — the same
+  control removed from `ride-confirm`'s bottom bar. Removed.
+- **`💵` as the cash payment icon.** Replaced with `Banknote`.
+- **Buttons nested inside buttons** — the Entrance chip inside the pickup row
+  and the add-stop `+` inside both destination rows. Unnested; the row is now
+  the layout and only the address text is the tap target.
+
+Two more dead controls it did *not* inherit: a **bookmark button on every search
+result row** with no handler at all, and a payment row rendered as a
+`TouchableOpacity` that only reports the method and never changes it — now a
+plain `View`, since a control that does nothing should not look like one.
+
+`components/PartnerSideSheet.tsx` was a near-clone of `MenuSideSheet` and
+carried its faults too: `📷` and a text `f` as brand icons (now lucide), and
+menu rows keyed by array index (now by stable `id`).
+
+### Accessibility
+
+- Every icon-only control named: both menu buttons, both status pills, the
+  locate/search/recenter buttons, the permit document link, the meter's
+  pause/back/extra keys, the printer and reader rows, the offer stepper.
+- **Selection exposed** on the reader-transport, printer, paper-width and
+  vehicle lists, and on partner-type checkboxes — all of which signalled state
+  with a tick glyph and a border colour only.
+- **Busy states named.** Several partner buttons replace their whole label with
+  an `ActivityIndicator` while working, so they became *unnamed* buttons exactly
+  when something was happening: the meter's print and reader-link buttons, the
+  vehicle-onboarding saves.
+- **`Go Online` / `Go Offline`** is now `accessibilityRole="switch"` with
+  `checked` state — it is a mode, not a one-shot action, and a driver's income
+  depends on knowing which way it is set.
+- **The cancel-reason "Other" field** on `ride-running` was placeholder-only,
+  the same fault as the rider side. It now has a visible label.
+
+### Reduced motion
+
+Applied to the partner loops the earlier pass left open:
+
+- `ride-running`'s marker ring, and its **blinking VoiceProtection dot** — the
+  pill only renders while recording and is captioned "VoiceProtection
+  recording", so the blink is decoration on a state the text already gives; it
+  rests at full opacity.
+- `partner-ehailing`'s online ring, and the bottom-sheet entrances on both.
+
 ## Known, not fixed
 
 Deliberately out of scope for a targeted pass — each would be its own change:
@@ -312,10 +371,8 @@ Deliberately out of scope for a targeted pass — each would be its own change:
    stable ids and rewriting the reorder logic. Left as its own change.
 2. **`hitSlop` coverage app-wide.** 140 files use `TouchableOpacity`; 25 use
    `hitSlop`. The partner and admin surfaces were not touched by this pass.
-3. **Reduced motion outside the rider core.** `ride-running`,
-   `partner-ehailing` and `map-picker` still run un-gated `Animated.loop`s. The
-   primitive is in place (`utils/reducedMotion.ts` + `hooks/useReducedMotion.ts`);
-   applying it to the partner surface is its own pass.
+3. **Reduced motion in `map-picker`.** Its loop is a loading spinner, which is
+   `essential` and correctly left alone; nothing else there animates.
 4. **Dynamic Type.** No screen was verified at the largest system text size;
    `allowFontScaling` is left at its default everywhere except the meter console.
 

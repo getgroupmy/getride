@@ -326,6 +326,8 @@ export default function MeterPrinterScreen() {
                   ]}
                   onPress={() => pickDiscovered(d.name)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use ${d.name}`}
                   testID={`printer-found-${d.id}`}
                 >
                   <Bluetooth color={draftAddress === d.name ? Colors.accent : Colors.textSecondary} size={18} />
@@ -457,6 +459,8 @@ export default function MeterPrinterScreen() {
                 ]}
                 disabled={printer.printing || !lastTrip}
                 onPress={() => void handlePrintLast()}
+                accessibilityRole="button"
+                accessibilityLabel="Print the last receipt"
                 testID="printer-print-last"
               >
                 {printer.printing ? (
@@ -507,6 +511,9 @@ export default function MeterPrinterScreen() {
                   onPress={() => void handleSelect(p)}
                   onLongPress={() => handleDelete(p)}
                   activeOpacity={0.7}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected, checked: selected }}
+                  accessibilityLabel={p.name}
                   testID={`printer-row-${p.id}`}
                 >
                   <Icon color={selected ? Colors.accent : Colors.textSecondary} size={20} />
@@ -614,6 +621,9 @@ export default function MeterPrinterScreen() {
                       ]}
                       onPress={() => setDraftKind(choice.kind)}
                       activeOpacity={0.7}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: picked, checked: picked }}
+                      accessibilityLabel={choice.title}
                       testID={`printer-kind-${choice.kind}`}
                     >
                       <Icon color={picked ? Colors.accent : Colors.textSecondary} size={20} />
@@ -658,6 +668,9 @@ export default function MeterPrinterScreen() {
                       ]}
                       onPress={() => setDraftPaper(choice.width)}
                       activeOpacity={0.7}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: picked, checked: picked }}
+                      accessibilityLabel={choice.label}
                       testID={`printer-paper-${choice.width}`}
                     >
                       <View style={styles.rowInfo}>

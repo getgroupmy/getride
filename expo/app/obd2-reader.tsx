@@ -627,6 +627,9 @@ export default function Obd2ReaderScreen() {
                       onPress={() => void handleSelect(adapter)}
                       onLongPress={() => handleDelete(adapter)}
                       activeOpacity={0.7}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected, checked: selected }}
+                      accessibilityLabel={`${adapter.name}, ${TRANSPORT_LABEL[adapter.transport]}`}
                       testID={`obd2-adapter-${adapter.id}`}
                     >
                       <Icon color={isLive ? "#22C55E" : Colors.textSecondary} size={20} />
@@ -752,6 +755,9 @@ export default function Obd2ReaderScreen() {
                       ]}
                       onPress={() => setDraftKind(choice.kind)}
                       activeOpacity={0.7}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: picked, checked: picked, disabled: !avail?.available }}
+                      accessibilityLabel={choice.title}
                       testID={`obd2-kind-${choice.kind}`}
                     >
                       <Icon color={picked ? Colors.accent : Colors.textSecondary} size={20} />
@@ -888,6 +894,8 @@ export default function Obd2ReaderScreen() {
                           ]}
                           onPress={() => pickDiscovered(d)}
                           activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Use ${d.name}`}
                           testID={`obd2-found-${d.id}`}
                         >
                           <Bluetooth

@@ -46,6 +46,8 @@ import {
   Map as MapIcon,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { motionSpring, resolveMotion } from "@/utils/reducedMotion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
@@ -112,6 +114,7 @@ export default function RideRunningScreen() {
   const { authState } = useAuth();
   const partnerUserId = authState.userId ?? null;
   const recDotAnim = useRef(new Animated.Value(1)).current;
+  const reducedMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<any>(null);
 
@@ -236,20 +239,27 @@ export default function RideRunningScreen() {
   }, [fareParam, distanceParam]);
 
   useEffect(() => {
-    Animated.spring(slideUpAnim, {
+    Animated.spring(slideUpAnim, motionSpring({
       toValue: 0,
       useNativeDriver: true,
       tension: 60,
       friction: 10,
-    }).start();
+    }, "transition", reducedMotion)).start();
 
-    Animated.loop(
+    // Decorative: the ring around the marker says nothing the marker does not.
+    if (!resolveMotion("decorative", reducedMotion).run) {
+      pulseAnim.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
       ])
-    ).start();
-  }, [pulseAnim, slideUpAnim]);
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim, slideUpAnim, reducedMotion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -953,6 +963,13 @@ export default function RideRunningScreen() {
       recDotAnim.setValue(1);
       return;
     }
+    // The pill only renders while recording and is captioned "VoiceProtection
+    // recording", so the blink is decoration on top of a state the text already
+    // states. Resting at full opacity keeps the dot visible.
+    if (!resolveMotion("decorative", reducedMotion).run) {
+      recDotAnim.setValue(1);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(recDotAnim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
@@ -961,7 +978,7 @@ export default function RideRunningScreen() {
     );
     loop.start();
     return () => loop.stop();
-  }, [isRecording, recDotAnim]);
+  }, [isRecording, recDotAnim, reducedMotion]);
 
   const handleStartTrip = useCallback(() => {
     console.log("[ride-running] driver tapped Start trip, switching to toDestination");
@@ -1322,6 +1339,8 @@ export default function RideRunningScreen() {
         <TouchableOpacity
           testID="cancel-order-button"
           activeOpacity={0.9}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel ride"
           onPress={openCancelModal}
           style={[
             styles.cancelFab,
@@ -1341,6 +1360,8 @@ export default function RideRunningScreen() {
         <TouchableOpacity
           testID="nav-app-button"
           activeOpacity={0.9}
+          accessibilityRole="button"
+          accessibilityLabel="Open in a navigation app"
           onPress={() => {
             if (Platform.OS !== "web") {
               Haptics.selectionAsync().catch(() => {});
@@ -1365,6 +1386,8 @@ export default function RideRunningScreen() {
         <TouchableOpacity
           testID="recenter-button"
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Follow the car on the map"
           onPress={handleRecenter}
           style={[
             styles.recenterBtn,
@@ -1520,6 +1543,7 @@ export default function RideRunningScreen() {
             testID="end-ride-button"
             activeOpacity={0.9}
             onPress={handleEndRide}
+            accessibilityRole="button"
             style={[
               styles.endButton,
               {
@@ -1842,7 +1866,13 @@ export default function RideRunningScreen() {
                   Fare recalculated to your stop point
                 </Text>
               </View>
-              <TouchableOpacity onPress={closeRecalcSheet} style={[styles.recalcClose, { backgroundColor: Colors.gray[100] }]}>
+              <TouchableOpacity
+                onPress={closeRecalcSheet}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                style={[styles.recalcClose, { backgroundColor: Colors.gray[100] }]}
+              >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
             </View>
@@ -2313,6 +2343,9 @@ export default function RideRunningScreen() {
                     key={opt.id}
                     testID={`cancel-reason-${opt.id}`}
                     activeOpacity={0.85}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected, checked: isSelected }}
+                    accessibilityLabel={opt.label}
                     onPress={() => {
                       setCancelReason(opt.id);
                       if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -2345,26 +2378,31 @@ export default function RideRunningScreen() {
             </View>
 
             {cancelReason === "other" && (
-              <View
-                style={[
-                  styles.tollsInputWrap,
-                  {
-                    backgroundColor: Colors.gray[100],
-                    borderColor: Colors.gray[200],
-                    width: "100%",
-                    marginBottom: 14,
-                  },
-                ]}
-              >
-                <TextInput
-                  testID="cancel-reason-other-input"
-                  value={cancelOtherText}
-                  onChangeText={setCancelOtherText}
-                  placeholder="Type your reason"
-                  placeholderTextColor={Colors.textSecondary}
-                  style={[styles.tollsInput, { color: Colors.text, paddingLeft: 14 }]}
-                  autoFocus
-                />
+              <View style={{ width: "100%", marginBottom: 14 }}>
+                <Text style={[styles.cancelReasonLabel, { color: Colors.textSecondary, marginBottom: 6 }]}>
+                  Your reason
+                </Text>
+                <View
+                  style={[
+                    styles.tollsInputWrap,
+                    {
+                      backgroundColor: Colors.gray[100],
+                      borderColor: Colors.gray[200],
+                      width: "100%",
+                    },
+                  ]}
+                >
+                  <TextInput
+                    testID="cancel-reason-other-input"
+                    value={cancelOtherText}
+                    onChangeText={setCancelOtherText}
+                    placeholder="Type your reason"
+                    placeholderTextColor={Colors.textSecondary}
+                    style={[styles.tollsInput, { color: Colors.text, paddingLeft: 14 }]}
+                    accessibilityLabel="Your reason for cancelling"
+                    autoFocus
+                  />
+                </View>
               </View>
             )}
 
@@ -2390,6 +2428,11 @@ export default function RideRunningScreen() {
                 ]}
                 activeOpacity={0.9}
                 disabled={!cancelReason || (cancelReason === "other" && !cancelOtherText.trim())}
+                accessibilityRole="button"
+                accessibilityState={{
+                  disabled: !cancelReason || (cancelReason === "other" && !cancelOtherText.trim()),
+                }}
+                accessibilityHint={!cancelReason ? "Pick a reason first" : undefined}
                 onPress={handleConfirmCancelOrder}
               >
                 <Power color="#FFFFFF" size={18} />
@@ -2446,6 +2489,8 @@ export default function RideRunningScreen() {
                 style={[styles.endModalBtn, styles.endModalGhost, { borderColor: Colors.gray[300] }]}
                 activeOpacity={0.85}
                 disabled={cancelling}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: cancelling, busy: cancelling }}
                 onPress={() => closeCancelConfirm()}
               >
                 <Text style={[styles.endModalGhostText, { color: Colors.text }]}>Keep ride</Text>
@@ -2458,6 +2503,8 @@ export default function RideRunningScreen() {
                 ]}
                 activeOpacity={0.9}
                 disabled={cancelling}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: cancelling, busy: cancelling }}
                 onPress={handleFinalizeCancel}
               >
                 {cancelling ? (
@@ -2511,7 +2558,13 @@ export default function RideRunningScreen() {
                   Total {currency.symbol}{(recalcResult ? recalcResult.total : Math.ceil(fareParam)) + parsedTolls + parsedExtras}
                 </Text>
               </View>
-              <TouchableOpacity onPress={closePaymentSheet} style={[styles.recalcClose, { backgroundColor: Colors.gray[100] }]}>
+              <TouchableOpacity
+                onPress={closePaymentSheet}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                style={[styles.recalcClose, { backgroundColor: Colors.gray[100] }]}
+              >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
             </View>

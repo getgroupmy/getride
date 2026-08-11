@@ -1175,6 +1175,8 @@ export default function DriverTeksiScreen() {
               { backgroundColor: isLightMode ? "#fff" : "#1a1a1a" },
             ]}
             onPress={() => setSideSheetVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open menu"
             testID="partner-teksi-idle-menu"
           >
             <Menu color={isLightMode ? "#000" : "#fff"} size={22} />
@@ -1199,6 +1201,8 @@ export default function DriverTeksiScreen() {
               ]}
               onPress={() => setStatusModalVisible(true)}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Status: ${statusLabel}. Change status`}
               testID="partner-teksi-idle-status"
             >
               <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
@@ -1250,6 +1254,8 @@ export default function DriverTeksiScreen() {
                       setDocPreviewError(false);
                       setDocPreviewVisible(true);
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel="View permit document"
                     testID="partner-teksi-doc-preview-link"
                     activeOpacity={0.7}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -1526,6 +1532,8 @@ export default function DriverTeksiScreen() {
             ]}
             onPress={handleStartTestRide}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Test ride"
             testID="partner-teksi-test-ride"
           >
             <Zap color={Colors.accent} size={16} />
@@ -1842,6 +1850,8 @@ export default function DriverTeksiScreen() {
               },
             ]}
             onPress={() => setSideSheetVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open menu"
             testID="partner-teksi-menu"
           >
             <Menu color={isLightMode ? "#000" : "#fff"} size={22} />
@@ -1873,6 +1883,8 @@ export default function DriverTeksiScreen() {
               ]}
               onPress={() => setStatusModalVisible(true)}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Status: ${statusLabel}. Change status`}
               testID="partner-teksi-status"
             >
               <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
@@ -2103,6 +2115,8 @@ export default function DriverTeksiScreen() {
           },
         ]}
         onPress={handleCurrentLocation}
+        accessibilityRole="button"
+        accessibilityLabel="Recenter map on my location"
         testID="partner-teksi-locate"
       >
         <Navigation color={isLightMode ? "#000" : "#fff"} size={20} />
@@ -2145,6 +2159,8 @@ export default function DriverTeksiScreen() {
           ]}
           onPress={() => setSearchVisible(true)}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Search"
           testID="partner-teksi-search"
         >
           <Search color={Colors.textSecondary} size={18} />

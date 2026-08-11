@@ -124,6 +124,9 @@ export default function PartnerTypePicker({
                 </View>
                 <TouchableOpacity
                   onPress={() => setOpen(false)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID={testID ? `${testID}-close` : undefined}
                 >
@@ -169,6 +172,9 @@ export default function PartnerTypePicker({
                         key={opt.id}
                         onPress={() => toggle(opt.name)}
                         activeOpacity={0.85}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        accessibilityLabel={opt.name}
                         style={[
                           styles.row,
                           {

@@ -458,6 +458,8 @@ export default function PartnerOnboardingScreen() {
               onPress={uploadIdImage}
               disabled={busy}
               style={[styles.secondaryBtn, { borderColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Upload your ID photo"
               testID="onboard-upload-id"
             >
               <Camera color={Colors.accent} size={18} />

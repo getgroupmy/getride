@@ -1038,6 +1038,8 @@ export default function VehicleOnboardingScreen() {
                   marginTop: 16,
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Save documents"
               testID="veh-onboard-save-docs"
             >
               {busy ? (
@@ -1084,6 +1086,8 @@ export default function VehicleOnboardingScreen() {
                   marginTop: 16,
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Save photos"
               testID="veh-onboard-save-photos"
             >
               {busy ? (
@@ -1203,6 +1207,8 @@ export default function VehicleOnboardingScreen() {
                   opacity: busy || !canContinue ? 0.5 : 1,
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Save owner details"
               testID="veh-onboard-save-owner"
             >
               {busy ? (

@@ -500,6 +500,8 @@ export default function VehicleInformationScreen() {
             style={styles.headerButton}
             onPress={() => void runScan()}
             disabled={scanning || !status.linked}
+            accessibilityRole="button"
+            accessibilityLabel="Re-read the vehicle"
             testID="vehicle-info-refresh"
           >
             <RefreshCw

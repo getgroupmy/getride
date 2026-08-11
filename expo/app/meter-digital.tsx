@@ -2116,6 +2116,8 @@ export default function MeterDigitalScreen() {
           ]}
           onPress={handlePauseToggle}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={meter.running ? "Pause the meter" : "Resume the meter"}
           testID="meter-digital-pause"
         >
           {meter.running ? (
@@ -2369,6 +2371,9 @@ export default function MeterDigitalScreen() {
           disabled={extra <= 0}
           onPress={() => handleExtra(-1)}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Lower extra charge"
+          accessibilityState={{ disabled: extra <= 0 }}
           testID="meter-digital-extra-down"
         >
           <Minus color={DASH.accent} size={ui.iconSize} />
@@ -2380,6 +2385,8 @@ export default function MeterDigitalScreen() {
           ]}
           onPress={() => handleExtra(1)}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Raise extra charge"
           testID="meter-digital-extra-up"
         >
           <Plus color={DASH.accent} size={ui.iconSize} />
@@ -2826,6 +2833,8 @@ export default function MeterDigitalScreen() {
             ]}
             onPress={() => router.push("/meter-printer")}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Set up printer"
             testID="meter-digital-setup-printer"
           >
             <Printer color={DASH.text} size={ui.iconSize} />
@@ -2860,6 +2869,9 @@ export default function MeterDigitalScreen() {
                 disabled={printing}
                 onPress={() => void printReceipt(receiptTarget)}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={printing ? "Printing receipt" : "Print last receipt"}
+                accessibilityState={{ disabled: printing, busy: printing }}
                 testID="meter-digital-print-last"
               >
                 {printing ? (
@@ -2941,6 +2953,9 @@ export default function MeterDigitalScreen() {
                 else void canbus.connect();
               }}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={canbus.connecting ? "Connecting to the reader" : online ? "Disconnect the reader" : "Connect the reader"}
+              accessibilityState={{ disabled: canbus.connecting, busy: canbus.connecting }}
               testID="meter-digital-link-toggle"
             >
               {canbus.connecting ? (
@@ -3265,6 +3280,8 @@ export default function MeterDigitalScreen() {
             ]}
             disabled={backBlocked}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
             testID="meter-digital-back"
           >
             <ArrowLeft
@@ -3460,6 +3477,8 @@ export default function MeterDigitalScreen() {
                       disabled={detailsDraft.charges <= 0}
                       onPress={() => handleChargesStep(-1)}
                       activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Lower charge"
                       testID="meter-digital-details-charges-down"
                     >
                       <Minus color={DASH.accent} size={ui.iconSize} />
@@ -3510,6 +3529,8 @@ export default function MeterDigitalScreen() {
                       ]}
                       onPress={() => handleChargesStep(1)}
                       activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Raise charge"
                       testID="meter-digital-details-charges-up"
                     >
                       <Plus color={DASH.accent} size={ui.iconSize} />

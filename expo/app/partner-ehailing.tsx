@@ -53,6 +53,8 @@ import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useLocation } from "@/contexts/LocationContext";
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { resolveMotion } from "@/utils/reducedMotion";
 import { POPULAR_LOCATIONS } from "@/constants/mockLocations";
 import PartnerModeSelectModal, { type PartnerModeOption } from "@/components/PartnerModeSelectModal";
 import { loadAssignedPartnerModeOptions } from "@/utils/partnerModeOptions";
@@ -184,6 +186,7 @@ export default function DriverEhailingScreen() {
   const mapRef = useRef<any>(null);
   const { location: currentLocation, refreshLocation } = useLocation();
   const Colors = useColors();
+  const reducedMotion = useReducedMotion();
   const isLightMode = Colors.background === "#FFFFFF";
 
   const driverLat = currentLocation?.coords?.latitude ?? 3.139;
@@ -357,7 +360,9 @@ export default function DriverEhailingScreen() {
   }, [recenterMap]);
 
   useEffect(() => {
-    if (!isOnline) {
+    // The ring pulses around the driver's own marker while they are online.
+    // Decorative: the Go Online / Go Offline button already states the mode.
+    if (!isOnline || !resolveMotion("decorative", reducedMotion).run) {
       pulseAnim.stopAnimation();
       pulseAnim.setValue(0);
       return;
@@ -381,7 +386,7 @@ export default function DriverEhailingScreen() {
     return () => {
       loop.stop();
     };
-  }, [isOnline, pulseAnim]);
+  }, [isOnline, pulseAnim, reducedMotion]);
 
   const clearRequestTimers = () => {
     if (requestTimer.current) {
@@ -1211,6 +1216,8 @@ export default function DriverEhailingScreen() {
               { backgroundColor: isLightMode ? "#fff" : "rgba(0,0,0,0.7)" },
             ]}
             onPress={() => setSideSheetVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open menu"
             testID="partner-ehailing-menu"
           >
             <Menu color={isLightMode ? "#000" : "#fff"} size={22} />
@@ -1428,6 +1435,8 @@ export default function DriverEhailingScreen() {
         onPress={() => {
           recenterMap();
         }}
+        accessibilityRole="button"
+        accessibilityLabel="Recenter map on my location"
         testID="partner-ehailing-locate"
       >
         <Navigation color={isLightMode ? "#000" : "#fff"} size={20} />
@@ -1585,6 +1594,10 @@ export default function DriverEhailingScreen() {
           ]}
           onPress={handleToggleOnline}
           activeOpacity={0.85}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: isOnline }}
+          accessibilityLabel={isOnline ? "Go offline" : "Go online"}
+          accessibilityHint={isOnline ? "You are online and receiving requests" : "You are offline and receiving nothing"}
           testID="partner-ehailing-toggle"
         >
           <Power color="#fff" size={18} />
@@ -1839,6 +1852,8 @@ export default function DriverEhailingScreen() {
                   <TouchableOpacity
                     style={[styles.acceptBtn, { backgroundColor: Colors.accent }]}
                     onPress={handleAccept}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Accept for ${request.fare} ringgit`}
                     testID="ehailing-accept"
                   >
                     <Check color="#000000" size={18} />
@@ -1947,6 +1962,8 @@ export default function DriverEhailingScreen() {
                 ]}
                 onPress={() => adjustOffer(-1)}
                 disabled={!!request && offerAmount <= request.fare}
+                accessibilityRole="button"
+                accessibilityLabel="Lower your offer"
                 testID="offer-decrease"
               >
                 <Minus color={Colors.text} size={22} />
@@ -1961,6 +1978,8 @@ export default function DriverEhailingScreen() {
                   { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" },
                 ]}
                 onPress={() => adjustOffer(1)}
+                accessibilityRole="button"
+                accessibilityLabel="Raise your offer"
                 testID="offer-increase"
               >
                 <Plus color={Colors.text} size={22} />
@@ -1984,6 +2003,8 @@ export default function DriverEhailingScreen() {
               <TouchableOpacity
                 style={[styles.offerSendBtn, { backgroundColor: Colors.accent }]}
                 onPress={handleSubmitOffer}
+                accessibilityRole="button"
+                accessibilityLabel="Send your offer"
                 testID="offer-send"
               >
                 <Check color="#000000" size={18} />
@@ -2186,6 +2207,9 @@ export default function DriverEhailingScreen() {
                   setSearchQuery("");
                   setSearchResults([]);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 testID="dest-picker-close"
               >
                 <X color={Colors.text} size={18} />
@@ -2219,6 +2243,9 @@ export default function DriverEhailingScreen() {
                     setSearchQuery("");
                     setSearchResults([]);
                   }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   testID="dest-search-clear"
                 >
                   <X color={Colors.textSecondary} size={16} />
