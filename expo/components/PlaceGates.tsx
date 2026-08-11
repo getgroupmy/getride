@@ -171,6 +171,7 @@ export function PlaceGatesList({ lat, lon, variant = "light", compact, selectedG
                 onPress={() => onSelectGate?.(g, matched)}
                 style={[styles.chip, { backgroundColor: bg }]}
                 testID={`gate-chip-${g.id}`}
+                accessibilityRole="button"
               >
                 {isSelected ? <Check color={fg} size={11} /> : <DoorOpen color={fg} size={11} />}
                 <Text style={[styles.chipText, { color: fg }]} numberOfLines={1}>

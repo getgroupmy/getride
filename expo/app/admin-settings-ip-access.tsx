@@ -199,6 +199,8 @@ export default function AdminSettingsIpAccessScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="ip-access-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -219,6 +221,8 @@ export default function AdminSettingsIpAccessScreen() {
             { backgroundColor: editable ? Colors.accent + "20" : Colors.gray[100], opacity: editable ? 1 : 0.5 },
           ]}
           testID="ip-access-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add IP access"
         >
           <Plus color={editable ? Colors.accent : Colors.textSecondary} size={20} />
         </TouchableOpacity>
@@ -275,6 +279,8 @@ export default function AdminSettingsIpAccessScreen() {
                 onPress={() => load()}
                 style={[styles.smallBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                 testID="ip-access-refresh"
+                accessibilityRole="button"
+                accessibilityLabel="Refresh"
               >
                 <RefreshCw color={Colors.textSecondary} size={14} />
               </TouchableOpacity>
@@ -283,6 +289,7 @@ export default function AdminSettingsIpAccessScreen() {
                   onPress={() => openAdd("whitelist", myIp)}
                   style={[styles.smallBtn, { backgroundColor: Colors.accent + "20", borderColor: Colors.accent }]}
                   testID="ip-access-add-mine"
+                  accessibilityRole="button"
                 >
                   <Plus color={Colors.accent} size={14} />
                   <Text style={[styles.smallBtnTxt, { color: Colors.accent }]}>Add this IP</Text>
@@ -303,6 +310,7 @@ export default function AdminSettingsIpAccessScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="ip-access-search"
+              accessibilityLabel="Search IP rules"
             />
           </View>
 
@@ -326,6 +334,7 @@ export default function AdminSettingsIpAccessScreen() {
                     },
                   ]}
                   testID={`ip-access-filter-${f.key}`}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.filterChipTxt, { color: active ? Colors.onAccent : Colors.text }]}>
                     {f.label}
@@ -366,6 +375,8 @@ export default function AdminSettingsIpAccessScreen() {
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background, opacity: editable ? 1 : 0.4 }]}
                   testID={`ip-access-edit-${rule.id}`}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit IP access"
                 >
                   <Pencil color={Colors.accent} size={14} />
                 </TouchableOpacity>
@@ -375,6 +386,8 @@ export default function AdminSettingsIpAccessScreen() {
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background, opacity: editable ? 1 : 0.4 }]}
                   testID={`ip-access-delete-${rule.id}`}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete IP access"
                 >
                   <Trash2 color={Colors.error} size={14} />
                 </TouchableOpacity>
@@ -404,7 +417,7 @@ export default function AdminSettingsIpAccessScreen() {
                 <Text style={[styles.modalTitle, { color: Colors.text }]}>
                   {editingId ? "Edit IP rule" : "Add IP rule"}
                 </Text>
-                <TouchableOpacity onPress={() => setShowForm(false)} hitSlop={8}>
+                <TouchableOpacity onPress={() => setShowForm(false)} hitSlop={8} accessibilityRole="button">
                   <X color={Colors.text} size={22} />
                 </TouchableOpacity>
               </View>
@@ -428,6 +441,7 @@ export default function AdminSettingsIpAccessScreen() {
                         },
                       ]}
                       testID={`ip-access-type-${opt.key}`}
+                      accessibilityRole="button"
                     >
                       <opt.Icon color={active ? opt.tone : Colors.textSecondary} size={18} />
                       <Text style={[styles.typeOptionTitle, { color: active ? opt.tone : Colors.text }]}>
@@ -453,9 +467,10 @@ export default function AdminSettingsIpAccessScreen() {
                   autoCorrect={false}
                   keyboardType="numbers-and-punctuation"
                   testID="ip-access-form-ip"
+                  accessibilityLabel="IP address"
                 />
                 {myIp && ipInput.trim() !== myIp ? (
-                  <TouchableOpacity onPress={() => setIpInput(myIp)} hitSlop={8} testID="ip-access-use-mine">
+                  <TouchableOpacity onPress={() => setIpInput(myIp)} hitSlop={8} testID="ip-access-use-mine" accessibilityRole="button">
                     <Text style={[styles.useMine, { color: Colors.accent }]}>Use mine</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -470,6 +485,7 @@ export default function AdminSettingsIpAccessScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.input, { color: Colors.text }]}
                   testID="ip-access-form-label"
+                  accessibilityLabel="Label (optional)"
                 />
               </View>
 
@@ -478,6 +494,8 @@ export default function AdminSettingsIpAccessScreen() {
                 disabled={saving}
                 style={[styles.saveBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.7 : 1 }]}
                 testID="ip-access-form-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color={Colors.onAccent} />

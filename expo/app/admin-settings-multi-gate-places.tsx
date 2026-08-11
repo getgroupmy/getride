@@ -470,6 +470,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           onPress={() => router.push({ pathname: "/admin-settings-multi-gate-place-gates" as any, params: { placeId: entry.id } })}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`mgp-gates-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Manage gates"
         >
           <Settings2 color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -477,6 +479,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`mgp-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit place"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -484,6 +488,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           onPress={() => onDelete(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`mgp-delete-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete place"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -507,6 +513,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           },
         ]}
         testID={`mgp-result-${r.id}`}
+        accessibilityRole="button"
       >
         <View style={[styles.resultIcon, { backgroundColor: Colors.accent + "15" }]}>
           <MapPin color={Colors.accent} size={16} />
@@ -554,6 +561,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="mgp-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -572,6 +581,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           onPress={openManualAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="mgp-add-manual"
+          accessibilityRole="button"
+          accessibilityLabel="Add a place manually"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -588,11 +599,12 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           autoCorrect={false}
           autoCapitalize="words"
           testID="mgp-search"
+          accessibilityLabel="Search places"
         />
         {searching ? (
           <ActivityIndicator size="small" color={Colors.accent} />
         ) : query.length > 0 ? (
-          <TouchableOpacity onPress={() => setQuery("")} testID="mgp-search-clear">
+          <TouchableOpacity onPress={() => setQuery("")} testID="mgp-search-clear" accessibilityRole="button">
             <X color={Colors.textSecondary} size={16} />
           </TouchableOpacity>
         ) : null}
@@ -650,6 +662,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                 onPress={openManualAdd}
                 style={[styles.cta, { backgroundColor: Colors.accent }]}
                 testID="mgp-empty-add"
+                accessibilityRole="button"
               >
                 <Plus color={Colors.onAccent} size={16} />
                 <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add manually</Text>
@@ -678,6 +691,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="mgp-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -707,6 +721,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                         keyboardType={(f as { kb?: string }).kb as never}
                         multiline={f.key === "address"}
                         testID={`mgp-field-${f.key}`}
+                        accessibilityLabel={f.label}
                       />
                     </View>
                   </View>
@@ -733,6 +748,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                     trackColor={{ false: Colors.border, true: Colors.accent }}
                     thumbColor={Platform.OS === "android" ? Colors.secondary : undefined}
                     testID="mgp-field-gateRequired"
+                    accessibilityLabel="Gate selection"
                   />
                 </View>
 
@@ -757,6 +773,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                     trackColor={{ false: Colors.border, true: Colors.accent }}
                     thumbColor={Platform.OS === "android" ? Colors.secondary : undefined}
                     testID="mgp-field-active"
+                    accessibilityLabel="Status"
                   />
                 </View>
               </ScrollView>
@@ -764,6 +781,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="mgp-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

@@ -216,6 +216,8 @@ export default function PinSetupScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
@@ -263,6 +265,7 @@ export default function PinSetupScreen() {
                   maxLength={1}
                   selectTextOnFocus
                   secureTextEntry
+                  accessibilityLabel={`PIN digit ${index + 1} of ${currentCode.length}`}
                 />
                 <View
                   style={[

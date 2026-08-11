@@ -151,6 +151,7 @@ function AdminTripAudioPanel({ profileId, ticketId, adminId }: Props) {
         activeOpacity={0.7}
         onPress={() => setExpanded((v) => !v)}
         testID="trip-audio-toggle"
+        accessibilityRole="button"
       >
         <ShieldCheck color={Colors.accent} size={16} />
         <Text style={[styles.headerTitle, { color: Colors.text }]}>VoiceProtection trip audio</Text>
@@ -201,6 +202,7 @@ function AdminTripAudioPanel({ profileId, ticketId, adminId }: Props) {
                       style={[styles.actionBtn, { backgroundColor: Colors.accent }]}
                       onPress={() => handlePlay(rec)}
                       testID={`trip-audio-play-${rec.id}`}
+                      accessibilityRole="button"
                     >
                       {playingId === rec.id ? (
                         <Pause color="#000000" size={16} />
@@ -225,6 +227,7 @@ function AdminTripAudioPanel({ profileId, ticketId, adminId }: Props) {
                       disabled={requestingId === rec.id}
                       onPress={() => handleRequest(rec)}
                       testID={`trip-audio-request-${rec.id}`}
+                      accessibilityRole="button"
                     >
                       {requestingId === rec.id ? (
                         <ActivityIndicator color={Colors.background} size="small" />

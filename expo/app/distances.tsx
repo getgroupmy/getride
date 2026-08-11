@@ -44,6 +44,8 @@ export default function DistancesScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={28} />
           </TouchableOpacity>
@@ -59,6 +61,7 @@ export default function DistancesScreen() {
             style={styles.unitItem}
             onPress={() => handleUnitSelect(unit.id)}
             activeOpacity={0.7}
+            accessibilityRole="button"
           >
             <Text style={[styles.unitName, { color: Colors.text }]}>
               {unit.name}

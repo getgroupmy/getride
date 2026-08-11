@@ -439,6 +439,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="payment-gateway-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -457,6 +459,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
           onPress={() => setProviderPickerOpen(true)}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="payment-gateway-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add payment gateway"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -471,6 +475,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="payment-gateway-search"
+          accessibilityLabel="Search account or provider"
         />
       </View>
 
@@ -490,6 +495,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
             },
           ]}
           testID="payment-gateway-filter-all"
+          accessibilityRole="button"
         >
           <Text
             style={[
@@ -515,6 +521,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                 },
               ]}
               testID={`payment-gateway-filter-${p.id}`}
+              accessibilityRole="button"
             >
               <Text
                 style={[
@@ -568,6 +575,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
               onPress={() => setProviderPickerOpen(true)}
               style={[styles.emptyAction, { backgroundColor: Colors.accent }]}
               testID="payment-gateway-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.emptyActionText, { color: Colors.onAccent }]}>
@@ -598,6 +606,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                 onPress={() => openEdit(e)}
                 activeOpacity={0.85}
                 testID={`payment-gateway-row-${e.id}`}
+                accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
                   <CreditCard color={Colors.accent} size={18} />
@@ -656,6 +665,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                   onPress={() => openEdit(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`payment-gateway-edit-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit payment gateway"
                 >
                   <Pencil color={Colors.accent} size={16} />
                 </TouchableOpacity>
@@ -663,6 +674,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                   onPress={() => onDelete(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`payment-gateway-delete-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete payment gateway"
                 >
                   <Trash2 color={Colors.error} size={16} />
                 </TouchableOpacity>
@@ -687,6 +700,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
               <TouchableOpacity
                 onPress={() => setProviderPickerOpen(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -700,6 +714,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                     onPress={() => openAddForProvider(p)}
                     style={[styles.providerRow, { borderBottomColor: Colors.border }]}
                     testID={`payment-gateway-provider-${p.id}`}
+                    accessibilityRole="button"
                   >
                     <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
                       <CreditCard color={Colors.accent} size={18} />
@@ -756,6 +771,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                 <TouchableOpacity
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -772,6 +788,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                     ]}
                     testID="payment-gateway-field-provider"
                     disabled={!!editing}
+                    accessibilityRole="button"
                   >
                     <CreditCard color={Colors.textSecondary} size={16} />
                     <Text
@@ -805,6 +822,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="payment-gateway-field-account-name"
+                      accessibilityLabel="Account name *"
                     />
                   </View>
                 </View>
@@ -826,6 +844,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                             },
                           ]}
                           testID={`payment-gateway-field-mode-${m.toLowerCase()}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -903,6 +922,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                               autoCorrect={false}
                               style={[styles.input, { color: Colors.text }]}
                               testID={`payment-gateway-field-${f.key}`}
+                              accessibilityLabel={f.label}
                             />
                             {f.secret ? (
                               <TouchableOpacity
@@ -911,6 +931,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                                 }
                                 style={styles.eyeBtn}
                                 testID={`payment-gateway-reveal-${f.key}`}
+                                accessibilityRole="button"
+                                accessibilityLabel="Show or hide the value"
                               >
                                 {reveal ? (
                                   <EyeOff color={Colors.textSecondary} size={16} />
@@ -947,6 +969,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                     value={form.isDefault}
                     onValueChange={(v) => setForm((p) => ({ ...p, isDefault: v }))}
                     testID="payment-gateway-field-default"
+                    accessibilityLabel="Default gateway"
                   />
                 </View>
 
@@ -961,6 +984,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="payment-gateway-field-active"
+                    accessibilityLabel="Active"
                   />
                 </View>
               </ScrollView>
@@ -969,6 +993,8 @@ export default function AdminSettingsPaymentGatewayScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="payment-gateway-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

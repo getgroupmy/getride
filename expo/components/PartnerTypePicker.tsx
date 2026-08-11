@@ -89,6 +89,7 @@ export default function PartnerTypePicker({
           { backgroundColor: Colors.gray[100], borderColor: Colors.border },
         ]}
         testID={testID}
+        accessibilityRole="button"
       >
         <Users2 color={Colors.textSecondary} size={18} />
         <Text
@@ -124,6 +125,9 @@ export default function PartnerTypePicker({
                 </View>
                 <TouchableOpacity
                   onPress={() => setOpen(false)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID={testID ? `${testID}-close` : undefined}
                 >
@@ -146,6 +150,7 @@ export default function PartnerTypePicker({
                   style={[styles.searchInput, { color: Colors.text }]}
                   autoCapitalize="none"
                   testID={testID ? `${testID}-search` : undefined}
+                  accessibilityLabel="Search partner types"
                 />
               </View>
 
@@ -169,6 +174,9 @@ export default function PartnerTypePicker({
                         key={opt.id}
                         onPress={() => toggle(opt.name)}
                         activeOpacity={0.85}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        accessibilityLabel={opt.name}
                         style={[
                           styles.row,
                           {

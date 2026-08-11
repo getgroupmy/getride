@@ -197,6 +197,8 @@ export default function PinVerifyScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
@@ -234,6 +236,7 @@ export default function PinVerifyScreen() {
                   maxLength={1}
                   selectTextOnFocus
                   secureTextEntry
+                  accessibilityLabel={`PIN digit ${index + 1} of ${code.length}`}
                   editable={attempts < 3}
                 />
                 <View
@@ -259,6 +262,7 @@ export default function PinVerifyScreen() {
             style={styles.forgotButton}
             onPress={handleForgotPin}
             disabled={isSendingOtp}
+            accessibilityRole="button"
           >
             <Text style={[styles.forgotButtonText, { color: colors.accent }]}>{isSendingOtp ? "Sending code\u2026" : "Forgot PIN?"}</Text>
           </TouchableOpacity>

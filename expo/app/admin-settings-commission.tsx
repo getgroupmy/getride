@@ -371,6 +371,7 @@ export default function AdminSettingsCommissionScreen() {
         autoCapitalize="words"
         autoCorrect={false}
         testID={`commission-field-${label.toLowerCase()}`}
+        accessibilityLabel={label}
       />
       {focusField === field && suggestions.length > 0 && (
         <View style={[styles.suggestBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
@@ -388,6 +389,7 @@ export default function AdminSettingsCommissionScreen() {
                 }
                 setFocusField(null);
               }}
+              accessibilityRole="button"
             >
               <Text style={[styles.suggestText, { color: Colors.text }]}>{name}</Text>
             </TouchableOpacity>
@@ -432,11 +434,12 @@ export default function AdminSettingsCommissionScreen() {
         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
         thumbColor="#fff"
         testID={`commission-active-${rule.id}`}
+        accessibilityLabel={`Active${rule.country ? ` for ${rule.country}` : ""}`}
       />
-      <TouchableOpacity onPress={() => openEdit(rule)} style={styles.ruleBtn} testID={`commission-edit-${rule.id}`}>
+      <TouchableOpacity onPress={() => openEdit(rule)} style={styles.ruleBtn} testID={`commission-edit-${rule.id}`} accessibilityRole="button" accessibilityLabel="Edit commission">
         <Pencil color={Colors.textSecondary} size={16} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => confirmDelete(rule)} style={styles.ruleBtn} testID={`commission-delete-${rule.id}`}>
+      <TouchableOpacity onPress={() => confirmDelete(rule)} style={styles.ruleBtn} testID={`commission-delete-${rule.id}`} accessibilityRole="button" accessibilityLabel="Delete commission">
         <Trash2 color={Colors.error} size={16} />
       </TouchableOpacity>
     </View>
@@ -453,6 +456,8 @@ export default function AdminSettingsCommissionScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="commission-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -517,6 +522,7 @@ export default function AdminSettingsCommissionScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   autoFocus
                   testID="commission-master-input"
+                  accessibilityLabel="Master commission rate"
                 />
                 <Text style={[styles.masterPct, { color: Colors.textSecondary }]}>%</Text>
                 <TouchableOpacity
@@ -524,12 +530,15 @@ export default function AdminSettingsCommissionScreen() {
                   style={[styles.masterSaveBtn, { backgroundColor: Colors.accent }]}
                   disabled={busy}
                   testID="commission-master-save"
+                  accessibilityRole="button"
+                  accessibilityLabel="Save"
                 >
                   <Check color="#fff" size={16} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setMasterEditing(false)}
                   style={[styles.masterSaveBtn, { backgroundColor: Colors.gray[300] }]}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={16} />
                 </TouchableOpacity>
@@ -543,6 +552,8 @@ export default function AdminSettingsCommissionScreen() {
                 }}
                 style={[styles.masterRatePill, { backgroundColor: Colors.accent }]}
                 testID="commission-master-edit"
+                accessibilityRole="button"
+                accessibilityLabel="Edit commission"
               >
                 <Text style={styles.masterRateText}>{formatPct(effectiveMasterRate)}</Text>
                 <Pencil color="#fff" size={13} />
@@ -565,6 +576,7 @@ export default function AdminSettingsCommissionScreen() {
                     onPress={() => openAdd(meta.level)}
                     style={[styles.addBtn, { backgroundColor: Colors.accent + "15" }]}
                     testID={`commission-add-${meta.level}`}
+                    accessibilityRole="button"
                   >
                     <Plus color={Colors.accent} size={14} />
                     <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -596,7 +608,7 @@ export default function AdminSettingsCommissionScreen() {
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: Colors.text }]}>{modalTitle}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.ruleBtn} testID="commission-modal-close">
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.ruleBtn} testID="commission-modal-close" accessibilityRole="button">
                 <X color={Colors.textSecondary} size={20} />
               </TouchableOpacity>
             </View>
@@ -621,6 +633,7 @@ export default function AdminSettingsCommissionScreen() {
                     autoCapitalize="words"
                     autoCorrect={false}
                     testID="commission-field-suburb"
+                    accessibilityLabel="Suburb"
                   />
                 </View>
               )}
@@ -645,6 +658,7 @@ export default function AdminSettingsCommissionScreen() {
                           setSelUserLabel("");
                         }}
                         style={styles.ruleBtn}
+                        accessibilityRole="button"
                       >
                         <X color={Colors.textSecondary} size={16} />
                       </TouchableOpacity>
@@ -662,6 +676,7 @@ export default function AdminSettingsCommissionScreen() {
                           autoCapitalize="none"
                           autoCorrect={false}
                           testID="commission-user-search"
+                          accessibilityLabel="Search name, phone or ID…"
                         />
                         {userSearching && <ActivityIndicator size="small" color={Colors.accent} />}
                       </View>
@@ -678,6 +693,7 @@ export default function AdminSettingsCommissionScreen() {
                             setUserQuery("");
                           }}
                           testID={`commission-user-hit-${u.id}`}
+                          accessibilityRole="button"
                         >
                           <Text style={[styles.userHitName, { color: Colors.text }]} numberOfLines={1}>
                             {u.name ?? "Unnamed"}
@@ -708,6 +724,7 @@ export default function AdminSettingsCommissionScreen() {
                   placeholder="e.g. 12.5"
                   placeholderTextColor={Colors.textSecondary}
                   testID="commission-field-rate"
+                  accessibilityLabel="Commission rate (%)"
                 />
               </View>
 
@@ -719,6 +736,7 @@ export default function AdminSettingsCommissionScreen() {
                   trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                   thumbColor="#fff"
                   testID="commission-field-active"
+                  accessibilityLabel="Active"
                 />
               </View>
             </ScrollView>
@@ -728,6 +746,8 @@ export default function AdminSettingsCommissionScreen() {
               style={[styles.submitBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
               disabled={busy}
               testID="commission-modal-save"
+              accessibilityRole="button"
+              accessibilityLabel="Save"
             >
               {busy ? (
                 <ActivityIndicator color="#fff" size="small" />

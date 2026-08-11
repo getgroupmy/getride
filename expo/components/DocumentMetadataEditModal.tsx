@@ -108,6 +108,7 @@ export default function DocumentMetadataEditModal({
             onPress={onClose}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
             testID="doc-edit-close"
+            accessibilityRole="button"
           >
             <X color={Colors.text} size={22} />
           </TouchableOpacity>
@@ -127,6 +128,7 @@ export default function DocumentMetadataEditModal({
               placeholderTextColor={Colors.textSecondary}
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
               testID="doc-edit-name"
+              accessibilityLabel="Edit document"
             />
           </Field>
 
@@ -139,6 +141,7 @@ export default function DocumentMetadataEditModal({
               autoCapitalize="characters"
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
               testID="doc-edit-number"
+              accessibilityLabel="Optional"
             />
           </Field>
 
@@ -150,6 +153,7 @@ export default function DocumentMetadataEditModal({
               placeholderTextColor={Colors.textSecondary}
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
               testID="doc-edit-provider"
+              accessibilityLabel="e.g. Allianz, JPJ"
             />
           </Field>
 
@@ -161,6 +165,7 @@ export default function DocumentMetadataEditModal({
               placeholderTextColor={Colors.textSecondary}
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
               testID="doc-edit-country"
+              accessibilityLabel="e.g. Malaysia"
             />
           </Field>
 
@@ -188,7 +193,7 @@ export default function DocumentMetadataEditModal({
               <Text style={[styles.rowLabel, { color: Colors.text }]}>Disabled / PWD</Text>
               <Text style={[styles.rowHint, { color: Colors.textSecondary }]}>Mark this document as a PWD record.</Text>
             </View>
-            <Switch value={isPwd} onValueChange={setIsPwd} testID="doc-edit-pwd" />
+            <Switch value={isPwd} onValueChange={setIsPwd} testID="doc-edit-pwd" accessibilityLabel="Disabled / PWD" />
           </View>
         </ScrollView>
 
@@ -198,6 +203,7 @@ export default function DocumentMetadataEditModal({
             disabled={deleting || saving}
             style={[styles.actionBtn, { backgroundColor: Colors.error + "20", borderColor: Colors.error }]}
             testID="doc-edit-delete"
+            accessibilityRole="button"
           >
             {deleting ? (
               <ActivityIndicator color={Colors.error} size="small" />
@@ -213,6 +219,7 @@ export default function DocumentMetadataEditModal({
             disabled={saving || deleting}
             style={[styles.actionBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
             testID="doc-edit-save"
+            accessibilityRole="button"
           >
             {saving ? (
               <ActivityIndicator color={Colors.onAccent} size="small" />
@@ -275,11 +282,14 @@ function DateField({ label, value, onChange, show, setShow, Colors, testID }: Da
             { flex: 1, backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border },
           ]}
           testID={`${testID}-input`}
+          accessibilityLabel="YYYY-MM-DD"
         />
         <TouchableOpacity
           onPress={() => setShow(true)}
           style={[styles.dateBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
           testID={`${testID}-picker-btn`}
+          accessibilityRole="button"
+          accessibilityLabel="Pick a date"
         >
           <Calendar color={Colors.text} size={18} />
         </TouchableOpacity>
@@ -288,6 +298,7 @@ function DateField({ label, value, onChange, show, setShow, Colors, testID }: Da
             onPress={() => onChange("")}
             style={[styles.dateBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             testID={`${testID}-clear`}
+            accessibilityRole="button"
           >
             <X color={Colors.text} size={18} />
           </TouchableOpacity>

@@ -292,6 +292,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
             ]}
             testID={`gate-move-up-${entry.id}`}
             hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move gate up"
           >
             <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -307,6 +309,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
             ]}
             testID={`gate-move-down-${entry.id}`}
             hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move gate down"
           >
             <ChevronDownIcon color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -367,6 +371,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`gate-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit gate"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -374,6 +380,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           onPress={() => onDelete(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`gate-delete-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete gate"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -390,6 +398,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="gates-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -408,6 +418,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="gates-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add gates"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -438,6 +450,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="gates-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add gate</Text>
@@ -464,6 +477,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="gates-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -485,6 +499,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="gate-field-name"
+                      accessibilityLabel="Gate Name *"
                     />
                   </View>
                 </View>
@@ -506,6 +521,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="gate-field-lat"
+                        accessibilityLabel="Latitude *"
                       />
                     </View>
                   </View>
@@ -525,6 +541,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="gate-field-lon"
+                        accessibilityLabel="Longitude *"
                       />
                     </View>
                   </View>
@@ -534,6 +551,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                   onPress={() => setMapOpen(true)}
                   style={[styles.pickBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                   testID="gate-pick-map"
+                  accessibilityRole="button"
                 >
                   <Crosshair color={Colors.accent} size={16} />
                   <Text style={[styles.pickText, { color: Colors.text }]}>
@@ -550,6 +568,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                       { backgroundColor: Colors.gray[100], borderColor: Colors.border, justifyContent: "space-between" },
                     ]}
                     testID="gate-field-priority"
+                    accessibilityRole="button"
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <ListOrdered color={Colors.accent} size={16} />
@@ -576,6 +595,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                                 selected && { backgroundColor: Colors.accent + "20" },
                               ]}
                               testID={`gate-priority-${n}`}
+                              accessibilityRole="button"
                             >
                               <Text style={[styles.dropdownText, { color: Colors.text, fontWeight: selected ? "800" : "500" }]}>
                                 {n}
@@ -610,6 +630,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                             },
                           ]}
                           testID={`gate-mode-${opt.id}`}
+                          accessibilityRole="button"
                         >
                           <View
                             style={[
@@ -657,6 +678,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text, marginLeft: 8 }]}
                         testID="gate-field-pickup-surcharge"
+                        accessibilityLabel="Pickup Surcharge"
                       />
                     </View>
                     <Text style={[styles.helperText, { color: Colors.textSecondary }]}>
@@ -683,6 +705,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text, marginLeft: 8 }]}
                         testID="gate-field-drop-surcharge"
+                        accessibilityLabel="Drop Surcharge"
                       />
                     </View>
                     <Text style={[styles.helperText, { color: Colors.textSecondary }]}>
@@ -712,6 +735,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                     trackColor={{ false: Colors.border, true: Colors.accent }}
                     thumbColor={Platform.OS === "android" ? Colors.secondary : undefined}
                     testID="gate-field-active"
+                    accessibilityLabel="Status"
                   />
                 </View>
               </ScrollView>
@@ -720,6 +744,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="gate-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -769,6 +795,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               onPress={() => setMapOpen(false)}
               style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
               testID="gate-map-close"
+              accessibilityRole="button"
             >
               <X color={Colors.text} size={20} />
             </TouchableOpacity>
@@ -784,6 +811,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               onPress={() => setMapOpen(false)}
               style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
               testID="gate-map-done"
+              accessibilityRole="button"
+              accessibilityLabel="Done"
             >
               <Save color={Colors.onAccent} size={18} />
             </TouchableOpacity>

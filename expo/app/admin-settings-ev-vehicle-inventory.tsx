@@ -289,6 +289,8 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`inv-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit inv"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -296,6 +298,8 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           onPress={() => onDelete(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`inv-delete-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete inv"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -335,6 +339,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                   },
                 ]}
                 testID={`${key}-${c.id}`}
+                accessibilityRole="button"
               >
                 <View
                   style={[
@@ -394,6 +399,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                   },
                 ]}
                 testID={`${key}-${c.id}`}
+                accessibilityRole="button"
               >
                 <Text
                   style={[
@@ -426,6 +432,8 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="inv-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -444,6 +452,8 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="inv-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add inv"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -458,6 +468,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="inv-search"
+          accessibilityLabel="Search make, model or VIN"
         />
       </View>
 
@@ -473,6 +484,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="inv-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Unit</Text>
@@ -499,6 +511,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="inv-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -529,6 +542,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                     { backgroundColor: Colors.gray[100], borderColor: Colors.border },
                   ]}
                   testID="inv-vehicle-select"
+                  accessibilityRole="button"
                 >
                   {selectedVehicle ? (
                     <View style={styles.selectInner}>
@@ -589,6 +603,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                     autoCapitalize="characters"
                     style={[styles.input, { color: Colors.text }]}
                     testID="inv-vin"
+                    accessibilityLabel="VIN Number *"
                   />
                 </View>
 
@@ -626,6 +641,8 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="inv-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -652,6 +669,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                 onPress={() => setVehiclePickerOpen(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="inv-picker-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -684,6 +702,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                       },
                     ]}
                     testID={`inv-pick-${v.id}`}
+                    accessibilityRole="button"
                   >
                     {v.values.imageUri ? (
                       <Image

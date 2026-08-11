@@ -610,6 +610,8 @@ export default function UserGuideScreen() {
             onPress={() => router.back()}
             style={styles.headerBtn}
             testID="user-guide-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
@@ -625,6 +627,7 @@ export default function UserGuideScreen() {
             style={[styles.headerBtn, { backgroundColor: Colors.accent + "18" }]}
             testID="user-guide-download"
             accessibilityLabel="Download user guide as PDF"
+            accessibilityRole="button"
           >
             {downloading ? (
               <ActivityIndicator size="small" color={Colors.accent} />
@@ -643,6 +646,7 @@ export default function UserGuideScreen() {
             placeholderTextColor={Colors.textSecondary}
             style={[styles.searchInput, { color: Colors.text }]}
             testID="user-guide-search"
+            accessibilityLabel="Search the guide"
           />
         </View>
       </SafeAreaView>
@@ -682,6 +686,7 @@ export default function UserGuideScreen() {
                         },
                       ]}
                       testID={`guide-row-${screen.id}`}
+                      accessibilityRole="button"
                     >
                       <View style={[styles.iconBubble, { backgroundColor: Colors.accent + "22" }]}>
                         <Icon color={Colors.accent} size={20} />
@@ -740,6 +745,7 @@ export default function UserGuideScreen() {
           activeOpacity={0.85}
           style={[styles.downloadBtn, { backgroundColor: Colors.accent }]}
           testID="user-guide-download-cta"
+          accessibilityRole="button"
         >
           {downloading ? (
             <ActivityIndicator size="small" color={"#000000"} />

@@ -127,6 +127,7 @@ export default function AdminPartnersScreen() {
         onPress={() => handlePress(item)}
         testID={`partner-row-${item.id}`}
         activeOpacity={0.85}
+        accessibilityRole="button"
       >
         <View style={[styles.rowIcon, { backgroundColor: color + "20" }]}>
           <Icon color={color} size={20} />
@@ -154,6 +155,8 @@ export default function AdminPartnersScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="partners-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>

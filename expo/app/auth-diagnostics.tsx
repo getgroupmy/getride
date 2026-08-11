@@ -274,7 +274,10 @@ export default function AuthDiagnosticsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -309,6 +312,7 @@ export default function AuthDiagnosticsScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             style={[styles.input, { color: colors.text }]}
+            accessibilityLabel="Phone number"
           />
         </View>
 
@@ -320,6 +324,7 @@ export default function AuthDiagnosticsScreen() {
           ]}
           onPress={runAll}
           disabled={running}
+          accessibilityRole="button"
         >
           <Play color={colors.secondary} size={18} />
           <Text style={[styles.runBtnText, { color: colors.secondary }]}>
@@ -363,6 +368,7 @@ export default function AuthDiagnosticsScreen() {
             { borderColor: colors.gray[200], backgroundColor: colors.gray[50] },
           ]}
           onPress={copyReport}
+          accessibilityRole="button"
         >
           <Copy color={colors.text} size={18} />
           <Text style={[styles.copyBtnText, { color: colors.text }]}>

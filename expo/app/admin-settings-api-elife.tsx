@@ -250,6 +250,8 @@ export default function AdminSettingsApiElifeScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="elife-api-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -268,6 +270,8 @@ export default function AdminSettingsApiElifeScreen() {
           onPress={openDocs}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="elife-open-docs-top"
+          accessibilityRole="button"
+          accessibilityLabel="Open the API documentation"
         >
           <FileText color={Colors.text} size={20} />
         </TouchableOpacity>
@@ -328,6 +332,7 @@ export default function AdminSettingsApiElifeScreen() {
                 trackColor={{ true: Colors.accent, false: Colors.border }}
                 thumbColor="#fff"
                 testID="elife-enabled-switch"
+                accessibilityLabel="Integration enabled"
               />
             </View>
           </View>
@@ -353,6 +358,7 @@ export default function AdminSettingsApiElifeScreen() {
                     },
                   ]}
                   testID={`elife-env-${env}`}
+                  accessibilityRole="button"
                 >
                   <Text
                     style={[
@@ -384,6 +390,7 @@ export default function AdminSettingsApiElifeScreen() {
               autoCorrect={false}
               style={[styles.fieldInput, { color: Colors.text }]}
               testID="elife-base-url"
+              accessibilityLabel="API base URL"
             />
           </View>
 
@@ -399,6 +406,7 @@ export default function AdminSettingsApiElifeScreen() {
               autoCorrect={false}
               style={[styles.fieldInput, { color: Colors.text }]}
               testID="elife-token-url"
+              accessibilityLabel="OAuth token URL"
             />
           </View>
 
@@ -414,6 +422,7 @@ export default function AdminSettingsApiElifeScreen() {
               autoCorrect={false}
               style={[styles.fieldInput, { color: Colors.text }]}
               testID="elife-client-id"
+              accessibilityLabel="Client ID"
             />
           </View>
 
@@ -431,8 +440,9 @@ export default function AdminSettingsApiElifeScreen() {
                 secureTextEntry={!revealSecret}
                 style={[styles.fieldInput, { color: Colors.text, flex: 1 }]}
                 testID="elife-client-secret"
+                accessibilityLabel="Client Secret"
               />
-              <TouchableOpacity onPress={() => setRevealSecret((v) => !v)} hitSlop={8} style={styles.secretToggle}>
+              <TouchableOpacity onPress={() => setRevealSecret((v) => !v)} hitSlop={8} style={styles.secretToggle} accessibilityRole="button" accessibilityLabel="Show or hide the secret">
                 {revealSecret ? (
                   <EyeOff color={Colors.textSecondary} size={18} />
                 ) : (
@@ -454,6 +464,7 @@ export default function AdminSettingsApiElifeScreen() {
               autoCorrect={false}
               style={[styles.fieldInput, { color: Colors.text }]}
               testID="elife-webhook-url"
+              accessibilityLabel="Webhook URL (optional)"
             />
           </View>
 
@@ -467,6 +478,7 @@ export default function AdminSettingsApiElifeScreen() {
                 { backgroundColor: Colors.gray[100], borderColor: Colors.border, opacity: testing ? 0.6 : 1 },
               ]}
               testID="elife-test"
+              accessibilityRole="button"
             >
               {testing ? (
                 <ActivityIndicator color={Colors.accent} size="small" />
@@ -489,6 +501,8 @@ export default function AdminSettingsApiElifeScreen() {
                   },
                 ]}
                 testID="elife-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color={dirty ? "#000000" : Colors.accent} size="small" />
@@ -509,7 +523,7 @@ export default function AdminSettingsApiElifeScreen() {
               <Text style={[styles.sectionLabelInline, { color: Colors.text }]}>ACTIVITY</Text>
             </View>
             {config.activity.length > 0 && editable ? (
-              <TouchableOpacity onPress={onClearActivity} hitSlop={8} style={styles.clearBtn} testID="elife-clear-activity">
+              <TouchableOpacity onPress={onClearActivity} hitSlop={8} style={styles.clearBtn} testID="elife-clear-activity" accessibilityRole="button">
                 <Trash2 color={Colors.error} size={14} />
                 <Text style={[styles.clearTxt, { color: Colors.error }]}>Clear</Text>
               </TouchableOpacity>
@@ -558,6 +572,7 @@ export default function AdminSettingsApiElifeScreen() {
             onPress={openDocs}
             style={[styles.linkRow, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             testID="elife-link-row"
+            accessibilityRole="button"
           >
             <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
               <ShieldCheck color={Colors.accent} size={16} />

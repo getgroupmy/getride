@@ -492,6 +492,8 @@ export default function VehicleInformationScreen() {
             style={styles.headerButton}
             onPress={() => router.back()}
             testID="vehicle-info-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
@@ -500,6 +502,8 @@ export default function VehicleInformationScreen() {
             style={styles.headerButton}
             onPress={() => void runScan()}
             disabled={scanning || !status.linked}
+            accessibilityRole="button"
+            accessibilityLabel="Re-read the vehicle"
             testID="vehicle-info-refresh"
           >
             <RefreshCw
@@ -552,6 +556,7 @@ export default function VehicleInformationScreen() {
                 style={[styles.primaryButton, { backgroundColor: Colors.accent }]}
                 onPress={() => router.push("/obd2-reader" as any)}
                 testID="vehicle-info-open-reader"
+                accessibilityRole="button"
               >
                 <Text style={[styles.primaryButtonText, { color: Colors.onAccent }]}>
                   Open OBD-II reader settings
@@ -607,6 +612,7 @@ export default function VehicleInformationScreen() {
                   style={styles.inlineEdit}
                   onPress={openFuelEditor}
                   testID="vehicle-info-fuel-edit"
+                  accessibilityRole="button"
                 >
                   <Pencil color={Colors.textSecondary} size={13} />
                   <Text style={[styles.inlineEditText, { color: Colors.textSecondary }]}>
@@ -911,6 +917,7 @@ export default function VehicleInformationScreen() {
                 }}
                 activeOpacity={0.7}
                 testID={`vehicle-info-write-${action.id}`}
+                accessibilityRole="button"
               >
                 <Icon
                   color={
@@ -1007,6 +1014,7 @@ export default function VehicleInformationScreen() {
                   { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" },
                 ]}
                 testID="vehicle-info-write-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
@@ -1035,6 +1043,7 @@ export default function VehicleInformationScreen() {
                     autoCorrect={false}
                     maxLength={24}
                     testID="vehicle-info-raw-input"
+                    accessibilityLabel="COMMAND"
                   />
                   {rawCommandCheck && !rawCommandCheck.ok ? (
                     <Text style={styles.writeBlocked}>{rawCommandCheck.error}</Text>
@@ -1074,6 +1083,7 @@ export default function VehicleInformationScreen() {
                         ]}
                         onPress={() => setProtocolCode(choice.code)}
                         testID={`vehicle-info-protocol-${choice.code}`}
+                        accessibilityRole="button"
                       >
                         <Text style={[styles.protocolLabel, { color: Colors.text }]}>
                           {choice.label}
@@ -1115,6 +1125,7 @@ export default function VehicleInformationScreen() {
                 style={[styles.secondaryButton, { borderColor: Colors.border }]}
                 onPress={closeWriteModal}
                 testID="vehicle-info-write-cancel"
+                accessibilityRole="button"
               >
                 <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
                   {writeResult ? "Close" : "Cancel"}
@@ -1135,6 +1146,7 @@ export default function VehicleInformationScreen() {
                     if (pendingWrite) void performWrite(pendingWrite);
                   }}
                   testID="vehicle-info-write-confirm"
+                  accessibilityRole="button"
                 >
                   <Pencil color={pendingWrite?.destructive ? "#FFFFFF" : Colors.onAccent} size={16} />
                   <Text
@@ -1189,6 +1201,7 @@ export default function VehicleInformationScreen() {
                   { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" },
                 ]}
                 testID="vehicle-info-fuel-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
@@ -1213,6 +1226,7 @@ export default function VehicleInformationScreen() {
                 keyboardType="decimal-pad"
                 maxLength={6}
                 testID="vehicle-info-tank-input"
+                accessibilityLabel="TANK CAPACITY (LITRES)"
               />
 
               <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
@@ -1227,6 +1241,7 @@ export default function VehicleInformationScreen() {
                 keyboardType="decimal-pad"
                 maxLength={5}
                 testID="vehicle-info-consumption-input"
+                accessibilityLabel="AVERAGE CONSUMPTION (L/100 KM)"
               />
 
               {fuelProfile.measuredL100 !== null ? (
@@ -1242,6 +1257,7 @@ export default function VehicleInformationScreen() {
                     onPress={() => void clearMeasuredConsumption()}
                     style={styles.measuredReset}
                     testID="vehicle-info-reset-measured"
+                    accessibilityRole="button"
                   >
                     <RotateCcw color={Colors.accent} size={14} />
                     <Text style={[styles.measuredResetText, { color: Colors.accent }]}>
@@ -1269,6 +1285,7 @@ export default function VehicleInformationScreen() {
                 style={[styles.secondaryButton, { borderColor: Colors.border }]}
                 onPress={() => setFuelEditOpen(false)}
                 testID="vehicle-info-fuel-cancel"
+                accessibilityRole="button"
               >
                 <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
                   Cancel
@@ -1278,6 +1295,7 @@ export default function VehicleInformationScreen() {
                 style={[styles.primaryButton, { backgroundColor: Colors.accent }]}
                 onPress={() => void saveFuelEditor()}
                 testID="vehicle-info-fuel-save"
+                accessibilityRole="button"
               >
                 <Text style={[styles.primaryButtonText, { color: Colors.onAccent }]}>
                   Save

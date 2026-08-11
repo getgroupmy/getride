@@ -809,6 +809,7 @@ export default function VehicleOnboardingScreen() {
                 style={[styles.inputFlex, { color: Colors.text }]}
                 autoCapitalize="characters"
                 testID="veh-onboard-plate"
+                accessibilityLabel="Plate number"
               />
             </View>
             <TouchableOpacity
@@ -816,6 +817,7 @@ export default function VehicleOnboardingScreen() {
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
               testID="veh-onboard-check-plate"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -860,6 +862,7 @@ export default function VehicleOnboardingScreen() {
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
               testID="veh-onboard-use-yes"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -872,6 +875,7 @@ export default function VehicleOnboardingScreen() {
               disabled={busy}
               style={[styles.secondaryBtn, { borderColor: Colors.border }]}
               testID="veh-onboard-use-no"
+              accessibilityRole="button"
             >
               <Text style={[styles.secondaryBtnText, { color: Colors.text }]}>No, enter a different plate</Text>
             </TouchableOpacity>
@@ -895,6 +899,7 @@ export default function VehicleOnboardingScreen() {
                 style={[styles.inputFlex, { color: Colors.text }]}
                 autoCapitalize="characters"
                 testID="veh-onboard-owner-ic"
+                accessibilityLabel="Owner ID number"
               />
             </View>
             <TouchableOpacity
@@ -902,6 +907,7 @@ export default function VehicleOnboardingScreen() {
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
               testID="veh-onboard-verify"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -914,6 +920,7 @@ export default function VehicleOnboardingScreen() {
               disabled={busy}
               style={[styles.secondaryBtn, { borderColor: Colors.border, marginTop: 8 }]}
               testID="veh-onboard-verify-cancel"
+              accessibilityRole="button"
             >
               <Text style={[styles.secondaryBtnText, { color: Colors.text }]}>Cancel</Text>
             </TouchableOpacity>
@@ -941,6 +948,7 @@ export default function VehicleOnboardingScreen() {
               disabled={busy || !selection}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy || !selection ? 0.5 : 1, marginTop: 16 }]}
               testID="veh-onboard-save-makemodel"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -969,6 +977,7 @@ export default function VehicleOnboardingScreen() {
                 keyboardType="number-pad"
                 maxLength={4}
                 testID="veh-onboard-year"
+                accessibilityLabel="Year"
               />
             </View>
             <Text style={[styles.label, { color: Colors.textSecondary }]}>Colour</Text>
@@ -981,6 +990,7 @@ export default function VehicleOnboardingScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.inputFlex, { color: Colors.text }]}
                 testID="veh-onboard-color"
+                accessibilityLabel="Colour"
               />
             </View>
             <TouchableOpacity
@@ -988,6 +998,7 @@ export default function VehicleOnboardingScreen() {
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
               testID="veh-onboard-save-yearcolor"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -1038,6 +1049,8 @@ export default function VehicleOnboardingScreen() {
                   marginTop: 16,
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Save documents"
               testID="veh-onboard-save-docs"
             >
               {busy ? (
@@ -1084,6 +1097,8 @@ export default function VehicleOnboardingScreen() {
                   marginTop: 16,
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Save photos"
               testID="veh-onboard-save-photos"
             >
               {busy ? (
@@ -1122,6 +1137,7 @@ export default function VehicleOnboardingScreen() {
                   },
                 ]}
                 testID="veh-onboard-own-yes"
+                accessibilityRole="button"
               >
                 <Text
                   style={[
@@ -1144,6 +1160,7 @@ export default function VehicleOnboardingScreen() {
                   },
                 ]}
                 testID="veh-onboard-own-no"
+                accessibilityRole="button"
               >
                 <Text
                   style={[
@@ -1165,6 +1182,7 @@ export default function VehicleOnboardingScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.inputFlex, { color: Colors.text }]}
                 testID="veh-onboard-owner-name"
+                accessibilityLabel="Owner name"
               />
             </View>
             <Text style={[styles.label, { color: Colors.textSecondary }]}>Owner phone</Text>
@@ -1178,6 +1196,7 @@ export default function VehicleOnboardingScreen() {
                 style={[styles.inputFlex, { color: Colors.text }]}
                 keyboardType="phone-pad"
                 testID="veh-onboard-owner-phone"
+                accessibilityLabel="Owner phone"
               />
             </View>
             <Text style={[styles.label, { color: Colors.textSecondary }]}>Owner ID number</Text>
@@ -1191,6 +1210,7 @@ export default function VehicleOnboardingScreen() {
                 style={[styles.inputFlex, { color: Colors.text }]}
                 autoCapitalize="characters"
                 testID="veh-onboard-owner-ic"
+                accessibilityLabel="Owner ID number"
               />
             </View>
             <TouchableOpacity
@@ -1203,6 +1223,8 @@ export default function VehicleOnboardingScreen() {
                   opacity: busy || !canContinue ? 0.5 : 1,
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Save owner details"
               testID="veh-onboard-save-owner"
             >
               {busy ? (
@@ -1276,6 +1298,7 @@ export default function VehicleOnboardingScreen() {
               onPress={() => router.back()}
               style={[styles.secondaryBtn, { borderColor: Colors.border, marginTop: 16 }]}
               testID="veh-status-back"
+              accessibilityRole="button"
             >
               <Text style={[styles.secondaryBtnText, { color: Colors.text }]}>Close</Text>
             </TouchableOpacity>
@@ -1299,6 +1322,7 @@ export default function VehicleOnboardingScreen() {
               onPress={onPendingContinue}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
               testID="veh-onboard-continue"
+              accessibilityRole="button"
             >
               <View style={styles.row}>
                 <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Continue</Text>
@@ -1330,7 +1354,7 @@ export default function VehicleOnboardingScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.center}>
           <Text style={[styles.title, { color: Colors.text }]}>Please sign in first</Text>
-          <TouchableOpacity onPress={() => router.back()} style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.primaryBtn, { backgroundColor: Colors.accent }]} accessibilityRole="button">
             <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Go back</Text>
           </TouchableOpacity>
         </View>
@@ -1348,6 +1372,8 @@ export default function VehicleOnboardingScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="veh-onboard-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={20} />
         </TouchableOpacity>

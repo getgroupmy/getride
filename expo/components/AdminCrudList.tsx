@@ -276,7 +276,10 @@ export default function AdminCrudList({
                 },
               ]}
               testID={`${testID ?? "crud"}-move-up-${entry.id}`}
-              hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+              hitSlop={{ top: 8, bottom: 6, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Move ${titleVal} up`}
+              accessibilityState={{ disabled: isFirst }}
             >
               <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
             </TouchableOpacity>
@@ -291,7 +294,10 @@ export default function AdminCrudList({
                 },
               ]}
               testID={`${testID ?? "crud"}-move-down-${entry.id}`}
-              hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+              hitSlop={{ top: 6, bottom: 8, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Move ${titleVal} down`}
+              accessibilityState={{ disabled: isLast }}
             >
               <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
             </TouchableOpacity>
@@ -305,6 +311,8 @@ export default function AdminCrudList({
           disabled={!onRowPress}
           onPress={() => onRowPress?.(entry)}
           style={styles.rowInfo}
+          accessibilityRole={onRowPress ? "button" : undefined}
+          accessibilityLabel={onRowPress ? `Open ${titleVal}` : undefined}
           testID={`${testID ?? "crud"}-open-${entry.id}`}
         >
           <View style={styles.rowTitleLine}>
@@ -333,6 +341,9 @@ export default function AdminCrudList({
           <TouchableOpacity
             onPress={() => onRowPress(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${titleVal}`}
             testID={`${testID ?? "crud"}-chevron-${entry.id}`}
           >
             <ChevronRight color={Colors.accent} size={16} />
@@ -343,6 +354,9 @@ export default function AdminCrudList({
             <TouchableOpacity
               onPress={() => openEdit(entry)}
               style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${titleVal}`}
               testID={`${testID ?? "crud"}-edit-${entry.id}`}
             >
               <Pencil color={Colors.accent} size={16} />
@@ -350,6 +364,9 @@ export default function AdminCrudList({
             <TouchableOpacity
               onPress={() => onDelete(entry)}
               style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${titleVal}`}
               testID={`${testID ?? "crud"}-delete-${entry.id}`}
             >
               <Trash2 color={Colors.error} size={16} />
@@ -369,6 +386,8 @@ export default function AdminCrudList({
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID={`${testID ?? "crud"}-back`}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -384,6 +403,8 @@ export default function AdminCrudList({
             onPress={openAdd}
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
             testID={`${testID ?? "crud"}-add`}
+            accessibilityRole="button"
+            accessibilityLabel="Add"
           >
             <Plus color={Colors.onAccent} size={22} />
           </TouchableOpacity>
@@ -406,6 +427,7 @@ export default function AdminCrudList({
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID={`${testID ?? "crud"}-search`}
+          accessibilityLabel="Read-only access"
         />
       </View>
 
@@ -422,6 +444,7 @@ export default function AdminCrudList({
                 onPress={openAdd}
                 style={[styles.cta, { backgroundColor: Colors.accent }]}
                 testID={`${testID ?? "crud"}-empty-add`}
+                accessibilityRole="button"
               >
                 <Plus color={Colors.onAccent} size={16} />
                 <Text style={[styles.ctaText, { color: Colors.onAccent }]}>{primaryAction ?? "Add new"}</Text>
@@ -449,6 +472,7 @@ export default function AdminCrudList({
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID={`${testID ?? "crud"}-modal-close`}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -470,6 +494,7 @@ export default function AdminCrudList({
                           value={Boolean(form[f.key])}
                           onValueChange={(v) => setForm((p) => ({ ...p, [f.key]: v }))}
                           testID={`${testID ?? "crud"}-field-${f.key}`}
+                          accessibilityLabel={f.label}
                         />
                       </View>
                     );
@@ -494,6 +519,7 @@ export default function AdminCrudList({
                           style={[styles.input, { color: Colors.text }]}
                           keyboardType={f.type === "number" ? "decimal-pad" : "default"}
                           testID={`${testID ?? "crud"}-field-${f.key}`}
+                          accessibilityLabel={f.label}
                         />
                       </View>
                     </View>
@@ -505,6 +531,7 @@ export default function AdminCrudList({
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID={`${testID ?? "crud"}-save`}
+                accessibilityRole="button"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

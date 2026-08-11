@@ -586,11 +586,15 @@ export default function RideDetailScreen() {
           testID="ride-detail-back"
           onPress={goHome}
           style={[styles.headerBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ChevronLeft color={Colors.text} size={22} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: Colors.text }]}>Ride details</Text>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Share this trip"
           testID="ride-detail-share"
           onPress={onShare}
           style={[styles.headerBtn, { backgroundColor: Colors.gray[100] }]}
@@ -1045,6 +1049,7 @@ export default function RideDetailScreen() {
             onPress={onPrint}
             disabled={printing}
             style={[styles.actionBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}
+            accessibilityRole="button"
           >
             {printing ? (
               <ActivityIndicator color={Colors.text} size="small" />
@@ -1058,6 +1063,7 @@ export default function RideDetailScreen() {
             activeOpacity={0.85}
             onPress={() => setEmailVisible(true)}
             style={[styles.actionBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}
+            accessibilityRole="button"
           >
             <Mail color={Colors.text} size={18} />
             <Text style={[styles.actionBtnText, { color: Colors.text }]}>Email</Text>
@@ -1068,6 +1074,7 @@ export default function RideDetailScreen() {
           activeOpacity={0.9}
           onPress={goHome}
           style={[styles.homeBtn, { backgroundColor: Colors.text }]}
+          accessibilityRole="button"
         >
           <Home color={Colors.background} size={20} />
           <Text style={[styles.homeBtnText, { color: Colors.background }]}>Back to home</Text>
@@ -1088,6 +1095,7 @@ export default function RideDetailScreen() {
             activeOpacity={1}
             onPress={() => setEmailVisible(false)}
             style={StyleSheet.absoluteFill}
+            accessibilityRole="button"
           />
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.gray[200] }]}>
             <View style={styles.modalHeader}>
@@ -1104,6 +1112,7 @@ export default function RideDetailScreen() {
                 testID="ride-detail-email-close"
                 onPress={() => setEmailVisible(false)}
                 style={[styles.headerBtn, { backgroundColor: Colors.gray[100], width: 32, height: 32, borderRadius: 16 }]}
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={16} />
               </TouchableOpacity>
@@ -1120,8 +1129,11 @@ export default function RideDetailScreen() {
               autoCorrect={false}
               autoFocus
               style={[styles.modalInput, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200], color: Colors.text }]}
+              accessibilityLabel="Email address"
             />
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Email the receipt"
               testID="ride-detail-email-send"
               onPress={onSendEmail}
               disabled={sendingEmail}

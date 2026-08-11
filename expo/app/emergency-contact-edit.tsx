@@ -186,7 +186,13 @@ export default function EmergencyContactEditScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <SafeAreaView style={{ backgroundColor: Colors.background }} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleBack} testID="ece-back">
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            testID="ece-back"
+          >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>
@@ -214,6 +220,7 @@ export default function EmergencyContactEditScreen() {
                 style={[styles.pickContactButton, { borderColor: Colors.border }]}
                 onPress={handlePickContact}
                 testID="ece-pick-contact"
+                accessibilityRole="button"
               >
                 <BookUser color={Colors.accent} size={18} />
                 <Text style={[styles.pickContactText, { color: Colors.accent }]}>Contacts</Text>
@@ -228,6 +235,7 @@ export default function EmergencyContactEditScreen() {
                 onChangeText={setNameInput}
                 autoFocus
                 testID="ece-name-input"
+                accessibilityLabel="Contacts"
               />
             </View>
           </View>
@@ -240,6 +248,8 @@ export default function EmergencyContactEditScreen() {
               <TouchableOpacity
                 style={[styles.codeBox, { borderColor: Colors.border, backgroundColor: Colors.background }]}
                 onPress={() => setPickerVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Change dialling code"
                 testID="ece-code"
               >
                 <Text style={[styles.codeText, { color: Colors.text }]}>{countryCode}</Text>
@@ -260,6 +270,7 @@ export default function EmergencyContactEditScreen() {
                   onChangeText={setPhoneInput}
                   keyboardType="phone-pad"
                   testID="ece-phone-input"
+                  accessibilityLabel="Mobile number"
                 />
               </View>
             </View>
@@ -277,6 +288,7 @@ export default function EmergencyContactEditScreen() {
             onPress={handleSave}
             disabled={!canSave || isSyncing}
             testID="ece-save"
+            accessibilityRole="button"
           >
             {isSyncing ? (
               <ActivityIndicator color={canSave ? "#FFFFFF" : Colors.gray[400]} />
@@ -288,7 +300,7 @@ export default function EmergencyContactEditScreen() {
           </TouchableOpacity>
 
           {editingId ? (
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} testID="ece-delete">
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} testID="ece-delete" accessibilityRole="button">
               <Trash2 color={Colors.error} size={18} />
               <Text style={[styles.deleteText, { color: Colors.error }]}>Remove contact</Text>
             </TouchableOpacity>
@@ -306,6 +318,7 @@ export default function EmergencyContactEditScreen() {
           style={styles.pickerOverlay}
           activeOpacity={1}
           onPress={() => setPickerVisible(false)}
+          accessibilityRole="button"
         >
           <View style={[styles.pickerSheet, { backgroundColor: Colors.background }]}>
             <View style={styles.pickerHandleWrap}>
@@ -322,6 +335,7 @@ export default function EmergencyContactEditScreen() {
                     style={styles.pickerRow}
                     onPress={() => selectCode(item.code)}
                     testID={`ece-code-${item.code}`}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.pickerCode, { color: Colors.text }]}>{item.code}</Text>
                     <Text style={[styles.pickerLabel, { color: Colors.textSecondary }]}>{item.label}</Text>

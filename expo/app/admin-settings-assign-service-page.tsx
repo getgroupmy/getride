@@ -99,6 +99,8 @@ export default function AdminSettingsAssignServicePageScreen() {
             onPress={() => router.back()}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
             testID="assign-page-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={22} />
           </TouchableOpacity>
@@ -120,6 +122,8 @@ export default function AdminSettingsAssignServicePageScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="assign-page-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -173,6 +177,8 @@ export default function AdminSettingsAssignServicePageScreen() {
                       style={styles.clearBtn}
                       hitSlop={8}
                       testID={`assign-clear-${cap}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear"
                     >
                       <Trash2 color={Colors.error} size={16} />
                     </TouchableOpacity>
@@ -190,6 +196,7 @@ export default function AdminSettingsAssignServicePageScreen() {
                   ]}
                   testID={`assign-pick-${cap}`}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
                 >
                   {info && info.provider && info.service ? (
                     <>
@@ -233,7 +240,7 @@ export default function AdminSettingsAssignServicePageScreen() {
               <Text style={[styles.modalTitle, { color: Colors.text }]}>
                 {pickerCap ? `Assign for ${CAPABILITY_LABELS[pickerCap]}` : "Assign"}
               </Text>
-              <TouchableOpacity onPress={() => setPickerCap(null)} hitSlop={8}>
+              <TouchableOpacity onPress={() => setPickerCap(null)} hitSlop={8} accessibilityRole="button">
                 <X color={Colors.text} size={22} />
               </TouchableOpacity>
             </View>
@@ -274,6 +281,7 @@ export default function AdminSettingsAssignServicePageScreen() {
                             ]}
                             testID={`pick-${prov.id}-${svc.id}`}
                             activeOpacity={0.85}
+                            accessibilityRole="button"
                           >
                             <View style={{ flex: 1 }}>
                               <Text style={[styles.svcName, { color: Colors.text }]}>{svc.name}</Text>

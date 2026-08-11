@@ -73,7 +73,7 @@ export default function DocumentViewerModal({ visible, url, title, onClose }: Pr
     <Modal visible={visible} animationType="fade" onRequestClose={onClose} presentationStyle="fullScreen">
       <SafeAreaView style={[styles.container, { backgroundColor: "#000" }]} edges={["top", "bottom"]}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.iconBtn} testID="doc-viewer-close">
+          <TouchableOpacity onPress={onClose} style={styles.iconBtn} testID="doc-viewer-close" accessibilityRole="button">
             <X color="#fff" size={22} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -87,7 +87,7 @@ export default function DocumentViewerModal({ visible, url, title, onClose }: Pr
               </View>
             ) : null}
           </View>
-          <TouchableOpacity onPress={openExternally} style={styles.iconBtn} testID="doc-viewer-open-ext">
+          <TouchableOpacity onPress={openExternally} style={styles.iconBtn} testID="doc-viewer-open-ext" accessibilityRole="button" accessibilityLabel="Open outside the app">
             <ExternalLink color="#fff" size={20} />
           </TouchableOpacity>
         </View>

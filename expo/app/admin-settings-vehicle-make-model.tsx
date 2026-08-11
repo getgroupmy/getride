@@ -788,6 +788,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
         style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
         testID={`vmm-cat-${lvl}-${name}`}
         activeOpacity={0.85}
+        accessibilityRole="button"
       >
         <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
           <Icon color={Colors.accent} size={18} />
@@ -806,6 +807,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vmm-cat-edit-${lvl}-${name}`}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit vehicle make and model category"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -814,6 +817,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vmm-cat-del-${lvl}-${name}`}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel="Delete vehicle make and model category"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -868,6 +873,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           onPress={() => openEditModel(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vmm-model-edit-${m.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit vehicle make and model model"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -875,6 +882,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           onPress={() => deleteModel(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vmm-model-del-${m.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete vehicle make and model model"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -955,6 +964,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           }}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="vmm-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -976,6 +987,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           onPress={openAddPicker}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="vmm-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add vehicle make and model"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -1003,6 +1016,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                   },
                 ]}
                 testID={`vmm-crumb-${c.id}`}
+                accessibilityRole="button"
               >
                 {idx === 0 ? (
                   <HomeIcon
@@ -1040,6 +1054,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="vmm-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -1060,6 +1075,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
               onPress={openAddPicker}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="vmm-empty-add"
+              accessibilityRole="button"
+              accessibilityLabel="Add vehicle make and model"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>
@@ -1103,6 +1120,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                   onPress={() => setModalOpen(false)}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="vmm-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1135,6 +1153,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           placeholderTextColor={Colors.textSecondary}
                           style={[styles.input, { color: Colors.text }]}
                           testID="vmm-cat-parent-vt"
+                          accessibilityLabel="e.g. Car"
                         />
                       </View>
                       {vehicleTypes.length > 0 && (
@@ -1159,6 +1178,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     borderColor: active ? Colors.accent : Colors.border,
                                   },
                                 ]}
+                                accessibilityRole="button"
                               >
                                 <Text
                                   style={[
@@ -1196,6 +1216,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           placeholderTextColor={Colors.textSecondary}
                           style={[styles.input, { color: Colors.text }]}
                           testID="vmm-cat-parent-et"
+                          accessibilityLabel="e.g. Petrol"
                         />
                       </View>
                       {allEnergyTypesForVT.length > 0 && (
@@ -1220,6 +1241,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     borderColor: active ? Colors.accent : Colors.border,
                                   },
                                 ]}
+                                accessibilityRole="button"
                               >
                                 <Text
                                   style={[
@@ -1265,6 +1287,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-cat-name"
                         autoFocus={categoryLevel === 0 || !!categoryRenameFrom}
+                        accessibilityLabel="Category name"
                       />
                     </View>
                     {categoryNameSuggestions.length > 0 && (
@@ -1305,6 +1328,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                   },
                                 ]}
                                 testID={`vmm-cat-sugg-${name}`}
+                                accessibilityRole="button"
                               >
                                 <Text
                                   style={[
@@ -1329,6 +1353,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                     onPress={saveCategory}
                     style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                     testID="vmm-cat-save"
+                    accessibilityRole="button"
+                    accessibilityLabel="Save"
                   >
                     <Save color={Colors.onAccent} size={18} />
                     <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -1374,6 +1400,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                             { backgroundColor: Colors.accent, borderColor: Colors.accent },
                           ]}
                           testID="vmm-model-icon-upload"
+                          accessibilityRole="button"
+                          accessibilityLabel="Upload vehicle make and model model icon"
                         >
                           <Upload color={Colors.onAccent} size={16} />
                           <Text
@@ -1393,6 +1421,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                               },
                             ]}
                             testID="vmm-model-icon-remove"
+                            accessibilityRole="button"
                           >
                             <X color={Colors.text} size={16} />
                             <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -1424,6 +1453,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-model-vtype"
+                        accessibilityLabel="Car"
                       />
                     </View>
                     {vehicleTypes.length > 0 && (
@@ -1447,6 +1477,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     : Colors.border,
                               },
                             ]}
+                            accessibilityRole="button"
                           >
                             <Text
                               style={[
@@ -1487,6 +1518,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-model-etype"
+                        accessibilityLabel="Petrol"
                       />
                     </View>
                     {modelEnergySuggestions.length > 0 && (
@@ -1510,6 +1542,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     : Colors.border,
                                 },
                               ]}
+                              accessibilityRole="button"
                             >
                               <Text
                                 style={[
@@ -1548,6 +1581,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-model-make"
+                        accessibilityLabel="Proton"
                       />
                     </View>
                     {modelMakeSuggestions.length > 0 && (
@@ -1571,6 +1605,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     : Colors.border,
                                 },
                               ]}
+                              accessibilityRole="button"
                             >
                               <Text
                                 style={[
@@ -1609,6 +1644,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-model-name"
+                        accessibilityLabel="WIRA"
                       />
                     </View>
                     {modelNameSuggestions.length > 0 && (
@@ -1651,6 +1687,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                   },
                                 ]}
                                 testID={`vmm-model-sugg-${m.id}`}
+                                accessibilityRole="button"
                               >
                                 <Text
                                   style={[
@@ -1699,6 +1736,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           maxLength={4}
                           style={[styles.input, { color: Colors.text }]}
                           testID="vmm-model-yearFrom"
+                          accessibilityLabel="Year from"
                         />
                       </View>
                       <Text style={[styles.yearDash, { color: Colors.textSecondary }]}>
@@ -1729,6 +1767,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           editable={!modelForm.ongoing}
                           style={[styles.input, { color: Colors.text }]}
                           testID="vmm-model-yearTo"
+                          accessibilityLabel="Year to"
                         />
                       </View>
                     </View>
@@ -1756,6 +1795,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           setModelForm((p) => ({ ...p, ongoing: v, yearTo: v ? "" : p.yearTo }))
                         }
                         testID="vmm-model-ongoing"
+                        accessibilityLabel="Ongoing (~)"
                       />
                     </View>
                     <Text
@@ -1793,6 +1833,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         setModelForm((p) => ({ ...p, status: v }))
                       }
                       testID="vmm-model-status"
+                      accessibilityLabel="Status"
                     />
                   </View>
 
@@ -1800,6 +1841,8 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                     onPress={saveModel}
                     style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                     testID="vmm-model-save"
+                    accessibilityRole="button"
+                    accessibilityLabel="Save"
                   >
                     <Save color={Colors.onAccent} size={18} />
                     <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -1823,8 +1866,9 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           activeOpacity={1}
           onPress={() => setAddPickerOpen(false)}
           style={styles.modalBackdrop}
+          accessibilityRole="button"
         >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} accessibilityRole="button">
             <View style={[styles.pickerSheet, { backgroundColor: Colors.background }]}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: Colors.text }]}>
@@ -1834,6 +1878,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                   onPress={() => setAddPickerOpen(false)}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="vmm-picker-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1863,6 +1908,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                     ]}
                     testID={`vmm-picker-${opt.id}`}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
                   >
                     <View
                       style={[

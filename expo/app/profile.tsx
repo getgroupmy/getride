@@ -211,6 +211,8 @@ export default function ProfileScreen() {
             style={styles.backBtn}
             onPress={() => router.back()}
             testID="profile-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={26} />
           </TouchableOpacity>
@@ -218,6 +220,9 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.editBtn}
             onPress={() => router.push("/edit-profile" as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             testID="profile-edit"
           >
             <Pencil color={Colors.accent} size={20} />
@@ -239,6 +244,8 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={styles.avatarTouch}
               onPress={() => router.push("/edit-profile" as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile photo"
               testID="profile-avatar"
               activeOpacity={0.85}
             >
@@ -354,6 +361,8 @@ export default function ProfileScreen() {
                     : ({ pathname: "/pin-setup" as any, params: { phoneNumber: authState.phoneNumber ?? "", firstName: data.name ?? "" } } as any)
                 )
               }
+              accessibilityRole="button"
+              accessibilityLabel="Change your PIN"
               testID="profile-pin"
             >
               <Shield color={Colors.textSecondary} size={18} />
@@ -371,6 +380,7 @@ export default function ProfileScreen() {
                 style={styles.linkRow}
                 onPress={handleForgotPin}
                 testID="profile-forgot-pin"
+                accessibilityRole="button"
               >
                 <KeyRound color={Colors.textSecondary} size={18} />
                 <View style={styles.rowBody}>
@@ -386,6 +396,7 @@ export default function ProfileScreen() {
             style={[styles.signOut, { borderColor: Colors.border }]}
             onPress={handleSignOut}
             testID="profile-signout"
+            accessibilityRole="button"
           >
             <LogOut color="#E11D48" size={18} />
             <Text style={styles.signOutText}>Sign out</Text>

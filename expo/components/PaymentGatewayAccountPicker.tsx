@@ -103,6 +103,7 @@ export default function PaymentGatewayAccountPicker({
           { backgroundColor: Colors.gray[100], borderColor: Colors.border },
         ]}
         testID={testID ?? "payment-gateway-account-picker"}
+        accessibilityRole="button"
       >
         <CreditCard color={Colors.textSecondary} size={16} />
         <Text
@@ -138,6 +139,7 @@ export default function PaymentGatewayAccountPicker({
                 onPress={() => setOpen(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="payment-gateway-account-picker-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -157,6 +159,7 @@ export default function PaymentGatewayAccountPicker({
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.searchInput, { color: Colors.text }]}
                 testID="payment-gateway-account-picker-search"
+                accessibilityLabel="Search provider or account"
               />
             </View>
 
@@ -169,6 +172,7 @@ export default function PaymentGatewayAccountPicker({
                   }}
                   style={[styles.row, { borderBottomColor: Colors.border }]}
                   testID="payment-gateway-account-picker-none"
+                  accessibilityRole="button"
                 >
                   <View style={[styles.rowIcon, { backgroundColor: Colors.gray[100] }]}>
                     <X color={Colors.textSecondary} size={16} />
@@ -207,6 +211,7 @@ export default function PaymentGatewayAccountPicker({
                       }}
                       style={[styles.row, { borderBottomColor: Colors.border }]}
                       testID={`payment-gateway-account-picker-row-${a.id}`}
+                      accessibilityRole="button"
                     >
                       <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
                         <CreditCard color={Colors.accent} size={16} />

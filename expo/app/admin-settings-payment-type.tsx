@@ -147,6 +147,8 @@ export default function AdminSettingsPaymentTypeScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="payment-type-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -165,6 +167,8 @@ export default function AdminSettingsPaymentTypeScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="payment-type-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add payment type"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -184,6 +188,7 @@ export default function AdminSettingsPaymentTypeScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="payment-type-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -234,6 +239,8 @@ export default function AdminSettingsPaymentTypeScreen() {
                   onPress={() => openEdit(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`payment-type-edit-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit payment type"
                 >
                   <Pencil color={Colors.accent} size={16} />
                 </TouchableOpacity>
@@ -241,6 +248,8 @@ export default function AdminSettingsPaymentTypeScreen() {
                   onPress={() => onDelete(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`payment-type-delete-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete payment type"
                 >
                   <Trash2 color={Colors.error} size={16} />
                 </TouchableOpacity>
@@ -266,6 +275,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="payment-type-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -287,6 +297,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="payment-type-field-name"
+                      accessibilityLabel="Name *"
                     />
                   </View>
                 </View>
@@ -307,6 +318,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                       autoCapitalize="characters"
                       style={[styles.input, { color: Colors.text }]}
                       testID="payment-type-field-code"
+                      accessibilityLabel="Code"
                     />
                   </View>
                 </View>
@@ -332,6 +344,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                     value={form.enabled}
                     onValueChange={(v) => setForm((p) => ({ ...p, enabled: v }))}
                     testID="payment-type-field-enabled"
+                    accessibilityLabel="Enabled"
                   />
                 </View>
               </ScrollView>
@@ -340,6 +353,8 @@ export default function AdminSettingsPaymentTypeScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="payment-type-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

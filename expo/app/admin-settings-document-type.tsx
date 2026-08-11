@@ -235,6 +235,7 @@ export default function AdminSettingsDocumentTypeScreen() {
             value={enabled}
             onValueChange={() => toggleEnabled(entry)}
             testID={`document-type-toggle-${entry.id}`}
+            accessibilityLabel={name}
           />
         </View>
 
@@ -244,6 +245,8 @@ export default function AdminSettingsDocumentTypeScreen() {
             onPress={() => openEdit(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`document-type-edit-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Edit document type"
           >
             <Pencil color={Colors.accent} size={16} />
           </TouchableOpacity>
@@ -255,6 +258,8 @@ export default function AdminSettingsDocumentTypeScreen() {
               { backgroundColor: Colors.background, opacity: isDefault ? 0.4 : 1 },
             ]}
             testID={`document-type-delete-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete document type"
           >
             <Trash2 color={isDefault ? Colors.textSecondary : Colors.error} size={16} />
           </TouchableOpacity>
@@ -272,6 +277,8 @@ export default function AdminSettingsDocumentTypeScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="document-type-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -290,6 +297,8 @@ export default function AdminSettingsDocumentTypeScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="document-type-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add document type"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -304,6 +313,7 @@ export default function AdminSettingsDocumentTypeScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="document-type-search"
+          accessibilityLabel="Search document types"
         />
       </View>
 
@@ -319,6 +329,7 @@ export default function AdminSettingsDocumentTypeScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="document-type-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add document type</Text>
@@ -352,6 +363,7 @@ export default function AdminSettingsDocumentTypeScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="document-type-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -372,6 +384,7 @@ export default function AdminSettingsDocumentTypeScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={[styles.input, { color: Colors.text }]}
                     testID="document-type-field-name"
+                    accessibilityLabel="Name *"
                   />
                 </View>
 
@@ -392,6 +405,7 @@ export default function AdminSettingsDocumentTypeScreen() {
                     style={[styles.input, { color: Colors.text, height: 80, textAlignVertical: "top" }]}
                     multiline
                     testID="document-type-field-description"
+                    accessibilityLabel="Short description"
                   />
                 </View>
 
@@ -413,6 +427,7 @@ export default function AdminSettingsDocumentTypeScreen() {
                     value={form.enabled}
                     onValueChange={(v) => setForm((p) => ({ ...p, enabled: v }))}
                     testID="document-type-field-enabled"
+                    accessibilityLabel="Enabled"
                   />
                 </View>
               </ScrollView>
@@ -421,6 +436,8 @@ export default function AdminSettingsDocumentTypeScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="document-type-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

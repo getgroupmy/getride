@@ -168,7 +168,13 @@ export default function ChangePinScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <SafeAreaView style={{ backgroundColor: colors.background }} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack} testID="change-pin-back">
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            testID="change-pin-back"
+          >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
         </View>
@@ -219,6 +225,7 @@ export default function ChangePinScreen() {
                   secureTextEntry
                   editable={!done}
                   testID={`change-pin-digit-${index}`}
+                  accessibilityLabel={`PIN digit ${index + 1}`}
                 />
                 <View
                   style={[
@@ -276,6 +283,7 @@ export default function ChangePinScreen() {
                 router.back();
               }}
               testID="change-pin-success-close"
+              accessibilityRole="button"
             >
               <Text style={styles.modalButtonText}>Close</Text>
             </TouchableOpacity>

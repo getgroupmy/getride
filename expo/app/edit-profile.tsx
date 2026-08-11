@@ -1056,6 +1056,8 @@ export default function EditProfileScreen() {
             style={styles.backBtn}
             onPress={() => router.back()}
             testID="edit-profile-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={26} />
           </TouchableOpacity>
@@ -1064,6 +1066,8 @@ export default function EditProfileScreen() {
             style={[styles.saveBtn, (!dirty || saving) && styles.saveBtnDisabled]}
             onPress={handleSave}
             disabled={!dirty || saving}
+            accessibilityRole="button"
+            accessibilityLabel="Save"
             testID="edit-profile-save"
           >
             {saving ? (
@@ -1093,6 +1097,7 @@ export default function EditProfileScreen() {
             setPhonePersisted(false);
           }}
           testID="edit-profile-number-changed-banner"
+          accessibilityRole="button"
         >
           <ShieldCheck color={Colors.success} size={16} strokeWidth={2.5} />
           <Text style={styles.successBannerText}>
@@ -1116,6 +1121,8 @@ export default function EditProfileScreen() {
               style={styles.avatarTouch}
               onPress={pickAvatar}
               disabled={verifyingFace}
+              accessibilityRole="button"
+              accessibilityLabel="Change profile photo"
               testID="edit-profile-avatar"
             >
               <View style={[styles.avatar, { backgroundColor: Colors.accent + "25" }]}>
@@ -1156,6 +1163,7 @@ export default function EditProfileScreen() {
                 placeholder="Your full name"
                 placeholderTextColor={Colors.textSecondary}
                 testID="edit-profile-name"
+                accessibilityLabel="Name"
               />
             </View>
 
@@ -1172,6 +1180,7 @@ export default function EditProfileScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   testID="edit-profile-email"
+                  accessibilityLabel="Email"
                 />
               </View>
             </View>
@@ -1193,6 +1202,7 @@ export default function EditProfileScreen() {
                 });
               }}
               testID="edit-profile-change-number"
+              accessibilityRole="button"
             >
               <Phone color={Colors.textSecondary} size={18} />
               <View style={styles.linkBody}>
@@ -1210,6 +1220,7 @@ export default function EditProfileScreen() {
               style={styles.linkRow}
               onPress={() => setCountryPickerOpen(true)}
               testID="edit-profile-country"
+              accessibilityRole="button"
             >
               <Globe2 color={Colors.textSecondary} size={18} />
               <View style={styles.linkBody}>
@@ -1226,6 +1237,8 @@ export default function EditProfileScreen() {
                 style={[styles.scanCta, { borderColor: Colors.accent }]}
                 onPress={scanIdDocument}
                 disabled={scanningId}
+                accessibilityRole="button"
+                accessibilityLabel="Scan your ID"
                 testID="edit-profile-scan-id"
               >
                 {scanningId ? (
@@ -1282,6 +1295,7 @@ export default function EditProfileScreen() {
                 onPress={confirmRescan}
                 disabled={scanningId}
                 testID="edit-profile-rescan-id"
+                accessibilityRole="button"
               >
                 <ScanLine color={Colors.accent} size={16} />
                 <Text style={[styles.rescanBtnText, { color: Colors.accent }]}>
@@ -1310,6 +1324,7 @@ export default function EditProfileScreen() {
                 }
               }}
               testID="edit-profile-pin"
+              accessibilityRole="button"
             >
               <Shield color={Colors.textSecondary} size={18} />
               <View style={styles.linkBody}>
@@ -1330,6 +1345,7 @@ export default function EditProfileScreen() {
                 style={styles.linkRow}
                 onPress={handleForgotPin}
                 testID="edit-profile-forgot-pin"
+                accessibilityRole="button"
               >
                 <KeyRound color={Colors.textSecondary} size={18} />
                 <View style={styles.linkBody}>
@@ -1357,6 +1373,9 @@ export default function EditProfileScreen() {
             <TouchableOpacity
               onPress={() => setCountryPickerOpen(false)}
               style={styles.modalClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               testID="country-picker-close"
             >
               <X color={Colors.text} size={22} />
@@ -1373,6 +1392,7 @@ export default function EditProfileScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="country-picker-search"
+              accessibilityLabel="Search country…"
             />
           </View>
           <FlatList
@@ -1390,6 +1410,7 @@ export default function EditProfileScreen() {
                     setCountryQuery("");
                   }}
                   testID={`country-${item.isoCode}`}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.countryFlag}>{item.flag}</Text>
                   <Text style={styles.countryName}>{item.name}</Text>

@@ -42,6 +42,8 @@ export default function DarkModeScreen() {
             style={styles.backButton}
             onPress={handleBack}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={24} />
           </TouchableOpacity>
@@ -61,6 +63,7 @@ export default function DarkModeScreen() {
             ]}
             onPress={() => handleSelectMode(option.id)}
             activeOpacity={0.7}
+            accessibilityRole="button"
           >
             <Text style={[styles.optionLabel, { color: Colors.text }]}>{option.label}</Text>
             {themeMode === option.id && (

@@ -602,6 +602,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
             value={active}
             onValueChange={() => toggleActive(entry)}
             testID={`required-documents-toggle-${entry.id}`}
+            accessibilityLabel={`Active: ${name}`}
           />
         </View>
 
@@ -611,6 +612,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
             onPress={() => openEdit(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`required-documents-edit-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Edit required documents"
           >
             <Pencil color={Colors.accent} size={16} />
           </TouchableOpacity>
@@ -618,6 +621,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
             onPress={() => onDelete(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`required-documents-delete-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete required documents"
           >
             <Trash2 color={Colors.error} size={16} />
           </TouchableOpacity>
@@ -653,6 +658,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="required-documents-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -671,6 +678,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="required-documents-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add required documents"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -685,6 +694,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="required-documents-search"
+          accessibilityLabel="Search documents"
         />
       </View>
 
@@ -700,6 +710,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="required-documents-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add document</Text>
@@ -728,6 +739,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="required-documents-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -748,6 +760,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={[styles.input, { color: Colors.text }]}
                     testID="required-documents-field-name"
+                    accessibilityLabel="Document Name *"
                   />
                 </View>
 
@@ -768,6 +781,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     style={[styles.input, { color: Colors.text, height: 80, textAlignVertical: "top" }]}
                     multiline
                     testID="required-documents-field-description"
+                    accessibilityLabel="Short description"
                   />
                 </View>
 
@@ -791,6 +805,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                       },
                     ]}
                     testID="required-documents-doctype-all"
+                    accessibilityRole="button"
                   >
                     {allSelected ? <Check color={Colors.onAccent} size={13} /> : null}
                     <Text
@@ -834,6 +849,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                             },
                           ]}
                           testID={`required-documents-doctype-${id}`}
+                          accessibilityRole="button"
                         >
                           {checked ? <Check color={Colors.onAccent} size={13} /> : null}
                           <Text
@@ -875,6 +891,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                       },
                     ]}
                     testID="required-documents-partnertype-all"
+                    accessibilityRole="button"
                   >
                     {form.partnerTypes.includes(ALL_TOKEN) ? (
                       <Check color={Colors.onAccent} size={13} />
@@ -927,6 +944,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                             },
                           ]}
                           testID={`required-documents-partnertype-${name}`}
+                          accessibilityRole="button"
                         >
                           {checked ? <Check color={Colors.onAccent} size={13} /> : null}
                           <Text
@@ -965,6 +983,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     },
                   ]}
                   testID="required-documents-region-global"
+                  accessibilityRole="button"
                 >
                   <View
                     style={[
@@ -1006,6 +1025,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                         },
                       ]}
                       testID="required-documents-region-global-cycle"
+                      accessibilityRole="button"
                     >
                       <Text
                         style={[
@@ -1049,6 +1069,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text, height: 40 }]}
                         testID="required-documents-region-search"
+                        accessibilityLabel="Search countries / states"
                       />
                     </View>
 
@@ -1088,6 +1109,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                                 },
                               ]}
                               testID={`required-documents-region-selected-${r.key}`}
+                              accessibilityRole="button"
                             >
                               {r.type === "country" ? (
                                 <Globe2
@@ -1199,6 +1221,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                                 },
                               ]}
                               testID={`required-documents-region-country-${c.key}`}
+                              accessibilityRole="button"
                             >
                               <Globe2
                                 color={checked ? Colors.onAccent : Colors.textSecondary}
@@ -1269,6 +1292,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                                 },
                               ]}
                               testID={`required-documents-region-state-${s.key}`}
+                              accessibilityRole="button"
                             >
                               <MapPin
                                 color={checked ? Colors.onAccent : Colors.textSecondary}
@@ -1383,6 +1407,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                           setForm((p) => ({ ...p, [key]: nv }))
                         }
                         testID={`required-documents-field-${key}`}
+                        accessibilityLabel={title}
                       />
                     </View>
                   );
@@ -1430,6 +1455,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     value={form.isTaxiPermit}
                     onValueChange={(v) => setForm((p) => ({ ...p, isTaxiPermit: v }))}
                     testID="required-documents-field-isTaxiPermit"
+                    accessibilityLabel="Taxi Driver Permit display"
                   />
                 </View>
 
@@ -1451,6 +1477,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     value={form.required}
                     onValueChange={(v) => setForm((p) => ({ ...p, required: v }))}
                     testID="required-documents-field-required"
+                    accessibilityLabel="Default Required"
                   />
                 </View>
 
@@ -1472,6 +1499,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="required-documents-field-active"
+                    accessibilityLabel="Status"
                   />
                 </View>
               </ScrollView>
@@ -1480,6 +1508,8 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="required-documents-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

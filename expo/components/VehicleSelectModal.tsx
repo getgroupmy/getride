@@ -95,6 +95,8 @@ export default function VehicleSelectModal({
     >
       <View style={styles.overlay} testID="vehicle-select-overlay">
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Close"
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
           onPress={onClose}
@@ -111,7 +113,14 @@ export default function VehicleSelectModal({
                   : "Pick the vehicle you'll use"}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} testID="vehicle-select-close">
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              testID="vehicle-select-close"
+            >
               <X color={Colors.textSecondary} size={22} />
             </TouchableOpacity>
           </View>
@@ -192,6 +201,9 @@ export default function VehicleSelectModal({
                     ]}
                     onPress={handlePress}
                     disabled={!tappable}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !tappable }}
+                    accessibilityLabel={`${v.plate}, ${row.statusLabel}`}
                     testID={`vehicle-${v.plate}`}
                   >
                     <View
@@ -250,6 +262,8 @@ export default function VehicleSelectModal({
           <TouchableOpacity
             style={[styles.addBtn, { borderColor: Colors.accent }]}
             onPress={onAddNew}
+            accessibilityRole="button"
+            accessibilityLabel="Add a new vehicle"
             testID="vehicle-add-new"
           >
             <Plus color={Colors.accent} size={18} />

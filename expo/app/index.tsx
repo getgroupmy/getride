@@ -28,6 +28,13 @@ import { useTheme } from "@/contexts/ThemeContext";
 import MenuSideSheet from "@/components/MenuSideSheet";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { motionDuration, motionSpring, resolveMotion } from "@/utils/reducedMotion";
+import {
+  resolveServiceBoxAction,
+  serviceBoxBadge,
+  type ServiceBoxAction,
+} from "@/utils/serviceBoxAction";
 
 const { width, height } = Dimensions.get("window");
 const BOTTOM_SHEET_MIN_HEIGHT = 310;
@@ -106,6 +113,8 @@ export default function HomeScreen() {
   const hasInitializedFromParams = useRef(false);
   const [mapKey, setMapKey] = useState<number>(0);
   const [serviceComingSoonVisible, setServiceComingSoonVisible] = useState<boolean>(false);
+  const [comingSoonService, setComingSoonService] = useState<string | null>(null);
+  const reducedMotion = useReducedMotion();
   const prevColorScheme = useRef<string>(colorScheme);
   const [currentAddress, setCurrentAddress] = useState<{
     name: string;
@@ -793,19 +802,53 @@ export default function HomeScreen() {
           ? String(linkedSvc.values.name ?? preset.title)
           : preset.title;
       const Icon = SERVICE_ICON_MAP[cfg?.iconName ?? ''] ?? (idx === 0 ? ShoppingBag : idx === 1 ? Car : idx === 2 ? Building2 : idx === 3 ? Package : Truck);
+      const badgeOpts = {
+        serviceEnabled: displaySettings.serviceEnabled,
+        newBadge: idx === 0 && displaySettings.serviceBoxBadge,
+      };
       return {
         id: preset.id,
         title,
-        badge: idx === 0 && displaySettings.serviceBoxBadge ? 'NEW' : undefined,
+        badge: serviceBoxBadge(cfg, badgeOpts),
         Icon,
         imageUri: cfg?.imageUri,
         bg: '#2A2A2A',
         accent: preset.accent,
         large: idx === 0,
+        action: resolveServiceBoxAction(cfg, badgeOpts),
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displaySettings.serviceBoxes, displaySettings.serviceBoxBadge, serviceSettingEntries]);
+  }, [
+    displaySettings.serviceBoxes,
+    displaySettings.serviceBoxBadge,
+    displaySettings.serviceEnabled,
+    serviceSettingEntries,
+  ]);
+
+  const serviceLabel = React.useCallback(
+    (item: { title: string; badge?: string; action: ServiceBoxAction }) => {
+      const title = item.title.replace(/\n/g, " ");
+      if (item.action.kind === "coming-soon") return `${title}, coming soon`;
+      return item.badge ? `${title}, ${item.badge}` : title;
+    },
+    []
+  );
+
+  // Every service tile used to call console.log and nothing else. A tile now
+  // either opens its configured route or says it is coming soon; there is no
+  // path where a tap does nothing.
+  const handleServicePress = React.useCallback(
+    (item: { id: string; title: string; action: ServiceBoxAction }) => {
+      if (item.action.kind === "navigate") {
+        router.push(item.action.route as any);
+        return;
+      }
+      setComingSoonService(item.title);
+      setServiceComingSoonVisible(true);
+    },
+    [router]
+  );
 
   useEffect(() => {
     if (location && !pinLocation) {
@@ -840,13 +883,13 @@ export default function HomeScreen() {
   }, [location]);
 
   useEffect(() => {
-    Animated.spring(slideAnim, {
+    Animated.spring(slideAnim, motionSpring({
       toValue: 0,
       useNativeDriver: true,
       tension: 50,
       friction: 8,
-    }).start();
-  }, [slideAnim]);
+    }, "transition", reducedMotion)).start();
+  }, [slideAnim, reducedMotion]);
 
   const resetAnimations = React.useCallback(() => {
     console.log("Resetting index screen animations");
@@ -1014,23 +1057,31 @@ export default function HomeScreen() {
   }, [colorScheme]);
 
   useEffect(() => {
-    if (location) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+    if (!location) return;
+    // Decorative: the ring pulses forever and says nothing the static marker
+    // does not. Under Reduce Motion it simply does not run, and the value rests
+    // at 0 so the ring sits at its base size.
+    if (!resolveMotion("decorative", reducedMotion).run) {
+      pulseAnim.setValue(0);
+      return;
     }
-  }, [location, pulseAnim]);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [location, pulseAnim, reducedMotion]);
 
   useEffect(() => {
     if (isLoadingAddress) {
@@ -1066,30 +1117,32 @@ export default function HomeScreen() {
       Animated.parallel([
         Animated.timing(menuButtonAnim, {
           toValue: -150,
-          duration: 200,
+          duration: motionDuration(200, "transition", reducedMotion),
           useNativeDriver: true,
         }),
         Animated.timing(bottomSheetAnim, {
           toValue: BOTTOM_SHEET_MIN_HEIGHT + 56,
-          duration: 200,
+          duration: motionDuration(200, "transition", reducedMotion),
           useNativeDriver: true,
         }),
-        Animated.spring(pinInnerScaleAnim, {
+        Animated.spring(pinInnerScaleAnim, motionSpring({
           toValue: 2,
           useNativeDriver: true,
           tension: 100,
           friction: 8,
-        }),
+        }, "transition", reducedMotion)),
         Animated.timing(pinShadowOpacity, {
           toValue: 1,
-          duration: 200,
+          duration: motionDuration(200, "transition", reducedMotion),
           useNativeDriver: true,
         }),
         Animated.timing(pinDropAnim, {
           toValue: -25,
-          duration: 200,
+          duration: motionDuration(200, "transition", reducedMotion),
           useNativeDriver: true,
         }),
+        // A cross-fade is not the motion Reduce Motion is about, so opacity
+        // keeps its duration.
         Animated.timing(addressBarOpacity, {
           toValue: 0,
           duration: 150,
@@ -1130,30 +1183,30 @@ export default function HomeScreen() {
       console.log("Map stopped moving - showing menu button and sliding bottom sheet up");
       pinShadowOpacity.setValue(0);
       Animated.parallel([
-        Animated.spring(menuButtonAnim, {
+        Animated.spring(menuButtonAnim, motionSpring({
           toValue: 0,
           useNativeDriver: true,
           tension: 80,
           friction: 10,
-        }),
-        Animated.spring(bottomSheetAnim, {
+        }, "transition", reducedMotion)),
+        Animated.spring(bottomSheetAnim, motionSpring({
           toValue: 0,
           useNativeDriver: true,
           tension: 80,
           friction: 10,
-        }),
-        Animated.spring(pinInnerScaleAnim, {
+        }, "transition", reducedMotion)),
+        Animated.spring(pinInnerScaleAnim, motionSpring({
           toValue: 1,
           useNativeDriver: true,
           tension: 80,
           friction: 10,
-        }),
-        Animated.spring(pinDropAnim, {
+        }, "transition", reducedMotion)),
+        Animated.spring(pinDropAnim, motionSpring({
           toValue: 0,
           useNativeDriver: true,
           tension: 200,
           friction: 8,
-        }),
+        }, "transition", reducedMotion)),
         Animated.timing(addressBarOpacity, {
           toValue: 1,
           duration: 200,
@@ -1240,6 +1293,7 @@ export default function HomeScreen() {
         <Pressable
           onPress={handleCloseMenu}
           style={[styles.menuOverlay, { pointerEvents: menuFullyOpen ? 'auto' : 'none' }]}
+          accessibilityRole="button"
         >
           <Animated.View
             style={[
@@ -1338,6 +1392,13 @@ export default function HomeScreen() {
               }
             }}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isLoadingAddress }}
+            accessibilityLabel={
+              isLoadingAddress
+                ? "Finding your pickup point"
+                : `Pickup point: ${currentAddress?.name || "not set"}. Change pickup location`
+            }
           >
             {isLoadingAddress ? (
               <Animated.View 
@@ -1392,6 +1453,8 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={[styles.menuButton, { backgroundColor: Colors.secondary }]}
                 onPress={handleOpenMenu}
+                accessibilityRole="button"
+                accessibilityLabel="Open menu"
               >
                 <Menu color={Colors.text} size={24} />
               </TouchableOpacity>
@@ -1424,6 +1487,7 @@ export default function HomeScreen() {
               useNativeDriver: true,
             }).start(() => setInfoSheetModalVisible(false));
           }}
+          accessibilityRole="button"
         >
           <Animated.View 
             style={[styles.infoSheetContainer, { backgroundColor: Colors.secondary, transform: [{ translateY: Animated.add(infoSheetAnim, infoSheetDragOffset) }] }]}
@@ -1431,6 +1495,11 @@ export default function HomeScreen() {
           >
             <TouchableOpacity
               style={styles.infoSheetCloseButton}
+              // 32pt visual circle; hitSlop lifts the tap area to 48pt without
+              // moving the icon off the sheet corner.
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
               onPress={() => {
                 Animated.timing(infoSheetAnim, {
                   toValue: 300,
@@ -1462,6 +1531,8 @@ export default function HomeScreen() {
             
             <TouchableOpacity
               style={[styles.infoSheetOkButton, { backgroundColor: Colors.gray[700] }]}
+              accessibilityRole="button"
+              accessibilityLabel="OK"
               onPress={() => {
                 Animated.timing(infoSheetAnim, {
                   toValue: 300,
@@ -1508,6 +1579,10 @@ export default function HomeScreen() {
             setMapType((prev) => (prev === "standard" ? "satellite" : "standard"));
           }}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityState={{ selected: mapType === "satellite" }}
+          accessibilityLabel="Satellite view"
+          accessibilityHint={mapType === "satellite" ? "Switches back to the standard map" : "Switches the map to satellite imagery"}
           testID="map-type-toggle"
         >
           <Layers
@@ -1575,6 +1650,8 @@ export default function HomeScreen() {
             }
           }}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Recenter map on my location"
         >
           <Navigation color={colorScheme === 'dark' ? Colors.accent : '#000'} size={22} />
         </TouchableOpacity>
@@ -1641,6 +1718,9 @@ export default function HomeScreen() {
                   }
                 }}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${type.name}, seats ${type.capacity}`}
               >
                 <Animated.View
                   style={[
@@ -1664,7 +1744,11 @@ export default function HomeScreen() {
                         useNativeDriver: true,
                       }).start();
                     }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    // 18pt badge; 14pt of slop on each side brings the tap area
+                    // up to 46pt, over the 44pt minimum.
+                    hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`About ${type.name}`}
                   >
                     <Text style={styles.rideTypeInfoBadgeText}>i</Text>
                   </TouchableOpacity>
@@ -1704,6 +1788,8 @@ export default function HomeScreen() {
           {displaySettings.searchBar ? (
           <TouchableOpacity
           style={[styles.searchButton, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="search"
+          accessibilityLabel="Where to and for how much? Search a destination"
           onPress={() => {
             if (!displaySettings.serviceEnabled) {
               setServiceComingSoonVisible(true);
@@ -1778,6 +1864,8 @@ export default function HomeScreen() {
                 }
               }}
               activeOpacity={0.6}
+              accessibilityRole="button"
+              accessibilityLabel={`Ride to ${loc.name}`}
             >
               <MapPin color={Colors.textSecondary} size={20} />
               <Text style={[styles.recentLocationText, { color: Colors.text }]}>
@@ -1799,14 +1887,21 @@ export default function HomeScreen() {
                     key={item.id}
                     style={[styles.serviceCardLarge, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
-                    onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={serviceLabel(item)}
+                    onPress={() => handleServicePress(item)}
                   >
                     <View style={styles.serviceCardHeader}>
                       <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={2}>
                         {item.title}
                       </Text>
                       {item.badge && (
-                        <View style={styles.serviceBadge}>
+                        <View
+                          style={[
+                            styles.serviceBadge,
+                            item.badge === "SOON" && styles.serviceBadgeSoon,
+                          ]}
+                        >
                           <Text style={styles.serviceBadgeText}>{item.badge}</Text>
                         </View>
                       )}
@@ -1829,11 +1924,25 @@ export default function HomeScreen() {
                     key={item.id}
                     style={[styles.serviceCardSmall, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
-                    onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={serviceLabel(item)}
+                    onPress={() => handleServicePress(item)}
                   >
-                    <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
-                      {item.title}
-                    </Text>
+                    <View style={styles.serviceCardHeader}>
+                      <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      {item.badge && (
+                        <View
+                          style={[
+                            styles.serviceBadge,
+                            item.badge === "SOON" && styles.serviceBadgeSoon,
+                          ]}
+                        >
+                          <Text style={styles.serviceBadgeText}>{item.badge}</Text>
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.serviceIconWrapSmall}>
                       {item.imageUri ? (
                         <Image source={{ uri: item.imageUri }} style={styles.serviceIconImageSmall} resizeMode="cover" />
@@ -1853,11 +1962,25 @@ export default function HomeScreen() {
                     key={item.id}
                     style={[styles.serviceCardSmall, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
-                    onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={serviceLabel(item)}
+                    onPress={() => handleServicePress(item)}
                   >
-                    <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
-                      {item.title}
-                    </Text>
+                    <View style={styles.serviceCardHeader}>
+                      <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      {item.badge && (
+                        <View
+                          style={[
+                            styles.serviceBadge,
+                            item.badge === "SOON" && styles.serviceBadgeSoon,
+                          ]}
+                        >
+                          <Text style={styles.serviceBadgeText}>{item.badge}</Text>
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.serviceIconWrapSmall}>
                       {item.imageUri ? (
                         <Image source={{ uri: item.imageUri }} style={styles.serviceIconImageSmall} resizeMode="cover" />
@@ -1879,16 +2002,28 @@ export default function HomeScreen() {
         visible={serviceComingSoonVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setServiceComingSoonVisible(false)}
+        onRequestClose={() => {
+          setServiceComingSoonVisible(false);
+          setComingSoonService(null);
+        }}
         statusBarTranslucent
       >
         <View style={styles.csOverlay}>
-          <View style={[styles.csCard, { backgroundColor: Colors.secondary }]}>
+          <View style={[styles.csCard, { backgroundColor: Colors.secondary }]} accessibilityViewIsModal>
             <Text style={[styles.csTitle, { color: Colors.text }]}>Coming Soon</Text>
-            <Text style={[styles.csBody, { color: Colors.textSecondary }]}>This service isn&apos;t available yet. Please check back later.</Text>
+            <Text style={[styles.csBody, { color: Colors.textSecondary }]}>
+              {comingSoonService
+                ? `${comingSoonService.replace(/\n/g, " ")} isn't available yet. Please check back later.`
+                : "This service isn't available yet. Please check back later."}
+            </Text>
             <TouchableOpacity
               style={[styles.csButton, { backgroundColor: Colors.accent }]}
-              onPress={() => setServiceComingSoonVisible(false)}
+              onPress={() => {
+                setServiceComingSoonVisible(false);
+                setComingSoonService(null);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="OK"
               testID="service-coming-soon-ok"
             >
               <Text style={[styles.csButtonText, { color: Colors.onAccent }]}>OK</Text>
@@ -2359,10 +2494,16 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   serviceBadge: {
-    backgroundColor: '#FF3B30',
+    // Was #FF3B30 — white on it is 3.55:1, under AA for 11pt badge text.
+    backgroundColor: '#D32F26',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+  },
+  serviceBadgeSoon: {
+    // "Coming soon" is a status, not an alert — it should not borrow the red
+    // that means "new".
+    backgroundColor: '#5C5C66',
   },
   serviceBadgeText: {
     color: '#FFFFFF',

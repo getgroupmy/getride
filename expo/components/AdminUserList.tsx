@@ -143,6 +143,8 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
         <TouchableOpacity
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           testID="user-list-back"
         >
           <ArrowLeft color={Colors.text} size={22} />
@@ -155,6 +157,8 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
           <TouchableOpacity
             onPress={() => router.push("/admin-user-add" as any)}
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
+            accessibilityRole="button"
+            accessibilityLabel="Add a user"
             testID="user-list-add"
           >
             <UserPlus color={Colors.onAccent} size={20} />
@@ -174,6 +178,7 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="user-search"
+          accessibilityLabel="Search name, phone, email or ID"
         />
       </View>
 
@@ -195,6 +200,8 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
               <TouchableOpacity
                 key={u.id}
                 style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${u.name}`}
                 testID={`user-card-${u.id}`}
                 onPress={() => router.push({ pathname: "/admin-user-edit" as any, params: { id: u.id } })}
                 activeOpacity={0.85}
@@ -217,6 +224,9 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
                     <TouchableOpacity
                       onPress={() => onDelete(u)}
                       style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Delete ${u.name}`}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       testID={`user-more-${u.id}`}
                     >
                       <Trash2 color={Colors.error} size={16} />
@@ -255,6 +265,8 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
                           key={a.label}
                           onPress={() => handleAction(u, a.label, a.nextStatus)}
                           style={[styles.actionBtn, { backgroundColor: tone + "15", borderColor: tone + "40" }]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${a.label} ${u.name}`}
                           testID={`user-action-${u.id}-${a.label}`}
                           activeOpacity={0.85}
                         >
@@ -265,6 +277,8 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
                     <TouchableOpacity
                       onPress={() => onCall(u.phone)}
                       style={[styles.callBtn, { backgroundColor: Colors.accent }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Call ${u.name}`}
                       testID={`user-call-${u.id}`}
                     >
                       <Phone color={Colors.onAccent} size={16} />

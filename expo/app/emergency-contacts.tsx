@@ -12,7 +12,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
-  HelpCircle,
   ChevronRight,
   ShieldAlert,
 } from "lucide-react-native";
@@ -61,13 +60,18 @@ export default function EmergencyContactsScreen() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <SafeAreaView style={{ backgroundColor: Colors.background }} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleBack} testID="ec-back">
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            testID="ec-back"
+          >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>Emergency Contacts</Text>
-          <TouchableOpacity style={styles.iconButton} testID="ec-help">
-            <HelpCircle color={Colors.textSecondary} size={24} />
-          </TouchableOpacity>
+          {/* Balances the back button; not a control — it has no action. */}
+          <View style={styles.iconButton} testID="ec-help" />
         </View>
       </SafeAreaView>
 
@@ -104,6 +108,7 @@ export default function EmergencyContactsScreen() {
               style={styles.contactRow}
               onPress={() => openEdit(c)}
               testID={`ec-contact-${c.id}`}
+              accessibilityRole="button"
             >
               <View
                 style={[
@@ -136,6 +141,7 @@ export default function EmergencyContactsScreen() {
             style={[styles.addButton, { backgroundColor: Colors.success }]}
             onPress={openAdd}
             testID="ec-add"
+            accessibilityRole="button"
           >
             <Text style={styles.addButtonText}>Add</Text>
           </TouchableOpacity>

@@ -34,6 +34,8 @@ import {
 } from "lucide-react-native";
 import Svg, { Path } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { walletPalette, type WalletPalette } from "@/utils/walletTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import WalletBalanceBar from "@/components/WalletBalanceBar";
 import {
@@ -81,7 +83,7 @@ function SlideToPayButton({
   onComplete: () => void;
   testID?: string;
 }) {
-  const Colors = useColors();
+  const { styles, wc, Colors } = useWalletStyles();
   const [trackW, setTrackW] = useState<number>(0);
   const dragX = useRef(new Animated.Value(0)).current;
   const maxDrag = Math.max(trackW - SLIDE_THUMB - SLIDE_PAD * 2, 1);
@@ -141,7 +143,7 @@ function SlideToPayButton({
 
   return (
     <View
-      style={[styles.slideTrack, { backgroundColor: enabled ? Colors.accent : "#C3C8CE" }]}
+      style={[styles.slideTrack, { backgroundColor: enabled ? Colors.accent : wc.borderStrong }]}
       onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
       testID={testID}
     >
@@ -151,7 +153,7 @@ function SlideToPayButton({
         <Animated.Text
           style={[
             styles.slideLabel,
-            { opacity: labelOpacity, color: enabled ? "#FFFFFF" : "#EDEFF2" },
+            { opacity: labelOpacity, color: enabled ? Colors.onAccent : wc.textFaint },
           ]}
         >
           Pay
@@ -161,14 +163,14 @@ function SlideToPayButton({
         style={[
           styles.slideThumb,
           {
-            backgroundColor: enabled ? "#FFFFFF" : "#E7E9EC",
+            backgroundColor: enabled ? wc.surface : wc.surfaceMuted,
             transform: [{ translateX: dragX }],
           },
         ]}
         {...pan.panHandlers}
         testID={testID ? `${testID}-thumb` : undefined}
       >
-        <ChevronsRight color={enabled ? Colors.accentDark : "#858D96"} size={26} />
+        <ChevronsRight color={enabled ? Colors.accentDark : wc.textFaint} size={26} />
       </Animated.View>
     </View>
   );
@@ -182,7 +184,7 @@ function SlideToPayButton({
  */
 export default function WalletScanScreen() {
   const router = useRouter();
-  const Colors = useColors();
+  const { styles, wc, Colors } = useWalletStyles();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const params = useLocalSearchParams<{ mode?: string }>();
@@ -416,6 +418,7 @@ export default function WalletScanScreen() {
             style={styles.circleBtn}
             onPress={() => router.back()}
             testID="wallet-scan-close"
+            accessibilityRole="button"
           >
             <X color="#FFFFFF" size={22} />
           </TouchableOpacity>
@@ -423,6 +426,8 @@ export default function WalletScanScreen() {
             style={styles.circleBtn}
             onPress={() => setHelpVisible(true)}
             testID="wallet-scan-help"
+            accessibilityRole="button"
+            accessibilityLabel="Help"
           >
             <HelpCircle color="#FFFFFF" size={22} />
           </TouchableOpacity>
@@ -462,6 +467,7 @@ export default function WalletScanScreen() {
                   }
                 }}
                 testID="wallet-scan-allow-camera"
+                accessibilityRole="button"
               >
                 <Text style={styles.permissionBtnText}>
                   {permission?.canAskAgain === false ? "Open Settings" : "Allow Camera"}
@@ -476,6 +482,9 @@ export default function WalletScanScreen() {
             style={styles.circleBtn}
             onPress={() => setTorchOn((v) => !v)}
             testID="wallet-scan-torch"
+            accessibilityRole="button"
+            accessibilityState={{ selected: torchOn }}
+            accessibilityLabel="Torch"
           >
             {torchOn ? <Zap color="#FFD400" size={20} /> : <ZapOff color="#FFFFFF" size={20} />}
           </TouchableOpacity>
@@ -485,8 +494,9 @@ export default function WalletScanScreen() {
             onPress={openShowCode}
             activeOpacity={0.9}
             testID="wallet-scan-show-code"
+            accessibilityRole="button"
           >
-            <QrCode color="#111827" size={20} />
+            <QrCode color={wc.textStrong} size={20} />
             <Text style={styles.showCodeText}>Show Code</Text>
           </TouchableOpacity>
         </View>
@@ -513,7 +523,7 @@ export default function WalletScanScreen() {
                   <Text style={styles.successAmount}>RM {paidAmount.toFixed(2)}</Text>
                   {paidCoins ? (
                     <View style={styles.successCoinRow}>
-                      <Coins color="#B45309" size={15} />
+                      <Coins color={wc.coinPillText} size={15} />
                       <Text style={styles.successCoinText}>
                         {formatCoins(paidCoins.coinsUsed)} used (−RM{paidCoins.coinValue.toFixed(2)})
                         {paidCoins.walletPaid > 0
@@ -533,6 +543,7 @@ export default function WalletScanScreen() {
                     }}
                     activeOpacity={0.9}
                     testID="wallet-scan-pay-done"
+                    accessibilityRole="button"
                   >
                     <LinearGradient
                       colors={[Colors.accent, Colors.accentDark]}
@@ -551,8 +562,10 @@ export default function WalletScanScreen() {
                       style={styles.payBackBtn}
                       onPress={closePaySheet}
                       testID="wallet-scan-pay-close"
+                      accessibilityRole="button"
+                      accessibilityLabel="Go back"
                     >
-                      <ArrowLeft color="#111827" size={26} />
+                      <ArrowLeft color={wc.textStrong} size={26} />
                     </TouchableOpacity>
                   </View>
 
@@ -567,11 +580,12 @@ export default function WalletScanScreen() {
                       value={amountText}
                       onChangeText={handleAmountChange}
                       placeholder="0.00"
-                      placeholderTextColor="#C3C9CF"
+                      placeholderTextColor={wc.placeholder}
                       keyboardType="number-pad"
                       caretHidden
                       autoFocus
                       testID="wallet-scan-pay-amount"
+                      accessibilityLabel="Pay (RM)"
                     />
                   </Animated.View>
                   {parsedAmount > 0 ? (
@@ -595,7 +609,7 @@ export default function WalletScanScreen() {
                       <View style={styles.coinRow} testID="wallet-scan-coin-row">
                         <View style={styles.coinRowLeft}>
                           <View style={styles.coinBadge}>
-                            <Coins color="#B45309" size={16} />
+                            <Coins color={wc.coinPillText} size={16} />
                           </View>
                           <View style={styles.coinRowTextWrap}>
                             <Text style={styles.coinRowTitle}>Use GET.coin</Text>
@@ -614,9 +628,10 @@ export default function WalletScanScreen() {
                               Haptics.selectionAsync().catch(() => {});
                             }
                           }}
-                          trackColor={{ true: "#EAB308", false: "#D6DADF" }}
+                          trackColor={{ true: "#EAB308", false: wc.borderStrong }}
                           thumbColor="#FFFFFF"
                           testID="wallet-scan-coin-switch"
+                          accessibilityLabel="Use GET.coin"
                         />
                       </View>
                     ) : null}
@@ -667,6 +682,7 @@ export default function WalletScanScreen() {
               onPress={() => setHelpVisible(false)}
               activeOpacity={0.9}
               testID="wallet-scan-help-close"
+              accessibilityRole="button"
             >
               <LinearGradient
                 colors={[Colors.accent, Colors.accentDark]}
@@ -684,368 +700,378 @@ export default function WalletScanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#111111",
-  },
-  cameraFallback: {
-    backgroundColor: "#1C1C1E",
-  },
-  overlay: {
-    flex: 1,
-  },
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  circleBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brandWrap: {
-    alignItems: "center",
-    marginTop: 18,
-    gap: 6,
-  },
-  brandText: {
-    fontSize: 17,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  frameArea: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  frame: {
-    position: "relative" as const,
-  },
-  corner: {
-    position: "absolute" as const,
-    width: 56,
-    height: 56,
-    borderColor: "#FFFFFF",
-  },
-  cornerTL: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 5,
-    borderLeftWidth: 5,
-    borderTopLeftRadius: 34,
-  },
-  cornerTR: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 5,
-    borderRightWidth: 5,
-    borderTopRightRadius: 34,
-  },
-  cornerBL: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 5,
-    borderLeftWidth: 5,
-    borderBottomLeftRadius: 34,
-  },
-  cornerBR: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 5,
-    borderRightWidth: 5,
-    borderBottomRightRadius: 34,
-  },
-  permissionCard: {
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 32,
-  },
-  permissionTitle: {
-    fontSize: 18,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  permissionSub: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.75)",
-    textAlign: "center" as const,
-    lineHeight: 20,
-  },
-  permissionBtn: {
-    marginTop: 8,
-    borderRadius: 999,
-    paddingHorizontal: 26,
-    paddingVertical: 12,
-  },
-  permissionBtnText: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  bottomControls: {
-    alignItems: "center",
-    gap: 18,
-    paddingBottom: 22,
-  },
-  showCodePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 999,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-  },
-  showCodeText: {
-    fontSize: 16,
-    fontWeight: "800" as const,
-    color: "#111827",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  payPage: {
-    backgroundColor: "#EAF6FC",
-  },
-  payPageSafe: {
-    flex: 1,
-  },
-  payPageHeader: {
-    paddingHorizontal: 12,
-    paddingTop: 6,
-  },
-  payBackBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  payMerchant: {
-    fontSize: 20,
-    fontWeight: "800" as const,
-    color: "#111827",
-    textAlign: "center" as const,
-    paddingHorizontal: 32,
-    marginTop: 22,
-  },
-  payAmountLabel: {
-    fontSize: 19,
-    color: "#9AA1A9",
-    textAlign: "center" as const,
-    marginTop: 34,
-  },
-  payAmountInput: {
-    fontSize: 52,
-    fontWeight: "600" as const,
-    color: "#111827",
-    textAlign: "center" as const,
-    paddingVertical: 4,
-    paddingHorizontal: 24,
-  },
-  payHint: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    textAlign: "center" as const,
-    marginTop: 4,
-    minHeight: 20,
-    color: "#9AA1A9",
-  },
-  payDecorArea: {
-    flex: 1,
-  },
-  payBottomBar: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
-  },
-  payBalanceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 9,
-    marginBottom: 16,
-  },
-  coinRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    backgroundColor: "#FFFBEB",
-    borderWidth: 1,
-    borderColor: "#F3E8C0",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
-  },
-  coinRowLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  coinBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#FDE68A",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coinRowTextWrap: {
-    flex: 1,
-  },
-  coinRowTitle: {
-    fontSize: 14,
-    fontWeight: "800" as const,
-    color: "#92400E",
-  },
-  coinRowSub: {
-    fontSize: 12,
-    color: "#A16207",
-    marginTop: 1,
-  },
-  successCoinRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#FFFBEB",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginTop: 2,
-  },
-  successCoinText: {
-    fontSize: 12.5,
-    fontWeight: "700" as const,
-    color: "#92400E",
-  },
-  payBalanceText: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: "#111827",
-  },
-  slideTrack: {
-    height: SLIDE_THUMB + SLIDE_PAD * 2,
-    borderRadius: (SLIDE_THUMB + SLIDE_PAD * 2) / 2,
-    justifyContent: "center",
-    marginHorizontal: 8,
-  },
-  slideCenter: {
-    alignSelf: "center" as const,
-  },
-  slideLabel: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    textAlign: "center" as const,
-  },
-  slideThumb: {
-    position: "absolute" as const,
-    left: SLIDE_PAD,
-    width: SLIDE_THUMB,
-    height: SLIDE_THUMB,
-    borderRadius: SLIDE_THUMB / 2,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  payBtnWrap: {
-    marginTop: 4,
-  },
-  payBtn: {
-    borderRadius: 999,
-    paddingVertical: 15,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  payBtnText: {
-    fontSize: 16,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  successPage: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingHorizontal: 24,
-  },
-  successTitle: {
-    fontSize: 18,
-    fontWeight: "800" as const,
-    color: "#111827",
-    marginTop: 6,
-  },
-  successAmount: {
-    fontSize: 30,
-    fontWeight: "800" as const,
-    color: "#111827",
-  },
-  successNote: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 10,
-    textAlign: "center" as const,
-  },
-  successDoneWrap: {
-    alignSelf: "stretch" as const,
-    marginTop: 12,
-  },
-  helpCard: {
-    width: "100%" as const,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    padding: 22,
-  },
-  helpTitle: {
-    fontSize: 19,
-    fontWeight: "800" as const,
-    color: "#111827",
-    marginBottom: 16,
-  },
-  helpRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    marginBottom: 14,
-  },
-  helpStep: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  helpStepText: {
-    fontSize: 14,
-    fontWeight: "800" as const,
-  },
-  helpRowText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    color: "#374151",
-  },
-});
+function makeStyles(wc: WalletPalette, Colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: "#111111",
+    },
+    cameraFallback: {
+      backgroundColor: "#1C1C1E",
+    },
+    overlay: {
+      flex: 1,
+    },
+    topRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingTop: 8,
+    },
+    circleBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    brandWrap: {
+      alignItems: "center",
+      marginTop: 18,
+      gap: 6,
+    },
+    brandText: {
+      fontSize: 17,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    frameArea: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    frame: {
+      position: "relative" as const,
+    },
+    corner: {
+      position: "absolute" as const,
+      width: 56,
+      height: 56,
+      borderColor: "#FFFFFF",
+    },
+    cornerTL: {
+      top: 0,
+      left: 0,
+      borderTopWidth: 5,
+      borderLeftWidth: 5,
+      borderTopLeftRadius: 34,
+    },
+    cornerTR: {
+      top: 0,
+      right: 0,
+      borderTopWidth: 5,
+      borderRightWidth: 5,
+      borderTopRightRadius: 34,
+    },
+    cornerBL: {
+      bottom: 0,
+      left: 0,
+      borderBottomWidth: 5,
+      borderLeftWidth: 5,
+      borderBottomLeftRadius: 34,
+    },
+    cornerBR: {
+      bottom: 0,
+      right: 0,
+      borderBottomWidth: 5,
+      borderRightWidth: 5,
+      borderBottomRightRadius: 34,
+    },
+    permissionCard: {
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 32,
+    },
+    permissionTitle: {
+      fontSize: 18,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    permissionSub: {
+      fontSize: 14,
+      color: "rgba(255,255,255,0.75)",
+      textAlign: "center" as const,
+      lineHeight: 20,
+    },
+    permissionBtn: {
+      marginTop: 8,
+      borderRadius: 999,
+      paddingHorizontal: 26,
+      paddingVertical: 12,
+    },
+    permissionBtnText: {
+      fontSize: 15,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    bottomControls: {
+      alignItems: "center",
+      gap: 18,
+      paddingBottom: 22,
+    },
+    showCodePill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: wc.surface,
+      borderRadius: 999,
+      paddingHorizontal: 24,
+      paddingVertical: 14,
+    },
+    showCodeText: {
+      fontSize: 16,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    },
+    payPage: {
+      backgroundColor: wc.surfaceReferral,
+    },
+    payPageSafe: {
+      flex: 1,
+    },
+    payPageHeader: {
+      paddingHorizontal: 12,
+      paddingTop: 6,
+    },
+    payBackBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    payMerchant: {
+      fontSize: 20,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      textAlign: "center" as const,
+      paddingHorizontal: 32,
+      marginTop: 22,
+    },
+    payAmountLabel: {
+      fontSize: 19,
+      color: wc.textFaint,
+      textAlign: "center" as const,
+      marginTop: 34,
+    },
+    payAmountInput: {
+      fontSize: 52,
+      fontWeight: "600" as const,
+      color: wc.textStrong,
+      textAlign: "center" as const,
+      paddingVertical: 4,
+      paddingHorizontal: 24,
+    },
+    payHint: {
+      fontSize: 15,
+      fontWeight: "600" as const,
+      textAlign: "center" as const,
+      marginTop: 4,
+      minHeight: 20,
+      color: wc.textFaint,
+    },
+    payDecorArea: {
+      flex: 1,
+    },
+    payBottomBar: {
+      backgroundColor: wc.surface,
+      borderTopLeftRadius: 22,
+      borderTopRightRadius: 22,
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      shadowColor: "#000000",
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: -4 },
+      elevation: 8,
+    },
+    payBalanceRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 9,
+      marginBottom: 16,
+    },
+    coinRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      backgroundColor: wc.surfaceCoinPill,
+      borderWidth: 1,
+      borderColor: wc.borderCoin,
+      borderRadius: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      marginBottom: 12,
+    },
+    coinRowLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      flex: 1,
+    },
+    coinBadge: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: wc.surfaceCoinPill,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    coinRowTextWrap: {
+      flex: 1,
+    },
+    coinRowTitle: {
+      fontSize: 14,
+      fontWeight: "800" as const,
+      color: wc.coinTextStrong,
+    },
+    coinRowSub: {
+      fontSize: 12,
+      color: wc.coinText,
+      marginTop: 1,
+    },
+    successCoinRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: wc.surfaceCoinPill,
+      borderRadius: 999,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      marginTop: 2,
+    },
+    successCoinText: {
+      fontSize: 12.5,
+      fontWeight: "700" as const,
+      color: wc.coinTextStrong,
+    },
+    payBalanceText: {
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: wc.textStrong,
+    },
+    slideTrack: {
+      height: SLIDE_THUMB + SLIDE_PAD * 2,
+      borderRadius: (SLIDE_THUMB + SLIDE_PAD * 2) / 2,
+      justifyContent: "center",
+      marginHorizontal: 8,
+    },
+    slideCenter: {
+      alignSelf: "center" as const,
+    },
+    slideLabel: {
+      fontSize: 18,
+      fontWeight: "700" as const,
+      textAlign: "center" as const,
+    },
+    slideThumb: {
+      position: "absolute" as const,
+      left: SLIDE_PAD,
+      width: SLIDE_THUMB,
+      height: SLIDE_THUMB,
+      borderRadius: SLIDE_THUMB / 2,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000000",
+      shadowOpacity: 0.12,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 4,
+    },
+    payBtnWrap: {
+      marginTop: 4,
+    },
+    payBtn: {
+      borderRadius: 999,
+      paddingVertical: 15,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    payBtnText: {
+      fontSize: 16,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    successPage: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingHorizontal: 24,
+    },
+    successTitle: {
+      fontSize: 18,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      marginTop: 6,
+    },
+    successAmount: {
+      fontSize: 30,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+    },
+    successNote: {
+      fontSize: 13,
+      color: wc.textMuted,
+      marginBottom: 10,
+      textAlign: "center" as const,
+    },
+    successDoneWrap: {
+      alignSelf: "stretch" as const,
+      marginTop: 12,
+    },
+    helpCard: {
+      width: "100%" as const,
+      backgroundColor: wc.surface,
+      borderRadius: 22,
+      padding: 22,
+    },
+    helpTitle: {
+      fontSize: 19,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      marginBottom: 16,
+    },
+    helpRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 12,
+      marginBottom: 14,
+    },
+    helpStep: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    helpStepText: {
+      fontSize: 14,
+      fontWeight: "800" as const,
+    },
+    helpRowText: {
+      flex: 1,
+      fontSize: 14,
+      lineHeight: 20,
+      color: wc.text,
+    },
+  });
+}
+
+function useWalletStyles() {
+  const Colors = useColors();
+  const { colorScheme } = useTheme();
+  const wc = useMemo(() => walletPalette(colorScheme === "dark"), [colorScheme]);
+  const styles = useMemo(() => makeStyles(wc, Colors), [wc, Colors]);
+  return { styles, wc, Colors };
+}

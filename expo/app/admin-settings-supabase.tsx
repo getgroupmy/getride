@@ -254,6 +254,8 @@ export default function AdminSettingsSupabaseScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="supabase-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -269,6 +271,7 @@ export default function AdminSettingsSupabaseScreen() {
           disabled={saving}
           style={[styles.saveBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.6 : 1 }]}
           testID="supabase-save"
+          accessibilityRole="button"
         >
           {saving ? (
             <ActivityIndicator color="#000000" size="small" />
@@ -342,7 +345,7 @@ export default function AdminSettingsSupabaseScreen() {
             secureTextEntry={!showAnon}
             Colors={Colors}
             trailing={
-              <TouchableOpacity onPress={() => setShowAnon((v) => !v)} style={styles.iconAction}>
+              <TouchableOpacity onPress={() => setShowAnon((v) => !v)} style={styles.iconAction} accessibilityRole="button" accessibilityLabel="Show or hide the anon key">
                 {showAnon ? <EyeOff color={Colors.textSecondary} size={16} /> : <Eye color={Colors.textSecondary} size={16} />}
               </TouchableOpacity>
             }
@@ -359,7 +362,7 @@ export default function AdminSettingsSupabaseScreen() {
             Colors={Colors}
             warningText="Never expose in client apps. Stored locally on this device only."
             trailing={
-              <TouchableOpacity onPress={() => setShowService((v) => !v)} style={styles.iconAction}>
+              <TouchableOpacity onPress={() => setShowService((v) => !v)} style={styles.iconAction} accessibilityRole="button" accessibilityLabel="Show or hide the service key">
                 {showService ? <EyeOff color={Colors.textSecondary} size={16} /> : <Eye color={Colors.textSecondary} size={16} />}
               </TouchableOpacity>
             }
@@ -415,6 +418,7 @@ export default function AdminSettingsSupabaseScreen() {
               onPress={testConnection}
               style={[styles.actionBtn, { backgroundColor: Colors.accent }]}
               testID="supabase-test-url"
+              accessibilityRole="button"
             >
               <RefreshCcw color="#000000" size={14} />
               <Text style={styles.actionBtnText}>Test URL</Text>
@@ -423,6 +427,7 @@ export default function AdminSettingsSupabaseScreen() {
               onPress={pingActiveClient}
               style={[styles.actionBtn, { backgroundColor: Colors.success }]}
               testID="supabase-ping-client"
+              accessibilityRole="button"
             >
               <Database color="#000000" size={14} />
               <Text style={styles.actionBtnText}>Ping Client</Text>
@@ -495,6 +500,7 @@ export default function AdminSettingsSupabaseScreen() {
               disabled={checkStatus === "checking"}
               style={[styles.actionBtn, { backgroundColor: Colors.accent, opacity: checkStatus === "checking" ? 0.7 : 1 }]}
               testID="supabase-connection-check-run"
+              accessibilityRole="button"
             >
               {checkStatus === "checking" ? (
                 <ActivityIndicator color="#000000" size="small" />
@@ -545,7 +551,7 @@ function Field({ label, icon, value, placeholder, onChangeText, keyboardType, au
           <Text style={[styles.fieldLabel, { color: Colors.text }]}>{label}</Text>
         </View>
         {onCopy ? (
-          <TouchableOpacity onPress={onCopy} style={styles.iconAction}>
+          <TouchableOpacity onPress={onCopy} style={styles.iconAction} accessibilityRole="button" accessibilityLabel="Copy">
             <Copy color={Colors.textSecondary} size={14} />
           </TouchableOpacity>
         ) : null}
@@ -561,6 +567,7 @@ function Field({ label, icon, value, placeholder, onChangeText, keyboardType, au
           autoCapitalize={autoCapitalize ?? "sentences"}
           secureTextEntry={secureTextEntry}
           autoCorrect={false}
+          accessibilityLabel={placeholder}
         />
         {trailing}
       </View>
@@ -585,6 +592,7 @@ function ToggleRow({ label, description, value, onValueChange, Colors }: ToggleR
       onPress={() => onValueChange(!value)}
       activeOpacity={0.85}
       style={[styles.toggleRow, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+      accessibilityRole="button"
     >
       <View style={{ flex: 1 }}>
         <Text style={[styles.toggleLabel, { color: Colors.text }]}>{label}</Text>

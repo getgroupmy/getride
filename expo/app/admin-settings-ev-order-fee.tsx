@@ -278,6 +278,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="ev-order-fee-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -296,6 +298,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-order-fee-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add EV order fee"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -310,6 +314,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="ev-order-fee-search"
+          accessibilityLabel="Search country"
         />
       </View>
 
@@ -372,6 +377,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
                   onPress={() => openEdit(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`ev-order-fee-edit-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit EV order fee"
                 >
                   <Pencil color={Colors.accent} size={16} />
                 </TouchableOpacity>
@@ -379,6 +386,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
                   onPress={() => onDelete(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`ev-order-fee-delete-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete EV order fee"
                 >
                   <Trash2 color={Colors.error} size={16} />
                 </TouchableOpacity>
@@ -403,6 +412,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                 <TouchableOpacity
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -418,6 +428,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     }}
                     style={[styles.inputWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                     testID="ev-order-fee-field-country"
+                    accessibilityRole="button"
                   >
                     <Globe color={Colors.textSecondary} size={16} />
                     <Text
@@ -443,6 +454,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                         autoCapitalize="characters"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-order-fee-field-currency"
+                        accessibilityLabel="Currency"
                       />
                     </View>
                   </View>
@@ -457,6 +469,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-order-fee-field-amount"
+                        accessibilityLabel="Order Fee *"
                       />
                     </View>
                   </View>
@@ -488,6 +501,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     value={form.isDefault}
                     onValueChange={(v) => setForm((p) => ({ ...p, isDefault: v }))}
                     testID="ev-order-fee-field-default"
+                    accessibilityLabel="Default country"
                   />
                 </View>
 
@@ -502,6 +516,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="ev-order-fee-field-active"
+                    accessibilityLabel="Active"
                   />
                 </View>
               </ScrollView>
@@ -510,6 +525,8 @@ export default function AdminSettingsEvOrderFeeScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-order-fee-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -534,6 +551,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
               <TouchableOpacity
                 onPress={() => setCountryPickerOpen(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -552,6 +570,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.searchInput, { color: Colors.text }]}
                 testID="ev-order-fee-country-search"
+                accessibilityLabel="Search country"
               />
             </View>
             <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ paddingBottom: 12 }}>
@@ -563,6 +582,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     onPress={() => selectCountry(name)}
                     style={[styles.countryRow, { borderBottomColor: Colors.border }]}
                     testID={`ev-order-fee-country-${name}`}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.countryName, { color: Colors.text }]}>{name}</Text>
                     {selected ? <Check color={Colors.accent} size={18} /> : null}

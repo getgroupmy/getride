@@ -472,6 +472,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               ]}
               hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
               testID={`partner-type-move-up-${entry.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Move partner type up"
             >
               <ChevronUp
                 color={isFirst || disableReorder ? Colors.textSecondary : Colors.accent}
@@ -491,6 +493,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               ]}
               hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
               testID={`partner-type-move-down-${entry.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Move partner type down"
             >
               <ChevronDown
                 color={isLast || disableReorder ? Colors.textSecondary : Colors.accent}
@@ -535,6 +539,7 @@ export default function AdminSettingsPartnerTypeScreen() {
             value={enabled}
             onValueChange={() => toggleEnabled(entry)}
             testID={`partner-type-toggle-${entry.id}`}
+            accessibilityLabel={name}
           />
         </View>
 
@@ -544,6 +549,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               onPress={() => toggleExpanded(entry.id)}
               style={[styles.actionPill, { backgroundColor: Colors.background, borderColor: Colors.border }]}
               testID={`partner-type-expand-${entry.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Expand partner type"
             >
               {expanded ? (
                 <ChevronDown color={Colors.text} size={14} />
@@ -561,6 +568,8 @@ export default function AdminSettingsPartnerTypeScreen() {
             onPress={() => openEdit(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`partner-type-edit-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Edit partner type"
           >
             <Pencil color={Colors.accent} size={16} />
           </TouchableOpacity>
@@ -572,6 +581,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               { backgroundColor: Colors.background, opacity: isDefault ? 0.4 : 1 },
             ]}
             testID={`partner-type-delete-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete partner type"
           >
             <Trash2 color={isDefault ? Colors.textSecondary : Colors.error} size={16} />
           </TouchableOpacity>
@@ -640,11 +651,13 @@ export default function AdminSettingsPartnerTypeScreen() {
           <Text style={[styles.nodeName, { color: Colors.text }]} numberOfLines={1}>
             {node.name}
           </Text>
-          <Switch value={node.enabled} onValueChange={() => toggleAtPath(path)} />
+          <Switch value={node.enabled} onValueChange={() => toggleAtPath(path)} accessibilityLabel={node.name} />
           <TouchableOpacity
             onPress={() => renameAtPath(path, node.name)}
             style={[styles.nodeBtn, { backgroundColor: Colors.background }]}
             testID={`partner-type-node-edit-${node.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Edit partner type"
           >
             <Pencil color={Colors.accent} size={14} />
           </TouchableOpacity>
@@ -653,6 +666,8 @@ export default function AdminSettingsPartnerTypeScreen() {
               onPress={() => addChild(path)}
               style={[styles.nodeBtn, { backgroundColor: Colors.background }]}
               testID={`partner-type-node-add-${node.id}`}
+              accessibilityRole="button"
+              accessibilityLabel="Add partner type"
             >
               <Plus color={Colors.success} size={14} />
             </TouchableOpacity>
@@ -661,6 +676,8 @@ export default function AdminSettingsPartnerTypeScreen() {
             onPress={() => removeAtPath(path)}
             style={[styles.nodeBtn, { backgroundColor: Colors.background }]}
             testID={`partner-type-node-delete-${node.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete partner type"
           >
             <Trash2 color={Colors.error} size={14} />
           </TouchableOpacity>
@@ -679,6 +696,8 @@ export default function AdminSettingsPartnerTypeScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="partner-type-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -697,6 +716,8 @@ export default function AdminSettingsPartnerTypeScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="partner-type-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add partner type"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -711,6 +732,7 @@ export default function AdminSettingsPartnerTypeScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="partner-type-search"
+          accessibilityLabel="Search partner types or sub-services"
         />
       </View>
 
@@ -726,6 +748,7 @@ export default function AdminSettingsPartnerTypeScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="partner-type-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add partner type</Text>
@@ -759,6 +782,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="partner-type-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -779,6 +803,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={[styles.input, { color: Colors.text }]}
                     testID="partner-type-field-name"
+                    accessibilityLabel="Name *"
                   />
                 </View>
 
@@ -806,6 +831,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     multiline
                     maxLength={140}
                     testID="partner-type-field-short-info"
+                    accessibilityLabel="Shown as subtitle in the Select your service popup"
                   />
                 </View>
                 <Text style={[styles.helper, { color: Colors.textSecondary, marginTop: 4 }]}>
@@ -843,6 +869,8 @@ export default function AdminSettingsPartnerTypeScreen() {
                         disabled={uploadingIcon}
                         style={[styles.iconActionBtn, { backgroundColor: Colors.accent, opacity: uploadingIcon ? 0.6 : 1 }]}
                         testID="partner-type-field-icon-upload"
+                        accessibilityRole="button"
+                        accessibilityLabel="Upload partner type icon"
                       >
                         <ImagePlus color={Colors.onAccent} size={14} />
                         <Text style={[styles.iconActionText, { color: Colors.onAccent }]}>
@@ -855,6 +883,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                           disabled={uploadingIcon}
                           style={[styles.iconActionBtn, { backgroundColor: Colors.background, borderColor: Colors.border, borderWidth: 1 }]}
                           testID="partner-type-field-icon-clear"
+                          accessibilityRole="button"
                         >
                           <Trash2 color={Colors.error} size={14} />
                           <Text style={[styles.iconActionText, { color: Colors.error }]}>Remove</Text>
@@ -891,6 +920,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                             },
                           ]}
                           testID="partner-type-doctype-all"
+                          accessibilityRole="button"
                         >
                           {allSelected ? <Check color={Colors.onAccent} size={13} /> : null}
                           <Text
@@ -933,6 +963,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                                   },
                                 ]}
                                 testID={`partner-type-doctype-${id}`}
+                                accessibilityRole="button"
                               >
                                 {checked ? <Check color={Colors.onAccent} size={13} /> : null}
                                 <Text
@@ -971,6 +1002,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     value={form.enabled}
                     onValueChange={(v) => setForm((p) => ({ ...p, enabled: v }))}
                     testID="partner-type-field-enabled"
+                    accessibilityLabel="Enabled"
                   />
                 </View>
 
@@ -992,6 +1024,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     value={form.vehicleRequired}
                     onValueChange={(v) => setForm((p) => ({ ...p, vehicleRequired: v }))}
                     testID="partner-type-field-vehicle-required"
+                    accessibilityLabel="Vehicle required"
                   />
                 </View>
 
@@ -1013,6 +1046,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     value={form.subServicesEnabled}
                     onValueChange={(v) => setForm((p) => ({ ...p, subServicesEnabled: v }))}
                     testID="partner-type-field-sub-enabled"
+                    accessibilityLabel="Sub-services"
                   />
                 </View>
 
@@ -1032,6 +1066,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                         onPress={() => addChild([])}
                         style={[styles.addRootBtn, { backgroundColor: Colors.accent }]}
                         testID="partner-type-add-root"
+                        accessibilityRole="button"
                       >
                         <Plus color={Colors.onAccent} size={14} />
                         <Text style={[styles.addRootText, { color: Colors.onAccent }]}>
@@ -1058,6 +1093,8 @@ export default function AdminSettingsPartnerTypeScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="partner-type-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -1100,6 +1137,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                       style={[styles.input, { color: Colors.text }]}
                       autoFocus
                       testID="partner-type-rename-input"
+                      accessibilityLabel="Sub-service name"
                     />
                   </View>
                   <View style={styles.renameActions}>
@@ -1107,6 +1145,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                       onPress={() => setRenameNode(null)}
                       style={[styles.renameBtn, { backgroundColor: Colors.gray[100] }]}
                       testID="partner-type-rename-cancel"
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.renameBtnText, { color: Colors.text }]}>Cancel</Text>
                     </TouchableOpacity>
@@ -1114,6 +1153,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                       onPress={commitRename}
                       style={[styles.renameBtn, { backgroundColor: Colors.accent }]}
                       testID="partner-type-rename-save"
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.renameBtnText, { color: Colors.onAccent }]}>Save</Text>
                     </TouchableOpacity>

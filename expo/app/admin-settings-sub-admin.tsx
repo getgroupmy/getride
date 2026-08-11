@@ -393,6 +393,8 @@ export default function AdminSettingsSubAdminScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="sub-admin-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -414,6 +416,8 @@ export default function AdminSettingsSubAdminScreen() {
             { backgroundColor: editable ? Colors.accent + "20" : Colors.gray[100], opacity: editable ? 1 : 0.5 },
           ]}
           testID="sub-admin-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add sub admin"
         >
           <Plus color={editable ? Colors.accent : Colors.textSecondary} size={20} />
         </TouchableOpacity>
@@ -455,6 +459,7 @@ export default function AdminSettingsSubAdminScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="sub-admin-search"
+              accessibilityLabel="Search sub-admins"
             />
           </View>
 
@@ -529,6 +534,8 @@ export default function AdminSettingsSubAdminScreen() {
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background, opacity: editable ? 1 : 0.4 }]}
                   testID={`sub-admin-edit-${row.id}`}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit sub admin"
                 >
                   <Pencil color={Colors.accent} size={14} />
                 </TouchableOpacity>
@@ -538,6 +545,8 @@ export default function AdminSettingsSubAdminScreen() {
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background, opacity: editable ? 1 : 0.4 }]}
                   testID={`sub-admin-delete-${row.id}`}
                   hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete sub admin"
                 >
                   <Trash2 color={Colors.error} size={14} />
                 </TouchableOpacity>
@@ -568,7 +577,7 @@ export default function AdminSettingsSubAdminScreen() {
                 <Text style={[styles.modalTitle, { color: Colors.text }]}>
                   {editing ? "Edit access" : "Grant access"}
                 </Text>
-                <TouchableOpacity onPress={() => setShowForm(false)} hitSlop={8}>
+                <TouchableOpacity onPress={() => setShowForm(false)} hitSlop={8} accessibilityRole="button">
                   <X color={Colors.text} size={22} />
                 </TouchableOpacity>
               </View>
@@ -612,6 +621,7 @@ export default function AdminSettingsSubAdminScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="sub-admin-form-profile-search"
+                        accessibilityLabel="Profile"
                       />
                       {searchingProfiles ? <ActivityIndicator color={Colors.accent} size="small" /> : null}
                     </View>
@@ -639,6 +649,7 @@ export default function AdminSettingsSubAdminScreen() {
                             }}
                             hitSlop={8}
                             testID="sub-admin-clear-profile"
+                            accessibilityRole="button"
                           >
                             <X color={Colors.textSecondary} size={16} />
                           </TouchableOpacity>
@@ -672,6 +683,7 @@ export default function AdminSettingsSubAdminScreen() {
                                 { backgroundColor: Colors.gray[100], borderColor: Colors.border },
                               ]}
                               testID={`sub-admin-match-${p.id}`}
+                              accessibilityRole="button"
                             >
                               <View style={[styles.matchAvatar, { backgroundColor: Colors.accent + "20" }]}>
                                 <Text style={[styles.matchAvatarTxt, { color: Colors.accent }]}>{initials}</Text>
@@ -718,9 +730,10 @@ export default function AdminSettingsSubAdminScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="sub-admin-page-search-edit"
+                        accessibilityLabel="Search pages"
                       />
                       {pageQuery ? (
-                        <TouchableOpacity onPress={() => setPageQuery("")} hitSlop={8}>
+                        <TouchableOpacity onPress={() => setPageQuery("")} hitSlop={8} accessibilityRole="button">
                           <X color={Colors.textSecondary} size={14} />
                         </TouchableOpacity>
                       ) : null}
@@ -745,6 +758,7 @@ export default function AdminSettingsSubAdminScreen() {
                               },
                             ]}
                             testID={`sub-admin-page-${opt.key}`}
+                            accessibilityRole="button"
                           >
                             <Text
                               style={[
@@ -781,6 +795,7 @@ export default function AdminSettingsSubAdminScreen() {
                               },
                             ]}
                             testID={`sub-admin-level-${lvl}`}
+                            accessibilityRole="button"
                           >
                             {lvl === "edit" ? (
                               <Pencil color={active ? Colors.onAccent : Colors.text} size={14} />
@@ -821,9 +836,10 @@ export default function AdminSettingsSubAdminScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="sub-admin-page-search"
+                        accessibilityLabel="Search pages"
                       />
                       {pageQuery ? (
-                        <TouchableOpacity onPress={() => setPageQuery("")} hitSlop={8}>
+                        <TouchableOpacity onPress={() => setPageQuery("")} hitSlop={8} accessibilityRole="button">
                           <X color={Colors.textSecondary} size={14} />
                         </TouchableOpacity>
                       ) : null}
@@ -853,6 +869,7 @@ export default function AdminSettingsSubAdminScreen() {
                               },
                             ]}
                             testID={`sub-admin-page-filter-${f.key}`}
+                            accessibilityRole="button"
                           >
                             <Text
                               style={[
@@ -871,6 +888,7 @@ export default function AdminSettingsSubAdminScreen() {
                         onPress={() => setAllLevel("read")}
                         style={[styles.quickBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                         testID="sub-admin-all-read"
+                        accessibilityRole="button"
                       >
                         <Eye color={Colors.text} size={12} />
                         <Text style={[styles.quickTxt, { color: Colors.text }]}>All read</Text>
@@ -879,6 +897,7 @@ export default function AdminSettingsSubAdminScreen() {
                         onPress={() => setAllLevel("edit")}
                         style={[styles.quickBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                         testID="sub-admin-all-edit"
+                        accessibilityRole="button"
                       >
                         <Pencil color={Colors.text} size={12} />
                         <Text style={[styles.quickTxt, { color: Colors.text }]}>All edit</Text>
@@ -887,6 +906,7 @@ export default function AdminSettingsSubAdminScreen() {
                         onPress={clearAllPages}
                         style={[styles.quickBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                         testID="sub-admin-clear-all"
+                        accessibilityRole="button"
                       >
                         <X color={Colors.text} size={12} />
                         <Text style={[styles.quickTxt, { color: Colors.text }]}>Clear</Text>
@@ -927,6 +947,7 @@ export default function AdminSettingsSubAdminScreen() {
                               { backgroundColor: bg, borderColor: border },
                             ]}
                             testID={`sub-admin-page-${opt.key}`}
+                            accessibilityRole="button"
                           >
                             {active ? (
                               isEditLvl ? (
@@ -963,6 +984,7 @@ export default function AdminSettingsSubAdminScreen() {
                     style={[styles.input, { color: Colors.text, height: 60, textAlignVertical: "top" as const }]}
                     multiline
                     testID="sub-admin-form-notes"
+                    accessibilityLabel="Notes (optional)"
                   />
                 </View>
               </ScrollView>
@@ -972,6 +994,8 @@ export default function AdminSettingsSubAdminScreen() {
                 disabled={saving}
                 style={[styles.saveBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.7 : 1 }]}
                 testID="sub-admin-form-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color={Colors.onAccent} />

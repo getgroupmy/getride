@@ -260,6 +260,8 @@ export default function AdminDocumentsUsersScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="docs-users-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -296,6 +298,7 @@ export default function AdminDocumentsUsersScreen() {
               ]}
               testID={`docs-users-tab-${t.key}`}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
               <Text style={[styles.tabText, { color: isActive ? Colors.onAccent : Colors.text }]}>{t.label}</Text>
             </TouchableOpacity>
@@ -330,6 +333,7 @@ export default function AdminDocumentsUsersScreen() {
                   onPress={() => { setSelected(row); setNotes(""); }}
                   activeOpacity={0.85}
                   testID={`docs-users-row-${row.id}`}
+                  accessibilityRole="button"
                 >
                   {row.id_image && !pdfRow ? (
                     <Image source={{ uri: row.id_image }} style={styles.thumb} />
@@ -381,6 +385,7 @@ export default function AdminDocumentsUsersScreen() {
                 onPress={() => { setSelected(null); setNotes(""); }}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="docs-users-modal-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={22} />
               </TouchableOpacity>
@@ -396,6 +401,8 @@ export default function AdminDocumentsUsersScreen() {
                 onPress={openEdit}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="docs-users-modal-edit"
+                accessibilityRole="button"
+                accessibilityLabel="Edit documents users"
               >
                 <Pencil color={Colors.text} size={18} />
               </TouchableOpacity>
@@ -408,6 +415,7 @@ export default function AdminDocumentsUsersScreen() {
                   onPress={() => openViewer(selected.id_image, "ID image")}
                   style={styles.previewWrap}
                   testID="docs-users-preview"
+                  accessibilityRole="button"
                 >
                   {isPdfUri(selected.id_image) ? (
                     <View style={[styles.modalImage, { backgroundColor: Colors.gray[100], justifyContent: "center" as const, alignItems: "center" as const, borderWidth: 1, borderColor: Colors.border }]}>
@@ -435,6 +443,7 @@ export default function AdminDocumentsUsersScreen() {
                   disabled={removingImage}
                   style={[styles.removeImgBtn, { borderColor: Colors.error, backgroundColor: Colors.error + "12" }]}
                   testID="docs-users-modal-remove-image"
+                  accessibilityRole="button"
                 >
                   {removingImage ? (
                     <ActivityIndicator color={Colors.error} size="small" />
@@ -464,6 +473,7 @@ export default function AdminDocumentsUsersScreen() {
                 onPress={openEdit}
                 style={[styles.editBtn, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
                 testID="docs-users-modal-edit-row"
+                accessibilityRole="button"
               >
                 <Pencil color={Colors.text} size={16} />
                 <Text style={[styles.editBtnText, { color: Colors.text }]}>Edit user profile</Text>
@@ -481,6 +491,7 @@ export default function AdminDocumentsUsersScreen() {
                   { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border },
                 ]}
                 testID="docs-users-modal-notes"
+                accessibilityLabel="Reviewer notes"
               />
             </ScrollView>
 
@@ -490,6 +501,7 @@ export default function AdminDocumentsUsersScreen() {
                 disabled={saving}
                 style={[styles.actionBtn, { backgroundColor: Colors.error + "20", borderColor: Colors.error }]}
                 testID="docs-users-modal-reject"
+                accessibilityRole="button"
               >
                 <XCircle color={Colors.error} size={18} />
                 <Text style={[styles.actionText, { color: Colors.error }]}>Reject</Text>
@@ -499,6 +511,7 @@ export default function AdminDocumentsUsersScreen() {
                 disabled={saving}
                 style={[styles.actionBtn, { backgroundColor: Colors.success, borderColor: Colors.success }]}
                 testID="docs-users-modal-approve"
+                accessibilityRole="button"
               >
                 {saving ? (
                   <ActivityIndicator color={Colors.onAccent} size="small" />
@@ -533,6 +546,7 @@ export default function AdminDocumentsUsersScreen() {
               onPress={() => setEditOpen(false)}
               style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
               testID="docs-users-edit-close"
+              accessibilityRole="button"
             >
               <X color={Colors.text} size={22} />
             </TouchableOpacity>
@@ -561,7 +575,7 @@ export default function AdminDocumentsUsersScreen() {
                 <Text style={[styles.switchLabel, { color: Colors.text }]}>Documents OK</Text>
                 <Text style={[styles.switchHint, { color: Colors.textSecondary }]}>Marks the user as having submitted required docs.</Text>
               </View>
-              <Switch value={editDocsOk} onValueChange={setEditDocsOk} testID="docs-users-edit-docs-ok" />
+              <Switch value={editDocsOk} onValueChange={setEditDocsOk} testID="docs-users-edit-docs-ok" accessibilityLabel="Documents OK" />
             </View>
           </ScrollView>
           <View style={[styles.modalFooter, { borderTopColor: Colors.border, backgroundColor: Colors.background }]}>
@@ -570,6 +584,7 @@ export default function AdminDocumentsUsersScreen() {
               disabled={editSaving}
               style={[styles.actionBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
               testID="docs-users-edit-cancel"
+              accessibilityRole="button"
             >
               <X color={Colors.text} size={18} />
               <Text style={[styles.actionText, { color: Colors.text }]}>Cancel</Text>
@@ -579,6 +594,7 @@ export default function AdminDocumentsUsersScreen() {
               disabled={editSaving}
               style={[styles.actionBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
               testID="docs-users-edit-save"
+              accessibilityRole="button"
             >
               {editSaving ? (
                 <ActivityIndicator color={Colors.onAccent} size="small" />
@@ -618,6 +634,7 @@ function EditField({ label, value, onChange, testID, keyboardType, autoCapitaliz
         placeholderTextColor={Colors.textSecondary}
         style={[styles.editInput, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
         testID={testID}
+        accessibilityLabel={label}
       />
     </View>
   );

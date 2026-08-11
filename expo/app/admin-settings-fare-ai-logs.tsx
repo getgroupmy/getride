@@ -165,6 +165,7 @@ export default function AdminSettingsFareAILogsScreen() {
               onPress={() => toggleExpanded(item.id)}
               style={styles.rawToggle}
               testID={`fare-ai-log-raw-${item.id}`}
+              accessibilityRole="button"
             >
               {expanded[item.id] ? (
                 <ChevronDown color={Colors.accent} size={14} />
@@ -198,6 +199,8 @@ export default function AdminSettingsFareAILogsScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="fare-ai-logs-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -215,6 +218,8 @@ export default function AdminSettingsFareAILogsScreen() {
             onPress={onClear}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
             testID="fare-ai-logs-clear"
+            accessibilityRole="button"
+            accessibilityLabel="Clear"
           >
             <Trash2 color={Colors.danger ?? "#e5484d"} size={20} />
           </TouchableOpacity>

@@ -277,6 +277,8 @@ export default function AdminOrdersScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="orders-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -301,6 +303,7 @@ export default function AdminOrdersScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="orders-search"
+          accessibilityLabel="Search by customer, vehicle, order ID"
         />
       </View>
 
@@ -329,6 +332,7 @@ export default function AdminOrdersScreen() {
                 },
               ]}
               testID={`orders-filter-${f.key}`}
+              accessibilityRole="button"
             >
               <ChipIcon color={sel ? Colors.onAccent : (isRefit ? refitColor : Colors.text)} size={12} />
               <Text style={[styles.filterText, { color: sel ? Colors.onAccent : Colors.text }]}>
@@ -362,6 +366,7 @@ export default function AdminOrdersScreen() {
                 onPress={() => setSelected(o)}
                 testID={`order-${o.id}`}
                 activeOpacity={0.85}
+                accessibilityRole="button"
               >
                 <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
                   <Zap color={Colors.accent} size={20} />
@@ -423,6 +428,7 @@ export default function AdminOrdersScreen() {
                     onPress={() => setSelected(null)}
                     style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                     testID="order-close"
+                    accessibilityRole="button"
                   >
                     <X color={Colors.text} size={20} />
                   </TouchableOpacity>
@@ -654,6 +660,7 @@ export default function AdminOrdersScreen() {
                             onPress={openChecklist}
                             style={[styles.secondaryBtn, { borderColor: Colors.accent }]}
                             testID="order-checklist-open"
+                            accessibilityRole="button"
                           >
                             <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>
                               {submitted ? "Update checklist" : "Complete checklist"}
@@ -683,6 +690,7 @@ export default function AdminOrdersScreen() {
                       onPress={() => setAssignVisible(true)}
                       style={[styles.secondaryBtn, { borderColor: Colors.accent }]}
                       testID="order-reassign"
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>Reassign DA</Text>
                     </TouchableOpacity>
@@ -692,6 +700,7 @@ export default function AdminOrdersScreen() {
                     onPress={() => setAssignVisible(true)}
                     style={[styles.assignCta, { backgroundColor: Colors.accent }]}
                     testID="order-assign"
+                    accessibilityRole="button"
                   >
                     <UserCheck color={Colors.onAccent} size={18} />
                     <Text style={[styles.assignCtaText, { color: Colors.onAccent }]}>Assign Delivery Advisor</Text>
@@ -714,6 +723,7 @@ export default function AdminOrdersScreen() {
                           },
                         ]}
                         testID={`order-status-${s}`}
+                        accessibilityRole="button"
                       >
                         {sel && <Check color={Colors.onAccent} size={12} />}
                         <Text
@@ -755,6 +765,7 @@ export default function AdminOrdersScreen() {
                 onPress={() => setAssignVisible(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="assign-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -783,6 +794,7 @@ export default function AdminOrdersScreen() {
                         },
                       ]}
                       testID={`assign-${a.id}`}
+                      accessibilityRole="button"
                     >
                       <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
                         <UserCheck color={Colors.accent} size={20} />
@@ -829,6 +841,7 @@ export default function AdminOrdersScreen() {
                 onPress={() => setChecklistVisible(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="checklist-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -862,6 +875,7 @@ export default function AdminOrdersScreen() {
                       onPress={() => toggleChecklistItem(i)}
                       style={styles.checkItemHead}
                       testID={`checklist-toggle-${i}`}
+                      accessibilityRole="button"
                     >
                       <View
                         style={[
@@ -886,6 +900,7 @@ export default function AdminOrdersScreen() {
                         { color: Colors.text, backgroundColor: Colors.background, borderColor: Colors.border },
                       ]}
                       testID={`checklist-note-${i}`}
+                      accessibilityLabel={it.name}
                     />
                   </View>
                 ))
@@ -895,6 +910,7 @@ export default function AdminOrdersScreen() {
                 onPress={submitChecklist}
                 style={[styles.assignCta, { backgroundColor: Colors.accent }]}
                 testID="checklist-submit"
+                accessibilityRole="button"
               >
                 <ClipboardCheck color={Colors.onAccent} size={18} />
                 <Text style={[styles.assignCtaText, { color: Colors.onAccent }]}>

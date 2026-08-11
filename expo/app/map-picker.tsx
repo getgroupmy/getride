@@ -304,6 +304,8 @@ export default function MapPickerScreen() {
         <TouchableOpacity
           style={[styles.backButtonInner, { backgroundColor: isLightMode ? '#fff' : 'rgba(0, 0, 0, 0.6)' }]}
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={isLightMode ? '#000' : '#fff'} size={24} />
         </TouchableOpacity>
@@ -348,12 +350,14 @@ export default function MapPickerScreen() {
       <TouchableOpacity
         style={[styles.currentLocationButton, { bottom: insets.bottom + 100, backgroundColor: isLightMode ? '#fff' : 'rgba(0, 0, 0, 0.6)' }]}
         onPress={handleCurrentLocation}
+        accessibilityRole="button"
+        accessibilityLabel="Use my current location"
       >
         <Navigation color={isLightMode ? '#000' : '#fff'} size={22} />
       </TouchableOpacity>
 
       <View style={[styles.bottomContainer, { paddingBottom: insets.bottom + 16 }]}>
-        <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
+        <TouchableOpacity style={styles.doneButton} onPress={handleDone} accessibilityRole="button">
           <Text style={styles.doneButtonText}>Done</Text>
         </TouchableOpacity>
       </View>

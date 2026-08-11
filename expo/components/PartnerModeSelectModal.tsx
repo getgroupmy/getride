@@ -54,6 +54,8 @@ export default function PartnerModeSelectModal({ visible, onClose, onSelect, opt
     >
       <View style={styles.overlay} testID="partner-mode-overlay">
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Close"
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
           onPress={onClose}
@@ -61,7 +63,14 @@ export default function PartnerModeSelectModal({ visible, onClose, onSelect, opt
         <View style={[styles.card, { backgroundColor: Colors.secondary }]}>
           <View style={styles.header}>
             <Text style={[styles.title, { color: Colors.text }]}>Select your service mode</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn} testID="partner-mode-close">
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.closeBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              testID="partner-mode-close"
+            >
               <X color={Colors.textSecondary} size={22} />
             </TouchableOpacity>
           </View>
@@ -84,6 +93,8 @@ export default function PartnerModeSelectModal({ visible, onClose, onSelect, opt
                   key={opt.id}
                   style={[styles.option, { borderColor: Colors.border }]}
                   onPress={() => handleSelect(opt)}
+                  accessibilityRole="button"
+                  accessibilityLabel={opt.name}
                   testID={`mode-${opt.name.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <View style={[styles.iconWrap, { backgroundColor: Colors.accent + "20", overflow: "hidden" as const }]}>

@@ -131,6 +131,8 @@ export default function AdminSettingsAssignServiceScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="assign-service-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -172,6 +174,7 @@ export default function AdminSettingsAssignServiceScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="assign-service-search"
+              accessibilityLabel="Search services"
             />
           </View>
 
@@ -191,6 +194,7 @@ export default function AdminSettingsAssignServiceScreen() {
                 ]}
                 testID={`assign-feature-${feature.id}`}
                 activeOpacity={0.85}
+                accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
                   <FileCheck2 color={Colors.accent} size={18} />
@@ -242,6 +246,7 @@ export default function AdminSettingsAssignServiceScreen() {
                 style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                 testID={`assign-page-${page.id}`}
                 activeOpacity={0.85}
+                accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
                   <MapPin color={Colors.accent} size={18} />
@@ -308,7 +313,7 @@ export default function AdminSettingsAssignServiceScreen() {
                   ? `Choose document for ${DOCUMENT_SOURCE_FEATURES.find((f) => f.id === pickerFeatureId)?.label ?? ""}`
                   : "Choose document"}
               </Text>
-              <TouchableOpacity onPress={() => setPickerFeatureId(null)} hitSlop={8} testID="doc-picker-close">
+              <TouchableOpacity onPress={() => setPickerFeatureId(null)} hitSlop={8} testID="doc-picker-close" accessibilityRole="button">
                 <X color={Colors.text} size={22} />
               </TouchableOpacity>
             </View>
@@ -332,6 +337,7 @@ export default function AdminSettingsAssignServiceScreen() {
                       ]}
                       testID="doc-picker-clear"
                       activeOpacity={0.85}
+                      accessibilityRole="button"
                     >
                       <X color={Colors.error} size={18} />
                       <Text style={[styles.svcName, { color: Colors.error, flex: 1 }]}>
@@ -358,6 +364,7 @@ export default function AdminSettingsAssignServiceScreen() {
                         ]}
                         testID={`doc-pick-${doc.id}`}
                         activeOpacity={0.85}
+                        accessibilityRole="button"
                       >
                         <FileText color={Colors.accent} size={18} />
                         <View style={{ flex: 1 }}>

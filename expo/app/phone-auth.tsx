@@ -265,11 +265,14 @@ export default function PhoneAuthScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.diagButton}
+            accessibilityRole="button"
             onPress={() => {
               console.log("[phone-auth] diagnostics button pressed");
               try {
@@ -315,6 +318,8 @@ export default function PhoneAuthScreen() {
               <TouchableOpacity
                 style={styles.countryCode}
                 onPress={() => setIsCountryPickerVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Country: ${selectedCountry.name}, ${selectedCountry.dialCode}. Change country`}
               >
                 <Text style={styles.flag}>{selectedCountry.flag}</Text>
                 <ChevronDown color={colors.text} size={16} />
@@ -329,11 +334,15 @@ export default function PhoneAuthScreen() {
                 keyboardType="number-pad"
                 autoFocus
                 maxLength={15}
+                accessibilityLabel="Phone number"
               />
               {phoneNumber.length > 0 && (
                 <TouchableOpacity
                   style={[styles.clearButton, { backgroundColor: colors.gray[200] }]}
                   onPress={() => setPhoneNumber("")}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear phone number"
                 >
                   <X color={colors.textSecondary} size={20} />
                 </TouchableOpacity>
@@ -351,6 +360,9 @@ export default function PhoneAuthScreen() {
             ]}
             onPress={handleNext}
             disabled={!phoneNumber || isLoading || isBlacklisted}
+            accessibilityRole="button"
+            accessibilityLabel={isLoading ? "Sending code" : "Next"}
+            accessibilityState={{ disabled: !phoneNumber || isLoading || isBlacklisted, busy: isLoading }}
           >
             {isLoading ? (
               <View style={[styles.loadingIndicator, { borderColor: colors.secondary, borderTopColor: "transparent" }]} />
@@ -374,6 +386,8 @@ export default function PhoneAuthScreen() {
           <Pressable
             style={styles.modalBackdrop}
             onPress={() => (isSendingOtp ? null : setSignupSheet(null))}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
           />
           <View style={[styles.sheetContent, { backgroundColor: colors.gray[50] }]}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.gray[200] }]} />
@@ -397,6 +411,9 @@ export default function PhoneAuthScreen() {
                 ]}
                 onPress={() => signupSheet && sendSignupOtpAndContinue(signupSheet.phone)}
                 disabled={isSendingOtp}
+                accessibilityRole="button"
+                accessibilityLabel={isSendingOtp ? "Sending code" : "Sign up and send code"}
+                accessibilityState={{ disabled: isSendingOtp, busy: isSendingOtp }}
               >
                 {isSendingOtp ? (
                   <View style={[styles.loadingIndicator, { borderColor: colors.secondary, borderTopColor: "transparent" }]} />
@@ -412,6 +429,7 @@ export default function PhoneAuthScreen() {
                   setCheckError(null);
                 }}
                 disabled={isSendingOtp}
+                accessibilityRole="button"
               >
                 <Text style={[styles.sheetSecondaryButtonText, { color: colors.textSecondary }]}>Use a different number</Text>
               </TouchableOpacity>
@@ -440,6 +458,7 @@ export default function PhoneAuthScreen() {
             <TouchableOpacity
               style={[styles.alertButton, { backgroundColor: colors.accent }]}
               onPress={() => setRegistrationBlocked(false)}
+              accessibilityRole="button"
             >
               <Text style={[styles.alertButtonText, { color: colors.secondary }]}>OK</Text>
             </TouchableOpacity>
@@ -457,6 +476,8 @@ export default function PhoneAuthScreen() {
           <Pressable
             style={styles.modalBackdrop}
             onPress={() => setIsCountryPickerVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
           />
           <View style={[styles.modalContent, { backgroundColor: colors.gray[50] }]}>
             <SafeAreaView edges={["top"]} style={[styles.modalHeader, { backgroundColor: colors.gray[50] }]}>
@@ -465,6 +486,8 @@ export default function PhoneAuthScreen() {
                 <TouchableOpacity
                   onPress={() => setIsCountryPickerVisible(false)}
                   style={styles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
                 >
                   <X color={colors.text} size={24} />
                 </TouchableOpacity>
@@ -478,11 +501,15 @@ export default function PhoneAuthScreen() {
                   placeholder="Search country or code"
                   placeholderTextColor={colors.textSecondary}
                   autoCapitalize="none"
+                  accessibilityLabel="Search for a country or dialling code"
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity
                     onPress={() => setSearchQuery("")}
                     style={styles.searchClearButton}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Clear search"
                   >
                     <X color={colors.textSecondary} size={16} />
                   </TouchableOpacity>
@@ -501,6 +528,12 @@ export default function PhoneAuthScreen() {
                     selectedCountry.code === item.code && [styles.countryItemSelected, { backgroundColor: colors.gray[100] }],
                   ]}
                   onPress={() => handleCountrySelect(item)}
+                  accessibilityRole="radio"
+                  accessibilityState={{
+                    selected: selectedCountry.code === item.code,
+                    checked: selectedCountry.code === item.code,
+                  }}
+                  accessibilityLabel={`${item.name}, ${item.dialCode}`}
                 >
                   <Text style={styles.countryFlag}>{item.flag}</Text>
                   <Text style={[styles.countryName, { color: colors.text }]}>{item.name}</Text>

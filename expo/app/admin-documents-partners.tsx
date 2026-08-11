@@ -190,6 +190,8 @@ export default function AdminDocumentsPartnersScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="docs-partners-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -226,6 +228,7 @@ export default function AdminDocumentsPartnersScreen() {
               ]}
               testID={`docs-partners-tab-${t.key}`}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
               <Text style={[styles.tabText, { color: isActive ? Colors.onAccent : Colors.text }]}>
                 {t.label}
@@ -263,6 +266,7 @@ export default function AdminDocumentsPartnersScreen() {
                   onPress={() => openDetail(row)}
                   activeOpacity={0.85}
                   testID={`docs-partners-row-${row.id}`}
+                  accessibilityRole="button"
                 >
                   {row.file_url && !pdfRow ? (
                     <Image source={{ uri: row.file_url }} style={styles.thumb} />
@@ -373,7 +377,7 @@ function DocumentReviewModal({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet">
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }} edges={["bottom"]}>
         <View style={[styles.modalHeader, { borderBottomColor: Colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]} testID="docs-modal-close">
+          <TouchableOpacity onPress={onClose} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]} testID="docs-modal-close" accessibilityRole="button">
             <X color={Colors.text} size={22} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
@@ -386,6 +390,8 @@ function DocumentReviewModal({
             onPress={onEdit}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
             testID="docs-modal-edit"
+            accessibilityRole="button"
+            accessibilityLabel="Edit documents"
           >
             <Pencil color={Colors.text} size={18} />
           </TouchableOpacity>
@@ -430,6 +436,7 @@ function DocumentReviewModal({
             onPress={onEdit}
             style={[styles.editBtn, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
             testID="docs-modal-edit-row"
+            accessibilityRole="button"
           >
             <Pencil color={Colors.text} size={16} />
             <Text style={[styles.editBtnText, { color: Colors.text }]}>Edit details or remove document</Text>
@@ -447,6 +454,7 @@ function DocumentReviewModal({
               { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border },
             ]}
             testID="docs-modal-notes"
+            accessibilityLabel="Reviewer notes"
           />
         </ScrollView>
 
@@ -456,6 +464,7 @@ function DocumentReviewModal({
             disabled={saving}
             style={[styles.actionBtn, { backgroundColor: Colors.error + "20", borderColor: Colors.error }]}
             testID="docs-modal-reject"
+            accessibilityRole="button"
           >
             <XCircle color={Colors.error} size={18} />
             <Text style={[styles.actionText, { color: Colors.error }]}>Reject</Text>
@@ -465,6 +474,7 @@ function DocumentReviewModal({
             disabled={saving}
             style={[styles.actionBtn, { backgroundColor: Colors.success, borderColor: Colors.success }]}
             testID="docs-modal-approve"
+            accessibilityRole="button"
           >
             {saving ? (
               <ActivityIndicator color={Colors.onAccent} size="small" />
@@ -497,6 +507,7 @@ function FilePreview({ url, label, onOpen }: { url: string | null; label: string
       onPress={() => onOpen(url)}
       style={styles.previewWrap}
       testID={`doc-preview-${label.toLowerCase()}`}
+      accessibilityRole="button"
     >
       {pdf ? (
         <View style={[styles.modalImage, { backgroundColor: Colors.gray[100], justifyContent: "center" as const, alignItems: "center" as const, borderWidth: 1, borderColor: Colors.border }]}>

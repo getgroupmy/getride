@@ -174,6 +174,8 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
             key={index}
             style={styles.menuItem}
             onPress={item.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
             testID={`admin-menu-${item.label}`}
           >
             <item.icon color={Colors.textSecondary} size={22} />
@@ -190,18 +192,20 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
             onClose();
             setTimeout(() => router.replace("/" as any), 200);
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Passenger Mode"
           testID="passenger-mode-button"
         >
           <Text style={[styles.passengerModeText, { color: Colors.onAccent }]}>Passenger Mode</Text>
         </TouchableOpacity>
 
         <View style={styles.socialContainer}>
-          <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Facebook")}>
+          <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Facebook")} accessibilityRole="button">
             <View style={styles.facebookIcon}>
               <Text style={styles.socialIconText}>f</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Instagram")}>
+          <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Instagram")} accessibilityRole="button">
             <View style={styles.instagramIcon}>
               <Text style={styles.socialIconText}>📷</Text>
             </View>
@@ -225,6 +229,7 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
             style={styles.overlayTouchable}
             activeOpacity={1}
             onPress={onClose}
+            accessibilityRole="button"
           />
         </Animated.View>
 

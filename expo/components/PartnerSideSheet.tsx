@@ -24,6 +24,8 @@ import {
   Settings,
   ChevronRight,
   LogOut,
+  Facebook,
+  Instagram,
   UserRound,
   BookOpen,
   Gift,
@@ -329,6 +331,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
         if (o.isCustom) {
           const c = partnerCustomById.get(o.id);
           return {
+            id: o.id,
             icon: SIDE_MENU_ICON_MAP[c?.iconName ?? "Star"] ?? Star,
             label: c?.label ?? "",
             onPress: isComingSoon
@@ -357,6 +360,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
           basePress();
         };
         return {
+          id: o.id,
           icon: defaultIconsById[o.id] ?? Settings,
           label: partnerCfg.renames[o.id] ?? partnerDefaultLabels.get(o.id) ?? o.id,
           onPress,
@@ -385,6 +389,8 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
             onClose();
             setTimeout(() => router.push("/profile" as any), 200);
           }}
+          accessibilityRole="button"
+          accessibilityLabel={`${displayName}. Open profile`}
           testID="partner-profile-open"
         >
           <View style={[styles.avatar, { backgroundColor: Colors.accent + "30" }]}>
@@ -410,11 +416,13 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
         contentContainerStyle={styles.menuItemsContent}
         showsVerticalScrollIndicator={false}
       >
-        {menuItems.map((item, index) => (
+        {menuItems.map((item) => (
           <TouchableOpacity
-            key={index}
+            key={item.id}
             style={styles.menuItem}
             onPress={item.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
             testID={`partner-menu-${item.label}`}
           >
             <item.icon color={Colors.textSecondary} size={22} />
@@ -435,6 +443,8 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
             }
             handleSwitchToRider();
           }}
+          accessibilityRole="button"
+          accessibilityLabel={passengerModeLabel}
           testID="passenger-mode-button"
         >
           <Text style={[styles.passengerModeText, { color: Colors.onAccent }]}>{passengerModeLabel}</Text>
@@ -442,14 +452,24 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
         )}
 
         <View style={styles.socialContainer}>
-          <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Facebook")}>
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={() => console.log("Facebook")}
+            accessibilityRole="link"
+            accessibilityLabel="GET.ride on Facebook"
+          >
             <View style={styles.facebookIcon}>
-              <Text style={styles.socialIconText}>f</Text>
+              <Facebook color="#FFFFFF" size={22} fill="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton} onPress={() => console.log("Instagram")}>
+          <TouchableOpacity
+            style={styles.socialButton}
+            onPress={() => console.log("Instagram")}
+            accessibilityRole="link"
+            accessibilityLabel="GET.ride on Instagram"
+          >
             <View style={styles.instagramIcon}>
-              <Text style={styles.socialIconText}>📷</Text>
+              <Instagram color="#FFFFFF" size={22} />
             </View>
           </TouchableOpacity>
         </View>
@@ -472,6 +492,8 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
           <TouchableOpacity
             style={[styles.csButton, { backgroundColor: Colors.accent }]}
             onPress={() => setComingSoonVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="OK"
             testID="partner-coming-soon-ok"
           >
             <Text style={[styles.csButtonText, { color: Colors.onAccent }]}>OK</Text>
@@ -494,6 +516,8 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
           <TouchableOpacity
             style={styles.overlayTouchable}
             activeOpacity={1}
+            accessibilityRole="button"
+            accessibilityLabel="Close menu"
             onPress={onClose}
           />
         </Animated.View>
@@ -597,7 +621,6 @@ const styles = StyleSheet.create({
     justifyContent: "center" as const,
     alignItems: "center" as const,
   },
-  socialIconText: { fontSize: 20, color: "#FFFFFF", fontWeight: "700" as const },
   csOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",

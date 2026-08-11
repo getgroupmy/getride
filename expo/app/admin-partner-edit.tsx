@@ -161,6 +161,8 @@ export default function AdminPartnerEditScreen() {
           <TouchableOpacity
             onPress={() => router.back()}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={22} />
           </TouchableOpacity>
@@ -250,6 +252,8 @@ export default function AdminPartnerEditScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="edit-partner-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -266,6 +270,8 @@ export default function AdminPartnerEditScreen() {
           onPress={onDelete}
           style={[styles.iconBtn, { backgroundColor: Colors.error + "20" }]}
           testID="edit-partner-delete"
+          accessibilityRole="button"
+          accessibilityLabel="Delete"
         >
           <Trash2 color={Colors.error} size={20} />
         </TouchableOpacity>
@@ -358,6 +364,7 @@ export default function AdminPartnerEditScreen() {
                   style={[styles.addBtn, { borderColor: Colors.accent }]}
                   activeOpacity={0.85}
                   testID="edit-partner-add-vehicle"
+                  accessibilityRole="button"
                 >
                   <Plus color={Colors.accent} size={14} />
                   <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add new</Text>
@@ -383,6 +390,7 @@ export default function AdminPartnerEditScreen() {
                     onPress={() => setVehicleId("")}
                     style={[styles.iconBtnSm, { backgroundColor: Colors.background }]}
                     testID="edit-clear-vehicle"
+                    accessibilityRole="button"
                   >
                     <X color={Colors.text} size={16} />
                   </TouchableOpacity>
@@ -399,6 +407,7 @@ export default function AdminPartnerEditScreen() {
                       style={[styles.input, { color: Colors.text }]}
                       autoCapitalize="none"
                       testID="edit-vehicle-search"
+                      accessibilityLabel="Search by plate, make, model or owner"
                     />
                   </View>
                   {filteredVehicles.length === 0 ? (
@@ -417,6 +426,7 @@ export default function AdminPartnerEditScreen() {
                           style={[styles.vehicleCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                           activeOpacity={0.85}
                           testID={`edit-select-vehicle-${v.id}`}
+                          accessibilityRole="button"
                         >
                           <View style={[styles.vehicleIcon, { backgroundColor: Colors.accent + "15" }]}>
                             <CarFront color={Colors.accent} size={18} />
@@ -476,6 +486,8 @@ export default function AdminPartnerEditScreen() {
             style={[styles.submitBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.6 : 1 }]}
             testID="edit-partner-save"
             activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel="Save"
           >
             <Save color={Colors.onAccent} size={18} />
             <Text style={[styles.submitText, { color: Colors.onAccent }]}>

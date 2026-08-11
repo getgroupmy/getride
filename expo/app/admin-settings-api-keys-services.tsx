@@ -158,6 +158,8 @@ export default function AdminSettingsApiKeysServicesScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="services-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -183,6 +185,8 @@ export default function AdminSettingsApiKeysServicesScreen() {
               }}
               style={[styles.iconBtn, { backgroundColor: Colors.accent + "20" }]}
               testID="services-bulk-add"
+              accessibilityRole="button"
+              accessibilityLabel="Add services"
             >
               <CopyPlus color={Colors.accent} size={20} />
             </TouchableOpacity>
@@ -190,6 +194,8 @@ export default function AdminSettingsApiKeysServicesScreen() {
               onPress={() => setShowAdd(true)}
               style={[styles.iconBtn, { backgroundColor: Colors.accent + "20" }]}
               testID="services-add"
+              accessibilityRole="button"
+              accessibilityLabel="Add services"
             >
               <Plus color={Colors.accent} size={20} />
             </TouchableOpacity>
@@ -218,6 +224,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="services-search"
+              accessibilityLabel="Search services"
             />
           </View>
 
@@ -229,6 +236,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 onPress={() => openService(s)}
                 style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                 testID={`service-${s.id}`}
+                accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
                   <KeyRound color={Colors.accent} size={18} />
@@ -259,7 +267,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                   </View>
                 </View>
                 {editable ? (
-                  <TouchableOpacity onPress={() => onDelete(s)} style={styles.rowDelete} hitSlop={8} testID={`service-delete-${s.id}`}>
+                  <TouchableOpacity onPress={() => onDelete(s)} style={styles.rowDelete} hitSlop={8} testID={`service-delete-${s.id}`} accessibilityRole="button" accessibilityLabel="Delete service">
                     <Trash2 color={Colors.error} size={16} />
                   </TouchableOpacity>
                 ) : null}
@@ -281,6 +289,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               onPress={() => setShowAdd(true)}
               style={[styles.addBtn, { backgroundColor: Colors.accent }]}
               testID="services-add-bottom"
+              accessibilityRole="button"
             >
               <Plus color="#000000" size={18} />
               <Text style={styles.addTxt}>Add Service</Text>
@@ -296,7 +305,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.border, maxHeight: "90%" }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: Colors.text }]}>Add Key to Services</Text>
-              <TouchableOpacity onPress={() => setShowBulk(false)} hitSlop={8}>
+              <TouchableOpacity onPress={() => setShowBulk(false)} hitSlop={8} accessibilityRole="button">
                 <X color={Colors.text} size={22} />
               </TouchableOpacity>
             </View>
@@ -308,6 +317,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               placeholderTextColor={Colors.textSecondary}
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               testID="bulk-key-label"
+              accessibilityLabel="Key label (optional)"
             />
             <Text style={[styles.modalLabel, { color: Colors.textSecondary }]}>API Key</Text>
             <TextInput
@@ -320,6 +330,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               autoCorrect={false}
               secureTextEntry
               testID="bulk-key-value"
+              accessibilityLabel="API Key"
             />
             <View style={styles.bulkSelectHeader}>
               <Text style={[styles.modalLabel, { color: Colors.textSecondary, marginTop: 0 }]}>Select services</Text>
@@ -337,6 +348,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 }}
                 hitSlop={8}
                 testID="bulk-toggle-all"
+                accessibilityRole="button"
               >
                 <Text style={[styles.bulkToggleAllTxt, { color: Colors.accent }]}>
                   {provider && provider.services.every((s) => bulkSelected[s.id]) ? "Clear all" : "Select all"}
@@ -352,6 +364,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                     onPress={() => setBulkSelected((prev) => ({ ...prev, [s.id]: !prev[s.id] }))}
                     style={[styles.bulkRow, { borderColor: Colors.border, backgroundColor: checked ? Colors.accent + "15" : Colors.gray[100] }]}
                     testID={`bulk-svc-${s.id}`}
+                    accessibilityRole="button"
                   >
                     <View style={[styles.bulkCheckbox, { borderColor: checked ? Colors.accent : Colors.border, backgroundColor: checked ? Colors.accent : "transparent" }]}>
                       {checked ? <Check color="#000000" size={14} /> : null}
@@ -377,6 +390,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 onPress={() => setShowBulk(false)}
                 style={[styles.modalBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                 disabled={bulkSaving}
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnTxt, { color: Colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -423,6 +437,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent, opacity: bulkSaving ? 0.7 : 1 }]}
                 disabled={bulkSaving}
                 testID="bulk-add-confirm"
+                accessibilityRole="button"
               >
                 {bulkSaving ? (
                   <ActivityIndicator color="#000000" />
@@ -442,7 +457,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: Colors.text }]}>New Service</Text>
-              <TouchableOpacity onPress={() => setShowAdd(false)} hitSlop={8}>
+              <TouchableOpacity onPress={() => setShowAdd(false)} hitSlop={8} accessibilityRole="button">
                 <X color={Colors.text} size={22} />
               </TouchableOpacity>
             </View>
@@ -455,6 +470,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               autoFocus
               testID="service-add-name"
+              accessibilityLabel="Service name"
             />
             <Text style={[styles.modalLabel, { color: Colors.textSecondary }]}>Description (optional)</Text>
             <TextInput
@@ -464,11 +480,13 @@ export default function AdminSettingsApiKeysServicesScreen() {
               placeholderTextColor={Colors.textSecondary}
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               testID="service-add-desc"
+              accessibilityLabel="Description (optional)"
             />
             <View style={styles.modalActions}>
               <TouchableOpacity
                 onPress={() => setShowAdd(false)}
                 style={[styles.modalBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnTxt, { color: Colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -476,6 +494,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 onPress={onAdd}
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="service-add-confirm"
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnTxt, { color: "#000000" }]}>Add</Text>
               </TouchableOpacity>

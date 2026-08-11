@@ -383,6 +383,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`ev-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit EV"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -391,6 +393,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
             onPress={() => onDelete(entry)}
             style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
             testID={`ev-delete-${entry.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Delete EV"
           >
             <Trash2 color={Colors.error} size={16} />
           </TouchableOpacity>
@@ -415,6 +419,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={() => addColor(key)}
           style={[styles.addBtn, { backgroundColor: Colors.accent + "20" }]}
           testID={`add-${key}`}
+          accessibilityRole="button"
         >
           <Plus color={Colors.accent} size={14} />
           <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -437,6 +442,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholder="Colour name"
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="Colour name"
                 />
               </View>
               <View style={[styles.inlineInput, { backgroundColor: Colors.background, borderColor: Colors.border, flex: 1 }]}>
@@ -447,6 +453,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   autoCapitalize="none"
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="#hex"
                 />
               </View>
             </View>
@@ -455,6 +462,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 <Switch
                   value={c.enabled}
                   onValueChange={(v) => updateColor(key, c.id, { enabled: v })}
+                  accessibilityLabel="Enabled"
                 />
                 <Text style={[styles.toggleLabel, { color: Colors.textSecondary }]}>
                   {c.enabled ? "Enabled" : "Disabled"}
@@ -463,6 +471,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               <TouchableOpacity
                 onPress={() => removeColor(key, c.id)}
                 style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                accessibilityRole="button"
+                accessibilityLabel="Remove colour"
               >
                 <Trash2 color={Colors.error} size={14} />
               </TouchableOpacity>
@@ -489,6 +499,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={() => addPriced(key)}
           style={[styles.addBtn, { backgroundColor: Colors.accent + "20" }]}
           testID={`add-${key}`}
+          accessibilityRole="button"
         >
           <Plus color={Colors.accent} size={14} />
           <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -510,6 +521,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholder={placeholder}
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel={placeholder}
                 />
               </View>
               <View style={[styles.inlineInput, { backgroundColor: Colors.background, borderColor: Colors.border, flex: 1 }]}>
@@ -520,6 +532,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   keyboardType="decimal-pad"
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="Price"
                 />
               </View>
             </View>
@@ -528,6 +541,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 <Switch
                   value={c.enabled}
                   onValueChange={(v) => updatePriced(key, c.id, { enabled: v })}
+                  accessibilityLabel="Enabled"
                 />
                 <Text style={[styles.toggleLabel, { color: Colors.textSecondary }]}>
                   {c.enabled ? "Enabled" : "Disabled"}
@@ -536,6 +550,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               <TouchableOpacity
                 onPress={() => removePriced(key, c.id)}
                 style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                accessibilityRole="button"
+                accessibilityLabel="Remove option"
               >
                 <Trash2 color={Colors.error} size={14} />
               </TouchableOpacity>
@@ -576,6 +592,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 { backgroundColor: Colors.gray[100], borderColor: Colors.border },
               ]}
               testID={`${key}-slot-${idx}`}
+              accessibilityRole="button"
             >
               {uri ? (
                 <>
@@ -584,6 +601,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                     onPress={() => removeGalleryImage(key, idx)}
                     style={[styles.gallerySlotRemove, { backgroundColor: Colors.text + "CC" }]}
                     hitSlop={8}
+                    accessibilityRole="button"
                   >
                     <X color={Colors.background} size={12} />
                   </TouchableOpacity>
@@ -614,6 +632,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={addTax}
           style={[styles.addBtn, { backgroundColor: Colors.accent + "20" }]}
           testID="add-tax"
+          accessibilityRole="button"
         >
           <Plus color={Colors.accent} size={14} />
           <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -635,6 +654,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholder="Tax name (e.g. SST)"
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="Tax name (e.g. SST)"
                 />
               </View>
               <View style={[styles.inlineInput, { backgroundColor: Colors.background, borderColor: Colors.border, flex: 1 }]}>
@@ -645,6 +665,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   keyboardType="decimal-pad"
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="Amount"
                 />
               </View>
             </View>
@@ -660,6 +681,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 placeholder="Description"
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.input, { color: Colors.text }]}
+                accessibilityLabel="Description"
               />
             </View>
             <View style={styles.itemFooter}>
@@ -667,6 +689,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 <Switch
                   value={c.enabled}
                   onValueChange={(v) => updateTax(c.id, { enabled: v })}
+                  accessibilityLabel="Enabled"
                 />
                 <Text style={[styles.toggleLabel, { color: Colors.textSecondary }]}>
                   {c.enabled ? "Enabled" : "Disabled"}
@@ -675,6 +698,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               <TouchableOpacity
                 onPress={() => removeTax(c.id)}
                 style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                accessibilityRole="button"
+                accessibilityLabel="Remove tax"
               >
                 <Trash2 color={Colors.error} size={14} />
               </TouchableOpacity>
@@ -694,6 +719,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="ev-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -712,6 +739,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add EV"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -726,6 +755,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="ev-search"
+          accessibilityLabel="Search make or model"
         />
       </View>
 
@@ -741,6 +771,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="ev-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Vehicle</Text>
@@ -767,6 +798,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="ev-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -788,6 +820,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                     { backgroundColor: Colors.gray[100], borderColor: Colors.border },
                   ]}
                   testID="ev-image-pick"
+                  accessibilityRole="button"
                 >
                   {form.imageUri ? (
                     <Image source={{ uri: form.imageUri }} style={styles.imagePreviewImg} />
@@ -831,6 +864,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-make"
+                        accessibilityLabel="Make *"
                       />
                     </View>
                   </View>
@@ -849,6 +883,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-model"
+                        accessibilityLabel="Model *"
                       />
                     </View>
                   </View>
@@ -870,6 +905,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                     keyboardType="decimal-pad"
                     style={[styles.input, { color: Colors.text }]}
                     testID="ev-price"
+                    accessibilityLabel="Price (RM)"
                   />
                 </View>
 
@@ -884,6 +920,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

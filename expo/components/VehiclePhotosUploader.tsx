@@ -168,6 +168,7 @@ export default function VehiclePhotosUploader({
                 },
               ]}
               testID={`veh-photo-${slot}`}
+              accessibilityRole="button"
             >
               {url ? (
                 <Image source={{ uri: url }} style={styles.tileImg} resizeMode="cover" />

@@ -87,7 +87,10 @@ export default function SafetyScreen() {
       <StatusBar barStyle={Colors.background === "#000000" ? "light-content" : "dark-content"} />
       <SafeAreaView style={{ backgroundColor: Colors.background }} edges={["top"]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack} testID="safety-back">
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} testID="safety-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>Safety Settings</Text>
@@ -107,7 +110,7 @@ export default function SafetyScreen() {
               When checked, SMS will be sent to your Emergency Contacts in case of an emergency.
             </Text>
             {!(alertContacts && !isLoading && contacts.length === 0) ? (
-              <TouchableOpacity onPress={() => router.push("/emergency-contacts" as any)}>
+              <TouchableOpacity onPress={() => router.push("/emergency-contacts" as any)} accessibilityRole="button">
                 <Text style={[styles.link, { color: Colors.accent }]}>Manage Emergency Contacts</Text>
               </TouchableOpacity>
             ) : null}
@@ -118,6 +121,7 @@ export default function SafetyScreen() {
             trackColor={{ false: Colors.gray[200], true: Colors.success }}
             thumbColor={Platform.OS === "android" ? "#FFFFFF" : undefined}
             testID="safety-alert-contacts"
+            accessibilityLabel="Alert Emergency Contacts"
           />
         </View>
 
@@ -133,6 +137,7 @@ export default function SafetyScreen() {
                 style={[styles.addContactRow, { borderColor: Colors.border }]}
                 onPress={() => router.push("/emergency-contacts" as any)}
                 testID="safety-add-contact"
+                accessibilityRole="button"
               >
                 <View style={[styles.addContactIcon, { backgroundColor: Colors.accent + "1A" }]}>
                   <Plus color={Colors.accent} size={20} />
@@ -158,7 +163,7 @@ export default function SafetyScreen() {
             <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
               When on, trip audio is recorded with your device microphone once a ride starts. Recordings are stored privately on your device for 24 hours and are never accessible to you. They are only sent to our team if you open a support ticket about a ride and an agent requests them.
             </Text>
-            <TouchableOpacity onPress={openPrivacy}>
+            <TouchableOpacity onPress={openPrivacy} accessibilityRole="button">
               <Text style={[styles.link, { color: Colors.accent }]}>Learn more</Text>
             </TouchableOpacity>
           </View>
@@ -168,6 +173,7 @@ export default function SafetyScreen() {
             trackColor={{ false: Colors.gray[200], true: Colors.success }}
             thumbColor={Platform.OS === "android" ? "#FFFFFF" : undefined}
             testID="safety-voice-protection"
+            accessibilityLabel="Enable VoiceProtection"
           />
         </View>
       </ScrollView>
@@ -179,6 +185,7 @@ export default function SafetyScreen() {
             onPress={triggerSos}
             activeOpacity={0.85}
             testID="safety-sos"
+            accessibilityRole="button"
           >
             <Siren color="#FFFFFF" size={22} />
             <Text style={styles.sosText}>Emergency SOS</Text>

@@ -159,6 +159,7 @@ export default function IncomingTransferPopup() {
                 onPress={() => respond(false)}
                 disabled={responding}
                 testID="incoming-transfer-decline"
+                accessibilityRole="button"
               >
                 <X color={LOSS_RED} size={18} />
                 <Text style={[styles.btnText, { color: LOSS_RED }]}>Decline</Text>
@@ -168,6 +169,7 @@ export default function IncomingTransferPopup() {
                 onPress={() => respond(true)}
                 disabled={responding}
                 testID="incoming-transfer-accept"
+                accessibilityRole="button"
               >
                 {responding ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
@@ -208,6 +210,7 @@ export default function IncomingTransferPopup() {
               style={[styles.btn, styles.acceptBtn, styles.doneBtn]}
               onPress={() => setResult(null)}
               testID="incoming-transfer-done"
+              accessibilityRole="button"
             >
               <Text style={[styles.btnText, { color: "#FFFFFF" }]}>Done</Text>
             </TouchableOpacity>

@@ -179,6 +179,7 @@ export default function AdminVehicleAddScreen() {
           autoCapitalize={opts?.autoCapitalize ?? "words"}
           keyboardType={opts?.keyboardType ?? "default"}
           testID={`add-vehicle-${key}`}
+          accessibilityLabel={label}
         />
       </View>
     </View>
@@ -193,6 +194,8 @@ export default function AdminVehicleAddScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="add-vehicle-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -249,6 +252,7 @@ export default function AdminVehicleAddScreen() {
                   style={[styles.suggestRow, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                   activeOpacity={0.85}
                   testID={`partner-suggest-${p.id}`}
+                  accessibilityRole="button"
                 >
                   <View style={[styles.suggestAvatar, { backgroundColor: Colors.accent + "20" }]}>
                     <Text style={[styles.suggestAvatarText, { color: Colors.accent }]}>
@@ -306,6 +310,7 @@ export default function AdminVehicleAddScreen() {
                   ]}
                   activeOpacity={0.85}
                   testID={`permit-${p.value}`}
+                  accessibilityRole="button"
                 >
                   <ShieldCheck color={selected ? Colors.accent : Colors.textSecondary} size={14} />
                   <Text
@@ -323,6 +328,7 @@ export default function AdminVehicleAddScreen() {
             style={[styles.toggleRow, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             activeOpacity={0.85}
             testID="add-vehicle-docs-ok"
+            accessibilityRole="button"
           >
             <View style={{ flex: 1 }}>
               <Text style={[styles.toggleTitle, { color: Colors.text }]}>Documents verified</Text>
@@ -348,6 +354,7 @@ export default function AdminVehicleAddScreen() {
             style={[styles.toggleRow, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             activeOpacity={0.85}
             testID="add-vehicle-auto-approve"
+            accessibilityRole="button"
           >
             <View style={{ flex: 1 }}>
               <Text style={[styles.toggleTitle, { color: Colors.text }]}>Auto approve</Text>
@@ -373,6 +380,7 @@ export default function AdminVehicleAddScreen() {
             style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
             activeOpacity={0.9}
             testID="add-vehicle-submit"
+            accessibilityRole="button"
           >
             <Save color={Colors.onAccent} size={18} />
             <Text style={[styles.submitText, { color: Colors.onAccent }]}>Add Vehicle</Text>

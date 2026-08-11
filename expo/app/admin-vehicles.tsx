@@ -118,6 +118,7 @@ export default function AdminVehiclesScreen() {
         onPress={() => handlePress(item)}
         testID={`vehicle-row-${item.id}`}
         activeOpacity={0.85}
+        accessibilityRole="button"
       >
         <View style={[styles.rowIcon, { backgroundColor: color + "20" }]}>
           <Icon color={color} size={20} />
@@ -145,6 +146,8 @@ export default function AdminVehiclesScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="vehicles-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -160,6 +163,8 @@ export default function AdminVehiclesScreen() {
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="vehicles-add"
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Add vehicles"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -171,6 +176,7 @@ export default function AdminVehiclesScreen() {
           style={[styles.addCta, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent }]}
           activeOpacity={0.85}
           testID="vehicles-add-cta"
+          accessibilityRole="button"
         >
           <View style={[styles.addCtaIcon, { backgroundColor: Colors.accent }]}>
             <Plus color={Colors.onAccent} size={18} />

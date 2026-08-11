@@ -68,6 +68,8 @@ export default function LanguageScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={28} />
           </TouchableOpacity>
@@ -84,6 +86,7 @@ export default function LanguageScreen() {
               style={styles.languageItem}
               onPress={() => handleLanguageSelect(language.code)}
               activeOpacity={0.7}
+              accessibilityRole="button"
             >
               <View style={styles.languageInfo}>
                 <Text style={[styles.languageNative, { color: Colors.text }]}>

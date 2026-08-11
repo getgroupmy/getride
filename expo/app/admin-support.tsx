@@ -78,6 +78,7 @@ export default function AdminSupportScreen() {
           onPress={() =>
             router.push({ pathname: "/admin-support-chat", params: { ticketId: item.id } } as never)
           }
+          accessibilityRole="button"
         >
           <View style={[styles.avatar, { backgroundColor: Colors.accent + "25" }]}>
             {avatar ? (
@@ -131,7 +132,10 @@ export default function AdminSupportScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={["top", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { borderBottomColor: Colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -148,6 +152,8 @@ export default function AdminSupportScreen() {
           onPress={() => router.push("/admin-support-pool" as never)}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="open-pool"
+          accessibilityRole="button"
+          accessibilityLabel="Open the support pool"
         >
           <Inbox color="#000000" size={20} />
         </TouchableOpacity>

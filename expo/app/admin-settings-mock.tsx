@@ -136,6 +136,7 @@ export default function AdminSettingsMockScreen() {
           trackColor={{ false: Colors.gray[300], true: Colors.accent }}
           thumbColor="#fff"
           testID={`mock-switch-${item.key}`}
+          accessibilityLabel={item.label}
         />
       </View>
     );
@@ -150,6 +151,8 @@ export default function AdminSettingsMockScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="mock-settings-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -185,6 +188,7 @@ export default function AdminSettingsMockScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="mock-switch-master"
+            accessibilityLabel="All mocks & simulations"
           />
         </View>
 

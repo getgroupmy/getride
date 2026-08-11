@@ -63,6 +63,7 @@ export default function RotateDeviceNotice({
           onPress={onForceRotate}
           activeOpacity={0.85}
           testID="rotate-device-notice-force"
+          accessibilityRole="button"
         >
           <RotateCw color="#fff" size={16} />
           <Text style={styles.forceButtonText}>Force Rotate</Text>
@@ -73,6 +74,7 @@ export default function RotateDeviceNotice({
           onPress={onBack}
           activeOpacity={0.85}
           testID="rotate-device-notice-back"
+          accessibilityRole="button"
         >
           <ArrowLeft color={Colors.text} size={16} />
           <Text style={[styles.backButtonText, { color: Colors.text }]}>Go back</Text>

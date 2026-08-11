@@ -281,6 +281,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="ev-finance-options-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -299,6 +301,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="ev-finance-options-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add EV finance options"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -313,6 +317,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="ev-finance-options-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -328,6 +333,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="ev-finance-options-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Option</Text>
@@ -356,6 +362,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       },
                     ]}
                     hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move up"
                   >
                     <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
                   </TouchableOpacity>
@@ -370,6 +378,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       },
                     ]}
                     hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move down"
                   >
                     <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
                   </TouchableOpacity>
@@ -400,6 +410,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                   onPress={() => openEdit(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`ev-finance-options-edit-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit EV finance options"
                 >
                   <Pencil color={Colors.accent} size={16} />
                 </TouchableOpacity>
@@ -407,6 +419,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                   onPress={() => onDelete(e)}
                   style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                   testID={`ev-finance-options-delete-${e.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete EV finance options"
                 >
                   <Trash2 color={Colors.error} size={16} />
                 </TouchableOpacity>
@@ -431,6 +445,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                 <TouchableOpacity
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -447,6 +462,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="ev-finance-options-field-name"
+                      accessibilityLabel="Plan Name *"
                     />
                   </View>
                 </View>
@@ -468,6 +484,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                             },
                           ]}
                           testID={`ev-finance-options-type-${t}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -492,6 +509,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                     }}
                     style={[styles.inputWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                     testID="ev-finance-options-field-country"
+                    accessibilityRole="button"
                   >
                     <Globe color={Colors.textSecondary} size={16} />
                     <Text
@@ -522,6 +540,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                             },
                           ]}
                           testID={`ev-finance-options-payment-${m}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -550,6 +569,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-finance-options-field-paymentAmount"
+                        accessibilityLabel="Custom payment sum"
                       />
                     </View>
                   ) : null}
@@ -567,6 +587,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-finance-options-field-rate"
+                        accessibilityLabel="Rate (%)"
                       />
                       <Text style={[styles.suffix, { color: Colors.textSecondary }]}>%</Text>
                     </View>
@@ -582,6 +603,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                         keyboardType="number-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-finance-options-field-termValue"
+                        accessibilityLabel="Term"
                       />
                     </View>
                   </View>
@@ -604,6 +626,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                             },
                           ]}
                           testID={`ev-finance-options-termUnit-${u}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -629,6 +652,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="ev-finance-options-field-details"
+                      accessibilityLabel="Details"
                     />
                   </View>
                 </View>
@@ -652,6 +676,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="ev-finance-options-field-active"
+                    accessibilityLabel="Active"
                   />
                 </View>
               </ScrollView>
@@ -660,6 +685,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="ev-finance-options-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -684,6 +711,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
               <TouchableOpacity
                 onPress={() => setCountryPickerOpen(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -702,6 +730,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.searchInput, { color: Colors.text }]}
                 testID="ev-finance-options-country-search"
+                accessibilityLabel="Search country"
               />
             </View>
             <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ paddingBottom: 12 }}>
@@ -719,6 +748,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       { borderBottomColor: Colors.border },
                     ]}
                     testID={`ev-finance-options-country-${name}`}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.countryName, { color: Colors.text }]}>{name}</Text>
                     {selected ? <Check color={Colors.accent} size={18} /> : null}

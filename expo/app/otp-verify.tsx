@@ -182,6 +182,8 @@ export default function OTPVerifyScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={colors.text} size={24} />
           </TouchableOpacity>
@@ -210,6 +212,7 @@ export default function OTPVerifyScreen() {
                   maxLength={1}
                   selectTextOnFocus
                   editable={!isVerifying}
+                  accessibilityLabel="Enter the code"
                 />
                 <View
                   style={[
@@ -238,6 +241,9 @@ export default function OTPVerifyScreen() {
             ]}
             onPress={handleResend}
             disabled={timer > 0}
+            accessibilityRole="button"
+            accessibilityLabel={timer > 0 ? `Resend code in ${timer} seconds` : "Resend code"}
+            accessibilityState={{ disabled: timer > 0 }}
           >
             <Text
               style={[

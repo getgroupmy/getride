@@ -396,6 +396,8 @@ export default function AdminSettingsVehicleServicesScreen() {
             ]}
             testID={`vehicle-service-move-up-${entry.id}`}
             hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move service up"
           >
             <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -411,6 +413,8 @@ export default function AdminSettingsVehicleServicesScreen() {
             ]}
             testID={`vehicle-service-move-down-${entry.id}`}
             hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move service down"
           >
             <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -459,6 +463,8 @@ export default function AdminSettingsVehicleServicesScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vehicle-service-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit vehicle service"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -466,6 +472,8 @@ export default function AdminSettingsVehicleServicesScreen() {
           onPress={() => onDelete(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`vehicle-service-delete-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete vehicle service"
         >
           <Trash2 color={Colors.error} size={16} />
         </TouchableOpacity>
@@ -485,6 +493,8 @@ export default function AdminSettingsVehicleServicesScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="vehicle-service-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -506,6 +516,8 @@ export default function AdminSettingsVehicleServicesScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="vehicle-service-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add vehicle service"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -525,6 +537,7 @@ export default function AdminSettingsVehicleServicesScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="vehicle-service-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -545,6 +558,7 @@ export default function AdminSettingsVehicleServicesScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="vehicle-service-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>
@@ -578,6 +592,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="vehicle-service-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -617,6 +632,8 @@ export default function AdminSettingsVehicleServicesScreen() {
                           { backgroundColor: Colors.accent, borderColor: Colors.accent },
                         ]}
                         testID="vehicle-service-icon-upload"
+                        accessibilityRole="button"
+                        accessibilityLabel="Upload vehicle service icon"
                       >
                         <Upload color={Colors.onAccent} size={16} />
                         <Text
@@ -636,6 +653,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID="vehicle-service-icon-remove"
+                          accessibilityRole="button"
                         >
                           <X color={Colors.text} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -654,6 +672,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID="vehicle-service-icon-download"
+                          accessibilityRole="button"
                         >
                           <Download color={Colors.text} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -693,6 +712,8 @@ export default function AdminSettingsVehicleServicesScreen() {
                         { backgroundColor: Colors.accent, borderColor: Colors.accent, flex: 1 },
                       ]}
                       testID="vehicle-service-hero-upload"
+                      accessibilityRole="button"
+                      accessibilityLabel="Upload vehicle service hero"
                     >
                       <Upload color={Colors.onAccent} size={16} />
                       <Text style={[styles.uploadBtnText, { color: Colors.onAccent }]}>
@@ -710,6 +731,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                           },
                         ]}
                         testID="vehicle-service-hero-remove"
+                        accessibilityRole="button"
                       >
                         <X color={Colors.text} size={16} />
                         <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -728,6 +750,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                           },
                         ]}
                         testID="vehicle-service-hero-download"
+                        accessibilityRole="button"
                       >
                         <Download color={Colors.text} size={16} />
                         <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -778,6 +801,8 @@ export default function AdminSettingsVehicleServicesScreen() {
                           { backgroundColor: Colors.accent, borderColor: Colors.accent },
                         ]}
                         testID="vehicle-service-map-icon-upload"
+                        accessibilityRole="button"
+                        accessibilityLabel="Upload vehicle service map icon"
                       >
                         <Upload color={Colors.onAccent} size={16} />
                         <Text style={[styles.uploadBtnText, { color: Colors.onAccent }]}>
@@ -795,6 +820,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID="vehicle-service-map-icon-remove"
+                          accessibilityRole="button"
                         >
                           <X color={Colors.text} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -813,6 +839,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID="vehicle-service-map-icon-download"
+                          accessibilityRole="button"
                         >
                           <Download color={Colors.text} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -843,6 +870,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                         },
                       ]}
                       testID="vehicle-service-map-color-none"
+                      accessibilityRole="button"
                     >
                       <X color={Colors.textSecondary} size={14} />
                     </TouchableOpacity>
@@ -861,6 +889,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID={`vehicle-service-map-color-${c}`}
+                          accessibilityRole="button"
                         />
                       );
                     })}
@@ -885,6 +914,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="vehicle-service-field-name"
+                      accessibilityLabel="Express"
                     />
                   </View>
                 </View>
@@ -910,6 +940,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                       numberOfLines={4}
                       textAlignVertical="top"
                       testID="vehicle-service-field-description"
+                      accessibilityLabel="Brief description of this service"
                     />
                   </View>
                 </View>
@@ -932,6 +963,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="vehicle-service-field-short-description"
+                      accessibilityLabel="One-liner shown in lists"
                     />
                   </View>
                 </View>
@@ -977,6 +1009,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                               },
                             ]}
                             testID={`vehicle-service-service-${opt}`}
+                            accessibilityRole="button"
                           >
                             <Text
                               style={[
@@ -1020,6 +1053,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID={`vehicle-service-fuel-${opt}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -1059,6 +1093,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID={`vehicle-service-field-${nf.key}`}
+                        accessibilityLabel={nf.label}
                       />
                       {!!nf.suffix && (
                         <Text style={[styles.suffix, { color: Colors.textSecondary }]}>
@@ -1088,6 +1123,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                     value={Boolean(form.status)}
                     onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}
                     testID="vehicle-service-field-status"
+                    accessibilityLabel="Status"
                   />
                 </View>
               </ScrollView>
@@ -1096,6 +1132,8 @@ export default function AdminSettingsVehicleServicesScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="vehicle-service-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

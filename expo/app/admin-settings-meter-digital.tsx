@@ -564,6 +564,7 @@ export default function AdminSettingsMeterDigitalScreen() {
           keyboardType="decimal-pad"
           editable={editable}
           testID={`meter-settings-${key}`}
+          accessibilityLabel={label}
         />
         {suffix ? (
           <Text style={[styles.suffix, { color: Colors.textSecondary }]}>{suffix}</Text>
@@ -603,6 +604,7 @@ export default function AdminSettingsMeterDigitalScreen() {
               }}
               activeOpacity={0.85}
               testID={`${testId}-${opt.key}`}
+              accessibilityRole="button"
             >
               <Text
                 style={[
@@ -648,6 +650,7 @@ export default function AdminSettingsMeterDigitalScreen() {
         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
         thumbColor="#fff"
         testID={testId}
+        accessibilityLabel={label}
       />
     </View>
   );
@@ -675,6 +678,7 @@ export default function AdminSettingsMeterDigitalScreen() {
         autoCorrect={false}
         editable={editable}
         testID={`meter-settings-scope-${label.toLowerCase()}`}
+        accessibilityLabel={label}
       />
       {focusField === field && suggestions.length > 0 && (
         <View
@@ -693,6 +697,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                 else if (field === "state") setDraft((p) => ({ ...p, city: null }));
                 setFocusField(null);
               }}
+              accessibilityRole="button"
             >
               <Text style={[styles.suggestText, { color: Colors.text }]}>{name}</Text>
             </TouchableOpacity>
@@ -732,11 +737,14 @@ export default function AdminSettingsMeterDigitalScreen() {
         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
         thumbColor="#fff"
         testID={`meter-settings-active-${profile.id}`}
+        accessibilityLabel="Active"
       />
       <TouchableOpacity
         onPress={() => openEditor(profile)}
         style={styles.iconAction}
         testID={`meter-settings-edit-${profile.id}`}
+        accessibilityRole="button"
+        accessibilityLabel="Edit meter settings"
       >
         <Pencil color={Colors.textSecondary} size={16} />
       </TouchableOpacity>
@@ -744,6 +752,8 @@ export default function AdminSettingsMeterDigitalScreen() {
         onPress={() => confirmDelete(profile)}
         style={styles.iconAction}
         testID={`meter-settings-delete-${profile.id}`}
+        accessibilityRole="button"
+        accessibilityLabel="Delete meter settings"
       >
         <Trash2 color={Colors.error} size={16} />
       </TouchableOpacity>
@@ -767,6 +777,8 @@ export default function AdminSettingsMeterDigitalScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="meter-settings-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -880,6 +892,7 @@ export default function AdminSettingsMeterDigitalScreen() {
             onPress={openGlobal}
             activeOpacity={0.85}
             testID="meter-settings-global"
+            accessibilityRole="button"
           >
             <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
               <Gauge color={Colors.accent} size={20} />
@@ -911,6 +924,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                     onPress={() => openAdd(meta.level)}
                     style={[styles.addBtn, { backgroundColor: Colors.accent + "15" }]}
                     testID={`meter-settings-add-${meta.level}`}
+                    accessibilityRole="button"
                   >
                     <Plus color={Colors.accent} size={14} />
                     <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -965,6 +979,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                 onPress={() => setEditorOpen(false)}
                 style={styles.iconAction}
                 testID="meter-settings-editor-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.textSecondary} size={20} />
               </TouchableOpacity>
@@ -1029,6 +1044,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   editable={editable}
                   testID="meter-settings-label"
+                  accessibilityLabel="Card name (optional)"
                 />
               </View>
 
@@ -1130,6 +1146,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                             }}
                             activeOpacity={0.85}
                             testID={`meter-settings-leave-app-${app.id}`}
+                            accessibilityRole="button"
                           >
                             <View style={styles.cardInfo}>
                               <Text
@@ -1171,6 +1188,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                         }}
                         activeOpacity={0.85}
                         testID="meter-settings-leave-app-other"
+                        accessibilityRole="button"
                       >
                         <View style={styles.cardInfo}>
                           <Text
@@ -1217,6 +1235,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                       keyboardType="url"
                       editable={editable}
                       testID="meter-settings-leave-url"
+                      accessibilityLabel="App link"
                     />
                     <Text
                       style={[
@@ -1287,6 +1306,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                         keyboardType="url"
                         editable={editable}
                         testID={`meter-settings-leave-store-${platform}`}
+                        accessibilityLabel={STORE_LABELS[platform]}
                       />
                     </View>
                   ))}
@@ -1314,6 +1334,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                       maxLength={22}
                       editable={editable}
                       testID="meter-settings-leave-label"
+                      accessibilityLabel="Key caption (optional)"
                     />
                   </View>
                 </>
@@ -1371,6 +1392,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                         thumbColor="#fff"
                         testID={`meter-settings-show-${id}`}
+                        accessibilityLabel="Panel"
                       />
                     </View>
                     <View style={styles.panelSwitch}>
@@ -1381,6 +1403,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                         thumbColor="#fff"
                         testID={`meter-settings-tap-${id}`}
+                        accessibilityLabel="Panel"
                       />
                     </View>
                   </View>
@@ -1407,6 +1430,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                   maxLength={6}
                   editable={editable}
                   testID="meter-settings-currency"
+                  accessibilityLabel="Currency"
                 />
               </View>
               <View style={styles.fieldGrid}>
@@ -1514,6 +1538,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                   trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                   thumbColor="#fff"
                   testID="meter-settings-active"
+                  accessibilityLabel="Active"
                 />
               </View>
 
@@ -1528,6 +1553,8 @@ export default function AdminSettingsMeterDigitalScreen() {
               ]}
               disabled={busy || !editable}
               testID="meter-settings-save"
+              accessibilityRole="button"
+              accessibilityLabel="Save"
             >
               {busy ? (
                 <ActivityIndicator color="#fff" size="small" />

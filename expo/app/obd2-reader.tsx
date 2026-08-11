@@ -463,6 +463,8 @@ export default function Obd2ReaderScreen() {
             style={styles.headerButton}
             onPress={() => router.back()}
             testID="obd2-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={Colors.text} size={24} />
           </TouchableOpacity>
@@ -559,6 +561,7 @@ export default function Obd2ReaderScreen() {
                     else void handleConnect();
                   }}
                   testID="obd2-connect"
+                  accessibilityRole="button"
                 >
                   <Text
                     style={[
@@ -575,6 +578,7 @@ export default function Obd2ReaderScreen() {
                     style={[styles.secondaryButton, { borderColor: Colors.border }]}
                     onPress={() => canbus.connectDemo()}
                     testID="obd2-demo"
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
                       Demo Mode
@@ -593,6 +597,7 @@ export default function Obd2ReaderScreen() {
                 style={styles.addButton}
                 onPress={() => setAddVisible(true)}
                 testID="obd2-add"
+                accessibilityRole="button"
               >
                 <Plus color={Colors.accent} size={18} />
                 <Text style={[styles.addButtonText, { color: Colors.accent }]}>Add reader</Text>
@@ -627,6 +632,9 @@ export default function Obd2ReaderScreen() {
                       onPress={() => void handleSelect(adapter)}
                       onLongPress={() => handleDelete(adapter)}
                       activeOpacity={0.7}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected, checked: selected }}
+                      accessibilityLabel={`${adapter.name}, ${TRANSPORT_LABEL[adapter.transport]}`}
                       testID={`obd2-adapter-${adapter.id}`}
                     >
                       <Icon color={isLive ? "#22C55E" : Colors.textSecondary} size={20} />
@@ -651,6 +659,8 @@ export default function Obd2ReaderScreen() {
                         style={styles.deleteButton}
                         onPress={() => handleDelete(adapter)}
                         testID={`obd2-delete-${adapter.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete ${adapter.name}`}
                       >
                         <Trash2 color="#EF4444" size={18} />
                       </TouchableOpacity>
@@ -715,6 +725,7 @@ export default function Obd2ReaderScreen() {
             style={styles.backdrop}
             activeOpacity={1}
             onPress={() => setAddVisible(false)}
+            accessibilityRole="button"
           />
           <View
             style={[
@@ -728,6 +739,7 @@ export default function Obd2ReaderScreen() {
                 onPress={() => setAddVisible(false)}
                 style={[styles.sheetClose, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}
                 testID="obd2-add-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
@@ -752,6 +764,9 @@ export default function Obd2ReaderScreen() {
                       ]}
                       onPress={() => setDraftKind(choice.kind)}
                       activeOpacity={0.7}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: picked, checked: picked, disabled: !avail?.available }}
+                      accessibilityLabel={choice.title}
                       testID={`obd2-kind-${choice.kind}`}
                     >
                       <Icon color={picked ? Colors.accent : Colors.textSecondary} size={20} />
@@ -783,6 +798,7 @@ export default function Obd2ReaderScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 maxLength={60}
                 testID="obd2-name-input"
+                accessibilityLabel="NAME"
               />
 
               {draftKind === "wifi" ? (
@@ -805,6 +821,7 @@ export default function Obd2ReaderScreen() {
                       autoCorrect={false}
                       keyboardType="numbers-and-punctuation"
                       testID="obd2-host-input"
+                      accessibilityLabel="ADAPTER ADDRESS"
                     />
                     <TextInput
                       style={[
@@ -818,6 +835,7 @@ export default function Obd2ReaderScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="number-pad"
                       testID="obd2-port-input"
+                      accessibilityLabel="Adapter port"
                     />
                   </View>
                   <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
@@ -841,6 +859,7 @@ export default function Obd2ReaderScreen() {
                     autoCorrect={false}
                     maxLength={60}
                     testID="obd2-accessory-input"
+                    accessibilityLabel="PAIRED NAME (OPTIONAL)"
                   />
                   <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
                     Pair the adapter in iOS Settings → Bluetooth first. Leave the name blank
@@ -865,6 +884,7 @@ export default function Obd2ReaderScreen() {
                     disabled={scanning}
                     onPress={() => void handleScanBle()}
                     testID="obd2-scan"
+                    accessibilityRole="button"
                   >
                     {scanning ? (
                       <ActivityIndicator color={Colors.text} size="small" />
@@ -888,6 +908,8 @@ export default function Obd2ReaderScreen() {
                           ]}
                           onPress={() => pickDiscovered(d)}
                           activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Use ${d.name}`}
                           testID={`obd2-found-${d.id}`}
                         >
                           <Bluetooth
@@ -931,6 +953,7 @@ export default function Obd2ReaderScreen() {
                 disabled={saving}
                 onPress={() => void handleSaveAdapter()}
                 testID="obd2-save"
+                accessibilityRole="button"
               >
                 <Text style={[styles.primaryButtonText, { color: Colors.onAccent }]}>
                   {saving ? "Saving…" : "Save reader"}

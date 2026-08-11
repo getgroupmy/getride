@@ -9,6 +9,7 @@ import {
   updateRemoteDisplaySettings,
 } from "@/utils/displaySettingsStore";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
+import { normalizeServiceBoxRoute } from "@/utils/serviceBoxAction";
 
 /**
  * How often live sessions re-pull the global settings (ms). Kept short so the
@@ -430,6 +431,13 @@ export interface ServiceBoxConfig {
   iconName?: string;
   /** Custom uploaded image URI (replaces icon when set) */
   imageUri?: string;
+  /**
+   * In-app path the tile opens, e.g. "/wallet". Without one the tile raises the
+   * coming-soon notice rather than doing nothing — see utils/serviceBoxAction.
+   */
+  route?: string;
+  /** Mark the tile as not launched yet: always raises the coming-soon notice. */
+  comingSoon?: boolean;
 }
 
 export interface DisplaySettings {
@@ -1052,5 +1060,14 @@ function normalizeMenu(m: MenuCustomization | undefined): MenuCustomization {
 function normalizeBoxes(boxes: ServiceBoxConfig[] | undefined): ServiceBoxConfig[] {
   const base = [...DEFAULT_SERVICE_BOXES];
   if (!boxes || !Array.isArray(boxes)) return base;
-  return base.map((b, i) => ({ ...b, ...(boxes[i] ?? {}) }));
+  return base.map((b, i) => {
+    const merged = { ...b, ...(boxes[i] ?? {}) } as ServiceBoxConfig;
+    // A stored route that this app cannot open is dropped here rather than
+    // handed to router.push at tap time.
+    const route = normalizeServiceBoxRoute(merged.route);
+    if (route) merged.route = route;
+    else delete merged.route;
+    merged.comingSoon = merged.comingSoon === true;
+    return merged;
+  });
 }

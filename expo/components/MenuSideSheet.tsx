@@ -22,6 +22,8 @@ import {
   HelpCircle,
   MessageCircle,
   ChevronRight,
+  Facebook,
+  Instagram,
   LogOut,
   BookOpen,
   ShieldCheck,
@@ -40,6 +42,8 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/useColors";
+import { isMotionReduced, useReducedMotion } from "@/hooks/useReducedMotion";
+import { motionDuration, motionSpring } from "@/utils/reducedMotion";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePushNotifications } from "@/contexts/PushNotificationContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
@@ -66,6 +70,10 @@ import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings, DEFAULT_USER_MENU_ITEMS, getMenuItemOrder, PROFILE_MENU_ITEM_ID, PARTNER_MODE_MENU_ITEM_ID, PARTNER_MODE_DEFAULT_LABEL } from "@/contexts/DisplaySettingsContext";
 import { useAdminAccess, markSuperAdminSession } from "@/contexts/AdminAccessContext";
 import { evaluateCurrentIp } from "@/utils/ipAccessStore";
+
+// Placeholder rider rating until per-account ratings are wired up. Kept as a
+// single constant so the stars and the numeral can never disagree.
+const PROFILE_RATING = 4.8;
 
 const SIDE_MENU_ICON_MAP: Record<string, LucideIcon> = {
   Bell,
@@ -99,6 +107,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
   const router = useRouter();
   const { width } = useWindowDimensions();
   const Colors = useColors();
+  const reducedMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { logout, authState, profile, refreshProfile } = useAuth();
   const { unregister } = usePushNotifications();
@@ -227,7 +236,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
         Animated.parallel([
           Animated.timing(dragOffset, {
             toValue: -menuWidthRef.current,
-            duration,
+            duration: motionDuration(duration, "transition", isMotionReduced()),
             useNativeDriver: true,
           }),
           Animated.timing(overlayOpacity, {
@@ -243,12 +252,12 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
         });
       } else {
         Animated.parallel([
-          Animated.spring(dragOffset, {
+          Animated.spring(dragOffset, motionSpring({
             toValue: 0,
             useNativeDriver: true,
             tension: 100,
             friction: 10,
-          }),
+          }, "transition", isMotionReduced())),
           Animated.timing(overlayOpacity, {
             toValue: 1,
             duration: 150,
@@ -276,12 +285,12 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
       overlayOpacity.setValue(0);
       dragOffset.setValue(0);
       Animated.parallel([
-        Animated.spring(slideAnim, {
+        Animated.spring(slideAnim, motionSpring({
           toValue: 0,
           useNativeDriver: true,
           tension: 65,
           friction: 11,
-        }),
+        }, "transition", reducedMotion)),
         Animated.timing(overlayOpacity, {
           toValue: 1,
           duration: 280,
@@ -295,7 +304,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: -currentMenuWidth,
-          duration: 150,
+          duration: motionDuration(150, "transition", reducedMotion),
           useNativeDriver: true,
         }),
         Animated.timing(overlayOpacity, {
@@ -309,7 +318,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
         dragOffset.setValue(0);
       });
     }
-  }, [visible, slideAnim, overlayOpacity, dragOffset]);
+  }, [visible, slideAnim, overlayOpacity, dragOffset, reducedMotion]);
 
   const handleLogout = async () => {
     console.log("Logging out...");
@@ -396,6 +405,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
         if (o.isCustom) {
           const c = userCustomById.get(o.id);
           return {
+            id: o.id,
             icon: SIDE_MENU_ICON_MAP[c?.iconName ?? "Star"] ?? Star,
             label: c?.label ?? "",
             onPress: isComingSoon
@@ -422,6 +432,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
           basePress();
         };
         return {
+          id: o.id,
           icon: defaultIconsById[o.id] ?? Settings,
           label: userCfg.renames[o.id] ?? userDefaultLabels.get(o.id) ?? o.id,
           onPress,
@@ -450,6 +461,8 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
             onClose();
             setTimeout(() => router.push("/profile" as any), 150);
           }}
+          accessibilityRole="button"
+          accessibilityLabel={`${displayName}, rated ${PROFILE_RATING} out of 5. Open profile`}
           testID="menu-profile-open"
         >
           <View style={[styles.avatar, { backgroundColor: Colors.accent + '30' }]}>
@@ -461,9 +474,18 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
           </View>
           <View style={styles.profileInfo}>
             <Text style={[styles.profileName, { color: Colors.text }]} numberOfLines={1}>{displayName}</Text>
-            <View style={styles.ratingContainer}>
-              <Text style={[styles.ratingStar, { color: Colors.accent }]}>★★★★★</Text>
-              <Text style={[styles.ratingText, { color: Colors.text }]}> 4.8</Text>
+            <View style={styles.ratingContainer} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <View style={styles.ratingStars}>
+                {[1, 2, 3, 4, 5].map((slot) => (
+                  <Star
+                    key={slot}
+                    size={14}
+                    color={Colors.accent}
+                    fill={slot <= Math.round(PROFILE_RATING) ? Colors.accent : "transparent"}
+                  />
+                ))}
+              </View>
+              <Text style={[styles.ratingText, { color: Colors.text }]}>{PROFILE_RATING.toFixed(1)}</Text>
             </View>
           </View>
           <ChevronRight color={Colors.textSecondary} size={24} />
@@ -476,11 +498,13 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
         contentContainerStyle={styles.menuItemsContent}
         showsVerticalScrollIndicator={false}
       >
-        {menuItems.map((item, index) => (
+        {menuItems.map((item) => (
           <TouchableOpacity
-            key={index}
+            key={item.id}
             style={styles.menuItem}
             onPress={item.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
           >
             <item.icon color={Colors.textSecondary} size={24} />
             <Text style={[styles.menuItemText, { color: Colors.text }]}>{item.label}</Text>
@@ -520,6 +544,8 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
               setDriverModeVisible(true);
             }
           }}
+          accessibilityRole="button"
+          accessibilityLabel={partnerModeLabel}
           testID="driver-mode-button"
         >
           <Text style={[styles.driverModeText, { color: Colors.onAccent }]}>{partnerModeLabel}</Text>
@@ -558,6 +584,9 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
                 setAdminChecking(false);
               }
             }}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: adminChecking, busy: adminChecking }}
+            accessibilityLabel={adminChecking ? "Checking admin access" : "Admin login"}
             testID="admin-login-button"
           >
             <ShieldCheck color={Colors.accent} size={18} />
@@ -571,17 +600,21 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
           <TouchableOpacity
             style={styles.socialButton}
             onPress={() => console.log("Facebook")}
+            accessibilityRole="link"
+            accessibilityLabel="GET.ride on Facebook"
           >
             <View style={styles.facebookIcon}>
-              <Text style={styles.socialIconText}>f</Text>
+              <Facebook color="#FFFFFF" size={22} fill="#FFFFFF" />
             </View>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.socialButton}
             onPress={() => console.log("Instagram")}
+            accessibilityRole="link"
+            accessibilityLabel="GET.ride on Instagram"
           >
             <View style={styles.instagramIcon}>
-              <Text style={styles.socialIconText}>📷</Text>
+              <Instagram color="#FFFFFF" size={22} />
             </View>
           </TouchableOpacity>
         </View>
@@ -810,6 +843,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
             style={[styles.csButton, { backgroundColor: Colors.accent }]}
             onPress={() => setComingSoonVisible(false)}
             testID="coming-soon-ok"
+            accessibilityRole="button"
           >
             <Text style={[styles.csButtonText, { color: Colors.onAccent }]}>OK</Text>
           </TouchableOpacity>
@@ -849,6 +883,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
             style={styles.overlayTouchable}
             activeOpacity={1}
             onPress={onClose}
+            accessibilityRole="button"
           />
         </Animated.View>
 
@@ -935,10 +970,12 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
   },
-  ratingStar: {
-    fontSize: 14,
-    letterSpacing: 2,
+  ratingStars: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   ratingText: {
     fontSize: 14,
@@ -1017,11 +1054,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#E4405F",
     justifyContent: "center",
     alignItems: "center",
-  },
-  socialIconText: {
-    fontSize: 20,
-    color: "#FFFFFF",
-    fontWeight: "700",
   },
   csOverlay: {
     flex: 1,

@@ -14,9 +14,6 @@ import { useRouter, useLocalSearchParams, Stack } from "expo-router";
 import {
   ArrowLeft,
   Info,
-  Plus,
-  ChevronRight,
-  SlidersHorizontal,
   Send,
   Delete,
 } from "lucide-react-native";
@@ -414,7 +411,10 @@ export default function OfferFareScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <ArrowLeft color={Colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Offer your fare</Text>
@@ -429,6 +429,7 @@ export default function OfferFareScreen() {
           style={styles.fareContainer}
           onPress={() => setIsEditing(true)}
           activeOpacity={0.8}
+          accessibilityRole="button"
         >
           <View style={styles.fareRow}>
             <Text style={styles.fareCurrency}>{currency.symbol}</Text>
@@ -449,7 +450,8 @@ export default function OfferFareScreen() {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.paymentRow}>
+        {/* Not a control — this row reports the payment method. */}
+        <View style={styles.paymentRow}>
           <Image
             source={{
               uri: "https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/3drcunhhotpoqbujxqkwp",
@@ -460,8 +462,7 @@ export default function OfferFareScreen() {
           <Text style={[styles.paymentText, { marginLeft: 14 }]}>
             DuItNow manual transfer
           </Text>
-          <ChevronRight color={Colors.textSecondary} size={20} />
-        </TouchableOpacity>
+        </View>
 
         <View style={styles.autoAcceptRow}>
           <Send color={Colors.text} size={20} style={styles.autoAcceptIcon} />
@@ -475,6 +476,7 @@ export default function OfferFareScreen() {
             onValueChange={setAutoAccept}
             trackColor={{ false: Colors.gray[200], true: Colors.accentDark }}
             thumbColor={autoAccept ? Colors.accent : "#FFFFFF"}
+            accessibilityLabel="Fare doesn't include state entry tax, tolls, or parking fees"
           />
         </View>
 
@@ -496,9 +498,6 @@ export default function OfferFareScreen() {
             <Text style={styles.locationText} numberOfLines={1}>
               {destination}
             </Text>
-            <TouchableOpacity style={styles.addButton}>
-              <Plus color={Colors.text} size={20} />
-            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -506,7 +505,7 @@ export default function OfferFareScreen() {
       {isEditing ? (
         <View>
           <View style={styles.bottomContainer}>
-            <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
+            <TouchableOpacity style={styles.doneButton} onPress={handleDone} accessibilityRole="button">
               <Text style={styles.doneButtonText}>Done</Text>
             </TouchableOpacity>
           </View>
@@ -515,12 +514,14 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("1")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>1</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("2")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>2</Text>
                 <Text style={styles.keypadLetters}>ABC</Text>
@@ -528,6 +529,7 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("3")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>3</Text>
                 <Text style={styles.keypadLetters}>DEF</Text>
@@ -537,6 +539,7 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("4")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>4</Text>
                 <Text style={styles.keypadLetters}>GHI</Text>
@@ -544,6 +547,7 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("5")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>5</Text>
                 <Text style={styles.keypadLetters}>JKL</Text>
@@ -551,6 +555,7 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("6")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>6</Text>
                 <Text style={styles.keypadLetters}>MNO</Text>
@@ -560,6 +565,7 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("7")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>7</Text>
                 <Text style={styles.keypadLetters}>PQRS</Text>
@@ -567,6 +573,7 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("8")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>8</Text>
                 <Text style={styles.keypadLetters}>TUV</Text>
@@ -574,6 +581,7 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("9")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>9</Text>
                 <Text style={styles.keypadLetters}>WXYZ</Text>
@@ -583,18 +591,22 @@ export default function OfferFareScreen() {
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress(".")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>.</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handleKeyPress("0")}
+                accessibilityRole="button"
               >
                 <Text style={styles.keypadNumber}>0</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.keypadButtonBackspace}
                 onPress={() => handleKeyPress("backspace")}
+                accessibilityRole="button"
+                accessibilityLabel="Delete"
               >
                 <Delete color={Colors.text} size={26} />
               </TouchableOpacity>
@@ -608,13 +620,13 @@ export default function OfferFareScreen() {
               style={isValidFare ? styles.findDriverButton : styles.findDriverButtonDisabled}
               onPress={handleFindDriver}
               disabled={!isValidFare}
+              accessibilityRole="button"
+              accessibilityLabel="Find a driver"
+              accessibilityState={{ disabled: !isValidFare }}
             >
               <Text style={isValidFare ? styles.findDriverText : styles.findDriverTextDisabled}>
                 Find a driver
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsButton}>
-              <SlidersHorizontal color="#000000" size={22} />
             </TouchableOpacity>
           </View>
         </View>

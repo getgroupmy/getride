@@ -150,6 +150,8 @@ export default function AdminSettingsApiKeysScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="api-keys-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -167,6 +169,8 @@ export default function AdminSettingsApiKeysScreen() {
           disabled={!editable}
           style={[styles.iconBtn, { backgroundColor: editable ? Colors.accent + "20" : Colors.gray[100], opacity: editable ? 1 : 0.5 }]}
           testID="api-keys-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add API keys"
         >
           <Plus color={editable ? Colors.accent : Colors.textSecondary} size={20} />
         </TouchableOpacity>
@@ -191,6 +195,7 @@ export default function AdminSettingsApiKeysScreen() {
             onPress={() => router.push("/admin-settings-api-elife" as const)}
             style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             testID="api-elife-entry"
+            accessibilityRole="button"
           >
             <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
               <Plug color={Colors.accent} size={18} />
@@ -220,6 +225,7 @@ export default function AdminSettingsApiKeysScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="api-keys-search"
+              accessibilityLabel="Search providers"
             />
           </View>
 
@@ -231,6 +237,7 @@ export default function AdminSettingsApiKeysScreen() {
                 onPress={() => openProvider(p)}
                 style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                 testID={`provider-${p.id}`}
+                accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
                   <Building2 color={Colors.accent} size={18} />
@@ -259,6 +266,8 @@ export default function AdminSettingsApiKeysScreen() {
                     style={styles.rowDelete}
                     testID={`provider-delete-${p.id}`}
                     hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Delete provider"
                   >
                     <Trash2 color={Colors.error} size={16} />
                   </TouchableOpacity>
@@ -281,6 +290,7 @@ export default function AdminSettingsApiKeysScreen() {
               onPress={() => setShowAdd(true)}
               style={[styles.addBtn, { backgroundColor: Colors.accent }]}
               testID="api-keys-add-bottom"
+              accessibilityRole="button"
             >
               <Plus color="#000000" size={18} />
               <Text style={styles.addTxt}>Add Provider</Text>
@@ -296,7 +306,7 @@ export default function AdminSettingsApiKeysScreen() {
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: Colors.text }]}>New Provider</Text>
-              <TouchableOpacity onPress={() => setShowAdd(false)} hitSlop={8}>
+              <TouchableOpacity onPress={() => setShowAdd(false)} hitSlop={8} accessibilityRole="button">
                 <X color={Colors.text} size={22} />
               </TouchableOpacity>
             </View>
@@ -309,11 +319,13 @@ export default function AdminSettingsApiKeysScreen() {
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               autoFocus
               testID="provider-add-name"
+              accessibilityLabel="Provider name"
             />
             <View style={styles.modalActions}>
               <TouchableOpacity
                 onPress={() => setShowAdd(false)}
                 style={[styles.modalBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnTxt, { color: Colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -321,6 +333,7 @@ export default function AdminSettingsApiKeysScreen() {
                 onPress={onAdd}
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="provider-add-confirm"
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnTxt, { color: "#000000" }]}>Add</Text>
               </TouchableOpacity>

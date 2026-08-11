@@ -403,6 +403,7 @@ export default function VehicleDocsUploader({
                   },
                 ]}
                 testID={`vehicle-doc-upload-${d.id}`}
+                accessibilityRole="button"
               >
                 <View style={[styles.iconWrap, { backgroundColor: reqColor + "18" }]}>
                   {d.compulsory ? (

@@ -364,7 +364,7 @@ export default function PartnerOnboardingScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.center}>
           <Text style={[styles.title, { color: Colors.text }]}>Please sign in first</Text>
-          <TouchableOpacity onPress={() => router.back()} style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.primaryBtn, { backgroundColor: Colors.accent }]} accessibilityRole="button">
             <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Go back</Text>
           </TouchableOpacity>
         </View>
@@ -430,6 +430,7 @@ export default function PartnerOnboardingScreen() {
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
               testID="onboard-upload-avatar"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -453,11 +454,14 @@ export default function PartnerOnboardingScreen() {
               style={[styles.input, { backgroundColor: Colors.gray[100], borderColor: Colors.border, color: Colors.text }]}
               autoCapitalize="characters"
               testID="onboard-ic-input"
+              accessibilityLabel="ID number"
             />
             <TouchableOpacity
               onPress={uploadIdImage}
               disabled={busy}
               style={[styles.secondaryBtn, { borderColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Upload your ID photo"
               testID="onboard-upload-id"
             >
               <Camera color={Colors.accent} size={18} />
@@ -468,6 +472,7 @@ export default function PartnerOnboardingScreen() {
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1, marginTop: 12 }]}
               testID="onboard-save-id"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -491,12 +496,14 @@ export default function PartnerOnboardingScreen() {
               multiline
               numberOfLines={4}
               testID="onboard-address-input"
+              accessibilityLabel="Your address"
             />
             <TouchableOpacity
               onPress={saveAddress}
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1 }]}
               testID="onboard-save-address"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -519,6 +526,7 @@ export default function PartnerOnboardingScreen() {
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1, marginTop: 16 }]}
               testID="onboard-save-area"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -541,6 +549,7 @@ export default function PartnerOnboardingScreen() {
               disabled={busy}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent, opacity: busy ? 0.6 : 1, marginTop: 16 }]}
               testID="onboard-save-type"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -582,6 +591,7 @@ export default function PartnerOnboardingScreen() {
                 },
               ]}
               testID="onboard-finish"
+              accessibilityRole="button"
             >
               {busy ? (
                 <ActivityIndicator color={Colors.secondary} />
@@ -611,6 +621,7 @@ export default function PartnerOnboardingScreen() {
               onPress={() => setShowModePicker(true)}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
               testID="onboard-pick-mode"
+              accessibilityRole="button"
             >
               <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Choose service mode</Text>
             </TouchableOpacity>
@@ -629,6 +640,8 @@ export default function PartnerOnboardingScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="onboard-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={20} />
         </TouchableOpacity>

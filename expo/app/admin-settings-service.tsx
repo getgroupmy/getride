@@ -237,6 +237,8 @@ export default function AdminSettingsServiceScreen() {
               },
             ]}
             hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move up"
           >
             <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -251,6 +253,8 @@ export default function AdminSettingsServiceScreen() {
               },
             ]}
             hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move down"
           >
             <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -291,6 +295,8 @@ export default function AdminSettingsServiceScreen() {
           onPress={() => openEdit(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`service-edit-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Edit service"
         >
           <Pencil color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -302,6 +308,8 @@ export default function AdminSettingsServiceScreen() {
           ]}
           disabled={isDefault}
           testID={`service-delete-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Delete service"
         >
           <Trash2 color={isDefault ? Colors.textSecondary : Colors.error} size={16} />
         </TouchableOpacity>
@@ -318,6 +326,8 @@ export default function AdminSettingsServiceScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="service-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -336,6 +346,8 @@ export default function AdminSettingsServiceScreen() {
           onPress={openAdd}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="service-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add service"
         >
           <Plus color={Colors.onAccent} size={22} />
         </TouchableOpacity>
@@ -350,6 +362,7 @@ export default function AdminSettingsServiceScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="service-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -365,6 +378,7 @@ export default function AdminSettingsServiceScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="service-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Service</Text>
@@ -391,6 +405,7 @@ export default function AdminSettingsServiceScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="service-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -418,6 +433,8 @@ export default function AdminSettingsServiceScreen() {
                         onPress={pickIcon}
                         style={[styles.uploadBtn, { backgroundColor: Colors.accent }]}
                         testID="service-icon-upload"
+                        accessibilityRole="button"
+                        accessibilityLabel="Upload service icon"
                       >
                         <Upload color={Colors.onAccent} size={16} />
                         <Text style={[styles.uploadBtnText, { color: Colors.onAccent }]}>
@@ -432,6 +449,7 @@ export default function AdminSettingsServiceScreen() {
                             { backgroundColor: Colors.gray[100], borderWidth: 1, borderColor: Colors.border },
                           ]}
                           testID="service-icon-remove"
+                          accessibilityRole="button"
                         >
                           <Trash2 color={Colors.error} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.error }]}>Remove</Text>
@@ -457,6 +475,7 @@ export default function AdminSettingsServiceScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="service-field-name"
+                      accessibilityLabel="Service Name *"
                     />
                   </View>
                 </View>
@@ -477,6 +496,7 @@ export default function AdminSettingsServiceScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="service-field-description"
+                      accessibilityLabel="Description"
                     />
                   </View>
                 </View>
@@ -498,6 +518,7 @@ export default function AdminSettingsServiceScreen() {
                       style={[styles.input, { color: Colors.text }]}
                       keyboardType="decimal-pad"
                       testID="service-field-priority"
+                      accessibilityLabel="Display Priority"
                     />
                   </View>
                 </View>
@@ -514,6 +535,7 @@ export default function AdminSettingsServiceScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="service-field-active"
+                    accessibilityLabel="Active"
                   />
                 </View>
 
@@ -536,6 +558,8 @@ export default function AdminSettingsServiceScreen() {
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID="service-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

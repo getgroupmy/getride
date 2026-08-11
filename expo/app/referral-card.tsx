@@ -323,6 +323,8 @@ export default function ReferralCardScreen() {
             style={styles.backBtn}
             onPress={() => router.back()}
             testID="referral-card-back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color="#FFFFFF" size={22} />
           </TouchableOpacity>
@@ -379,6 +381,7 @@ export default function ReferralCardScreen() {
           onPress={handleCopyCode}
           activeOpacity={0.8}
           testID="referral-card-copy"
+          accessibilityRole="button"
         >
           <View style={styles.codeRowInfo}>
             <Text style={styles.codeRowLabel}>Your code</Text>
@@ -403,6 +406,7 @@ export default function ReferralCardScreen() {
           style={styles.linkBtn}
           onPress={handleShareLink}
           testID="referral-card-share-link"
+          accessibilityRole="button"
         >
           <LinkIcon color={BRAND_BLUE_DARK} size={18} />
           <Text style={styles.linkBtnText}>Share link</Text>
@@ -412,6 +416,7 @@ export default function ReferralCardScreen() {
           onPress={handleShareImage}
           disabled={sharing}
           testID="referral-card-share-image"
+          accessibilityRole="button"
         >
           {sharing ? (
             <ActivityIndicator color="#FFFFFF" size="small" />

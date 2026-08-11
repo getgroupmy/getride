@@ -291,6 +291,8 @@ export default function AdminSettingsFareAIScreen() {
           onPress={() => router.back()}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="fare-ai-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -307,6 +309,8 @@ export default function AdminSettingsFareAIScreen() {
           onPress={() => router.push("/admin-settings-fare-ai-logs")}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="fare-ai-logs"
+          accessibilityRole="button"
+          accessibilityLabel="Fare AI logs"
         >
           <ListChecks color={Colors.text} size={20} />
         </TouchableOpacity>
@@ -370,6 +374,7 @@ export default function AdminSettingsFareAIScreen() {
                 trackColor={{ true: Colors.accent, false: Colors.border }}
                 thumbColor="#fff"
                 testID="fare-ai-service-toggle"
+                accessibilityLabel="AI fare service"
               />
             </View>
 
@@ -394,6 +399,7 @@ export default function AdminSettingsFareAIScreen() {
                     },
                   ]}
                   testID={`fare-ai-provider-${p.id}`}
+                  accessibilityRole="button"
                 >
                   <View style={[styles.providerIcon, { backgroundColor: Colors.accent + "20" }]}>
                     <Sparkles color={Colors.accent} size={18} />
@@ -443,6 +449,7 @@ export default function AdminSettingsFareAIScreen() {
                   { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] },
                 ]}
                 testID="fare-ai-retry-value"
+                accessibilityLabel="Retry failed keys after"
               />
               <View style={styles.unitRow}>
                 {RETRY_UNITS.map((u) => {
@@ -460,6 +467,7 @@ export default function AdminSettingsFareAIScreen() {
                         },
                       ]}
                       testID={`fare-ai-retry-unit-${u.id}`}
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.unitChipTxt, { color: selected ? "#000000" : Colors.text }]}>
                         {u.label}
@@ -476,7 +484,7 @@ export default function AdminSettingsFareAIScreen() {
                 {activeMeta.label} keys
               </Text>
               {editable ? (
-                <TouchableOpacity onPress={addKey} style={styles.addBtn} testID="fare-ai-add-key">
+                <TouchableOpacity onPress={addKey} style={styles.addBtn} testID="fare-ai-add-key" accessibilityRole="button">
                   <Plus color={Colors.accent} size={16} />
                   <Text style={[styles.addBtnTxt, { color: Colors.accent }]}>Add key</Text>
                 </TouchableOpacity>
@@ -497,6 +505,7 @@ export default function AdminSettingsFareAIScreen() {
                 { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100], marginBottom: 14 },
               ]}
               testID="fare-ai-model"
+              accessibilityLabel="Model"
             />
 
             {activeKeys.length === 0 ? (
@@ -524,6 +533,7 @@ export default function AdminSettingsFareAIScreen() {
                         editable={editable}
                         style={[styles.keyLabelInput, { color: Colors.text }]}
                         testID={`fare-ai-key-label-${idx}`}
+                        accessibilityLabel="Key label"
                       />
                       <Switch
                         value={k.enabled}
@@ -531,12 +541,15 @@ export default function AdminSettingsFareAIScreen() {
                         disabled={!editable}
                         trackColor={{ true: Colors.accent, false: Colors.border }}
                         thumbColor="#fff"
+                        accessibilityLabel="Key enabled"
                       />
                       {editable ? (
                         <TouchableOpacity
                           onPress={() => removeKey(k.id)}
                           style={styles.deleteBtn}
                           testID={`fare-ai-key-delete-${idx}`}
+                          accessibilityRole="button"
+                          accessibilityLabel="Delete fare ai key"
                         >
                           <Trash2 color={Colors.danger ?? "#e5484d"} size={18} />
                         </TouchableOpacity>
@@ -557,6 +570,7 @@ export default function AdminSettingsFareAIScreen() {
                         { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.background },
                       ]}
                       testID={`fare-ai-key-value-${idx}`}
+                      accessibilityLabel="API key"
                     />
 
                     {/* Stats */}
@@ -607,6 +621,8 @@ export default function AdminSettingsFareAIScreen() {
                   { backgroundColor: dirty ? Colors.accent : Colors.gray[300] ?? Colors.border, opacity: saving ? 0.7 : 1 },
                 ]}
                 testID="fare-ai-save"
+                accessibilityRole="button"
+                accessibilityLabel="Save"
               >
                 {saving ? (
                   <ActivityIndicator color="#000000" />
@@ -627,6 +643,7 @@ export default function AdminSettingsFareAIScreen() {
               onPress={() => router.push("/admin-settings-fare-ai-logs")}
               style={[styles.logsBtn, { borderColor: Colors.border }]}
               testID="fare-ai-open-logs"
+              accessibilityRole="button"
             >
               <ListChecks color={Colors.accent} size={18} />
               <Text style={[styles.logsTxt, { color: Colors.text }]}>View response log</Text>

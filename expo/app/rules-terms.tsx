@@ -38,6 +38,8 @@ export default function RulesTermsScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ChevronLeft color={Colors.text} size={24} />
           </TouchableOpacity>
@@ -56,6 +58,7 @@ export default function RulesTermsScreen() {
             ]}
             onPress={() => handleItemPress(item.id)}
             activeOpacity={0.7}
+            accessibilityRole="button"
           >
             <Text style={[styles.menuLabel, { color: Colors.text }]}>{item.label}</Text>
             <ChevronRight color={Colors.textSecondary} size={20} />

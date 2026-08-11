@@ -32,6 +32,8 @@ import {
 import Svg, { Polyline, Line } from "react-native-svg";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { walletPalette, type WalletPalette } from "@/utils/walletTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchGetCoinSettings,
@@ -62,8 +64,6 @@ import {
 
 const COIN_YELLOW = "#EAB308";
 const COIN_AMBER_DARK = "#92400E";
-const GAIN_GREEN = "#16A34A";
-const LOSS_RED = "#DC2626";
 const SEND_AMBER = "#D97706";
 
 type TradeDirection = "buy" | "sell" | "send";
@@ -93,6 +93,7 @@ function formatRate(rate: number): string {
 
 /** Simple polyline sparkline for the rate history. */
 function RateSparkline({ points, color }: { points: number[]; color: string }) {
+  const { styles, wc } = useWalletStyles();
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 64 });
   const polyline = useMemo(() => {
     if (points.length < 2 || size.w <= 0) return "";
@@ -124,7 +125,7 @@ function RateSparkline({ points, color }: { points: number[]; color: string }) {
             y1={size.h / 2}
             x2={size.w}
             y2={size.h / 2}
-            stroke="#E5E7EB"
+            stroke={wc.border}
             strokeWidth={1}
             strokeDasharray="4 4"
           />
@@ -151,7 +152,7 @@ function RateSparkline({ points, color }: { points: number[]; color: string }) {
  */
 export default function WalletTradeScreen() {
   const router = useRouter();
-  const Colors = useColors();
+  const { styles, wc, Colors } = useWalletStyles();
   const { authState } = useAuth();
   const userId = authState.userId ?? "guest";
 
@@ -456,7 +457,7 @@ export default function WalletTradeScreen() {
   };
 
   const up = (market?.changePct ?? 0) >= 0;
-  const trendColor = (market?.changePct ?? 0) === 0 ? "#6B7280" : up ? GAIN_GREEN : LOSS_RED;
+  const trendColor = (market?.changePct ?? 0) === 0 ? wc.textMuted : up ? wc.amountPositive : wc.amountNegative;
 
   const supplyRatio =
     settings && stats && settings.maxSupply > 0
@@ -468,8 +469,11 @@ export default function WalletTradeScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={goBack} testID="trade-back">
-          <ChevronLeft color="#111827" size={26} />
+        <TouchableOpacity style={styles.backBtn} onPress={goBack} testID="trade-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <ChevronLeft color={wc.textStrong} size={26} />
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>
           <Coins color={COIN_YELLOW} size={18} />
@@ -479,8 +483,10 @@ export default function WalletTradeScreen() {
           style={styles.backBtn}
           onPress={() => router.push("/wallet-coin-qr" as never)}
           testID="trade-show-qr"
+          accessibilityRole="button"
+          accessibilityLabel="Show my GET.coin QR code"
         >
-          <QrCode color="#111827" size={22} />
+          <QrCode color={wc.textStrong} size={22} />
         </TouchableOpacity>
       </View>
 
@@ -515,8 +521,8 @@ export default function WalletTradeScreen() {
                     </Text>
                   </View>
                 ) : (
-                  <View style={[styles.trendBadge, { backgroundColor: "#F3F4F6" }]}>
-                    <Text style={[styles.trendText, { color: "#6B7280" }]}>Fixed rate</Text>
+                  <View style={[styles.trendBadge, { backgroundColor: wc.surfaceMuted }]}>
+                    <Text style={[styles.trendText, { color: wc.textMuted }]}>Fixed rate</Text>
                   </View>
                 )}
               </View>
@@ -545,7 +551,7 @@ export default function WalletTradeScreen() {
                       <Text
                         style={[
                           styles.driverPct,
-                          { color: c.pct === 0 ? "#9CA3AF" : pos ? GAIN_GREEN : LOSS_RED },
+                          { color: c.pct === 0 ? wc.textFaint : pos ? wc.amountPositive : wc.amountNegative },
                         ]}
                       >
                         {pos ? "+" : ""}
@@ -582,7 +588,7 @@ export default function WalletTradeScreen() {
                 {(["buy", "sell", "send"] as TradeDirection[]).map((d) => {
                   const selected = direction === d;
                   const selectedColor =
-                    d === "buy" ? GAIN_GREEN : d === "sell" ? LOSS_RED : SEND_AMBER;
+                    d === "buy" ? wc.amountPositive : d === "sell" ? wc.amountNegative : SEND_AMBER;
                   return (
                     <TouchableOpacity
                       key={d}
@@ -597,11 +603,12 @@ export default function WalletTradeScreen() {
                         setSuccessNote("");
                       }}
                       testID={`trade-tab-${d}`}
+                      accessibilityRole="button"
                     >
                       <Text
                         style={[
                           styles.segmentText,
-                          { color: selected ? "#FFFFFF" : "#6B7280" },
+                          { color: selected ? Colors.onAccent : wc.textMuted },
                         ]}
                       >
                         {d === "buy" ? "Buy" : d === "sell" ? "Sell" : "Send"}
@@ -616,6 +623,7 @@ export default function WalletTradeScreen() {
                   style={styles.myQrRow}
                   onPress={() => router.push("/wallet-coin-qr" as never)}
                   testID="trade-my-qr"
+                  accessibilityRole="button"
                 >
                   <QrCode color={COIN_AMBER_DARK} size={14} />
                   <Text style={styles.myQrText}>Receiving instead? Show my QR code</Text>
@@ -624,7 +632,7 @@ export default function WalletTradeScreen() {
 
               {direction === "send" ? (
                 <View style={styles.recipientRow}>
-                  <Send color="#A16207" size={16} />
+                  <Send color={wc.coinText} size={16} />
                   <TextInput
                     style={styles.recipientInput}
                     value={recipientInput}
@@ -634,15 +642,18 @@ export default function WalletTradeScreen() {
                       setSuccessNote("");
                     }}
                     placeholder="Recipient phone number or wallet QR code"
-                    placeholderTextColor="#C4C4C4"
+                    placeholderTextColor={wc.placeholder}
                     autoCapitalize="none"
                     autoCorrect={false}
                     testID="trade-recipient-input"
+                    accessibilityLabel="Receiving instead? Show my QR code"
                   />
                   <TouchableOpacity
                     style={styles.scanBtn}
                     onPress={openScanner}
                     testID="trade-scan-qr"
+                    accessibilityRole="button"
+                    accessibilityLabel="Scan a QR code"
                   >
                     <ScanLine color={COIN_AMBER_DARK} size={18} />
                   </TouchableOpacity>
@@ -660,8 +671,9 @@ export default function WalletTradeScreen() {
                   }}
                   keyboardType="decimal-pad"
                   placeholder="0"
-                  placeholderTextColor="#C4C4C4"
+                  placeholderTextColor={wc.placeholder}
                   testID="trade-amount-input"
+                  accessibilityLabel="Amount"
                 />
                 <Text style={styles.amountUnit}>GC</Text>
               </View>
@@ -672,6 +684,7 @@ export default function WalletTradeScreen() {
                     key={v}
                     style={styles.quickChip}
                     onPress={() => handleQuick(v)}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.quickChipText}>{v}</Text>
                   </TouchableOpacity>
@@ -680,6 +693,7 @@ export default function WalletTradeScreen() {
                   style={[styles.quickChip, styles.quickChipMax]}
                   onPress={() => handleQuick("max")}
                   testID="trade-max"
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.quickChipText, { color: COIN_AMBER_DARK }]}>MAX</Text>
                 </TouchableOpacity>
@@ -699,7 +713,7 @@ export default function WalletTradeScreen() {
               </View>
               <View style={styles.summaryRow}>
                 <View style={styles.balanceInline}>
-                  <Wallet color="#6B7280" size={13} />
+                  <Wallet color={wc.textMuted} size={13} />
                   <Text style={styles.summaryLabel}>
                     {direction === "buy"
                       ? `GET.wallet RM ${(balances?.getWallet ?? 0).toFixed(2)}`
@@ -707,7 +721,7 @@ export default function WalletTradeScreen() {
                   </Text>
                 </View>
                 {parsedCoins > maxCoins + 0.0001 ? (
-                  <Text style={[styles.summaryLabel, { color: LOSS_RED }]}>
+                  <Text style={[styles.summaryLabel, { color: wc.amountNegative }]}>
                     {direction === "buy" ? "Not enough balance" : "Not enough coins"}
                   </Text>
                 ) : null}
@@ -716,7 +730,7 @@ export default function WalletTradeScreen() {
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
               {successNote ? (
                 <View style={styles.successRow}>
-                  <Check color={GAIN_GREEN} size={15} />
+                  <Check color={wc.amountPositive} size={15} />
                   <Text style={styles.successText}>{successNote}</Text>
                 </View>
               ) : null}
@@ -727,9 +741,9 @@ export default function WalletTradeScreen() {
                   {
                     backgroundColor:
                       direction === "buy"
-                        ? GAIN_GREEN
+                        ? wc.amountPositive
                         : direction === "sell"
-                          ? LOSS_RED
+                          ? wc.amountNegative
                           : SEND_AMBER,
                     opacity: canConfirm ? 1 : 0.4,
                   },
@@ -737,6 +751,7 @@ export default function WalletTradeScreen() {
                 onPress={handleConfirm}
                 disabled={!canConfirm}
                 testID="trade-confirm"
+                accessibilityRole="button"
               >
                 {trading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
@@ -751,7 +766,7 @@ export default function WalletTradeScreen() {
             </View>
 
             <View style={styles.noteRow}>
-              <Info color="#9CA3AF" size={13} />
+              <Info color={wc.textFaint} size={13} />
               <Text style={styles.noteText}>
                 Trades settle instantly between GET.wallet and GET.coin at the rate shown.
                 Sending asks the recipient to approve first — the coins move to their
@@ -785,6 +800,7 @@ export default function WalletTradeScreen() {
                 style={styles.scanCloseBtn}
                 onPress={() => setScanVisible(false)}
                 testID="trade-scan-close"
+                accessibilityRole="button"
               >
                 <X color="#FFFFFF" size={22} />
               </TouchableOpacity>
@@ -822,6 +838,7 @@ export default function WalletTradeScreen() {
                       }
                     }}
                     testID="trade-scan-allow-camera"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.scanPermissionBtnText}>
                       {permission?.canAskAgain === false ? "Open Settings" : "Allow Camera"}
@@ -858,6 +875,7 @@ export default function WalletTradeScreen() {
                 style={styles.approvalCancelBtn}
                 onPress={handleCancelRequest}
                 testID="transfer-cancel-request"
+                accessibilityRole="button"
               >
                 <Text style={styles.approvalCancelText}>Cancel request</Text>
               </TouchableOpacity>
@@ -869,14 +887,14 @@ export default function WalletTradeScreen() {
                   styles.approvalIconWrap,
                   {
                     backgroundColor:
-                      outcome.status === "accepted" ? "#DCFCE7" : "#FEE2E2",
+                      outcome.status === "accepted" ? wc.surfaceSuccess : wc.surfaceDanger,
                   },
                 ]}
               >
                 {outcome.status === "accepted" ? (
-                  <Check color={GAIN_GREEN} size={34} />
+                  <Check color={wc.amountPositive} size={34} />
                 ) : (
-                  <X color={LOSS_RED} size={34} />
+                  <X color={wc.amountNegative} size={34} />
                 )}
               </View>
               <Text style={styles.approvalTitle} testID="transfer-outcome-title">
@@ -904,11 +922,12 @@ export default function WalletTradeScreen() {
                   styles.approvalDoneBtn,
                   {
                     backgroundColor:
-                      outcome.status === "accepted" ? GAIN_GREEN : "#4B5563",
+                      outcome.status === "accepted" ? wc.amountPositive : wc.text,
                   },
                 ]}
                 onPress={() => setOutcome(null)}
                 testID="transfer-outcome-done"
+                accessibilityRole="button"
               >
                 <Text style={styles.approvalDoneText}>Done</Text>
               </TouchableOpacity>
@@ -920,319 +939,329 @@ export default function WalletTradeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F6F7F9" },
-  flex: { flex: 1 },
-  header: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#F6F7F9",
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-  },
-  headerTitleRow: {
-    flex: 1,
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    gap: 6,
-  },
-  headerTitle: { fontSize: 17, fontWeight: "800" as const, color: "#111827" },
-  loadingWrap: { flex: 1, alignItems: "center" as const, justifyContent: "center" as const },
-  content: { padding: 16, paddingBottom: 40, gap: 14 },
-  priceCard: {
-    backgroundColor: "#FFFDF4",
-    borderColor: "#F3E8C0",
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
-  },
-  priceTopRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-  },
-  priceLabel: { fontSize: 14, fontWeight: "800" as const, color: COIN_AMBER_DARK },
-  trendBadge: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 4,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  trendText: { fontSize: 12, fontWeight: "800" as const },
-  priceValue: { fontSize: 32, fontWeight: "900" as const, color: "#111827", marginTop: 4 },
-  pegText: { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  sparklineWrap: {
-    height: 64,
-    marginTop: 12,
-    justifyContent: "center" as const,
-  },
-  sparklineEmpty: { fontSize: 12, color: "#9CA3AF", textAlign: "center" as const },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#ECEDEF",
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
-  },
-  cardTitle: { fontSize: 14, fontWeight: "800" as const, color: "#111827", marginBottom: 10 },
-  driverRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    paddingVertical: 6,
-  },
-  driverLabel: { fontSize: 13, color: "#4B5563" },
-  driverPct: { fontSize: 13, fontWeight: "800" as const },
-  supplyBarTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#F3F4F6",
-    overflow: "hidden" as const,
-  },
-  supplyBarFill: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COIN_YELLOW,
-  },
-  supplyText: { fontSize: 12, color: "#6B7280", marginTop: 8 },
-  segmentTrack: {
-    flexDirection: "row" as const,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 14,
-  },
-  segment: {
-    flex: 1,
-    borderRadius: 9,
-    paddingVertical: 9,
-    alignItems: "center" as const,
-  },
-  segmentText: { fontSize: 14, fontWeight: "800" as const },
-  myQrRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 6,
-    marginBottom: 10,
-    alignSelf: "flex-start" as const,
-  },
-  myQrText: {
-    fontSize: 13,
-    fontWeight: "700" as const,
-    color: COIN_AMBER_DARK,
-    textDecorationLine: "underline" as const,
-  },
-  recipientRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#F3E8C0",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    backgroundColor: "#FFFDF4",
-    marginBottom: 10,
-  },
-  recipientInput: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "600" as const,
-    color: "#111827",
-    paddingVertical: 12,
-  },
-  scanBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    backgroundColor: "#FEF3C7",
-  },
-  scanContainer: { flex: 1, backgroundColor: "#111111" },
-  scanOverlay: { flex: 1 },
-  scanTopRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  scanCloseBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-  },
-  scanTitle: { fontSize: 16, fontWeight: "800" as const, color: "#FFFFFF" },
-  scanFrameArea: {
-    flex: 1,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    gap: 22,
-  },
-  scanFrame: { width: 260, height: 260 },
-  scanCorner: {
-    position: "absolute" as const,
-    width: 52,
-    height: 52,
-    borderColor: "#FFFFFF",
-  },
-  scanCornerTL: { top: 0, left: 0, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 30 },
-  scanCornerTR: { top: 0, right: 0, borderTopWidth: 5, borderRightWidth: 5, borderTopRightRadius: 30 },
-  scanCornerBL: { bottom: 0, left: 0, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 30 },
-  scanCornerBR: { bottom: 0, right: 0, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 30 },
-  scanHint: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: "#FFFFFF",
-    textAlign: "center" as const,
-    paddingHorizontal: 40,
-  },
-  scanPermissionCard: {
-    alignItems: "center" as const,
-    gap: 10,
-    paddingHorizontal: 32,
-  },
-  scanPermissionTitle: { fontSize: 18, fontWeight: "800" as const, color: "#FFFFFF" },
-  scanPermissionSub: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.75)",
-    textAlign: "center" as const,
-    lineHeight: 20,
-  },
-  scanPermissionBtn: {
-    marginTop: 8,
-    borderRadius: 999,
-    paddingHorizontal: 26,
-    paddingVertical: 12,
-    backgroundColor: SEND_AMBER,
-  },
-  scanPermissionBtnText: { fontSize: 15, fontWeight: "800" as const, color: "#FFFFFF" },
-  amountRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    backgroundColor: "#FAFAFA",
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 26,
-    fontWeight: "800" as const,
-    color: "#111827",
-    paddingVertical: 12,
-  },
-  amountUnit: { fontSize: 16, fontWeight: "800" as const, color: "#A16207" },
-  quickRow: {
-    flexDirection: "row" as const,
-    gap: 8,
-    marginTop: 10,
-  },
-  quickChip: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 8,
-    alignItems: "center" as const,
-    backgroundColor: "#F3F4F6",
-  },
-  quickChipMax: { backgroundColor: "#FEF3C7" },
-  quickChipText: { fontSize: 13, fontWeight: "800" as const, color: "#4B5563" },
-  summaryRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    marginTop: 12,
-  },
-  balanceInline: { flexDirection: "row" as const, alignItems: "center" as const, gap: 5 },
-  summaryLabel: { fontSize: 13, color: "#6B7280" },
-  summaryValue: { fontSize: 16, fontWeight: "900" as const, color: "#111827" },
-  errorText: { fontSize: 13, fontWeight: "600" as const, color: LOSS_RED, marginTop: 12 },
-  successRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 6,
-    marginTop: 12,
-  },
-  successText: { fontSize: 13, fontWeight: "700" as const, color: GAIN_GREEN },
-  confirmBtn: {
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    marginTop: 14,
-  },
-  confirmText: { fontSize: 15, fontWeight: "800" as const, color: "#FFFFFF" },
-  noteRow: {
-    flexDirection: "row" as const,
-    alignItems: "flex-start" as const,
-    gap: 6,
-    paddingHorizontal: 4,
-  },
-  noteText: { flex: 1, fontSize: 12, lineHeight: 17, color: "#9CA3AF" },
-  approvalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    padding: 28,
-  },
-  approvalCard: {
-    width: "100%" as const,
-    maxWidth: 400,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    padding: 24,
-    alignItems: "center" as const,
-  },
-  approvalIconWrap: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-  },
-  approvalTitle: {
-    fontSize: 17,
-    fontWeight: "800" as const,
-    color: "#111827",
-    textAlign: "center" as const,
-    marginTop: 14,
-  },
-  approvalSub: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#6B7280",
-    textAlign: "center" as const,
-    marginTop: 8,
-  },
-  approvalCancelBtn: {
-    marginTop: 18,
-    borderRadius: 12,
-    paddingHorizontal: 22,
-    paddingVertical: 11,
-    backgroundColor: "#F3F4F6",
-  },
-  approvalCancelText: { fontSize: 14, fontWeight: "800" as const, color: "#4B5563" },
-  approvalDoneBtn: {
-    marginTop: 18,
-    alignSelf: "stretch" as const,
-    borderRadius: 14,
-    paddingVertical: 13,
-    alignItems: "center" as const,
-  },
-  approvalDoneText: { fontSize: 15, fontWeight: "800" as const, color: "#FFFFFF" },
-});
+function makeStyles(wc: WalletPalette, Colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: wc.surfaceMuted },
+    flex: { flex: 1 },
+    header: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: wc.surfaceMuted,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    headerTitleRow: {
+      flex: 1,
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      gap: 6,
+    },
+    headerTitle: { fontSize: 17, fontWeight: "800" as const, color: wc.textStrong },
+    loadingWrap: { flex: 1, alignItems: "center" as const, justifyContent: "center" as const },
+    content: { padding: 16, paddingBottom: 40, gap: 14 },
+    priceCard: {
+      backgroundColor: wc.surfaceCoin,
+      borderColor: wc.borderCoin,
+      borderWidth: 1,
+      borderRadius: 18,
+      padding: 16,
+    },
+    priceTopRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+    },
+    priceLabel: { fontSize: 14, fontWeight: "800" as const, color: COIN_AMBER_DARK },
+    trendBadge: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 4,
+      borderRadius: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    trendText: { fontSize: 12, fontWeight: "800" as const },
+    priceValue: { fontSize: 32, fontWeight: "900" as const, color: wc.textStrong, marginTop: 4 },
+    pegText: { fontSize: 12, color: wc.textMuted, marginTop: 2 },
+    sparklineWrap: {
+      height: 64,
+      marginTop: 12,
+      justifyContent: "center" as const,
+    },
+    sparklineEmpty: { fontSize: 12, color: wc.textFaint, textAlign: "center" as const },
+    card: {
+      backgroundColor: wc.surface,
+      borderColor: wc.border,
+      borderWidth: 1,
+      borderRadius: 18,
+      padding: 16,
+    },
+    cardTitle: { fontSize: 14, fontWeight: "800" as const, color: wc.textStrong, marginBottom: 10 },
+    driverRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      paddingVertical: 6,
+    },
+    driverLabel: { fontSize: 13, color: wc.text },
+    driverPct: { fontSize: 13, fontWeight: "800" as const },
+    supplyBarTrack: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: wc.surfaceMuted,
+      overflow: "hidden" as const,
+    },
+    supplyBarFill: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: COIN_YELLOW,
+    },
+    supplyText: { fontSize: 12, color: wc.textMuted, marginTop: 8 },
+    segmentTrack: {
+      flexDirection: "row" as const,
+      backgroundColor: wc.surfaceMuted,
+      borderRadius: 12,
+      padding: 4,
+      marginBottom: 14,
+    },
+    segment: {
+      flex: 1,
+      borderRadius: 9,
+      paddingVertical: 9,
+      alignItems: "center" as const,
+    },
+    segmentText: { fontSize: 14, fontWeight: "800" as const },
+    myQrRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+      marginBottom: 10,
+      alignSelf: "flex-start" as const,
+    },
+    myQrText: {
+      fontSize: 13,
+      fontWeight: "700" as const,
+      color: COIN_AMBER_DARK,
+      textDecorationLine: "underline" as const,
+    },
+    recipientRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: wc.borderCoin,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      backgroundColor: wc.surfaceCoin,
+      marginBottom: 10,
+    },
+    recipientInput: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: "600" as const,
+      color: wc.textStrong,
+      paddingVertical: 12,
+    },
+    scanBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      backgroundColor: wc.surfaceCoinPill,
+    },
+    scanContainer: { flex: 1, backgroundColor: "#111111" },
+    scanOverlay: { flex: 1 },
+    scanTopRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      paddingHorizontal: 16,
+      paddingTop: 8,
+    },
+    scanCloseBtn: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    scanTitle: { fontSize: 16, fontWeight: "800" as const, color: "#FFFFFF" },
+    scanFrameArea: {
+      flex: 1,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      gap: 22,
+    },
+    scanFrame: { width: 260, height: 260 },
+    scanCorner: {
+      position: "absolute" as const,
+      width: 52,
+      height: 52,
+      borderColor: "#FFFFFF",
+    },
+    scanCornerTL: { top: 0, left: 0, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 30 },
+    scanCornerTR: { top: 0, right: 0, borderTopWidth: 5, borderRightWidth: 5, borderTopRightRadius: 30 },
+    scanCornerBL: { bottom: 0, left: 0, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 30 },
+    scanCornerBR: { bottom: 0, right: 0, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 30 },
+    scanHint: {
+      fontSize: 14,
+      fontWeight: "600" as const,
+      color: "#FFFFFF",
+      textAlign: "center" as const,
+      paddingHorizontal: 40,
+    },
+    scanPermissionCard: {
+      alignItems: "center" as const,
+      gap: 10,
+      paddingHorizontal: 32,
+    },
+    scanPermissionTitle: { fontSize: 18, fontWeight: "800" as const, color: "#FFFFFF" },
+    scanPermissionSub: {
+      fontSize: 14,
+      color: "rgba(255,255,255,0.75)",
+      textAlign: "center" as const,
+      lineHeight: 20,
+    },
+    scanPermissionBtn: {
+      marginTop: 8,
+      borderRadius: 999,
+      paddingHorizontal: 26,
+      paddingVertical: 12,
+      backgroundColor: SEND_AMBER,
+    },
+    scanPermissionBtnText: { fontSize: 15, fontWeight: "800" as const, color: "#FFFFFF" },
+    amountRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      borderWidth: 1,
+      borderColor: wc.border,
+      borderRadius: 14,
+      paddingHorizontal: 16,
+      backgroundColor: wc.surfaceMuted,
+    },
+    amountInput: {
+      flex: 1,
+      fontSize: 26,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      paddingVertical: 12,
+    },
+    amountUnit: { fontSize: 16, fontWeight: "800" as const, color: wc.coinText },
+    quickRow: {
+      flexDirection: "row" as const,
+      gap: 8,
+      marginTop: 10,
+    },
+    quickChip: {
+      flex: 1,
+      borderRadius: 10,
+      paddingVertical: 8,
+      alignItems: "center" as const,
+      backgroundColor: wc.surfaceMuted,
+    },
+    quickChipMax: { backgroundColor: wc.surfaceCoinPill },
+    quickChipText: { fontSize: 13, fontWeight: "800" as const, color: wc.text },
+    summaryRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      marginTop: 12,
+    },
+    balanceInline: { flexDirection: "row" as const, alignItems: "center" as const, gap: 5 },
+    summaryLabel: { fontSize: 13, color: wc.textMuted },
+    summaryValue: { fontSize: 16, fontWeight: "900" as const, color: wc.textStrong },
+    errorText: { fontSize: 13, fontWeight: "600" as const, color: wc.amountNegative, marginTop: 12 },
+    successRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+      marginTop: 12,
+    },
+    successText: { fontSize: 13, fontWeight: "700" as const, color: wc.amountPositive },
+    confirmBtn: {
+      borderRadius: 14,
+      paddingVertical: 15,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      marginTop: 14,
+    },
+    confirmText: { fontSize: 15, fontWeight: "800" as const, color: "#FFFFFF" },
+    noteRow: {
+      flexDirection: "row" as const,
+      alignItems: "flex-start" as const,
+      gap: 6,
+      paddingHorizontal: 4,
+    },
+    noteText: { flex: 1, fontSize: 12, lineHeight: 17, color: wc.textFaint },
+    approvalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      padding: 28,
+    },
+    approvalCard: {
+      width: "100%" as const,
+      maxWidth: 400,
+      backgroundColor: wc.surface,
+      borderRadius: 22,
+      padding: 24,
+      alignItems: "center" as const,
+    },
+    approvalIconWrap: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    approvalTitle: {
+      fontSize: 17,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      textAlign: "center" as const,
+      marginTop: 14,
+    },
+    approvalSub: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: wc.textMuted,
+      textAlign: "center" as const,
+      marginTop: 8,
+    },
+    approvalCancelBtn: {
+      marginTop: 18,
+      borderRadius: 12,
+      paddingHorizontal: 22,
+      paddingVertical: 11,
+      backgroundColor: wc.surfaceMuted,
+    },
+    approvalCancelText: { fontSize: 14, fontWeight: "800" as const, color: wc.text },
+    approvalDoneBtn: {
+      marginTop: 18,
+      alignSelf: "stretch" as const,
+      borderRadius: 14,
+      paddingVertical: 13,
+      alignItems: "center" as const,
+    },
+    approvalDoneText: { fontSize: 15, fontWeight: "800" as const, color: "#FFFFFF" },
+  });
+}
+
+function useWalletStyles() {
+  const Colors = useColors();
+  const { colorScheme } = useTheme();
+  const wc = useMemo(() => walletPalette(colorScheme === "dark"), [colorScheme]);
+  const styles = useMemo(() => makeStyles(wc, Colors), [wc, Colors]);
+  return { styles, wc, Colors };
+}
