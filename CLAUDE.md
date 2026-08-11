@@ -191,3 +191,20 @@ The user's 6-digit sign-in PIN is stored as a bcrypt hash in `profiles.pin_hash`
 - **Admin access guard**: Screens under the admin panel check `useAdminAccess()` from `AdminAccessContext`. Sub-admin permissions are stored in settings entries. View vs. edit access is a separate axis: `hooks/useReadOnlyGuard.ts` derives a `page` key from the current route (e.g. `/admin-settings-display` → `admin-settings-display`), calls `canEdit(pageKey)`, and returns a `guard()` helper mutation handlers call first — it shows a "Read-only" alert and returns `false` when the signed-in sub-admin can view but not edit that page.
 - **Graceful schema degradation**: newer `utils/*Store.ts` modules (wallets, commission rates) fall back to AsyncStorage when their tables/columns are missing from the live database, and `rideRequestsStore` retries writes without columns the DB reports as missing. Follow this pattern when adding features that depend on new migrations — the app must keep working against older databases.
 - **Mock/test features**: `app/admin-settings-mock.tsx` exposes toggles (mock users/partners on the map, rider trip simulation, partner drive simulation) persisted via `DisplaySettingsContext`. Gate any demo/simulation behavior behind these flags rather than hardcoding it.
+
+## graphify
+
+This project can be mapped into a knowledge graph at `graphify-out/` with god nodes, community structure, and cross-file relationships — query it instead of grepping.
+
+`graphify-out/` is generated and **gitignored**, so a fresh clone has no graph until you build one. It is free and fully local (tree-sitter AST, no LLM, nothing leaves the machine):
+
+```bash
+uv tool install "graphifyy[sql]"   # the sql extra covers supabase/schema.sql + migrations
+graphify update .                  # build/refresh the graph (~30s, 4k nodes)
+```
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
