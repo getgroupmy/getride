@@ -39,6 +39,8 @@ import {
 } from "lucide-react-native";
 import Svg, { Path, Text as SvgText } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { walletPalette } from "@/utils/walletTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import PullDownScrollView from "@/components/PullDownScrollView";
 import {
@@ -123,6 +125,902 @@ type TxFilter = "all" | WalletType;
 export default function WalletScreen() {
   const router = useRouter();
   const Colors = useColors();
+  const { colorScheme } = useTheme();
+  // The wallet's own surface/text roles. Kept separate from the global palette
+  // because a wallet card is a raised surface on a tinted backdrop, which the
+  // app-wide tokens do not model.
+  const wc = useMemo(() => walletPalette(colorScheme === "dark"), [colorScheme]);
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1 },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: "700" as const,
+      color: "#FFFFFF",
+    },
+    loadingWrap: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    scrollArea: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+    },
+    heroWrap: {
+      paddingHorizontal: 16,
+      paddingTop: 8,
+      marginBottom: -34,
+      zIndex: 2,
+    },
+    bottomBackdrop: {
+      position: "absolute" as const,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: "45%" as const,
+      backgroundColor: wc.screen,
+    },
+    heroCircleLarge: {
+      position: "absolute" as const,
+      top: -40,
+      right: -50,
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      backgroundColor: "rgba(255,255,255,0.12)",
+    },
+    heroCircleSmall: {
+      position: "absolute" as const,
+      top: 190,
+      right: 40,
+      width: 70,
+      height: 70,
+      borderRadius: 35,
+      backgroundColor: "rgba(255,255,255,0.10)",
+    },
+    heroCircleTiny: {
+      position: "absolute" as const,
+      top: 30,
+      left: -18,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: "rgba(255,255,255,0.10)",
+    },
+    balanceCard: {
+      borderRadius: 24,
+      backgroundColor: wc.surface,
+      overflow: "hidden" as const,
+      shadowColor: "#000000",
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 5,
+    },
+    balanceCardTop: {
+      backgroundColor: wc.surfaceTint,
+      paddingHorizontal: 18,
+      paddingTop: 16,
+    },
+    balanceLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+    },
+    balanceTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    balanceLabel: {
+      fontSize: 15,
+      fontWeight: "800" as const,
+      letterSpacing: 0.2,
+      color: wc.text,
+    },
+    balanceValue: {
+      fontSize: 40,
+      fontWeight: "800" as const,
+      color: wc.text,
+    },
+    balanceCurrency: {
+      fontSize: 22,
+      fontWeight: "600" as const,
+      color: wc.textMuted,
+    },
+    balanceUpdated: {
+      fontSize: 13,
+      color: wc.textFaint,
+      marginTop: 4,
+    },
+    balanceDivider: {
+      height: 1,
+      backgroundColor: wc.divider,
+      marginTop: 14,
+    },
+    pillRow: {
+      flexDirection: "row",
+      gap: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 14,
+      backgroundColor: wc.surface,
+    },
+    pillWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    pillInner: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+      borderRadius: 999,
+      paddingVertical: 11,
+      paddingHorizontal: 3,
+      minWidth: 0,
+    },
+    pillWhite: {
+      backgroundColor: wc.surface,
+      borderWidth: 1,
+      borderColor: wc.border,
+      shadowColor: "#000000",
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
+    },
+    pillText: {
+      fontSize: 12,
+      fontWeight: "700" as const,
+      color: wc.text,
+      flexShrink: 1,
+    },
+    pillTextOnAccent: {
+      color: "#FFFFFF",
+    },
+    focusHighlight: {
+      borderWidth: 2,
+      borderColor: "#F59E0B",
+      shadowColor: "#F59E0B",
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 4,
+    },
+    bodyContent: {
+      flexGrow: 1,
+      backgroundColor: wc.screen,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 16,
+      paddingTop: 52,
+      paddingBottom: 40,
+    },
+    successBanner: {
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      marginBottom: 12,
+    },
+    successBannerText: {
+      fontSize: 14,
+      fontWeight: "600" as const,
+      textAlign: "center" as const,
+    },
+    localBanner: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 12,
+    },
+    localBannerText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 17,
+    },
+    cardTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 14,
+    },
+    cardTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    creditCard: {
+      borderRadius: 20,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: wc.border,
+      backgroundColor: wc.surface,
+      marginBottom: 18,
+    },
+    coinCard: {
+      borderRadius: 20,
+      padding: 20,
+      borderWidth: 1,
+      borderColor: wc.borderCoin,
+      backgroundColor: wc.surfaceCoin,
+      marginBottom: 18,
+    },
+    coinBadge: {
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      backgroundColor: wc.coinTint,
+    },
+    coinBadgeText: {
+      fontSize: 12,
+      fontWeight: "800" as const,
+      color: wc.coinText,
+      letterSpacing: 0.5,
+    },
+    creditCardName: {
+      fontSize: 17,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+    },
+    creditBalance: {
+      fontSize: 28,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+    },
+    creditHint: {
+      fontSize: 12,
+      marginTop: 4,
+      marginBottom: 14,
+      lineHeight: 17,
+      color: wc.textMuted,
+    },
+    rechargeBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      borderRadius: 12,
+      paddingVertical: 12,
+    },
+    rechargeBtnText: {
+      fontSize: 14,
+      fontWeight: "700" as const,
+      color: "#000000",
+    },
+    coinBtnRow: {
+      flexDirection: "row",
+      alignItems: "stretch",
+      gap: 10,
+    },
+    coinTradeBtn: {
+      flex: 1,
+    },
+    coinQrBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      borderWidth: 1.5,
+      borderColor: "#EAB308",
+      backgroundColor: wc.surface,
+    },
+    coinQrBtnText: {
+      fontSize: 14,
+      fontWeight: "700" as const,
+      color: wc.coinTextStrong,
+    },
+    referralCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      borderRadius: 20,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: wc.borderReferral,
+      backgroundColor: wc.surfaceReferral,
+      marginBottom: 18,
+    },
+    referralIconWrap: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: wc.surface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    referralInfo: {
+      flex: 1,
+      minWidth: 0,
+    },
+    referralTitle: {
+      fontSize: 14,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      marginBottom: 2,
+    },
+    referralSub: {
+      fontSize: 12,
+      lineHeight: 16,
+      color: wc.textMuted,
+    },
+    referralBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    referralBtnText: {
+      fontSize: 13,
+      fontWeight: "800" as const,
+    },
+    activityHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12,
+      marginTop: 2,
+    },
+    activityTitle: {
+      fontSize: 21,
+      fontWeight: "800" as const,
+      color: wc.text,
+    },
+    viewAllBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+    },
+    viewAllText: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+      color: wc.text,
+    },
+    filterRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginBottom: 12,
+    },
+    filterChip: {
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      borderWidth: 1,
+    },
+    filterChipText: {
+      fontSize: 13,
+      fontWeight: "600" as const,
+    },
+    emptyCard: {
+      alignItems: "center",
+      paddingVertical: 40,
+      gap: 8,
+      backgroundColor: wc.surface,
+      borderRadius: 18,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: "700" as const,
+      color: wc.textStrong,
+    },
+    emptySub: {
+      fontSize: 13,
+      color: wc.textMuted,
+    },
+    activityCard: {
+      backgroundColor: wc.surface,
+      borderRadius: 18,
+      overflow: "hidden" as const,
+      shadowColor: "#000000",
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    activityRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+    },
+    activityRowDivider: {
+      borderBottomWidth: 1,
+      borderBottomColor: wc.hairline,
+    },
+    activityRowReferral: {
+      backgroundColor: REFERRAL_HIGHLIGHT.rowBg,
+      borderLeftWidth: 3,
+      borderLeftColor: REFERRAL_HIGHLIGHT.border,
+    },
+    activityInfo: {
+      flex: 1,
+      minWidth: 0,
+    },
+    activityLabelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 4,
+    },
+    activityLabel: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+      color: wc.text,
+      flexShrink: 1,
+    },
+    referralBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      borderRadius: 6,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      backgroundColor: REFERRAL_HIGHLIGHT.badgeBg,
+    },
+    referralBadgeText: {
+      fontSize: 11,
+      fontWeight: "800" as const,
+      letterSpacing: 0.5,
+      color: REFERRAL_HIGHLIGHT.badgeText,
+    },
+    activityMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    activityDate: {
+      fontSize: 13,
+      color: wc.textFaint,
+      flexShrink: 1,
+    },
+    categoryIconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    categoryTag: {
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    categoryTagText: {
+      fontSize: 10,
+      fontWeight: "800" as const,
+      letterSpacing: 0.4,
+    },
+    statusBadge: {
+      backgroundColor: wc.surfaceChip,
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    statusBadgeText: {
+      fontSize: 10,
+      fontWeight: "800" as const,
+      letterSpacing: 0.4,
+      color: wc.textChip,
+    },
+    activityAmount: {
+      fontSize: 15,
+      fontWeight: "800" as const,
+    },
+    duitNowOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 32,
+    },
+    duitNowCard: {
+      width: "100%",
+      maxWidth: 320,
+      borderRadius: 20,
+      padding: 24,
+      alignItems: "center",
+    },
+    duitNowIconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 14,
+    },
+    duitNowTitle: {
+      fontSize: 17,
+      fontWeight: "800" as const,
+      marginBottom: 6,
+      textAlign: "center",
+    },
+    duitNowMessage: {
+      fontSize: 13,
+      lineHeight: 19,
+      textAlign: "center",
+      marginBottom: 18,
+    },
+    duitNowBtn: {
+      borderRadius: 999,
+      paddingHorizontal: 36,
+      paddingVertical: 11,
+    },
+    duitNowBtnText: {
+      fontSize: 14,
+      fontWeight: "800" as const,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      justifyContent: "center",
+      paddingHorizontal: 24,
+    },
+    modalCard: {
+      borderRadius: 20,
+      padding: 20,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 6,
+    },
+    modalIconBubble: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: "700" as const,
+      flex: 1,
+    },
+    modalSub: {
+      fontSize: 13,
+      marginBottom: 14,
+    },
+    quickRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginBottom: 12,
+    },
+    quickChip: {
+      flex: 1,
+      borderRadius: 10,
+      borderWidth: 1.5,
+      paddingVertical: 9,
+      alignItems: "center",
+    },
+    quickChipText: {
+      fontSize: 13,
+      fontWeight: "700" as const,
+    },
+    amountInputWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1.5,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      marginBottom: 12,
+    },
+    amountPrefix: {
+      fontSize: 16,
+      fontWeight: "700" as const,
+      marginRight: 8,
+    },
+    amountInput: {
+      flex: 1,
+      fontSize: 20,
+      fontWeight: "700" as const,
+      paddingVertical: 12,
+    },
+    errorText: {
+      fontSize: 13,
+      fontWeight: "600" as const,
+      marginBottom: 10,
+    },
+    demoNote: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      borderRadius: 10,
+      padding: 10,
+      marginBottom: 12,
+    },
+    demoNoteText: {
+      flex: 1,
+      fontSize: 12,
+    },
+    modalButtons: {
+      flexDirection: "row",
+      gap: 10,
+    },
+    modalBtn: {
+      flex: 1,
+      borderRadius: 12,
+      paddingVertical: 13,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    modalBtnText: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+    },
+    topUpCard: {
+      borderRadius: 20,
+      backgroundColor: wc.surface,
+      overflow: "hidden" as const,
+      maxHeight: "92%" as const,
+    },
+    topUpTitleRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 12,
+      backgroundColor: wc.surface,
+    },
+    topUpTitle: {
+      fontSize: 17,
+      fontWeight: "700" as const,
+      color: wc.text,
+      flex: 1,
+    },
+    topUpBanner: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    topUpBannerLabel: {
+      fontSize: 14,
+      fontWeight: "700" as const,
+      color: "#FFFFFF",
+      flexShrink: 1,
+    },
+    topUpBannerAmount: {
+      fontSize: 17,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    topUpPoweredWrap: {
+      alignItems: "center" as const,
+    },
+    topUpPoweredBy: {
+      fontSize: 10,
+      fontWeight: "600" as const,
+      color: "#FFFFFF",
+      marginBottom: 2,
+    },
+    topUpMcashLogo: {
+      width: 74,
+      height: 20,
+    },
+    topUpBody: {
+      backgroundColor: wc.surfaceAlt,
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 16,
+    },
+    topUpHeading: {
+      fontSize: 18,
+      fontWeight: "800" as const,
+      color: wc.text,
+      marginBottom: 2,
+    },
+    topUpSub: {
+      fontSize: 13,
+      color: wc.textMuted,
+      marginBottom: 12,
+    },
+    topUpAmountCard: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 12,
+      backgroundColor: wc.surface,
+      borderWidth: 1,
+      borderColor: wc.border,
+      borderRadius: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 14,
+    },
+    topUpAmountFields: {
+      flex: 1,
+    },
+    topUpAmountLabel: {
+      fontSize: 12,
+      fontWeight: "700" as const,
+      color: wc.text,
+      marginBottom: 2,
+    },
+    topUpAmountInput: {
+      fontSize: 17,
+      fontWeight: "600" as const,
+      color: wc.text,
+      paddingVertical: 4,
+      padding: 0,
+    },
+    amountClearBtn: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    topUpOrRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 12,
+      marginBottom: 14,
+    },
+    topUpOrLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: wc.divider,
+    },
+    topUpOrText: {
+      fontSize: 13,
+      color: wc.textFaint,
+    },
+    topUpQuickGrid: {
+      flexDirection: "row" as const,
+      flexWrap: "wrap" as const,
+      gap: 10,
+      marginBottom: 14,
+    },
+    topUpQuickPill: {
+      flexBasis: "30%" as const,
+      flexGrow: 1,
+      backgroundColor: wc.surface,
+      borderWidth: 1,
+      borderColor: wc.border,
+      borderRadius: 999,
+      paddingVertical: 12,
+      alignItems: "center" as const,
+    },
+    topUpQuickPillSelected: {
+      borderColor: Colors.accent,
+      backgroundColor: wc.accentTint,
+    },
+    topUpQuickPillText: {
+      fontSize: 14,
+      fontWeight: "600" as const,
+      color: wc.text,
+    },
+    topUpQuickPillTextSelected: {
+      color: wc.accentText,
+      fontWeight: "700" as const,
+    },
+    topUpCancelBtn: {
+      backgroundColor: wc.surface,
+      borderWidth: 1,
+      borderColor: wc.borderStrong,
+    },
+    reloadDetailsRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      marginBottom: 12,
+    },
+    changeAmountBtn: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 2,
+    },
+    changeAmountText: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+    },
+    reloadAmountRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
+      marginBottom: 14,
+    },
+    reloadAmountLabel: {
+      fontSize: 15,
+      color: wc.textMuted,
+    },
+    reloadAmountValue: {
+      fontSize: 18,
+      fontWeight: "800" as const,
+    },
+    reloadDivider: {
+      height: 1,
+      backgroundColor: wc.divider,
+      marginBottom: 16,
+    },
+    methodGroup: {
+      gap: 10,
+      marginBottom: 14,
+    },
+    methodCard: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 14,
+      backgroundColor: wc.surface,
+      borderRadius: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 18,
+    },
+    methodRadio: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: wc.borderStrong,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+    methodRadioDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    methodLabel: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: "600" as const,
+      color: wc.text,
+    },
+    fpxBadge: {
+      fontSize: 15,
+      fontWeight: "800" as const,
+      fontStyle: "italic" as const,
+      color: wc.brandFpx,
+    },
+    cardBadges: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 6,
+    },
+    mcCircles: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+    },
+    mcCircle: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      opacity: 0.9,
+    },
+    mcCircleRight: {
+      marginLeft: -7,
+    },
+    visaBadge: {
+      fontSize: 14,
+      fontWeight: "800" as const,
+      fontStyle: "italic" as const,
+      color: wc.brandVisa,
+    },
+  }), [wc, Colors]);
   const { height: windowHeight } = useWindowDimensions();
   const { authState } = useAuth();
   const params = useLocalSearchParams<{ mode?: string; focus?: string; action?: string }>();
@@ -455,7 +1353,7 @@ export default function WalletScreen() {
                         onChangeText={setAmountText}
                         keyboardType="decimal-pad"
                         placeholder="Minimum Amount: RM1"
-                        placeholderTextColor="#B4B4BC"
+                        placeholderTextColor={wc.placeholder}
                         accessibilityLabel="Reload amount in ringgit"
                         accessibilityHint="Minimum RM1"
                         testID="wallet-amount-input"
@@ -526,7 +1424,7 @@ export default function WalletScreen() {
                       accessibilityLabel="Cancel"
                       accessibilityState={{ disabled: submitting }}
                     >
-                      <Text style={[styles.modalBtnText, { color: "#3A3A3C" }]}>Cancel</Text>
+                      <Text style={[styles.modalBtnText, { color: wc.text }]}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -658,9 +1556,9 @@ export default function WalletScreen() {
                     <Text style={[styles.errorText, { color: Colors.danger }]}>{actionError}</Text>
                   ) : null}
 
-                  <View style={[styles.demoNote, { backgroundColor: "#F59E0B15" }]}>
+                  <View style={[styles.demoNote, { backgroundColor: wc.amberTint }]}>
                     <Info color="#F59E0B" size={14} />
-                    <Text style={[styles.demoNoteText, { color: "#6B6B70" }]}>
+                    <Text style={[styles.demoNoteText, { color: wc.textMuted }]}>
                       Demo reload — no real payment is charged yet.
                     </Text>
                   </View>
@@ -674,7 +1572,7 @@ export default function WalletScreen() {
                       accessibilityLabel="Cancel"
                       accessibilityState={{ disabled: submitting }}
                     >
-                      <Text style={[styles.modalBtnText, { color: "#3A3A3C" }]}>Cancel</Text>
+                      <Text style={[styles.modalBtnText, { color: wc.text }]}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
@@ -706,7 +1604,7 @@ export default function WalletScreen() {
           ) : (
           <View style={[styles.modalCard, { backgroundColor: Colors.background }]}>
             <View style={styles.modalHeader}>
-              <View style={[styles.modalIconBubble, { backgroundColor: "#F59E0B22" }]}>
+              <View style={[styles.modalIconBubble, { backgroundColor: wc.amberTintStrong }]}>
                 <ArrowRightLeft color="#F59E0B" size={20} />
               </View>
               <Text style={[styles.modalTitle, { color: Colors.text }]}>Recharge GET.credit</Text>
@@ -812,6 +1710,8 @@ export default function WalletScreen() {
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
           testID="wallet-back"
         >
           <ArrowLeft color="#FFFFFF" size={24} />
@@ -857,9 +1757,9 @@ export default function WalletScreen() {
                     testID="wallet-balance-toggle"
                   >
                     {balanceHidden ? (
-                      <EyeOff color="#3F3F46" size={20} />
+                      <EyeOff color={wc.text} size={20} />
                     ) : (
-                      <Eye color="#3F3F46" size={20} />
+                      <Eye color={wc.text} size={20} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -924,7 +1824,7 @@ export default function WalletScreen() {
                   testID="wallet-scan"
                 >
                   <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
-                    <ScanLine color="#27272A" size={pillSizing.icon} />
+                    <ScanLine color={wc.text} size={pillSizing.icon} />
                     <Text style={[styles.pillText, pillTextSized]} numberOfLines={1}>
                       Scan
                     </Text>
@@ -946,7 +1846,7 @@ export default function WalletScreen() {
                   testID="wallet-receive"
                 >
                   <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
-                    <QrCode color="#27272A" size={pillSizing.icon} />
+                    <QrCode color={wc.text} size={pillSizing.icon} />
                     <Text style={[styles.pillText, pillTextSized]} numberOfLines={1}>
                       Receive
                     </Text>
@@ -962,7 +1862,7 @@ export default function WalletScreen() {
                   testID="wallet-transfer-open"
                 >
                   <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
-                    <ArrowRightLeft color="#27272A" size={pillSizing.icon} />
+                    <ArrowRightLeft color={wc.text} size={pillSizing.icon} />
                     <Text style={[styles.pillText, pillTextSized]} numberOfLines={1}>
                       Transfer
                     </Text>
@@ -985,7 +1885,7 @@ export default function WalletScreen() {
             {balances?.source === "local" ? (
               <View style={[styles.localBanner, { backgroundColor: Colors.warning + "15" }]}>
                 <Info color={Colors.warning} size={15} />
-                <Text style={[styles.localBannerText, { color: "#6B7280" }]}>
+                <Text style={[styles.localBannerText, { color: wc.textMuted }]}>
                   Wallet tables not found in the database — running on this device only. Apply
                   migration 0056 to sync balances.
                 </Text>
@@ -1065,7 +1965,7 @@ export default function WalletScreen() {
                   accessibilityLabel="GET.coin QR code"
                   testID="wallet-coin-qr-open"
                 >
-                  <QrCode color="#92400E" size={16} />
+                  <QrCode color={wc.coinTextStrong} size={16} />
                   <Text style={styles.coinQrBtnText}>QR</Text>
                 </TouchableOpacity>
               </View>
@@ -1107,7 +2007,7 @@ export default function WalletScreen() {
                 testID="wallet-view-all"
               >
                 <Text style={styles.viewAllText}>View All</Text>
-                <ChevronRight color="#27272A" size={18} strokeWidth={2.4} />
+                <ChevronRight color={wc.text} size={18} strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
 
@@ -1133,8 +2033,8 @@ export default function WalletScreen() {
                       style={[
                         styles.filterChip,
                         {
-                          backgroundColor: selected ? Colors.accent : "#FFFFFF",
-                          borderColor: selected ? Colors.accent : "#E5E7EB",
+                          backgroundColor: selected ? Colors.accent : wc.surface,
+                          borderColor: selected ? Colors.accent : wc.border,
                         },
                       ]}
                       onPress={() => setTxFilter(f.id)}
@@ -1146,7 +2046,7 @@ export default function WalletScreen() {
                       <Text
                         style={[
                           styles.filterChipText,
-                          { color: selected ? Colors.onAccent : "#6B7280" },
+                          { color: selected ? Colors.onAccent : wc.textMuted },
                         ]}
                       >
                         {f.label}
@@ -1161,7 +2061,7 @@ export default function WalletScreen() {
                 style={styles.emptyCard}
                 onLayout={(e) => setListY(e.nativeEvent.layout.y)}
               >
-                <WalletIcon color="#9CA3AF" size={32} />
+                <WalletIcon color={wc.textFaint} size={32} />
                 <Text style={styles.emptyTitle}>No activity yet</Text>
                 <Text style={styles.emptySub}>Reload your GET.wallet to get started.</Text>
               </View>
@@ -1214,7 +2114,7 @@ export default function WalletScreen() {
                       <Text
                         style={[
                           styles.activityAmount,
-                          { color: positive ? "#16A34A" : "#DC2626" },
+                          { color: positive ? wc.amountPositive : wc.amountNegative },
                         ]}
                       >
                         {positive
@@ -1287,894 +2187,3 @@ export default function WalletScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    color: "#FFFFFF",
-  },
-  loadingWrap: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scrollArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  heroWrap: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    marginBottom: -34,
-    zIndex: 2,
-  },
-  bottomBackdrop: {
-    position: "absolute" as const,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: "45%" as const,
-    backgroundColor: "#F4F5F7",
-  },
-  heroCircleLarge: {
-    position: "absolute" as const,
-    top: -40,
-    right: -50,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  heroCircleSmall: {
-    position: "absolute" as const,
-    top: 190,
-    right: 40,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "rgba(255,255,255,0.10)",
-  },
-  heroCircleTiny: {
-    position: "absolute" as const,
-    top: 30,
-    left: -18,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.10)",
-  },
-  balanceCard: {
-    borderRadius: 24,
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden" as const,
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
-  },
-  balanceCardTop: {
-    backgroundColor: "#EFF7FC",
-    paddingHorizontal: 18,
-    paddingTop: 16,
-  },
-  balanceLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  balanceTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  balanceLabel: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-    letterSpacing: 0.2,
-    color: "#3F3F46",
-  },
-  balanceValue: {
-    fontSize: 40,
-    fontWeight: "800" as const,
-    color: "#3F3F46",
-  },
-  balanceCurrency: {
-    fontSize: 22,
-    fontWeight: "600" as const,
-    color: "#6B7280",
-  },
-  balanceUpdated: {
-    fontSize: 13,
-    color: "#8E8E93",
-    marginTop: 4,
-  },
-  balanceDivider: {
-    height: 1,
-    backgroundColor: "#D9E4EC",
-    marginTop: 14,
-  },
-  pillRow: {
-    flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    backgroundColor: "#FFFFFF",
-  },
-  pillWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  pillInner: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    borderRadius: 999,
-    paddingVertical: 11,
-    paddingHorizontal: 3,
-    minWidth: 0,
-  },
-  pillWhite: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#ECECEF",
-    shadowColor: "#000000",
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  pillText: {
-    fontSize: 12,
-    fontWeight: "700" as const,
-    color: "#27272A",
-    flexShrink: 1,
-  },
-  pillTextOnAccent: {
-    color: "#FFFFFF",
-  },
-  focusHighlight: {
-    borderWidth: 2,
-    borderColor: "#F59E0B",
-    shadowColor: "#F59E0B",
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  bodyContent: {
-    flexGrow: 1,
-    backgroundColor: "#F4F5F7",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 16,
-    paddingTop: 52,
-    paddingBottom: 40,
-  },
-  successBanner: {
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  successBannerText: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    textAlign: "center" as const,
-  },
-  localBanner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  localBannerText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  cardTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  cardTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  creditCard: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-    marginBottom: 18,
-  },
-  coinCard: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#F3E8C0",
-    backgroundColor: "#FFFDF4",
-    marginBottom: 18,
-  },
-  coinBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    backgroundColor: "#EAB30822",
-  },
-  coinBadgeText: {
-    fontSize: 12,
-    fontWeight: "800" as const,
-    color: "#A16207",
-    letterSpacing: 0.5,
-  },
-  creditCardName: {
-    fontSize: 17,
-    fontWeight: "800" as const,
-    color: "#111827",
-  },
-  creditBalance: {
-    fontSize: 28,
-    fontWeight: "800" as const,
-    color: "#111827",
-  },
-  creditHint: {
-    fontSize: 12,
-    marginTop: 4,
-    marginBottom: 14,
-    lineHeight: 17,
-    color: "#6B7280",
-  },
-  rechargeBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 12,
-    paddingVertical: 12,
-  },
-  rechargeBtnText: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: "#000000",
-  },
-  coinBtnRow: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: 10,
-  },
-  coinTradeBtn: {
-    flex: 1,
-  },
-  coinQrBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1.5,
-    borderColor: "#EAB308",
-    backgroundColor: "#FFFFFF",
-  },
-  coinQrBtnText: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: "#92400E",
-  },
-  referralCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#D6EBF7",
-    backgroundColor: "#F2FAFE",
-    marginBottom: 18,
-  },
-  referralIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  referralInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  referralTitle: {
-    fontSize: 14,
-    fontWeight: "800" as const,
-    color: "#111827",
-    marginBottom: 2,
-  },
-  referralSub: {
-    fontSize: 12,
-    lineHeight: 16,
-    color: "#6B7280",
-  },
-  referralBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  referralBtnText: {
-    fontSize: 13,
-    fontWeight: "800" as const,
-  },
-  activityHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-    marginTop: 2,
-  },
-  activityTitle: {
-    fontSize: 21,
-    fontWeight: "800" as const,
-    color: "#27272A",
-  },
-  viewAllBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  viewAllText: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: "#27272A",
-  },
-  filterRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  filterChip: {
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderWidth: 1,
-  },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: "600" as const,
-  },
-  emptyCard: {
-    alignItems: "center",
-    paddingVertical: 40,
-    gap: 8,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-    color: "#111827",
-  },
-  emptySub: {
-    fontSize: 13,
-    color: "#6B7280",
-  },
-  activityCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    overflow: "hidden" as const,
-    shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  activityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  activityRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F1F4",
-  },
-  activityRowReferral: {
-    backgroundColor: REFERRAL_HIGHLIGHT.rowBg,
-    borderLeftWidth: 3,
-    borderLeftColor: REFERRAL_HIGHLIGHT.border,
-  },
-  activityInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  activityLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
-  },
-  activityLabel: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: "#1C1C1E",
-    flexShrink: 1,
-  },
-  referralBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    backgroundColor: REFERRAL_HIGHLIGHT.badgeBg,
-  },
-  referralBadgeText: {
-    fontSize: 11,
-    fontWeight: "800" as const,
-    letterSpacing: 0.5,
-    color: REFERRAL_HIGHLIGHT.badgeText,
-  },
-  activityMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  activityDate: {
-    fontSize: 13,
-    color: "#8E8E93",
-    flexShrink: 1,
-  },
-  categoryIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  categoryTag: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  categoryTagText: {
-    fontSize: 10,
-    fontWeight: "800" as const,
-    letterSpacing: 0.4,
-  },
-  statusBadge: {
-    backgroundColor: "#EEF1F6",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: "800" as const,
-    letterSpacing: 0.4,
-    color: "#3A4157",
-  },
-  activityAmount: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-  },
-  duitNowOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  duitNowCard: {
-    width: "100%",
-    maxWidth: 320,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: "center",
-  },
-  duitNowIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-  duitNowTitle: {
-    fontSize: 17,
-    fontWeight: "800" as const,
-    marginBottom: 6,
-    textAlign: "center",
-  },
-  duitNowMessage: {
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: "center",
-    marginBottom: 18,
-  },
-  duitNowBtn: {
-    borderRadius: 999,
-    paddingHorizontal: 36,
-    paddingVertical: 11,
-  },
-  duitNowBtnText: {
-    fontSize: 14,
-    fontWeight: "800" as const,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  modalCard: {
-    borderRadius: 20,
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 6,
-  },
-  modalIconBubble: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    flex: 1,
-  },
-  modalSub: {
-    fontSize: 13,
-    marginBottom: 14,
-  },
-  quickRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  quickChip: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    paddingVertical: 9,
-    alignItems: "center",
-  },
-  quickChipText: {
-    fontSize: 13,
-    fontWeight: "700" as const,
-  },
-  amountInputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-  amountPrefix: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-    marginRight: 8,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: "700" as const,
-    paddingVertical: 12,
-  },
-  errorText: {
-    fontSize: 13,
-    fontWeight: "600" as const,
-    marginBottom: 10,
-  },
-  demoNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
-  },
-  demoNoteText: {
-    flex: 1,
-    fontSize: 12,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  modalBtn: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalBtnText: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-  },
-  topUpCard: {
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden" as const,
-    maxHeight: "92%" as const,
-  },
-  topUpTitleRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
-  },
-  topUpTitle: {
-    fontSize: 17,
-    fontWeight: "700" as const,
-    color: "#1C1C1E",
-    flex: 1,
-  },
-  topUpBanner: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  topUpBannerLabel: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: "#FFFFFF",
-    flexShrink: 1,
-  },
-  topUpBannerAmount: {
-    fontSize: 17,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  topUpPoweredWrap: {
-    alignItems: "center" as const,
-  },
-  topUpPoweredBy: {
-    fontSize: 10,
-    fontWeight: "600" as const,
-    color: "#FFFFFF",
-    marginBottom: 2,
-  },
-  topUpMcashLogo: {
-    width: 74,
-    height: 20,
-  },
-  topUpBody: {
-    backgroundColor: "#F4F4F6",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 16,
-  },
-  topUpHeading: {
-    fontSize: 18,
-    fontWeight: "800" as const,
-    color: "#3A3A3C",
-    marginBottom: 2,
-  },
-  topUpSub: {
-    fontSize: 13,
-    color: "#6B6B70",
-    marginBottom: 12,
-  },
-  topUpAmountCard: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 12,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E7E7EB",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 14,
-  },
-  topUpAmountFields: {
-    flex: 1,
-  },
-  topUpAmountLabel: {
-    fontSize: 12,
-    fontWeight: "700" as const,
-    color: "#3A3A3C",
-    marginBottom: 2,
-  },
-  topUpAmountInput: {
-    fontSize: 17,
-    fontWeight: "600" as const,
-    color: "#1C1C1E",
-    paddingVertical: 4,
-    padding: 0,
-  },
-  amountClearBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-  },
-  topUpOrRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 12,
-    marginBottom: 14,
-  },
-  topUpOrLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#D9D9DE",
-  },
-  topUpOrText: {
-    fontSize: 13,
-    color: "#9A9AA0",
-  },
-  topUpQuickGrid: {
-    flexDirection: "row" as const,
-    flexWrap: "wrap" as const,
-    gap: 10,
-    marginBottom: 14,
-  },
-  topUpQuickPill: {
-    flexBasis: "30%" as const,
-    flexGrow: 1,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#ECECEF",
-    borderRadius: 999,
-    paddingVertical: 12,
-    alignItems: "center" as const,
-  },
-  topUpQuickPillSelected: {
-    borderColor: "#2dabe2",
-    backgroundColor: "#2dabe212",
-  },
-  topUpQuickPillText: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: "#3A3A3C",
-  },
-  topUpQuickPillTextSelected: {
-    color: "#2dabe2",
-    fontWeight: "700" as const,
-  },
-  topUpCancelBtn: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E3E3E8",
-  },
-  reloadDetailsRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    marginBottom: 12,
-  },
-  changeAmountBtn: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 2,
-  },
-  changeAmountText: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-  },
-  reloadAmountRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    marginBottom: 14,
-  },
-  reloadAmountLabel: {
-    fontSize: 15,
-    color: "#6B6B70",
-  },
-  reloadAmountValue: {
-    fontSize: 18,
-    fontWeight: "800" as const,
-  },
-  reloadDivider: {
-    height: 1,
-    backgroundColor: "#D9D9DE",
-    marginBottom: 16,
-  },
-  methodGroup: {
-    gap: 10,
-    marginBottom: 14,
-  },
-  methodCard: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 14,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 18,
-  },
-  methodRadio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#C5C5CC",
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-  },
-  methodRadioDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  methodLabel: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: "#1C1C1E",
-  },
-  fpxBadge: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-    fontStyle: "italic" as const,
-    color: "#1A2E6E",
-  },
-  cardBadges: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 6,
-  },
-  mcCircles: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-  },
-  mcCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    opacity: 0.9,
-  },
-  mcCircleRight: {
-    marginLeft: -7,
-  },
-  visaBadge: {
-    fontSize: 14,
-    fontWeight: "800" as const,
-    fontStyle: "italic" as const,
-    color: "#1A1F71",
-  },
-});

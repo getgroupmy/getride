@@ -6,6 +6,8 @@ import { ArrowLeft, QrCode, Barcode } from "lucide-react-native";
 import QRCodeLib from "qrcode";
 import Svg, { Path, Rect } from "react-native-svg";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { walletPalette, type WalletPalette } from "@/utils/walletTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import WalletBalanceBar from "@/components/WalletBalanceBar";
 import { fetchWalletBalances, type WalletBalances } from "@/utils/walletStore";
@@ -58,7 +60,7 @@ function deriveDigits(userId: string, length: number): string {
  */
 export default function WalletShowCodeScreen() {
   const router = useRouter();
-  const Colors = useColors();
+  const { styles, wc, Colors } = useWalletStyles();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPartnerMode = params.mode === "partner";
   const { authState } = useAuth();
@@ -145,11 +147,11 @@ export default function WalletShowCodeScreen() {
                 height={QR_SIZE}
                 viewBox={`0 0 ${qr.modules} ${qr.modules}`}
               >
-                <Rect x={0} y={0} width={qr.modules} height={qr.modules} fill="#FFFFFF" />
-                <Path d={qr.path} fill="#111111" />
+                <Rect x={0} y={0} width={qr.modules} height={qr.modules} fill={wc.qrSurface} />
+                <Path d={qr.path} fill={wc.qrInk} />
               </Svg>
             ) : (
-              <QrCode color="#111111" size={QR_SIZE * 0.8} />
+              <QrCode color={wc.qrInk} size={QR_SIZE * 0.8} />
             )}
             <View style={styles.qrBadgeOuter}>
               <View style={[styles.qrBadgeInner, { backgroundColor: Colors.accent }]}>
@@ -212,108 +214,121 @@ export default function WalletShowCodeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  header: {
-    paddingHorizontal: 12,
-    paddingTop: 4,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  waitText: {
-    fontSize: 16,
-    lineHeight: 23,
-    color: "#6B7280",
-    textAlign: "center" as const,
-    marginTop: 10,
-  },
-  codeArea: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qrWrap: {
-    width: QR_SIZE,
-    height: QR_SIZE,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qrBadgeOuter: {
-    position: "absolute" as const,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qrBadgeInner: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qrBadgeText: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  barcodeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  digitsColumn: {
-    width: 26,
-    height: 340,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  digitsText: {
-    width: 340,
-    textAlign: "center" as const,
-    transform: [{ rotate: "90deg" }],
-    fontSize: 14,
-    letterSpacing: 3,
-    color: "#374151",
-    fontVariant: ["tabular-nums"],
-  },
-  barsColumn: {
-    width: 220,
-  },
-  bar: {
-    width: "100%" as const,
-    backgroundColor: "#111111",
-  },
-  toggleArea: {
-    alignItems: "center",
-    paddingBottom: 24,
-  },
-  togglePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#EEF0F3",
-    borderRadius: 999,
-    padding: 5,
-    gap: 4,
-  },
-  toggleBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  toggleBtnActive: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-  },
-});
+function makeStyles(wc: WalletPalette, Colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      // Theme-independent: this whole screen is presented to somebody else's
+      // scanner. The barcode below draws its bars straight onto this ground
+      // with no card of its own, so a dark background makes it unreadable.
+      backgroundColor: wc.qrSurface,
+    },
+    header: {
+      paddingHorizontal: 12,
+      paddingTop: 4,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    waitText: {
+      fontSize: 16,
+      lineHeight: 23,
+      color: "#6B7280",
+      textAlign: "center" as const,
+      marginTop: 10,
+    },
+    codeArea: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qrWrap: {
+      width: QR_SIZE,
+      height: QR_SIZE,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qrBadgeOuter: {
+      position: "absolute" as const,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: wc.qrSurface,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qrBadgeInner: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qrBadgeText: {
+      fontSize: 22,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    barcodeRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    digitsColumn: {
+      width: 26,
+      height: 340,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    digitsText: {
+      width: 340,
+      textAlign: "center" as const,
+      transform: [{ rotate: "90deg" }],
+      fontSize: 14,
+      letterSpacing: 3,
+      color: wc.qrInk,
+      fontVariant: ["tabular-nums"],
+    },
+    barsColumn: {
+      width: 220,
+    },
+    bar: {
+      width: "100%" as const,
+      backgroundColor: wc.qrInk,
+    },
+    toggleArea: {
+      alignItems: "center",
+      paddingBottom: 24,
+    },
+    togglePill: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#EEF0F3",
+      borderRadius: 999,
+      padding: 5,
+      gap: 4,
+    },
+    toggleBtn: {
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    toggleBtnActive: {
+      backgroundColor: wc.qrSurface,
+      borderWidth: 2,
+    },
+  });
+}
+
+function useWalletStyles() {
+  const Colors = useColors();
+  const { colorScheme } = useTheme();
+  const wc = useMemo(() => walletPalette(colorScheme === "dark"), [colorScheme]);
+  const styles = useMemo(() => makeStyles(wc, Colors), [wc, Colors]);
+  return { styles, wc, Colors };
+}

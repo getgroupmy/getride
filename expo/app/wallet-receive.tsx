@@ -23,6 +23,8 @@ import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { walletPalette, QR_SURFACE, type WalletPalette } from "@/utils/walletTheme";
 import { useAuth } from "@/contexts/AuthContext";
 
 const DUITNOW_PINK = "#ED2E67";
@@ -83,7 +85,7 @@ function DuitNowFrame({
             height={size - 60}
             viewBox={`0 0 ${qr.modules} ${qr.modules}`}
           >
-            <Rect x={0} y={0} width={qr.modules} height={qr.modules} fill="#FFFFFF" />
+            <Rect x={0} y={0} width={qr.modules} height={qr.modules} fill={QR_SURFACE} />
             <Path d={qr.path} fill={DUITNOW_PINK} />
           </Svg>
         ) : (
@@ -133,7 +135,7 @@ const frameStyles = StyleSheet.create({
  */
 export default function WalletReceiveScreen() {
   const router = useRouter();
-  const Colors = useColors();
+  const { styles, wc, Colors } = useWalletStyles();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPartnerMode = params.mode === "partner";
@@ -356,9 +358,9 @@ export default function WalletReceiveScreen() {
               testID="wallet-receive-copy"
             >
               {copied ? (
-                <Check color="#16A34A" size={22} />
+                <Check color={wc.amountPositive} size={22} />
               ) : (
-                <Copy color="#6B7280" size={22} />
+                <Copy color={wc.textMuted} size={22} />
               )}
             </TouchableOpacity>
           </View>
@@ -392,7 +394,7 @@ export default function WalletReceiveScreen() {
               testID="wallet-receive-download"
             >
               {downloading ? (
-                <ActivityIndicator color="#111827" size="small" />
+                <ActivityIndicator color={wc.textStrong} size="small" />
               ) : (
                 <Text style={styles.outlineBtnText}>DOWNLOAD QR</Text>
               )}
@@ -485,7 +487,7 @@ export default function WalletReceiveScreen() {
                 onPress={() => setAmountModalVisible(false)}
                 testID="wallet-receive-amount-close"
               >
-                <X color="#6B7280" size={20} />
+                <X color={wc.textMuted} size={20} />
               </TouchableOpacity>
             </View>
             <Text style={styles.amountSheetSub}>
@@ -498,7 +500,7 @@ export default function WalletReceiveScreen() {
                 value={amountText}
                 onChangeText={handleAmountChange}
                 placeholder="0.00"
-                placeholderTextColor="#C3C9CF"
+                placeholderTextColor={wc.placeholder}
                 keyboardType="number-pad"
                 autoFocus
                 testID="wallet-receive-amount-input"
@@ -507,7 +509,7 @@ export default function WalletReceiveScreen() {
             <TouchableOpacity
               style={[
                 styles.filledBtn,
-                { backgroundColor: amountValid ? Colors.accent : "#C7CDD4" },
+                { backgroundColor: amountValid ? Colors.accent : wc.borderStrong },
               ]}
               onPress={confirmAmount}
               disabled={!amountValid}
@@ -522,324 +524,334 @@ export default function WalletReceiveScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#F2F4F6",
-  },
-  headerSafe: {},
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingTop: 6,
-    paddingBottom: 16,
-    gap: 14,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.85)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "700" as const,
-    color: "#FFFFFF",
-  },
-  body: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 14,
-    paddingBottom: 24,
-    justifyContent: "center" as const,
-  },
-  qrCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    paddingVertical: 26,
-    paddingHorizontal: 18,
-    alignItems: "center",
-  },
-  cardTitle: {
-    fontSize: 18,
-    color: "#1F2937",
-  },
-  cardTitleBold: {
-    fontWeight: "800" as const,
-    color: "#111827",
-  },
-  cardName: {
-    fontSize: 18,
-    fontWeight: "800" as const,
-    color: "#27272A",
-    letterSpacing: 1,
-    textAlign: "center" as const,
-    marginTop: 10,
-  },
-  frameWrap: {
-    marginTop: 22,
-  },
-  countdown: {
-    marginTop: 20,
-    fontSize: 16,
-    color: "#4B5563",
-  },
-  countdownNum: {
-    fontSize: 18,
-    fontWeight: "800" as const,
-    color: "#111827",
-    fontVariant: ["tabular-nums"],
-  },
-  accountCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    marginTop: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  duitNowLogo: {
-    alignItems: "center",
-    width: 52,
-  },
-  duitNowCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: DUITNOW_PINK,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  duitNowCircleText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800" as const,
-  },
-  duitNowLabel: {
-    fontSize: 10,
-    fontWeight: "800" as const,
-    marginTop: 3,
-  },
-  duitNowLabelDark: {
-    color: "#27272A",
-  },
-  accountInfo: {
-    flex: 1,
-  },
-  accountLabel: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: "#111827",
-  },
-  accountNo: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 3,
-    fontVariant: ["tabular-nums"],
-  },
-  copyBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bottomBar: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    gap: 10,
-    backgroundColor: "#F2F4F6",
-  },
-  outlineBtn: {
-    height: 52,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#C9CFD6",
-    backgroundColor: "#F2F4F6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  outlineBtnText: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-    color: "#111827",
-    letterSpacing: 0.6,
-  },
-  filledBtn: {
-    height: 52,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filledBtnText: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-    letterSpacing: 0.6,
-  },
-  posterHost: {
-    position: "absolute" as const,
-    left: -1200,
-    top: 0,
-  },
-  posterCapture: {
-    width: 460,
-  },
-  posterGradient: {
-    paddingVertical: 40,
-    paddingHorizontal: 32,
-    alignItems: "center",
-  },
-  posterBrandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 26,
-  },
-  posterBrandText: {
-    fontSize: 30,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  posterCard: {
-    alignSelf: "stretch" as const,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    paddingVertical: 28,
-    paddingHorizontal: 22,
-    alignItems: "center",
-  },
-  posterHint: {
-    fontSize: 16,
-    color: "#374151",
-    textAlign: "center" as const,
-    lineHeight: 23,
-  },
-  posterName: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: "#27272A",
-    letterSpacing: 1,
-    textAlign: "center" as const,
-    marginTop: 14,
-    marginBottom: 22,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  amountSheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 34,
-  },
-  amountSheetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  amountSheetTitle: {
-    fontSize: 18,
-    fontWeight: "800" as const,
-    color: "#111827",
-  },
-  amountSheetClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F1F3F5",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  amountSheetSub: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 6,
-  },
-  amountInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 18,
-    marginBottom: 20,
-    borderBottomWidth: 2,
-    borderBottomColor: "#E5E8EB",
-    paddingBottom: 8,
-  },
-  amountPrefix: {
-    fontSize: 20,
-    fontWeight: "700" as const,
-    color: "#6B7280",
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 32,
-    fontWeight: "800" as const,
-    color: "#111827",
-    padding: 0,
-  },
-  expiredOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 28,
-  },
-  expiredCardWrap: {
-    alignSelf: "stretch" as const,
-    alignItems: "center",
-  },
-  expiredIconWrap: {
-    zIndex: 2,
-    marginBottom: -44,
-  },
-  expiredIconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: "#F43F30",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 6,
-    borderColor: "#FFFFFF",
-  },
-  expiredCard: {
-    alignSelf: "stretch" as const,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 26,
-    paddingTop: 62,
-    paddingBottom: 24,
-    paddingHorizontal: 22,
-  },
-  expiredTitle: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: "#111827",
-    textAlign: "center" as const,
-  },
-  expiredSub: {
-    fontSize: 15,
-    color: "#6B7280",
-    textAlign: "center" as const,
-    lineHeight: 22,
-    marginTop: 10,
-  },
-  expiredBtn: {
-    marginTop: 22,
-  },
-  expiredBtnOutline: {
-    marginTop: 12,
-    backgroundColor: "#FFFFFF",
-  },
-});
+function makeStyles(wc: WalletPalette, Colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: wc.surfaceMuted,
+    },
+    headerSafe: {},
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingTop: 6,
+      paddingBottom: 16,
+      gap: 14,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      borderWidth: 2,
+      borderColor: "rgba(255,255,255,0.85)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: "700" as const,
+      color: "#FFFFFF",
+    },
+    body: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      padding: 14,
+      paddingBottom: 24,
+      justifyContent: "center" as const,
+    },
+    qrCard: {
+      backgroundColor: wc.surface,
+      borderRadius: 20,
+      paddingVertical: 26,
+      paddingHorizontal: 18,
+      alignItems: "center",
+    },
+    cardTitle: {
+      fontSize: 18,
+      color: wc.text,
+    },
+    cardTitleBold: {
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+    },
+    cardName: {
+      fontSize: 18,
+      fontWeight: "800" as const,
+      color: wc.text,
+      letterSpacing: 1,
+      textAlign: "center" as const,
+      marginTop: 10,
+    },
+    frameWrap: {
+      marginTop: 22,
+    },
+    countdown: {
+      marginTop: 20,
+      fontSize: 16,
+      color: wc.text,
+    },
+    countdownNum: {
+      fontSize: 18,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      fontVariant: ["tabular-nums"],
+    },
+    accountCard: {
+      backgroundColor: wc.surface,
+      borderRadius: 18,
+      marginTop: 14,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+    },
+    duitNowLogo: {
+      alignItems: "center",
+      width: 52,
+    },
+    duitNowCircle: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: DUITNOW_PINK,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    duitNowCircleText: {
+      color: "#FFFFFF",
+      fontSize: 16,
+      fontWeight: "800" as const,
+    },
+    duitNowLabel: {
+      fontSize: 10,
+      fontWeight: "800" as const,
+      marginTop: 3,
+    },
+    duitNowLabelDark: {
+      color: wc.text,
+    },
+    accountInfo: {
+      flex: 1,
+    },
+    accountLabel: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+      color: wc.textStrong,
+    },
+    accountNo: {
+      fontSize: 14,
+      color: wc.textMuted,
+      marginTop: 3,
+      fontVariant: ["tabular-nums"],
+    },
+    copyBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    bottomBar: {
+      paddingHorizontal: 14,
+      paddingTop: 10,
+      gap: 10,
+      backgroundColor: wc.surfaceMuted,
+    },
+    outlineBtn: {
+      height: 52,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: wc.borderStrong,
+      backgroundColor: wc.surfaceMuted,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    outlineBtnText: {
+      fontSize: 15,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      letterSpacing: 0.6,
+    },
+    filledBtn: {
+      height: 52,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    filledBtnText: {
+      fontSize: 15,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+      letterSpacing: 0.6,
+    },
+    posterHost: {
+      position: "absolute" as const,
+      left: -1200,
+      top: 0,
+    },
+    posterCapture: {
+      width: 460,
+    },
+    posterGradient: {
+      paddingVertical: 40,
+      paddingHorizontal: 32,
+      alignItems: "center",
+    },
+    posterBrandRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 26,
+    },
+    posterBrandText: {
+      fontSize: 30,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    posterCard: {
+      alignSelf: "stretch" as const,
+      backgroundColor: wc.surface,
+      borderRadius: 24,
+      paddingVertical: 28,
+      paddingHorizontal: 22,
+      alignItems: "center",
+    },
+    posterHint: {
+      fontSize: 16,
+      color: wc.text,
+      textAlign: "center" as const,
+      lineHeight: 23,
+    },
+    posterName: {
+      fontSize: 22,
+      fontWeight: "800" as const,
+      color: wc.text,
+      letterSpacing: 1,
+      textAlign: "center" as const,
+      marginTop: 14,
+      marginBottom: 22,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      justifyContent: "flex-end",
+    },
+    amountSheet: {
+      backgroundColor: wc.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: 20,
+      paddingTop: 18,
+      paddingBottom: 34,
+    },
+    amountSheetHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    amountSheetTitle: {
+      fontSize: 18,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+    },
+    amountSheetClose: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: wc.surfaceMuted,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    amountSheetSub: {
+      fontSize: 13,
+      color: wc.textMuted,
+      marginTop: 6,
+    },
+    amountInputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginTop: 18,
+      marginBottom: 20,
+      borderBottomWidth: 2,
+      borderBottomColor: wc.border,
+      paddingBottom: 8,
+    },
+    amountPrefix: {
+      fontSize: 20,
+      fontWeight: "700" as const,
+      color: wc.textMuted,
+    },
+    amountInput: {
+      flex: 1,
+      fontSize: 32,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      padding: 0,
+    },
+    expiredOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.55)",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 28,
+    },
+    expiredCardWrap: {
+      alignSelf: "stretch" as const,
+      alignItems: "center",
+    },
+    expiredIconWrap: {
+      zIndex: 2,
+      marginBottom: -44,
+    },
+    expiredIconCircle: {
+      width: 88,
+      height: 88,
+      borderRadius: 44,
+      backgroundColor: "#F43F30",
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 6,
+      borderColor: "#FFFFFF",
+    },
+    expiredCard: {
+      alignSelf: "stretch" as const,
+      backgroundColor: wc.surface,
+      borderRadius: 26,
+      paddingTop: 62,
+      paddingBottom: 24,
+      paddingHorizontal: 22,
+    },
+    expiredTitle: {
+      fontSize: 22,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      textAlign: "center" as const,
+    },
+    expiredSub: {
+      fontSize: 15,
+      color: wc.textMuted,
+      textAlign: "center" as const,
+      lineHeight: 22,
+      marginTop: 10,
+    },
+    expiredBtn: {
+      marginTop: 22,
+    },
+    expiredBtnOutline: {
+      marginTop: 12,
+      backgroundColor: wc.surface,
+    },
+  });
+}
+
+function useWalletStyles() {
+  const Colors = useColors();
+  const { colorScheme } = useTheme();
+  const wc = useMemo(() => walletPalette(colorScheme === "dark"), [colorScheme]);
+  const styles = useMemo(() => makeStyles(wc, Colors), [wc, Colors]);
+  return { styles, wc, Colors };
+}

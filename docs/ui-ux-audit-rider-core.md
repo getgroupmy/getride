@@ -6,7 +6,8 @@ Audit of the screens every passenger touches on every trip, run against the
 at `abb7f2f`, MIT).
 
 Screens in scope: `app/index.tsx` (home map), `app/ride-confirm.tsx`,
-`app/ride-tracking.tsx`, `app/wallet.tsx`, `components/MenuSideSheet.tsx`.
+`app/ride-tracking.tsx`, `app/wallet.tsx` (and the six sibling wallet screens),
+`components/MenuSideSheet.tsx`.
 
 ## Which parts of the skill apply here
 
@@ -152,30 +153,83 @@ unchanged.
   `keypadLetters` (10pt "ABC") and the map's toll marker text are left alone —
   both match platform conventions for their context and neither is body copy.
 
+## Wallet theming (third pass)
+
+All seven wallet screens built their `StyleSheet` at **module scope**, which
+cannot see the active colour scheme. `wallet.tsx` imported `useColors()` and
+then ignored it for almost everything: ~380 hardcoded light-mode literals across
+the feature, so the whole wallet rendered white in dark mode.
+
+### The tokens
+
+`utils/walletTheme.ts` defines the light/dark pair for each *role* the wallet
+uses — `surface`, `surfaceAlt`, `surfaceTint`, `textMuted`, `divider`,
+`amountPositive` and so on. Screens ask for a role, never a hex.
+
+`utils/__tests__/walletTheme.test.ts` computes the WCAG contrast of every
+text/background pair the wallet actually renders and fails the build below
+4.5:1 (3:1 for placeholders, and a visibility floor for borders and dividers).
+The palette is therefore checked rather than eyeballed, in both themes.
+
+Writing that test surfaced **three contrast failures that were already
+shipping in light mode**:
+
+| Where | Was | Ratio | Now |
+|---|---|---|---|
+| Amount on every credit row (`wallet.tsx`, `wallet-history`, `wallet-trade`) | `#16A34A` on white | **3.30:1** | `#15803D`, 5.02:1 |
+| Selected reload-amount pill | `#2dabe2` on white | **2.61:1** | `accentText` `#1C7FA3`, 4.55:1 |
+| Balance timestamp, activity dates | `#8E8E93` on white | **3.26:1** | `textFaint` `#6E6E76`, 5.0:1 |
+
+The first was a module constant (`GAIN_GREEN`) in `wallet-trade.tsx`, which is
+exactly why it could not vary by theme — a constant has no way to ask what mode
+it is in.
+
+### Structure
+
+Each screen now builds its stylesheet through a `makeStyles(wc, Colors)` factory
+behind a local `useWalletStyles()` hook, so helper components in the same file
+(`SlideToPayButton`, `RateSparkline`) share one themed stylesheet instead of
+reaching for a module-scope one.
+
+### What deliberately did NOT become themeable
+
+- **QR codes and barcodes.** A scanner expects dark-on-light, so `QR_SURFACE`
+  and `QR_INK` are exported as theme-independent constants and the palette
+  points at them. `wallet-show-code.tsx` — the screen you hold up to somebody
+  else's camera — stays light in **both** themes as a whole, because its
+  barcode draws its bars straight onto the screen background with no card of
+  its own; a dark ground would make it unscannable.
+- **The camera viewfinder** on `wallet-scan.tsx` and the trade scanner: a
+  viewfinder is a dark surface in both themes.
+- **Brand colours.** Visa, Mastercard, FPX, DuItNow, MCash, and the GET.coin /
+  GET.credit golds stay literal. The only concession is that the Visa and FPX
+  wordmarks reverse to white on a dark card, since their brand hues are
+  near-black.
+- **Text on the accent gradient** (header, filled buttons): white in both
+  themes, because the ground it sits on does not change.
+
+98 literals remain across the seven files, all in the categories above.
+
 ## Known, not fixed
 
 Deliberately out of scope for a targeted pass — each would be its own change:
 
-1. **`app/wallet.tsx` is not themed.** It imports `useColors()` but hardcodes
-   ~112 hex literals (`#8E8E93`, `#EEF1F6`, `#3A4157`, …), so it renders as a
-   light-mode screen in dark mode. Fixing it means a token pass over the whole
-   file — a visual change, not an audit fix.
-2. **Home service cards do nothing.** The five service tiles on the home sheet
+1. **Home service cards do nothing.** The five service tiles on the home sheet
    call `console.log` only. They are labelled now, but a control that responds
    to touch and goes nowhere still violates *Disabled state clarity*. They need
    either destinations or a coming-soon state.
-3. **The destinations list is keyed by array index** (`dest-manage-${index}`) in
+2. **The destinations list is keyed by array index** (`dest-manage-${index}`) in
    a list that can be reordered by drag and removed from — the one case where
    index keys actually break, since a reorder re-keys every row. The whole drag
    implementation is index-addressed (`getItemAnimatedValue(index)`,
    `createDragResponder(index)`), so fixing the key means giving destinations
    stable ids and rewriting the reorder logic. Left as its own change.
-4. **`hitSlop` coverage app-wide.** 140 files use `TouchableOpacity`; 25 use
+3. **`hitSlop` coverage app-wide.** 140 files use `TouchableOpacity`; 25 use
    `hitSlop`. The partner and admin surfaces were not touched by this pass.
-5. **Reduced motion is not honoured anywhere.** The app runs `Animated`
+4. **Reduced motion is not honoured anywhere.** The app runs `Animated`
    sequences (pin drop, bottom sheets, coin toast) without checking
    `AccessibilityInfo.isReduceMotionEnabled()`.
-6. **Dynamic Type.** No screen was verified at the largest system text size;
+5. **Dynamic Type.** No screen was verified at the largest system text size;
    `allowFontScaling` is left at its default everywhere except the meter console.
 
 ## Re-running the audit

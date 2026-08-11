@@ -20,6 +20,9 @@ import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
 import { useAuth } from "@/contexts/AuthContext";
+import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { walletPalette, QR_SURFACE, type WalletPalette } from "@/utils/walletTheme";
 import { fetchWalletBalances, type WalletBalances } from "@/utils/walletStore";
 import {
   fetchGetCoinSettings,
@@ -72,7 +75,7 @@ function CoinQrFrame({
             height={size - 60}
             viewBox={`0 0 ${qr.modules} ${qr.modules}`}
           >
-            <Rect x={0} y={0} width={qr.modules} height={qr.modules} fill="#FFFFFF" />
+            <Rect x={0} y={0} width={qr.modules} height={qr.modules} fill={QR_SURFACE} />
             <Path d={qr.path} fill={COIN_AMBER_DARK} />
           </Svg>
         ) : (
@@ -123,6 +126,7 @@ const frameStyles = StyleSheet.create({
  * code for QR payments with coin redemption.
  */
 export default function WalletCoinQrScreen() {
+  const { styles, wc } = useWalletStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { authState } = useAuth();
@@ -236,10 +240,10 @@ export default function WalletCoinQrScreen() {
             onPress={() => router.back()}
             testID="wallet-coin-qr-back"
           >
-            <ChevronLeft color="#111827" size={22} />
+            <ChevronLeft color={wc.textStrong} size={22} />
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
-            <Coins color="#111827" size={20} />
+            <Coins color={wc.textStrong} size={20} />
             <Text style={styles.headerTitle}>GET.coin QR</Text>
           </View>
         </View>
@@ -303,9 +307,9 @@ export default function WalletCoinQrScreen() {
               testID="wallet-coin-qr-copy"
             >
               {copied ? (
-                <Check color="#16A34A" size={22} />
+                <Check color={wc.amountPositive} size={22} />
               ) : (
-                <Copy color="#6B7280" size={22} />
+                <Copy color={wc.textMuted} size={22} />
               )}
             </TouchableOpacity>
           </View>
@@ -320,7 +324,7 @@ export default function WalletCoinQrScreen() {
           testID="wallet-coin-qr-download"
         >
           {downloading ? (
-            <ActivityIndicator color="#111827" size="small" />
+            <ActivityIndicator color={wc.textStrong} size="small" />
           ) : (
             <Text style={styles.filledBtnText}>DOWNLOAD / SHARE QR</Text>
           )}
@@ -354,205 +358,215 @@ export default function WalletCoinQrScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#FFFDF4",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingTop: 6,
-    paddingBottom: 16,
-    gap: 14,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "rgba(17,24,39,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "700" as const,
-    color: "#111827",
-  },
-  body: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 14,
-    paddingBottom: 24,
-    justifyContent: "center" as const,
-  },
-  qrCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#F3E8C0",
-    paddingVertical: 26,
-    paddingHorizontal: 18,
-    alignItems: "center",
-  },
-  cardTitle: {
-    fontSize: 18,
-    color: "#1F2937",
-  },
-  cardName: {
-    fontSize: 18,
-    fontWeight: "800" as const,
-    color: "#27272A",
-    letterSpacing: 1,
-    textAlign: "center" as const,
-    marginTop: 10,
-  },
-  frameWrap: {
-    marginTop: 22,
-  },
-  balanceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 18,
-  },
-  balanceText: {
-    fontSize: 16,
-    fontWeight: "800" as const,
-    color: "#111827",
-  },
-  cardHint: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: "#6B7280",
-    textAlign: "center" as const,
-    marginTop: 8,
-    paddingHorizontal: 8,
-  },
-  accountCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#F3E8C0",
-    marginTop: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  coinLogo: {
-    alignItems: "center",
-    width: 52,
-  },
-  coinCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: COIN_YELLOW,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coinLabel: {
-    fontSize: 10,
-    fontWeight: "800" as const,
-    marginTop: 3,
-  },
-  coinLabelDark: {
-    color: "#27272A",
-  },
-  accountInfo: {
-    flex: 1,
-  },
-  accountLabel: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: "#111827",
-  },
-  accountNo: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 3,
-    fontVariant: ["tabular-nums"],
-  },
-  copyBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bottomBar: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    backgroundColor: "#FFFDF4",
-  },
-  filledBtn: {
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: COIN_YELLOW,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filledBtnText: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-    color: "#111827",
-    letterSpacing: 0.6,
-  },
-  posterHost: {
-    position: "absolute" as const,
-    left: -1200,
-    top: 0,
-  },
-  posterCapture: {
-    width: 460,
-  },
-  posterGradient: {
-    paddingVertical: 40,
-    paddingHorizontal: 32,
-    alignItems: "center",
-  },
-  posterBrandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 26,
-  },
-  posterBrandText: {
-    fontSize: 30,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  posterCard: {
-    alignSelf: "stretch" as const,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    paddingVertical: 28,
-    paddingHorizontal: 22,
-    alignItems: "center",
-  },
-  posterHint: {
-    fontSize: 16,
-    color: "#374151",
-    textAlign: "center" as const,
-    lineHeight: 23,
-  },
-  posterName: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: "#27272A",
-    letterSpacing: 1,
-    textAlign: "center" as const,
-    marginTop: 14,
-    marginBottom: 22,
-  },
-});
+function makeStyles(wc: WalletPalette, Colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: wc.surfaceCoin,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingTop: 6,
+      paddingBottom: 16,
+      gap: 14,
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      borderWidth: 2,
+      borderColor: "rgba(17,24,39,0.6)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: "700" as const,
+      color: wc.textStrong,
+    },
+    body: {
+      flex: 1,
+    },
+    scrollContent: {
+      flexGrow: 1,
+      padding: 14,
+      paddingBottom: 24,
+      justifyContent: "center" as const,
+    },
+    qrCard: {
+      backgroundColor: wc.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: wc.borderCoin,
+      paddingVertical: 26,
+      paddingHorizontal: 18,
+      alignItems: "center",
+    },
+    cardTitle: {
+      fontSize: 18,
+      color: wc.text,
+    },
+    cardName: {
+      fontSize: 18,
+      fontWeight: "800" as const,
+      color: wc.text,
+      letterSpacing: 1,
+      textAlign: "center" as const,
+      marginTop: 10,
+    },
+    frameWrap: {
+      marginTop: 22,
+    },
+    balanceRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginTop: 18,
+    },
+    balanceText: {
+      fontSize: 16,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+    },
+    cardHint: {
+      fontSize: 12,
+      lineHeight: 17,
+      color: wc.textMuted,
+      textAlign: "center" as const,
+      marginTop: 8,
+      paddingHorizontal: 8,
+    },
+    accountCard: {
+      backgroundColor: wc.surface,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: wc.borderCoin,
+      marginTop: 14,
+      paddingVertical: 16,
+      paddingHorizontal: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+    },
+    coinLogo: {
+      alignItems: "center",
+      width: 52,
+    },
+    coinCircle: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: COIN_YELLOW,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    coinLabel: {
+      fontSize: 10,
+      fontWeight: "800" as const,
+      marginTop: 3,
+    },
+    coinLabelDark: {
+      color: wc.text,
+    },
+    accountInfo: {
+      flex: 1,
+    },
+    accountLabel: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+      color: wc.textStrong,
+    },
+    accountNo: {
+      fontSize: 13,
+      color: wc.textMuted,
+      marginTop: 3,
+      fontVariant: ["tabular-nums"],
+    },
+    copyBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    bottomBar: {
+      paddingHorizontal: 14,
+      paddingTop: 10,
+      backgroundColor: wc.surfaceCoin,
+    },
+    filledBtn: {
+      height: 52,
+      borderRadius: 12,
+      backgroundColor: COIN_YELLOW,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    filledBtnText: {
+      fontSize: 15,
+      fontWeight: "800" as const,
+      color: wc.textStrong,
+      letterSpacing: 0.6,
+    },
+    posterHost: {
+      position: "absolute" as const,
+      left: -1200,
+      top: 0,
+    },
+    posterCapture: {
+      width: 460,
+    },
+    posterGradient: {
+      paddingVertical: 40,
+      paddingHorizontal: 32,
+      alignItems: "center",
+    },
+    posterBrandRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 26,
+    },
+    posterBrandText: {
+      fontSize: 30,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    posterCard: {
+      alignSelf: "stretch" as const,
+      backgroundColor: wc.surface,
+      borderRadius: 24,
+      paddingVertical: 28,
+      paddingHorizontal: 22,
+      alignItems: "center",
+    },
+    posterHint: {
+      fontSize: 16,
+      color: wc.text,
+      textAlign: "center" as const,
+      lineHeight: 23,
+    },
+    posterName: {
+      fontSize: 22,
+      fontWeight: "800" as const,
+      color: wc.text,
+      letterSpacing: 1,
+      textAlign: "center" as const,
+      marginTop: 14,
+      marginBottom: 22,
+    },
+  });
+}
+
+function useWalletStyles() {
+  const Colors = useColors();
+  const { colorScheme } = useTheme();
+  const wc = useMemo(() => walletPalette(colorScheme === "dark"), [colorScheme]);
+  const styles = useMemo(() => makeStyles(wc, Colors), [wc, Colors]);
+  return { styles, wc, Colors };
+}

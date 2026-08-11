@@ -21,6 +21,8 @@ import {
   Sparkles,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { useTheme } from "@/contexts/ThemeContext";
+import { walletPalette, type WalletPalette } from "@/utils/walletTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchWalletTransactions,
@@ -87,7 +89,7 @@ function formatDetailDate(iso: string): string {
  */
 export default function WalletHistoryScreen() {
   const router = useRouter();
-  const Colors = useColors();
+  const { styles, wc, Colors } = useWalletStyles();
   const { authState } = useAuth();
   const params = useLocalSearchParams<{ mode?: string }>();
   const isPartnerMode = params.mode === "partner";
@@ -307,7 +309,7 @@ export default function WalletHistoryScreen() {
                 <Text
                   style={[
                     styles.tabText,
-                    { color: selected ? "#1C1C1E" : "#9CA3AF" },
+                    { color: selected ? wc.text : wc.textFaint },
                   ]}
                 >
                   {f.label}
@@ -338,8 +340,8 @@ export default function WalletHistoryScreen() {
               style={[
                 styles.categoryChip,
                 {
-                  backgroundColor: selected ? Colors.accent : "#FFFFFF",
-                  borderColor: selected ? Colors.accent : "#E5E7EB",
+                  backgroundColor: selected ? Colors.accent : wc.surface,
+                  borderColor: selected ? Colors.accent : wc.border,
                 },
               ]}
               onPress={() => {
@@ -351,7 +353,7 @@ export default function WalletHistoryScreen() {
               <Text
                 style={[
                   styles.categoryChipText,
-                  { color: selected ? "#FFFFFF" : "#6B7280" },
+                  { color: selected ? Colors.onAccent : wc.textMuted },
                 ]}
               >
                 {c.label}
@@ -371,16 +373,16 @@ export default function WalletHistoryScreen() {
         >
           <Text style={styles.monthPillText}>{selectedMonth.label}</Text>
           {monthMenuVisible ? (
-            <ChevronUp color="#6B7280" size={18} />
+            <ChevronUp color={wc.textMuted} size={18} />
           ) : (
-            <ChevronDown color="#6B7280" size={18} />
+            <ChevronDown color={wc.textMuted} size={18} />
           )}
         </TouchableOpacity>
       </View>
 
       {groups.length === 0 ? (
         <View style={styles.emptyCard}>
-          <WalletIcon color="#9CA3AF" size={32} />
+          <WalletIcon color={wc.textFaint} size={32} />
           <Text style={styles.emptyTitle}>No transactions</Text>
           <Text style={styles.emptySub}>
             {categoryFilter === "all"
@@ -430,16 +432,16 @@ export default function WalletHistoryScreen() {
                     <Text
                       style={[
                         styles.txAmount,
-                        { color: positive ? "#16A34A" : "#EF4444" },
+                        { color: positive ? wc.amountPositive : wc.amountNegative },
                       ]}
                     >
                       {positive ? "" : "-"}
                       {walletAmountText(tx.walletType, tx.amount)}
                     </Text>
                     {expanded ? (
-                      <ChevronUp color="#9CA3AF" size={20} />
+                      <ChevronUp color={wc.textFaint} size={20} />
                     ) : (
-                      <ChevronDown color="#9CA3AF" size={20} />
+                      <ChevronDown color={wc.textFaint} size={20} />
                     )}
                   </TouchableOpacity>
                   {expanded ? (
@@ -468,7 +470,7 @@ export default function WalletHistoryScreen() {
           <View style={styles.endLine} />
         </View>
         <TouchableOpacity
-          style={[styles.backTopPill, { backgroundColor: "#E4F3FB" }]}
+          style={[styles.backTopPill, { backgroundColor: wc.surfaceReferral }]}
           onPress={scrollToTop}
           testID="wallet-history-back-top"
         >
@@ -531,7 +533,7 @@ export default function WalletHistoryScreen() {
                   key={m.id}
                   style={[
                     styles.monthMenuItem,
-                    selected ? { backgroundColor: "#D6EBF7" } : null,
+                    selected ? { backgroundColor: wc.surfaceReferral } : null,
                   ]}
                   onPress={() => {
                     setSelectedMonthId(m.id);
@@ -551,365 +553,375 @@ export default function WalletHistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingTop: 4,
-    paddingBottom: 14,
-    gap: 12,
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.85)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: "#FFFFFF",
-  },
-  body: {
-    flex: 1,
-    backgroundColor: "#F4F5F7",
-  },
-  loadingWrap: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 60,
-  },
-  tabsRow: {
-    flexDirection: "row",
-    gap: 18,
-    marginBottom: 16,
-    flexWrap: "wrap" as const,
-  },
-  tabItem: {
-    alignItems: "center",
-  },
-  tabText: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    marginBottom: 6,
-  },
-  tabUnderline: {
-    height: 3,
-    borderRadius: 2,
-    alignSelf: "stretch",
-  },
-  categoryScroll: {
-    marginBottom: 16,
-    marginHorizontal: -16,
-  },
-  categoryScrollContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  categoryChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  categoryChipText: {
-    fontSize: 13,
-    fontWeight: "700" as const,
-  },
-  filterRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 18,
-  },
-  filterLabel: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    color: "#6B7280",
-  },
-  monthPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    shadowColor: "#000000",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  monthPillText: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: "#1C1C1E",
-  },
-  groupDate: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 10,
-    marginTop: 4,
-  },
-  txCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 12,
-    overflow: "hidden" as const,
-    shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  txCardReferral: {
-    backgroundColor: REFERRAL_HIGHLIGHT.rowBg,
-    borderWidth: 1,
-    borderColor: REFERRAL_HIGHLIGHT.border,
-  },
-  txRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 17,
-  },
-  txIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  txTitleWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  txTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  txTitle: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: "#1C1C1E",
-    flexShrink: 1,
-  },
-  referralBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    borderRadius: 6,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    backgroundColor: REFERRAL_HIGHLIGHT.badgeBg,
-  },
-  referralBadgeText: {
-    fontSize: 9,
-    fontWeight: "800" as const,
-    letterSpacing: 0.5,
-    color: REFERRAL_HIGHLIGHT.badgeText,
-  },
-  txCategory: {
-    fontSize: 11,
-    fontWeight: "800" as const,
-    letterSpacing: 0.5,
-    textTransform: "uppercase" as const,
-    marginTop: 2,
-  },
-  txAmount: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-  },
-  viewDetailsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderTopWidth: 1,
-    borderTopColor: "#F1F1F4",
-    backgroundColor: "#FAFAFB",
-  },
-  viewDetailsText: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-  },
-  emptyCard: {
-    alignItems: "center",
-    paddingVertical: 48,
-    gap: 8,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-    color: "#111827",
-  },
-  emptySub: {
-    fontSize: 13,
-    color: "#6B7280",
-  },
-  endWrap: {
-    alignItems: "center",
-    marginTop: 36,
-    gap: 18,
-  },
-  endRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  endLine: {
-    width: 56,
-    height: 1.5,
-    backgroundColor: "#3F3F46",
-  },
-  endText: {
-    fontSize: 13,
-    fontWeight: "800" as const,
-    letterSpacing: 2,
-    color: "#C3C6CC",
-  },
-  backTopPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-  },
-  backTopText: {
-    fontSize: 14,
-    fontWeight: "800" as const,
-  },
-  homeFab: {
-    position: "absolute" as const,
-    right: 20,
-    bottom: 28,
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  menuOverlay: {
-    flex: 1,
-  },
-  monthMenu: {
-    position: "absolute" as const,
-    right: 16,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    paddingVertical: 6,
-    minWidth: 210,
-    shadowColor: "#000000",
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  monthMenuItem: {
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-  },
-  monthMenuItemText: {
-    fontSize: 17,
-    fontWeight: "600" as const,
-    color: "#1C1C1E",
-  },
-  detailScrollContent: {
-    padding: 16,
-    paddingBottom: 60,
-  },
-  detailCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 20,
-    marginBottom: 16,
-    shadowColor: "#000000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  detailHeading: {
-    fontSize: 19,
-    fontWeight: "800" as const,
-    color: "#1C1C1E",
-    marginBottom: 14,
-  },
-  detailSubHeading: {
-    fontSize: 16,
-    fontWeight: "800" as const,
-    color: "#1C1C1E",
-    marginBottom: 10,
-  },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-    paddingVertical: 9,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: "#8E8E93",
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: "#1C1C1E",
-    flexShrink: 1,
-    textAlign: "right" as const,
-  },
-  detailValueSmall: {
-    fontSize: 12,
-  },
-  detailValueFlex: {
-    flex: 1,
-  },
-  detailStatus: {
-    color: "#16A34A",
-  },
-  detailCategoryTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-  },
-  detailCategoryText: {
-    fontSize: 12,
-    fontWeight: "800" as const,
-    letterSpacing: 0.3,
-  },
-});
+function makeStyles(wc: WalletPalette, Colors: ReturnType<typeof useColors>) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 12,
+      paddingTop: 4,
+      paddingBottom: 14,
+      gap: 12,
+    },
+    backBtn: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    backCircle: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      borderWidth: 1.5,
+      borderColor: "rgba(255,255,255,0.85)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: "800" as const,
+      color: "#FFFFFF",
+    },
+    body: {
+      flex: 1,
+      backgroundColor: wc.screen,
+    },
+    loadingWrap: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 60,
+    },
+    tabsRow: {
+      flexDirection: "row",
+      gap: 18,
+      marginBottom: 16,
+      flexWrap: "wrap" as const,
+    },
+    tabItem: {
+      alignItems: "center",
+    },
+    tabText: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+      marginBottom: 6,
+    },
+    tabUnderline: {
+      height: 3,
+      borderRadius: 2,
+      alignSelf: "stretch",
+    },
+    categoryScroll: {
+      marginBottom: 16,
+      marginHorizontal: -16,
+    },
+    categoryScrollContent: {
+      paddingHorizontal: 16,
+      gap: 8,
+    },
+    categoryChip: {
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    categoryChipText: {
+      fontSize: 13,
+      fontWeight: "700" as const,
+    },
+    filterRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 18,
+    },
+    filterLabel: {
+      fontSize: 15,
+      fontWeight: "600" as const,
+      color: wc.textMuted,
+    },
+    monthPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: wc.surface,
+      borderRadius: 999,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      shadowColor: "#000000",
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    monthPillText: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+      color: wc.text,
+    },
+    groupDate: {
+      fontSize: 14,
+      color: wc.textMuted,
+      marginBottom: 10,
+      marginTop: 4,
+    },
+    txCard: {
+      backgroundColor: wc.surface,
+      borderRadius: 16,
+      marginBottom: 12,
+      overflow: "hidden" as const,
+      shadowColor: "#000000",
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    txCardReferral: {
+      backgroundColor: REFERRAL_HIGHLIGHT.rowBg,
+      borderWidth: 1,
+      borderColor: REFERRAL_HIGHLIGHT.border,
+    },
+    txRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 17,
+    },
+    txIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    txTitleWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
+    txTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    txTitle: {
+      fontSize: 15,
+      fontWeight: "700" as const,
+      color: wc.text,
+      flexShrink: 1,
+    },
+    referralBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 2,
+      borderRadius: 6,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      backgroundColor: REFERRAL_HIGHLIGHT.badgeBg,
+    },
+    referralBadgeText: {
+      fontSize: 9,
+      fontWeight: "800" as const,
+      letterSpacing: 0.5,
+      color: REFERRAL_HIGHLIGHT.badgeText,
+    },
+    txCategory: {
+      fontSize: 11,
+      fontWeight: "800" as const,
+      letterSpacing: 0.5,
+      textTransform: "uppercase" as const,
+      marginTop: 2,
+    },
+    txAmount: {
+      fontSize: 15,
+      fontWeight: "800" as const,
+    },
+    viewDetailsRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingHorizontal: 16,
+      paddingVertical: 13,
+      borderTopWidth: 1,
+      borderTopColor: wc.hairline,
+      backgroundColor: wc.surfaceMuted,
+    },
+    viewDetailsText: {
+      fontSize: 14,
+      fontWeight: "700" as const,
+    },
+    emptyCard: {
+      alignItems: "center",
+      paddingVertical: 48,
+      gap: 8,
+      backgroundColor: wc.surface,
+      borderRadius: 18,
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: "700" as const,
+      color: wc.textStrong,
+    },
+    emptySub: {
+      fontSize: 13,
+      color: wc.textMuted,
+    },
+    endWrap: {
+      alignItems: "center",
+      marginTop: 36,
+      gap: 18,
+    },
+    endRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    endLine: {
+      width: 56,
+      height: 1.5,
+      backgroundColor: wc.divider,
+    },
+    endText: {
+      fontSize: 13,
+      fontWeight: "800" as const,
+      letterSpacing: 2,
+      color: wc.textFaint,
+    },
+    backTopPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      borderRadius: 999,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+    },
+    backTopText: {
+      fontSize: 14,
+      fontWeight: "800" as const,
+    },
+    homeFab: {
+      position: "absolute" as const,
+      right: 20,
+      bottom: 28,
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      backgroundColor: wc.surface,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000000",
+      shadowOpacity: 0.12,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
+    menuOverlay: {
+      flex: 1,
+    },
+    monthMenu: {
+      position: "absolute" as const,
+      right: 16,
+      backgroundColor: wc.surface,
+      borderRadius: 14,
+      paddingVertical: 6,
+      minWidth: 210,
+      shadowColor: "#000000",
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 8,
+    },
+    monthMenuItem: {
+      paddingHorizontal: 18,
+      paddingVertical: 14,
+    },
+    monthMenuItemText: {
+      fontSize: 17,
+      fontWeight: "600" as const,
+      color: wc.text,
+    },
+    detailScrollContent: {
+      padding: 16,
+      paddingBottom: 60,
+    },
+    detailCard: {
+      backgroundColor: wc.surface,
+      borderRadius: 18,
+      paddingHorizontal: 18,
+      paddingVertical: 20,
+      marginBottom: 16,
+      shadowColor: "#000000",
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+      elevation: 2,
+    },
+    detailHeading: {
+      fontSize: 19,
+      fontWeight: "800" as const,
+      color: wc.text,
+      marginBottom: 14,
+    },
+    detailSubHeading: {
+      fontSize: 16,
+      fontWeight: "800" as const,
+      color: wc.text,
+      marginBottom: 10,
+    },
+    detailRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 16,
+      paddingVertical: 9,
+    },
+    detailLabel: {
+      fontSize: 14,
+      color: wc.textFaint,
+    },
+    detailValue: {
+      fontSize: 14,
+      fontWeight: "700" as const,
+      color: wc.text,
+      flexShrink: 1,
+      textAlign: "right" as const,
+    },
+    detailValueSmall: {
+      fontSize: 12,
+    },
+    detailValueFlex: {
+      flex: 1,
+    },
+    detailStatus: {
+      color: wc.amountPositive,
+    },
+    detailCategoryTag: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      borderRadius: 8,
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+    },
+    detailCategoryText: {
+      fontSize: 12,
+      fontWeight: "800" as const,
+      letterSpacing: 0.3,
+    },
+  });
+}
+
+function useWalletStyles() {
+  const Colors = useColors();
+  const { colorScheme } = useTheme();
+  const wc = useMemo(() => walletPalette(colorScheme === "dark"), [colorScheme]);
+  const styles = useMemo(() => makeStyles(wc, Colors), [wc, Colors]);
+  return { styles, wc, Colors };
+}
