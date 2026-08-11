@@ -210,26 +210,55 @@ reaching for a module-scope one.
 
 98 literals remain across the seven files, all in the categories above.
 
+## Home service tiles (fourth pass)
+
+The five tiles under the home bottom sheet were admin-configurable in label,
+icon, image and linked service entry — but had no destination field at all.
+Every one called `console.log` and nothing else, so a rider tapped a card that
+looked live and got no response: *Disabled state clarity*, "controls that look
+tappable but do nothing".
+
+They now work the way the side-menu items already did:
+
+- `ServiceBoxConfig` gains `route` and `comingSoon`, and the admin editor
+  (Admin → Settings → Display) gains an **Opens** field and a **Coming soon**
+  switch per box. The route picker is the same page list the side menu uses, so
+  a destination is chosen rather than typed.
+- `utils/serviceBoxAction.ts` (pure + tested) resolves a tap: an admin-set
+  route navigates, and everything else — no route, an unusable route, the box
+  marked coming-soon, or the global `serviceEnabled` switch being off — raises
+  the coming-soon notice. **There is no path where a tap does nothing.**
+- Routes are validated before they reach `router.push`: an in-app path only, so
+  a bare name, `https://`, `javascript:`, `file:` or a protocol-relative
+  `//host` is treated as unset rather than handed to the router. Invalid stored
+  routes are also dropped when settings load.
+- The state is visible *before* the tap, not just after: a tile that can only
+  raise the notice carries a **SOON** badge. Small tiles never drew a badge at
+  all, so they now share the large tile's header row.
+- The notice names the service ("Groceries in 30 min isn't available yet")
+  rather than saying "This service".
+
+The badge work turned up one more pre-existing contrast miss: the **NEW** badge
+drew white on `#FF3B30` — **3.55:1**, under AA for 11pt text. It is now
+`#D32F26` (4.99:1), and SOON uses a neutral slate rather than borrowing the red
+that means "new".
+
 ## Known, not fixed
 
 Deliberately out of scope for a targeted pass — each would be its own change:
 
-1. **Home service cards do nothing.** The five service tiles on the home sheet
-   call `console.log` only. They are labelled now, but a control that responds
-   to touch and goes nowhere still violates *Disabled state clarity*. They need
-   either destinations or a coming-soon state.
-2. **The destinations list is keyed by array index** (`dest-manage-${index}`) in
+1. **The destinations list is keyed by array index** (`dest-manage-${index}`) in
    a list that can be reordered by drag and removed from — the one case where
    index keys actually break, since a reorder re-keys every row. The whole drag
    implementation is index-addressed (`getItemAnimatedValue(index)`,
    `createDragResponder(index)`), so fixing the key means giving destinations
    stable ids and rewriting the reorder logic. Left as its own change.
-3. **`hitSlop` coverage app-wide.** 140 files use `TouchableOpacity`; 25 use
+2. **`hitSlop` coverage app-wide.** 140 files use `TouchableOpacity`; 25 use
    `hitSlop`. The partner and admin surfaces were not touched by this pass.
-4. **Reduced motion is not honoured anywhere.** The app runs `Animated`
+3. **Reduced motion is not honoured anywhere.** The app runs `Animated`
    sequences (pin drop, bottom sheets, coin toast) without checking
    `AccessibilityInfo.isReduceMotionEnabled()`.
-5. **Dynamic Type.** No screen was verified at the largest system text size;
+4. **Dynamic Type.** No screen was verified at the largest system text size;
    `allowFontScaling` is left at its default everywhere except the meter console.
 
 ## Re-running the audit

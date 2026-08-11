@@ -28,6 +28,11 @@ import { useTheme } from "@/contexts/ThemeContext";
 import MenuSideSheet from "@/components/MenuSideSheet";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import {
+  resolveServiceBoxAction,
+  serviceBoxBadge,
+  type ServiceBoxAction,
+} from "@/utils/serviceBoxAction";
 
 const { width, height } = Dimensions.get("window");
 const BOTTOM_SHEET_MIN_HEIGHT = 310;
@@ -106,6 +111,7 @@ export default function HomeScreen() {
   const hasInitializedFromParams = useRef(false);
   const [mapKey, setMapKey] = useState<number>(0);
   const [serviceComingSoonVisible, setServiceComingSoonVisible] = useState<boolean>(false);
+  const [comingSoonService, setComingSoonService] = useState<string | null>(null);
   const prevColorScheme = useRef<string>(colorScheme);
   const [currentAddress, setCurrentAddress] = useState<{
     name: string;
@@ -793,19 +799,53 @@ export default function HomeScreen() {
           ? String(linkedSvc.values.name ?? preset.title)
           : preset.title;
       const Icon = SERVICE_ICON_MAP[cfg?.iconName ?? ''] ?? (idx === 0 ? ShoppingBag : idx === 1 ? Car : idx === 2 ? Building2 : idx === 3 ? Package : Truck);
+      const badgeOpts = {
+        serviceEnabled: displaySettings.serviceEnabled,
+        newBadge: idx === 0 && displaySettings.serviceBoxBadge,
+      };
       return {
         id: preset.id,
         title,
-        badge: idx === 0 && displaySettings.serviceBoxBadge ? 'NEW' : undefined,
+        badge: serviceBoxBadge(cfg, badgeOpts),
         Icon,
         imageUri: cfg?.imageUri,
         bg: '#2A2A2A',
         accent: preset.accent,
         large: idx === 0,
+        action: resolveServiceBoxAction(cfg, badgeOpts),
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displaySettings.serviceBoxes, displaySettings.serviceBoxBadge, serviceSettingEntries]);
+  }, [
+    displaySettings.serviceBoxes,
+    displaySettings.serviceBoxBadge,
+    displaySettings.serviceEnabled,
+    serviceSettingEntries,
+  ]);
+
+  const serviceLabel = React.useCallback(
+    (item: { title: string; badge?: string; action: ServiceBoxAction }) => {
+      const title = item.title.replace(/\n/g, " ");
+      if (item.action.kind === "coming-soon") return `${title}, coming soon`;
+      return item.badge ? `${title}, ${item.badge}` : title;
+    },
+    []
+  );
+
+  // Every service tile used to call console.log and nothing else. A tile now
+  // either opens its configured route or says it is coming soon; there is no
+  // path where a tap does nothing.
+  const handleServicePress = React.useCallback(
+    (item: { id: string; title: string; action: ServiceBoxAction }) => {
+      if (item.action.kind === "navigate") {
+        router.push(item.action.route as any);
+        return;
+      }
+      setComingSoonService(item.title);
+      setServiceComingSoonVisible(true);
+    },
+    [router]
+  );
 
   useEffect(() => {
     if (location && !pinLocation) {
@@ -1833,15 +1873,20 @@ export default function HomeScreen() {
                     style={[styles.serviceCardLarge, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
                     accessibilityRole="button"
-                    accessibilityLabel={item.badge ? `${item.title}, ${item.badge}` : item.title}
-                    onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
+                    accessibilityLabel={serviceLabel(item)}
+                    onPress={() => handleServicePress(item)}
                   >
                     <View style={styles.serviceCardHeader}>
                       <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={2}>
                         {item.title}
                       </Text>
                       {item.badge && (
-                        <View style={styles.serviceBadge}>
+                        <View
+                          style={[
+                            styles.serviceBadge,
+                            item.badge === "SOON" && styles.serviceBadgeSoon,
+                          ]}
+                        >
                           <Text style={styles.serviceBadgeText}>{item.badge}</Text>
                         </View>
                       )}
@@ -1865,12 +1910,24 @@ export default function HomeScreen() {
                     style={[styles.serviceCardSmall, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
                     accessibilityRole="button"
-                    accessibilityLabel={item.title}
-                    onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
+                    accessibilityLabel={serviceLabel(item)}
+                    onPress={() => handleServicePress(item)}
                   >
-                    <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
-                      {item.title}
-                    </Text>
+                    <View style={styles.serviceCardHeader}>
+                      <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      {item.badge && (
+                        <View
+                          style={[
+                            styles.serviceBadge,
+                            item.badge === "SOON" && styles.serviceBadgeSoon,
+                          ]}
+                        >
+                          <Text style={styles.serviceBadgeText}>{item.badge}</Text>
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.serviceIconWrapSmall}>
                       {item.imageUri ? (
                         <Image source={{ uri: item.imageUri }} style={styles.serviceIconImageSmall} resizeMode="cover" />
@@ -1891,12 +1948,24 @@ export default function HomeScreen() {
                     style={[styles.serviceCardSmall, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
                     accessibilityRole="button"
-                    accessibilityLabel={item.title}
-                    onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
+                    accessibilityLabel={serviceLabel(item)}
+                    onPress={() => handleServicePress(item)}
                   >
-                    <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
-                      {item.title}
-                    </Text>
+                    <View style={styles.serviceCardHeader}>
+                      <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      {item.badge && (
+                        <View
+                          style={[
+                            styles.serviceBadge,
+                            item.badge === "SOON" && styles.serviceBadgeSoon,
+                          ]}
+                        >
+                          <Text style={styles.serviceBadgeText}>{item.badge}</Text>
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.serviceIconWrapSmall}>
                       {item.imageUri ? (
                         <Image source={{ uri: item.imageUri }} style={styles.serviceIconImageSmall} resizeMode="cover" />
@@ -1918,16 +1987,26 @@ export default function HomeScreen() {
         visible={serviceComingSoonVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setServiceComingSoonVisible(false)}
+        onRequestClose={() => {
+          setServiceComingSoonVisible(false);
+          setComingSoonService(null);
+        }}
         statusBarTranslucent
       >
         <View style={styles.csOverlay}>
-          <View style={[styles.csCard, { backgroundColor: Colors.secondary }]}>
+          <View style={[styles.csCard, { backgroundColor: Colors.secondary }]} accessibilityViewIsModal>
             <Text style={[styles.csTitle, { color: Colors.text }]}>Coming Soon</Text>
-            <Text style={[styles.csBody, { color: Colors.textSecondary }]}>This service isn&apos;t available yet. Please check back later.</Text>
+            <Text style={[styles.csBody, { color: Colors.textSecondary }]}>
+              {comingSoonService
+                ? `${comingSoonService.replace(/\n/g, " ")} isn't available yet. Please check back later.`
+                : "This service isn't available yet. Please check back later."}
+            </Text>
             <TouchableOpacity
               style={[styles.csButton, { backgroundColor: Colors.accent }]}
-              onPress={() => setServiceComingSoonVisible(false)}
+              onPress={() => {
+                setServiceComingSoonVisible(false);
+                setComingSoonService(null);
+              }}
               accessibilityRole="button"
               accessibilityLabel="OK"
               testID="service-coming-soon-ok"
@@ -2400,10 +2479,16 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   serviceBadge: {
-    backgroundColor: '#FF3B30',
+    // Was #FF3B30 — white on it is 3.55:1, under AA for 11pt badge text.
+    backgroundColor: '#D32F26',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+  },
+  serviceBadgeSoon: {
+    // "Coming soon" is a status, not an alert — it should not borrow the red
+    // that means "new".
+    backgroundColor: '#5C5C66',
   },
   serviceBadgeText: {
     color: '#FFFFFF',

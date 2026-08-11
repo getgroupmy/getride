@@ -151,7 +151,8 @@ type PickerMode =
   | { kind: "sidemenu-rename"; menu: SideMenuKey; itemId: string; currentLabel: string; isCustom: boolean }
   | { kind: "sidemenu-add"; menu: SideMenuKey }
   | { kind: "sidemenu-icon"; menu: SideMenuKey; selected: string }
-  | { kind: "sidemenu-route"; menu: SideMenuKey; target: "new" | { itemId: string; isCustom: boolean } };
+  | { kind: "sidemenu-route"; menu: SideMenuKey; target: "new" | { itemId: string; isCustom: boolean } }
+  | { kind: "box-route"; index: number };
 
 export default function AdminSettingsDisplayScreen() {
   const router = useRouter();
@@ -1028,6 +1029,45 @@ export default function AdminSettingsDisplayScreen() {
                   </View>
                 </TouchableOpacity>
 
+                <TouchableOpacity
+                  style={[styles.fieldBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
+                  onPress={() => setPicker({ kind: "box-route", index: idx })}
+                  testID={`display-box-${idx}-route`}
+                >
+                  <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>Opens</Text>
+                  <View style={styles.fieldValueRow}>
+                    <Text
+                      style={[styles.fieldValue, { color: cfg.route ? Colors.text : Colors.textSecondary }]}
+                      numberOfLines={1}
+                    >
+                      {cfg.route ? routeLabelFor(cfg.route) : "Nothing yet — shows Coming Soon"}
+                    </Text>
+                    <ChevronDown color={Colors.textSecondary} size={16} />
+                  </View>
+                </TouchableOpacity>
+
+                <View style={[styles.boxSwitchRow, { borderColor: Colors.border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.fieldLabel, { color: Colors.text }]}>Coming soon</Text>
+                    <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+                      {cfg.route
+                        ? "Show the Coming Soon notice instead of opening the page"
+                        : "Always on while no page is linked"}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={cfg.comingSoon === true || !cfg.route}
+                    disabled={!cfg.route}
+                    onValueChange={(v) => {
+                      updateServiceBox(idx, { comingSoon: v });
+                    }}
+                    trackColor={{ false: Colors.gray[300], true: Colors.accent }}
+                    thumbColor="#fff"
+                    accessibilityLabel={`Box ${idx + 1} coming soon`}
+                    testID={`display-box-${idx}-coming-soon`}
+                  />
+                </View>
+
                 <View style={styles.imageActions}>
                   <TouchableOpacity
                     style={[styles.imageBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
@@ -1281,6 +1321,8 @@ export default function AdminSettingsDisplayScreen() {
                   ? "Choose Icon"
                   : picker?.kind === "sidemenu-route"
                   ? "Link to Page"
+                  : picker?.kind === "box-route"
+                  ? "Box Opens"
                   : ""}
               </Text>
               <TouchableOpacity onPress={() => setPicker(null)} style={styles.modalClose} testID="display-picker-close">
@@ -1682,6 +1724,51 @@ export default function AdminSettingsDisplayScreen() {
                           }
                         }}
                         testID={`display-sidemenu-route-${r.path}`}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
+                            {r.label}
+                          </Text>
+                          <Text style={[styles.rowDesc, { color: Colors.textSecondary }]} numberOfLines={1}>
+                            {r.path}
+                          </Text>
+                        </View>
+                        {selected ? <Check color={Colors.accent} size={18} /> : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : picker?.kind === "box-route" ? (
+                <View style={{ paddingTop: 4 }}>
+                  <TouchableOpacity
+                    style={[styles.optionRow, { borderColor: Colors.border }]}
+                    onPress={() => {
+                      updateServiceBox(picker.index, { route: undefined });
+                      setPicker(null);
+                    }}
+                    testID="display-box-route-none"
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.optionText, { color: Colors.text }]}>None</Text>
+                      <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
+                        Tapping the box shows the Coming Soon notice
+                      </Text>
+                    </View>
+                    {!settings.serviceBoxes[picker.index]?.route ? (
+                      <Check color={Colors.accent} size={18} />
+                    ) : null}
+                  </TouchableOpacity>
+                  {AVAILABLE_MENU_ROUTES.map((r) => {
+                    const selected = settings.serviceBoxes[picker.index]?.route === r.path;
+                    return (
+                      <TouchableOpacity
+                        key={r.path}
+                        style={[styles.optionRow, { borderColor: Colors.border }]}
+                        onPress={() => {
+                              updateServiceBox(picker.index, { route: r.path, comingSoon: false });
+                          setPicker(null);
+                        }}
+                        testID={`display-box-route-${r.path}`}
                       >
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
@@ -2122,6 +2209,16 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     gap: 10,
+  },
+  boxSwitchRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 8,
   },
   boxHeader: {
     flexDirection: "row" as const,
