@@ -433,6 +433,9 @@ export default function WalletScreen() {
                       source={require("@/assets/images/mcash-logo-white.png")}
                       style={styles.topUpMcashLogo}
                       resizeMode="contain"
+                      accessible
+                      accessibilityRole="image"
+                      accessibilityLabel="MCash"
                     />
                   </View>
                 </LinearGradient>
@@ -453,6 +456,8 @@ export default function WalletScreen() {
                         keyboardType="decimal-pad"
                         placeholder="Minimum Amount: RM1"
                         placeholderTextColor="#B4B4BC"
+                        accessibilityLabel="Reload amount in ringgit"
+                        accessibilityHint="Minimum RM1"
                         testID="wallet-amount-input"
                       />
                     </View>
@@ -461,6 +466,8 @@ export default function WalletScreen() {
                         style={[styles.amountClearBtn, { backgroundColor: Colors.accent }]}
                         onPress={() => setAmountText("")}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Clear amount"
                         testID="wallet-amount-clear"
                       >
                         <X color="#FFFFFF" size={14} strokeWidth={3} />
@@ -488,6 +495,9 @@ export default function WalletScreen() {
                             selected && styles.topUpQuickPillSelected,
                           ]}
                           onPress={() => setAmountText(String(q))}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}
+                          accessibilityLabel={`Reload ${q} ringgit`}
                           testID={`wallet-quick-${q}`}
                         >
                           <Text
@@ -512,6 +522,9 @@ export default function WalletScreen() {
                       style={[styles.modalBtn, styles.topUpCancelBtn]}
                       onPress={closeTopUp}
                       disabled={submitting}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel"
+                      accessibilityState={{ disabled: submitting }}
                     >
                       <Text style={[styles.modalBtnText, { color: "#3A3A3C" }]}>Cancel</Text>
                     </TouchableOpacity>
@@ -525,6 +538,10 @@ export default function WalletScreen() {
                         setTopUpStep("method");
                       }}
                       disabled={!canGoNext}
+                      accessibilityRole="button"
+                      accessibilityLabel="Next"
+                      accessibilityState={{ disabled: !canGoNext }}
+                      accessibilityHint={!canGoNext ? "Enter a reload amount of at least RM1 first" : undefined}
                       testID="wallet-topup-next"
                     >
                       <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Next</Text>
@@ -563,13 +580,20 @@ export default function WalletScreen() {
                     Select Reload Method
                   </Text>
 
-                  <View style={styles.methodGroup}>
+                  <View
+                    style={styles.methodGroup}
+                    accessibilityRole="radiogroup"
+                    accessibilityLabel="Select reload method"
+                  >
                     <TouchableOpacity
                       style={styles.methodCard}
                       onPress={() => {
                         setMethodId("fpx");
                         setActionError("");
                       }}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: methodId === "fpx", checked: methodId === "fpx" }}
+                      accessibilityLabel="Online banking, FPX"
                       testID="wallet-method-fpx"
                     >
                       <View
@@ -595,6 +619,9 @@ export default function WalletScreen() {
                         setMethodId("card");
                         setActionError("");
                       }}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: methodId === "card", checked: methodId === "card" }}
+                      accessibilityLabel="Cards, Mastercard or Visa"
                       testID="wallet-method-card"
                     >
                       <View
@@ -643,6 +670,9 @@ export default function WalletScreen() {
                       style={[styles.modalBtn, styles.topUpCancelBtn]}
                       onPress={closeTopUp}
                       disabled={submitting}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel"
+                      accessibilityState={{ disabled: submitting }}
                     >
                       <Text style={[styles.modalBtnText, { color: "#3A3A3C" }]}>Cancel</Text>
                     </TouchableOpacity>
@@ -656,6 +686,10 @@ export default function WalletScreen() {
                       ]}
                       onPress={handleTopUp}
                       disabled={submitting || !methodId}
+                      accessibilityRole="button"
+                      accessibilityLabel={submitting ? "Reloading" : "Reload"}
+                      accessibilityState={{ disabled: submitting || !methodId, busy: submitting }}
+                      accessibilityHint={!methodId ? "Select a reload method first" : undefined}
                       testID="wallet-topup-confirm"
                     >
                       {submitting ? (
@@ -817,7 +851,9 @@ export default function WalletScreen() {
                   </View>
                   <TouchableOpacity
                     onPress={() => setBalanceHidden((v) => !v)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={balanceHidden ? "Show balance" : "Hide balance"}
                     testID="wallet-balance-toggle"
                   >
                     {balanceHidden ? (
@@ -853,6 +889,8 @@ export default function WalletScreen() {
                   style={styles.pillWrap}
                   onPress={openTopUp}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reload GET.wallet"
                   testID="wallet-topup-open"
                 >
                   <LinearGradient
@@ -881,6 +919,8 @@ export default function WalletScreen() {
                     )
                   }
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Scan to pay"
                   testID="wallet-scan"
                 >
                   <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
@@ -901,6 +941,8 @@ export default function WalletScreen() {
                     )
                   }
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Receive by QR code"
                   testID="wallet-receive"
                 >
                   <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
@@ -915,6 +957,8 @@ export default function WalletScreen() {
                   style={styles.pillWrap}
                   onPress={() => setComingSoonVisible(true)}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Transfer"
                   testID="wallet-transfer-open"
                 >
                   <View style={[styles.pillInner, styles.pillWhite, { gap: pillSizing.gap }]}>
@@ -974,6 +1018,8 @@ export default function WalletScreen() {
                 <TouchableOpacity
                   style={[styles.rechargeBtn, { backgroundColor: "#F59E0B" }]}
                   onPress={openRecharge}
+                  accessibilityRole="button"
+                  accessibilityLabel="Recharge GET.credit from GET.wallet"
                   testID="wallet-recharge-open"
                 >
                   <ArrowRightLeft color="#000000" size={16} />
@@ -1005,6 +1051,8 @@ export default function WalletScreen() {
                 <TouchableOpacity
                   style={[styles.rechargeBtn, styles.coinTradeBtn, { backgroundColor: "#EAB308" }]}
                   onPress={() => router.push("/wallet-trade" as any)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Trade GET.coin"
                   testID="wallet-trade-open"
                 >
                   <TrendingUp color="#000000" size={16} />
@@ -1013,6 +1061,8 @@ export default function WalletScreen() {
                 <TouchableOpacity
                   style={styles.coinQrBtn}
                   onPress={() => router.push("/wallet-coin-qr" as any)}
+                  accessibilityRole="button"
+                  accessibilityLabel="GET.coin QR code"
                   testID="wallet-coin-qr-open"
                 >
                   <QrCode color="#92400E" size={16} />
@@ -1036,6 +1086,8 @@ export default function WalletScreen() {
                 style={[styles.referralBtn, { backgroundColor: Colors.accent }]}
                 onPress={() => router.push("/referral-card" as any)}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Invite friends and earn GET.coin"
                 testID="wallet-share-referral"
               >
                 <Share2 color={Colors.onAccent} size={15} />
@@ -1049,7 +1101,9 @@ export default function WalletScreen() {
               <TouchableOpacity
                 style={styles.viewAllBtn}
                 onPress={openHistory}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="View all activity"
                 testID="wallet-view-all"
               >
                 <Text style={styles.viewAllText}>View All</Text>
@@ -1057,7 +1111,7 @@ export default function WalletScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.filterRow}>
+            <View style={styles.filterRow} accessibilityRole="tablist" accessibilityLabel="Filter activity">
                 {(
                   isPartnerMode
                     ? [
@@ -1084,6 +1138,9 @@ export default function WalletScreen() {
                         },
                       ]}
                       onPress={() => setTxFilter(f.id)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      accessibilityLabel={`Show ${f.label} activity`}
                       testID={`wallet-filter-${f.id}`}
                     >
                       <Text
@@ -1680,7 +1737,7 @@ const styles = StyleSheet.create({
     backgroundColor: REFERRAL_HIGHLIGHT.badgeBg,
   },
   referralBadgeText: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "800" as const,
     letterSpacing: 0.5,
     color: REFERRAL_HIGHLIGHT.badgeText,

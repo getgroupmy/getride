@@ -214,6 +214,9 @@ export default function RideTrackingScreen() {
 
   // GET.coin toast shown when the trip completes (coins earned / redeemed).
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
+  // 0 = not yet rated. The stars used to render permanently full, so the
+  // control gave no feedback that a tap had registered.
+  const [rating, setRating] = useState<number>(0);
   const [coinToast, setCoinToast] = useState<{
     earned: number;
     redeemedCoins: number;
@@ -821,6 +824,9 @@ export default function RideTrackingScreen() {
             backgroundColor: mapType === "satellite" ? Colors.accent : Colors.background,
           },
         ]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: mapType === "satellite" }}
+        accessibilityLabel="Satellite view"
         testID="ride-tracking-maptype"
       >
         <Layers
@@ -866,6 +872,8 @@ export default function RideTrackingScreen() {
             }
           }}
           style={[styles.closeBtn, { backgroundColor: Colors.background }]}
+          accessibilityRole="button"
+          accessibilityLabel={phase === "completed" ? "Close and go home" : "Cancel ride"}
         >
           <X color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -934,6 +942,8 @@ export default function RideTrackingScreen() {
               ],
             },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Follow the driver on the map"
         >
           <Crosshair color={Colors.accent} size={22} />
         </TouchableOpacity>
@@ -1018,6 +1028,8 @@ export default function RideTrackingScreen() {
                     activeOpacity={0.85}
                     onPress={handleCall}
                     style={[styles.actionBtn, { backgroundColor: Colors.accent }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Call ${driverName}`}
                   >
                     <Phone color={Colors.onAccent} size={18} />
                     <Text style={[styles.actionText, { color: Colors.onAccent }]}>Call</Text>
@@ -1026,6 +1038,8 @@ export default function RideTrackingScreen() {
                     activeOpacity={0.85}
                     onPress={handleMessage}
                     style={[styles.actionBtn, { backgroundColor: Colors.gray[200] }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Message ${driverName}`}
                   >
                     <MessageCircle color={Colors.text} size={18} />
                     <Text style={[styles.actionText, { color: Colors.text }]}>Message</Text>
@@ -1073,6 +1087,8 @@ export default function RideTrackingScreen() {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   style={[styles.secondaryBtn, { borderColor: Colors.gray[200] }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Share trip"
                   onPress={() => {
                     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
                     Linking.openURL("sms:?body=Track my ride").catch(() => {});
@@ -1084,6 +1100,8 @@ export default function RideTrackingScreen() {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   style={[styles.secondaryBtn, { borderColor: Colors.gray[200] }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Safety"
                   onPress={() => {
                     if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
                   }}
@@ -1094,7 +1112,13 @@ export default function RideTrackingScreen() {
               </View>
 
               {phase === "arriving" && (
-                <TouchableOpacity activeOpacity={0.8} style={styles.cancelLink} onPress={openCancel}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.cancelLink}
+                  onPress={openCancel}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel ride"
+                >
                   <Text style={[styles.cancelLinkText, { color: Colors.error }]}>Cancel ride</Text>
                 </TouchableOpacity>
               )}
@@ -1104,6 +1128,9 @@ export default function RideTrackingScreen() {
                   activeOpacity={0.9}
                   style={[styles.sosBtn, { backgroundColor: Colors.error }]}
                   onPress={handleSos}
+                  accessibilityRole="button"
+                  accessibilityLabel="SOS, emergency"
+                  accessibilityHint="Alerts your emergency contacts and support"
                 >
                   <ShieldAlert color="#FFFFFF" size={20} />
                   <Text style={styles.sosText}>SOS · Emergency</Text>
@@ -1155,24 +1182,40 @@ export default function RideTrackingScreen() {
               </View>
 
               <Text style={[styles.rateTitle, { color: Colors.text }]}>Rate your trip</Text>
-              <View style={styles.starsRow}>
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <TouchableOpacity
-                    key={s}
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
-                    }}
-                  >
-                    <Star color={Colors.warning} size={36} fill={Colors.warning} />
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.starsRow} accessibilityRole="radiogroup" accessibilityLabel="Rate your trip">
+                {[1, 2, 3, 4, 5].map((s) => {
+                  const filled = s <= rating;
+                  return (
+                    <TouchableOpacity
+                      key={s}
+                      activeOpacity={0.7}
+                      // 36pt glyph; slop brings the tap area to 44pt without
+                      // widening the row.
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: rating === s, checked: rating === s }}
+                      accessibilityLabel={s === 1 ? "1 star" : `${s} stars`}
+                      onPress={() => {
+                        setRating(s);
+                        if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
+                      }}
+                    >
+                      <Star
+                        color={filled ? Colors.warning : Colors.gray[300]}
+                        size={36}
+                        fill={filled ? Colors.warning : "transparent"}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={() => router.replace("/" as any)}
                 style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
+                accessibilityRole="button"
+                accessibilityLabel="Done"
               >
                 <Text style={[styles.primaryBtnText, { color: Colors.onAccent }]}>Done</Text>
                 <ChevronRight color={Colors.onAccent} size={20} />
@@ -1211,7 +1254,7 @@ export default function RideTrackingScreen() {
                 : "Your driver is already on the way. Let us know why you’re cancelling."}
             </Text>
 
-            <View style={styles.cancelReasonList}>
+            <View style={styles.cancelReasonList} accessibilityRole="radiogroup" accessibilityLabel="Reason for cancelling">
               {[
                 { id: "driver_too_long", label: "Driver taking too long" },
                 { id: "driver_not_moving", label: "Driver isn’t moving" },
@@ -1226,6 +1269,9 @@ export default function RideTrackingScreen() {
                     key={opt.id}
                     testID={`rider-cancel-reason-${opt.id}`}
                     activeOpacity={0.85}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected, checked: isSelected }}
+                    accessibilityLabel={opt.label}
                     onPress={() => {
                       setCancelReason(opt.id);
                       if (Platform.OS !== "web") Haptics.selectionAsync().catch(() => {});
@@ -1256,21 +1302,27 @@ export default function RideTrackingScreen() {
             </View>
 
             {cancelReason === "other" && (
-              <View
-                style={[
-                  styles.cancelOtherWrap,
-                  { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] },
-                ]}
-              >
-                <TextInput
-                  testID="rider-cancel-reason-other-input"
-                  value={cancelOtherText}
-                  onChangeText={setCancelOtherText}
-                  placeholder="Type your reason"
-                  placeholderTextColor={Colors.textSecondary}
-                  style={[styles.cancelOtherInput, { color: Colors.text }]}
-                  autoFocus
-                />
+              <View style={styles.cancelOtherField}>
+                <Text style={[styles.cancelOtherLabel, { color: Colors.textSecondary }]}>
+                  Your reason
+                </Text>
+                <View
+                  style={[
+                    styles.cancelOtherWrap,
+                    { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] },
+                  ]}
+                >
+                  <TextInput
+                    testID="rider-cancel-reason-other-input"
+                    value={cancelOtherText}
+                    onChangeText={setCancelOtherText}
+                    placeholder="Type your reason"
+                    placeholderTextColor={Colors.textSecondary}
+                    style={[styles.cancelOtherInput, { color: Colors.text }]}
+                    accessibilityLabel="Your reason for cancelling"
+                    autoFocus
+                  />
+                </View>
               </View>
             )}
 
@@ -1279,6 +1331,8 @@ export default function RideTrackingScreen() {
                 activeOpacity={0.85}
                 onPress={() => closeCancel()}
                 style={[styles.cancelGhost, { backgroundColor: Colors.gray[100] }]}
+                accessibilityRole="button"
+                accessibilityLabel="Keep ride"
               >
                 <Text style={[styles.cancelGhostText, { color: Colors.text }]}>Keep ride</Text>
               </TouchableOpacity>
@@ -1287,6 +1341,12 @@ export default function RideTrackingScreen() {
                 activeOpacity={0.85}
                 onPress={confirmCancel}
                 disabled={!cancelReason || (cancelReason === "other" && !cancelOtherText.trim())}
+                accessibilityRole="button"
+                accessibilityLabel={phase === "onTrip" && requestId ? "Request cancel" : "Cancel ride"}
+                accessibilityState={{
+                  disabled: !cancelReason || (cancelReason === "other" && !cancelOtherText.trim()),
+                }}
+                accessibilityHint={!cancelReason ? "Pick a reason first" : undefined}
                 style={[
                   styles.cancelConfirm,
                   {
@@ -1718,11 +1778,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  cancelOtherField: { width: "100%", marginBottom: 14 },
+  cancelOtherLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 6,
+  },
   cancelOtherWrap: {
     width: "100%",
     borderWidth: 1,
     borderRadius: 14,
-    marginBottom: 14,
   },
   cancelOtherInput: { fontSize: 14, paddingVertical: 12, paddingHorizontal: 14 },
   cancelActions: { flexDirection: "row", gap: 12, width: "100%" },

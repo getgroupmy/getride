@@ -1338,6 +1338,13 @@ export default function HomeScreen() {
               }
             }}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ busy: isLoadingAddress }}
+            accessibilityLabel={
+              isLoadingAddress
+                ? "Finding your pickup point"
+                : `Pickup point: ${currentAddress?.name || "not set"}. Change pickup location`
+            }
           >
             {isLoadingAddress ? (
               <Animated.View 
@@ -1392,6 +1399,8 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={[styles.menuButton, { backgroundColor: Colors.secondary }]}
                 onPress={handleOpenMenu}
+                accessibilityRole="button"
+                accessibilityLabel="Open menu"
               >
                 <Menu color={Colors.text} size={24} />
               </TouchableOpacity>
@@ -1431,6 +1440,11 @@ export default function HomeScreen() {
           >
             <TouchableOpacity
               style={styles.infoSheetCloseButton}
+              // 32pt visual circle; hitSlop lifts the tap area to 48pt without
+              // moving the icon off the sheet corner.
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
               onPress={() => {
                 Animated.timing(infoSheetAnim, {
                   toValue: 300,
@@ -1462,6 +1476,8 @@ export default function HomeScreen() {
             
             <TouchableOpacity
               style={[styles.infoSheetOkButton, { backgroundColor: Colors.gray[700] }]}
+              accessibilityRole="button"
+              accessibilityLabel="OK"
               onPress={() => {
                 Animated.timing(infoSheetAnim, {
                   toValue: 300,
@@ -1508,6 +1524,10 @@ export default function HomeScreen() {
             setMapType((prev) => (prev === "standard" ? "satellite" : "standard"));
           }}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityState={{ selected: mapType === "satellite" }}
+          accessibilityLabel="Satellite view"
+          accessibilityHint={mapType === "satellite" ? "Switches back to the standard map" : "Switches the map to satellite imagery"}
           testID="map-type-toggle"
         >
           <Layers
@@ -1575,6 +1595,8 @@ export default function HomeScreen() {
             }
           }}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Recenter map on my location"
         >
           <Navigation color={colorScheme === 'dark' ? Colors.accent : '#000'} size={22} />
         </TouchableOpacity>
@@ -1641,6 +1663,9 @@ export default function HomeScreen() {
                   }
                 }}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${type.name}, seats ${type.capacity}`}
               >
                 <Animated.View
                   style={[
@@ -1664,7 +1689,11 @@ export default function HomeScreen() {
                         useNativeDriver: true,
                       }).start();
                     }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    // 18pt badge; 14pt of slop on each side brings the tap area
+                    // up to 46pt, over the 44pt minimum.
+                    hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`About ${type.name}`}
                   >
                     <Text style={styles.rideTypeInfoBadgeText}>i</Text>
                   </TouchableOpacity>
@@ -1704,6 +1733,8 @@ export default function HomeScreen() {
           {displaySettings.searchBar ? (
           <TouchableOpacity
           style={[styles.searchButton, { backgroundColor: Colors.gray[100] }]}
+          accessibilityRole="search"
+          accessibilityLabel="Where to and for how much? Search a destination"
           onPress={() => {
             if (!displaySettings.serviceEnabled) {
               setServiceComingSoonVisible(true);
@@ -1778,6 +1809,8 @@ export default function HomeScreen() {
                 }
               }}
               activeOpacity={0.6}
+              accessibilityRole="button"
+              accessibilityLabel={`Ride to ${loc.name}`}
             >
               <MapPin color={Colors.textSecondary} size={20} />
               <Text style={[styles.recentLocationText, { color: Colors.text }]}>
@@ -1799,6 +1832,8 @@ export default function HomeScreen() {
                     key={item.id}
                     style={[styles.serviceCardLarge, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.badge ? `${item.title}, ${item.badge}` : item.title}
                     onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
                   >
                     <View style={styles.serviceCardHeader}>
@@ -1829,6 +1864,8 @@ export default function HomeScreen() {
                     key={item.id}
                     style={[styles.serviceCardSmall, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.title}
                     onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
                   >
                     <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
@@ -1853,6 +1890,8 @@ export default function HomeScreen() {
                     key={item.id}
                     style={[styles.serviceCardSmall, { backgroundColor: item.bg }]}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.title}
                     onPress={() => console.log('[HomeScreen] service tapped:', item.id)}
                   >
                     <Text style={[styles.serviceCardTitle, { color: Colors.text }]} numberOfLines={1}>
@@ -1889,6 +1928,8 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={[styles.csButton, { backgroundColor: Colors.accent }]}
               onPress={() => setServiceComingSoonVisible(false)}
+              accessibilityRole="button"
+              accessibilityLabel="OK"
               testID="service-coming-soon-ok"
             >
               <Text style={[styles.csButtonText, { color: Colors.onAccent }]}>OK</Text>
