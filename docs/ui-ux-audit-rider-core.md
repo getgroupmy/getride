@@ -5,8 +5,8 @@ Audit of the screens every passenger touches on every trip, run against the
 [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)
 at `abb7f2f`, MIT).
 
-Screens in scope: `app/index.tsx` (home map), `app/ride-tracking.tsx`,
-`app/wallet.tsx`, `components/MenuSideSheet.tsx`.
+Screens in scope: `app/index.tsx` (home map), `app/ride-confirm.tsx`,
+`app/ride-tracking.tsx`, `app/wallet.tsx`, `components/MenuSideSheet.tsx`.
 
 ## Which parts of the skill apply here
 
@@ -94,6 +94,64 @@ announces these as "button" with no name.
   index as key"). They now carry and key by their stable `id`, so reordering or
   hiding a menu item from admin settings no longer re-keys the rows.
 
+## `app/ride-confirm.tsx` (second pass)
+
+The booking screen — 6,066 lines, 70 touchables, 0 accessibility attributes, 2
+`hitSlop`. It is the screen between picking a destination and getting a driver,
+so everything below was on the critical path of every booking.
+
+### Four controls that did nothing
+
+- **Two `Info` buttons** beside the ride-type name. `onPress` was
+  `(e) => { e.stopPropagation(); }` — it swallowed the tap and returned.
+  **Removed**: the description they would have shown is already rendered two
+  lines below the title, so nothing is lost.
+- **Two `Pencil` "edit" buttons** on the selected ride card, same empty handler.
+  The pencil sits exactly where the fare shows on every other card, and its own
+  parent card opens the fare editor. **Wired to `handleOpenOfferFare`.**
+- **The settings square** in the bottom bar next to *Find a driver* had no
+  `onPress` prop at all, and drew a white `SlidersHorizontal` on
+  `colors.gray[100]` — **1.10:1 contrast**, invisible in light mode.
+  **Removed**; `findDriverButton` is `flex: 1`, so the primary CTA takes the
+  width back.
+
+### Buttons nested inside buttons
+
+The **Entrance** chip lived inside the "change pickup" touchable, and the
+**+ add stop** button inside the "change destination" touchable (twice). Nested
+touchables share a press region and collapse into a single accessibility
+element, so the inner control had no independent existence. All three are now
+siblings in their row; row spacing moved to the row wrapper so the layout is
+unchanged.
+
+### Emoji and glyphs as icons
+
+- Cash payment drew `💵` at `fontSize: 16` → `Banknote` (7.0:1 on its mint chip).
+- The platinum tier badge drew `◆` in `colors.text` on a `#7C3AED` chip —
+  **3.11:1**, failing AA → `Gem` in white, **5.70:1**.
+
+### Names, states and targets
+
+- 74 accessibility labels and 68 roles added, from 0. Every icon-only control is
+  named: back, recenter, cancel request, payment, promo clear, promo submit
+  (a 180°-rotated `ArrowLeft`), seven sheet close buttons, the keypad's delete,
+  the drag handles, and all seven full-screen sheet scrims — each of which was
+  an unnamed screen-sized button.
+- **Selection exposed** on ride-type cards and payment methods (`radio` +
+  `checked`), which previously signalled selection with a border colour only.
+- **Disabled/busy announced** on both fare steppers, *Raise fare*, *Apply promo*
+  and *Remove stop*, with hints ("Increase the fare above first").
+- **Switches had no name at all** — `Use GET.coin`, and both auto-accept toggles.
+  A `Switch` announces its on/off value but not what it controls.
+- **Promo errors** are now an `accessibilityLiveRegion`, so a rejected code is
+  spoken rather than only drawn.
+- **Twelve touch targets** raised to 44pt via `hitSlop`: the 32pt sheet closes
+  (×6), 36pt payment and remove buttons, the 28pt promo clear, the 32pt add-stop,
+  the entrance chip and the edit pencil.
+- `fareLabel` and `coinEarnText` raised 11pt → 12pt, the documented floor.
+  `keypadLetters` (10pt "ABC") and the map's toll marker text are left alone —
+  both match platform conventions for their context and neither is body copy.
+
 ## Known, not fixed
 
 Deliberately out of scope for a targeted pass — each would be its own change:
@@ -106,9 +164,12 @@ Deliberately out of scope for a targeted pass — each would be its own change:
    call `console.log` only. They are labelled now, but a control that responds
    to touch and goes nowhere still violates *Disabled state clarity*. They need
    either destinations or a coming-soon state.
-3. **`app/ride-confirm.tsx` (6,066 lines) was not audited.** It has 70
-   `TouchableOpacity` instances and 2 `hitSlop` — by volume the largest
-   remaining accessibility gap in the rider flow.
+3. **The destinations list is keyed by array index** (`dest-manage-${index}`) in
+   a list that can be reordered by drag and removed from — the one case where
+   index keys actually break, since a reorder re-keys every row. The whole drag
+   implementation is index-addressed (`getItemAnimatedValue(index)`,
+   `createDragResponder(index)`), so fixing the key means giving destinations
+   stable ids and rewriting the reorder logic. Left as its own change.
 4. **`hitSlop` coverage app-wide.** 140 files use `TouchableOpacity`; 25 use
    `hitSlop`. The partner and admin surfaces were not touched by this pass.
 5. **Reduced motion is not honoured anywhere.** The app runs `Animated`

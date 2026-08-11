@@ -27,11 +27,11 @@ import {
   Minus, 
   Plus, 
   CreditCard,
-  SlidersHorizontal,
   Send,
   X,
   Check,
   Banknote,
+  Gem,
   Route,
   Delete,
   Tag,
@@ -2571,7 +2571,7 @@ export default function RideConfirmScreen() {
       color: colors.text,
     },
     fareLabel: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.textSecondary,
       marginTop: 2,
     },
@@ -2796,7 +2796,7 @@ export default function RideConfirmScreen() {
       marginTop: 5,
     },
     coinEarnText: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: "700" as const,
       color: "#B45309",
     },
@@ -3108,11 +3108,6 @@ export default function RideConfirmScreen() {
       alignItems: "center" as const,
       borderWidth: 2,
       borderColor: "#fff",
-    },
-    driverBadgeText: {
-      color: colors.text,
-      fontSize: 10,
-      fontWeight: "700" as const,
     },
     driverInfoContainer: {
       flex: 1,
@@ -4364,12 +4359,12 @@ export default function RideConfirmScreen() {
 
       {/* Top Location Overlay - hide when searching or sheet is expanded */}
       {!isSearchingDriver && !isExpanded && <Animated.View style={[styles.topOverlay, { transform: [{ translateX: displaySettings.rcAddressHorizontal }, { translateY: displaySettings.rcAddressVertical }] }]} {...menuPanResponder.panHandlers}>
-        <View style={{ flexDirection: "row" }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 12 }}>
           <View style={styles.locationIconContainer}>
             <View style={[styles.locationDot, styles.pickupDot]} />
           </View>
           <TouchableOpacity 
-            style={{ flex: 1, flexDirection: "row", alignItems: "flex-start", marginBottom: 12 }}
+            style={{ flex: 1, flexDirection: "row", alignItems: "flex-start" }}
             onPress={() => {
               setSkipNextLocationDetection(true);
               router.push({
@@ -4386,17 +4381,25 @@ export default function RideConfirmScreen() {
               });
             }}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Pickup: ${pickup}. Change pickup location`}
           >
             <Text style={styles.locationText}>
               {pickup}
             </Text>
-            <TouchableOpacity style={styles.entranceButton} onPress={openEntranceSheet}>
-              <Text style={styles.entranceText}>Entrance{entranceValue ? ` ${entranceValue}` : ''}</Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.entranceButton}
+            onPress={openEntranceSheet}
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={entranceValue ? `Entrance ${entranceValue}. Change entrance` : "Set entrance"}
+          >
+            <Text style={styles.entranceText}>Entrance{entranceValue ? ` ${entranceValue}` : ''}</Text>
           </TouchableOpacity>
         </View>
         {destinations.length === 1 ? (
-          <View style={{ flexDirection: "row" }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
             <View style={styles.locationIconContainer}>
               <View style={[styles.locationDot, styles.destDot]} />
             </View>
@@ -4420,38 +4423,43 @@ export default function RideConfirmScreen() {
                 });
               }}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`Destination: ${destinations[0].address}. Change destination`}
             >
             <View style={styles.destTextContainer}>
               <Text style={styles.destAddressText}>
                 {destinations[0].address}{duration && !isCalculatingFare ? <Text style={styles.durationText}>  {formatTotalDuration()}</Text> : ''}
               </Text>
             </View>
-              {destinations.length < 5 && (
-                <TouchableOpacity 
-                  style={styles.addButton}
-                  onPress={() => {
-                    setSkipNextLocationDetection(true);
-                    router.push({
-                      pathname: '/search',
-                      params: {
-                        editingField: 'destination',
-                        addingNewDestination: 'true',
-                        currentPickup: pickup,
-                        currentDestination: '',
-                        pickupLat: pickupLat.toString(),
-                        pickupLng: pickupLng.toString(),
-                        allDestinations: JSON.stringify(destinations),
-                      },
-                    });
-                  }}
-                >
-                  <Plus color="#fff" size={20} />
-                </TouchableOpacity>
-              )}
             </TouchableOpacity>
+            {destinations.length < 5 && (
+              <TouchableOpacity
+                style={styles.addButton}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Add another stop"
+                onPress={() => {
+                  setSkipNextLocationDetection(true);
+                  router.push({
+                    pathname: '/search',
+                    params: {
+                      editingField: 'destination',
+                      addingNewDestination: 'true',
+                      currentPickup: pickup,
+                      currentDestination: '',
+                      pickupLat: pickupLat.toString(),
+                      pickupLng: pickupLng.toString(),
+                      allDestinations: JSON.stringify(destinations),
+                    },
+                  });
+                }}
+              >
+                <Plus color="#fff" size={20} />
+              </TouchableOpacity>
+            )}
           </View>
         ) : (
-          <View style={{ flexDirection: "row" }}>
+          <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
             <View style={styles.locationIconContainer}>
               <View style={[styles.locationDot, styles.destDot]} />
             </View>
@@ -4459,35 +4467,40 @@ export default function RideConfirmScreen() {
               style={{ flex: 1, flexDirection: "row", alignItems: "flex-start" }}
               onPress={openDestinationsSheet}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`${destinations.length} route stops. Manage stops`}
             >
             <View style={styles.destTextContainer}>
               <Text style={styles.destAddressText}>
                 {destinations.length} route stops{duration && !isCalculatingFare ? <Text style={styles.durationText}>  {formatTotalDuration()}</Text> : ''}
               </Text>
             </View>
-              {destinations.length < 5 && (
-                <TouchableOpacity 
-                  style={styles.addButton}
-                  onPress={() => {
-                    setSkipNextLocationDetection(true);
-                    router.push({
-                      pathname: '/search',
-                      params: {
-                        editingField: 'destination',
-                        addingNewDestination: 'true',
-                        currentPickup: pickup,
-                        currentDestination: '',
-                        pickupLat: pickupLat.toString(),
-                        pickupLng: pickupLng.toString(),
-                        allDestinations: JSON.stringify(destinations),
-                      },
-                    });
-                  }}
-                >
-                  <Plus color="#fff" size={20} />
-                </TouchableOpacity>
-              )}
             </TouchableOpacity>
+            {destinations.length < 5 && (
+              <TouchableOpacity
+                style={styles.addButton}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Add another stop"
+                onPress={() => {
+                  setSkipNextLocationDetection(true);
+                  router.push({
+                    pathname: '/search',
+                    params: {
+                      editingField: 'destination',
+                      addingNewDestination: 'true',
+                      currentPickup: pickup,
+                      currentDestination: '',
+                      pickupLat: pickupLat.toString(),
+                      pickupLng: pickupLng.toString(),
+                      allDestinations: JSON.stringify(destinations),
+                    },
+                  });
+                }}
+              >
+                <Plus color="#fff" size={20} />
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </Animated.View>}
@@ -4501,6 +4514,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity
             style={{ flex: 1 }}
             activeOpacity={1}
+            accessibilityRole="button"
+            accessibilityLabel="Close menu"
             onPress={handleCloseMenuFromOverlay}
           >
             <Animated.View
@@ -4515,7 +4530,12 @@ export default function RideConfirmScreen() {
 
       {/* Cancel Request Button - show when searching but not when raise fare sheet is shown */}
       {isSearchingDriver && !showRaiseFareSheet && (
-        <TouchableOpacity style={styles.cancelRequestButton} onPress={openCancelConfirmSheet}>
+        <TouchableOpacity
+          style={styles.cancelRequestButton}
+          onPress={openCancelConfirmSheet}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel request"
+        >
           <X color={colors.background === "#000000" ? "#FFFFFF" : "#000000"} size={20} />
           <Text style={styles.cancelRequestText}>Cancel request</Text>
         </TouchableOpacity>
@@ -4543,6 +4563,8 @@ export default function RideConfirmScreen() {
               setSkipNextLocationDetection(true);
               router.back();
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <ArrowLeft color={colors.text} size={22} />
           </TouchableOpacity>
@@ -4576,6 +4598,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity
             style={{ width: "100%", height: "100%", justifyContent: "center", alignItems: "center" }}
             onPress={handleRecenterMap}
+            accessibilityRole="button"
+            accessibilityLabel="Show the whole route"
           >
             <Route color={colors.text} size={22} />
           </TouchableOpacity>
@@ -4657,8 +4681,12 @@ export default function RideConfirmScreen() {
                   <View style={styles.driverPhotoContainer}>
                     <Image source={{ uri: offer.photo }} style={styles.driverPhoto} />
                     {offer.tier === 'platinum' && (
-                      <View style={styles.driverBadge}>
-                        <Text style={styles.driverBadgeText}>◆</Text>
+                      <View
+                        style={styles.driverBadge}
+                        accessible
+                        accessibilityLabel="Platinum driver"
+                      >
+                        <Gem color="#FFFFFF" size={11} />
                       </View>
                     )}
                   </View>
@@ -4689,12 +4717,16 @@ export default function RideConfirmScreen() {
                   <TouchableOpacity 
                     style={styles.declineButton}
                     onPress={() => handleDeclineOffer(offer.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Decline ${offer.name}'s offer`}
                   >
                     <Text style={styles.declineButtonText}>Decline</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.acceptButton}
                     onPress={() => handleAcceptOffer(offer)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Accept ${offer.name}, ${currency.symbol} ${offer.price}, ${offer.eta} minutes away`}
                   >
                     <View style={styles.acceptButtonBackground}>
                       <View style={styles.acceptButtonUnfilled} />
@@ -4774,6 +4806,9 @@ export default function RideConfirmScreen() {
                 style={searchFareAdjustment > 0 ? styles.searchFareButton : styles.searchFareButtonDisabled}
                 onPress={() => adjustSearchFare(-10)}
                 disabled={searchFareAdjustment <= 0}
+                accessibilityRole="button"
+                accessibilityLabel={`Lower fare by 10 ${currency.symbol}`}
+                accessibilityState={{ disabled: searchFareAdjustment <= 0 }}
               >
                 <Text style={searchFareAdjustment > 0 ? styles.searchFareButtonText : styles.searchFareButtonTextDisabled}>- 10</Text>
               </TouchableOpacity>
@@ -4783,6 +4818,8 @@ export default function RideConfirmScreen() {
               <TouchableOpacity 
                 style={styles.searchFareButton}
                 onPress={() => adjustSearchFare(10)}
+                accessibilityRole="button"
+                accessibilityLabel={`Raise fare by 10 ${currency.symbol}`}
               >
                 <Text style={styles.searchFareButtonText}>+ 10</Text>
               </TouchableOpacity>
@@ -4790,6 +4827,10 @@ export default function RideConfirmScreen() {
             <TouchableOpacity 
               style={searchFareAdjustment > 0 ? styles.raiseFareButton : styles.raiseFareButtonDisabled}
               disabled={searchFareAdjustment <= 0}
+              accessibilityRole="button"
+              accessibilityLabel="Raise fare"
+              accessibilityState={{ disabled: searchFareAdjustment <= 0 }}
+              accessibilityHint={searchFareAdjustment <= 0 ? "Increase the fare above first" : undefined}
               onPress={() => {
                 persistRaisedFare(estimatedPrice + committedFareRaise + searchFareAdjustment);
                 setCommittedFareRaise(prev => prev + searchFareAdjustment);
@@ -4824,12 +4865,13 @@ export default function RideConfirmScreen() {
                 onValueChange={setSearchAutoAccept}
                 trackColor={{ false: "#E5E5E5", true: "#4a5a3a" }}
                 thumbColor={searchAutoAccept ? "#2dabe2" : "#fff"}
+                accessibilityLabel={`Auto-accept an offer of ${currency.symbol} ${estimatedPrice + committedFareRaise + searchFareAdjustment} up to 5 minutes away`}
               />
             </View>
             <View style={styles.searchPaymentRow}>
               {selectedPaymentMethod === 'cash' ? (
                 <View style={[styles.searchPaymentIcon, { backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center', borderRadius: 15 }]}>
-                  <Text style={{ fontSize: 16 }}>💵</Text>
+                  <Banknote color="#1B5E20" size={18} />
                 </View>
               ) : (
                 <Image 
@@ -4859,7 +4901,13 @@ export default function RideConfirmScreen() {
           ]}
           {...menuPanResponder.panHandlers}
         >
-          <TouchableOpacity style={styles.promoBannerContent} onPress={openPromoCodeSheet} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.promoBannerContent}
+            onPress={openPromoCodeSheet}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Got a promo code? Enter it here"
+          >
             <Tag color="#6B7280" size={18} />
             <Text style={styles.promoBannerText}>Got promo code? Use it here</Text>
             <ChevronRight color="#6B7280" size={20} />
@@ -4943,6 +4991,10 @@ export default function RideConfirmScreen() {
                     style={{ flex: 1 }}
                     onPress={() => isSelected ? handleOpenOfferFare() : handleRideSelect(ride)}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`${displayName}, seats ${ride.capacity}, ${currency.symbol} ${isSelected ? adjustedRidePrice : ridePrice}`}
+                    accessibilityHint={isSelected ? "Opens the fare editor" : "Selects this ride type"}
                   >
                     <View style={isSelected ? styles.collapsedRideContentSelected : styles.collapsedRideContent}>
                       <View style={styles.rideCarImageContainer}>
@@ -4955,7 +5007,6 @@ export default function RideConfirmScreen() {
                       <View style={styles.rideOptionInfo}>
                         <View style={styles.rideOptionTitleRow}>
                           <Text style={styles.rideOptionTitle}>{displayName}</Text>
-                          {isSelected && <TouchableOpacity onPress={(e) => { e.stopPropagation(); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Info color="#6B7280" size={14} /></TouchableOpacity>}
                         </View>
                         <View style={styles.rideOptionCapacity}>
                           <Users color="#9CA3AF" size={13} />
@@ -4964,7 +5015,13 @@ export default function RideConfirmScreen() {
                         <Text style={styles.rideOptionDesc}>{description}</Text>
                       </View>
                       {isSelected ? (
-                        <TouchableOpacity style={styles.editButton} onPress={(e) => { e.stopPropagation(); }}>
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          onPress={(e) => { e.stopPropagation(); handleOpenOfferFare(); }}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Edit fare"
+                        >
                           <Pencil color="#9CA3AF" size={18} />
                         </TouchableOpacity>
                       ) : (
@@ -4985,11 +5042,19 @@ export default function RideConfirmScreen() {
                         <TouchableOpacity 
                           style={styles.fareButton} 
                           onPress={(e) => { e.stopPropagation(); adjustFare(-5); }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Lower fare by 5 ${currency.symbol}`}
                         >
                           <Minus color={colors.text} size={24} />
                         </TouchableOpacity>
                         )}
-                        <TouchableOpacity style={styles.fareCenter} onPress={handleOpenOfferFare} activeOpacity={0.7}>
+                        <TouchableOpacity
+                          style={styles.fareCenter}
+                          onPress={handleOpenOfferFare}
+                          activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel="Offer your own fare"
+                        >
                           <RollingFareAmount
                             style={styles.fareAmount}
                             prefix={currency.symbol}
@@ -5011,7 +5076,12 @@ export default function RideConfirmScreen() {
                             </View>
                           )}
                           {displaySettings.showAiTollBooths && tollBooths.length > 0 && (
-                            <TouchableOpacity style={styles.tollChargesRow} onPress={(e) => { e.stopPropagation(); openTollSheet(); }}>
+                            <TouchableOpacity
+                              style={styles.tollChargesRow}
+                              onPress={(e) => { e.stopPropagation(); openTollSheet(); }}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Estimated ${tollBooths.length} toll booths. See the list`}
+                            >
                               <Text style={styles.tollChargesText}>
                                 Est. Toll Booths: {tollBooths.length}
                               </Text>
@@ -5034,6 +5104,8 @@ export default function RideConfirmScreen() {
                         <TouchableOpacity
                           style={styles.fareButton}
                           onPress={(e) => { e.stopPropagation(); adjustFare(5); }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Raise fare by 5 ${currency.symbol}`}
                         >
                           <Plus color={colors.text} size={24} />
                         </TouchableOpacity>
@@ -5076,6 +5148,10 @@ export default function RideConfirmScreen() {
                         style={styles.selectedRideCard}
                         onPress={handleOpenOfferFare}
                         activeOpacity={0.8}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: true }}
+                        accessibilityLabel={`${displayName}, seats ${ride.capacity}, ${currency.symbol} ${adjustedRidePrice}`}
+                        accessibilityHint="Opens the fare editor"
                       >
                         <View style={styles.rideCarImageContainer}>
                           <Image
@@ -5087,7 +5163,6 @@ export default function RideConfirmScreen() {
                         <View style={styles.rideOptionInfo}>
                           <View style={styles.rideOptionTitleRow}>
                             <Text style={styles.rideOptionTitle}>{displayName}</Text>
-                            <TouchableOpacity onPress={(e) => { e.stopPropagation(); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Info color="#6B7280" size={14} /></TouchableOpacity>
                           </View>
                           <View style={styles.rideOptionCapacity}>
                             <Users color="#9CA3AF" size={13} />
@@ -5095,7 +5170,13 @@ export default function RideConfirmScreen() {
                           </View>
                           <Text style={styles.rideOptionDesc}>{description}</Text>
                         </View>
-                        <TouchableOpacity style={styles.editButton} onPress={(e) => { e.stopPropagation(); }}>
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          onPress={(e) => { e.stopPropagation(); handleOpenOfferFare(); }}
+                          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Edit fare"
+                        >
                           <Pencil color="#9CA3AF" size={18} />
                         </TouchableOpacity>
                       </TouchableOpacity>
@@ -5106,11 +5187,19 @@ export default function RideConfirmScreen() {
                         <TouchableOpacity 
                           style={styles.fareButton} 
                           onPress={(e) => { e.stopPropagation(); adjustFare(-5); }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Lower fare by 5 ${currency.symbol}`}
                         >
                           <Minus color={colors.text} size={24} />
                         </TouchableOpacity>
                         )}
-                        <TouchableOpacity style={styles.fareCenter} onPress={handleOpenOfferFare} activeOpacity={0.7}>
+                        <TouchableOpacity
+                          style={styles.fareCenter}
+                          onPress={handleOpenOfferFare}
+                          activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel="Offer your own fare"
+                        >
                           <RollingFareAmount
                             style={styles.fareAmount}
                             prefix={currency.symbol}
@@ -5132,7 +5221,12 @@ export default function RideConfirmScreen() {
                             </View>
                           )}
                           {displaySettings.showAiTollBooths && tollBooths.length > 0 && (
-                            <TouchableOpacity style={styles.tollChargesRow} onPress={(e) => { e.stopPropagation(); openTollSheet(); }}>
+                            <TouchableOpacity
+                              style={styles.tollChargesRow}
+                              onPress={(e) => { e.stopPropagation(); openTollSheet(); }}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Estimated ${tollBooths.length} toll booths. See the list`}
+                            >
                               <Text style={styles.tollChargesText}>
                                 Est. Toll Booths: {tollBooths.length}
                               </Text>
@@ -5155,6 +5249,8 @@ export default function RideConfirmScreen() {
                         <TouchableOpacity
                           style={styles.fareButton}
                           onPress={(e) => { e.stopPropagation(); adjustFare(5); }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Raise fare by 5 ${currency.symbol}`}
                         >
                           <Plus color={colors.text} size={24} />
                         </TouchableOpacity>
@@ -5165,6 +5261,9 @@ export default function RideConfirmScreen() {
                     <TouchableOpacity
                       style={styles.rideOptionCard}
                       onPress={() => handleRideSelect(ride)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: false }}
+                      accessibilityLabel={`${displayName}, seats ${ride.capacity}, ${currency.symbol} ${ridePrice}`}
                     >
                       <View style={styles.rideCarImageContainer}>
                         <Image
@@ -5242,6 +5341,7 @@ export default function RideConfirmScreen() {
               }}
               trackColor={{ false: "#3a3a3a", true: "#FDE68A" }}
               thumbColor={useCoinsForFare ? "#EAB308" : "#6B7280"}
+              accessibilityLabel="Use GET.coin towards this fare"
               testID="ride-confirm-coin-switch"
             />
           </View>
@@ -5260,22 +5360,28 @@ export default function RideConfirmScreen() {
             onValueChange={setAutoAccept}
             trackColor={{ false: "#3a3a3a", true: "#4a5a3a" }}
             thumbColor={autoAccept ? "#2dabe2" : "#6B7280"}
+            accessibilityLabel={`Auto-accept an offer of ${currency.symbol} ${estimatedPrice}`}
           />
         </View>
 
         {/* Bottom Bar */}
         <View style={styles.bottomBar}>
-          <TouchableOpacity style={styles.paymentIcon} onPress={openPaymentSheet}>
+          <TouchableOpacity
+            style={styles.paymentIcon}
+            onPress={openPaymentSheet}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Payment method: ${selectedPaymentMethod === 'cash' ? 'Cash' : 'DuItNow'}. Change`}
+          >
             <CreditCard color="#2dabe2" size={20} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.findDriverButton}
             onPress={handleConfirmRide}
+            accessibilityRole="button"
+            accessibilityLabel="Find a driver"
           >
             <Text style={styles.findDriverText}>Find a driver</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.settingsIcon}>
-            <SlidersHorizontal color="#fff" size={20} />
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -5294,6 +5400,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity 
             style={{ flex: 1 }} 
             activeOpacity={1} 
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             onPress={closePaymentSheet} 
           />
           <Animated.View 
@@ -5311,7 +5419,13 @@ export default function RideConfirmScreen() {
           >
             <View style={styles.paymentSheetHeader}>
               <Text style={styles.paymentSheetTitle}>Payment method</Text>
-              <TouchableOpacity style={styles.paymentSheetClose} onPress={closePaymentSheet}>
+              <TouchableOpacity
+                style={styles.paymentSheetClose}
+                onPress={closePaymentSheet}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <X color="#fff" size={18} />
               </TouchableOpacity>
             </View>
@@ -5322,6 +5436,9 @@ export default function RideConfirmScreen() {
                 selectedPaymentMethod === 'cash' && styles.paymentOptionSelected
               ]}
               onPress={() => selectPaymentMethod('cash')}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: selectedPaymentMethod === 'cash', checked: selectedPaymentMethod === 'cash' }}
+              accessibilityLabel="Cash"
             >
               <View style={[styles.paymentOptionIcon, styles.cashIcon]}>
                 <Banknote color="#fff" size={22} />
@@ -5338,6 +5455,9 @@ export default function RideConfirmScreen() {
                 selectedPaymentMethod === 'duitnow' && styles.paymentOptionSelected
               ]}
               onPress={() => selectPaymentMethod('duitnow')}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: selectedPaymentMethod === 'duitnow', checked: selectedPaymentMethod === 'duitnow' }}
+              accessibilityLabel="DuItNow manual transfer"
             >
               <Image 
                 source={{ uri: 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/3drcunhhotpoqbujxqkwp' }}
@@ -5366,6 +5486,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity 
             style={{ flex: 1 }} 
             activeOpacity={1} 
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             onPress={closeEntranceSheet} 
           />
           <Animated.View 
@@ -5384,67 +5506,133 @@ export default function RideConfirmScreen() {
             <View style={styles.entranceSheetHeader}>
               <View style={styles.entranceSheetPlaceholder} />
               <Text style={styles.entranceSheetTitle}>Set entrance</Text>
-              <TouchableOpacity style={styles.entranceSheetClose} onPress={closeEntranceSheet}>
+              <TouchableOpacity
+                style={styles.entranceSheetClose}
+                onPress={closeEntranceSheet}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <X color="#000" size={18} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.entranceDisplayContainer}>
+            <View style={styles.entranceDisplayContainer} accessible accessibilityLabel={entranceValue ? `Entrance ${entranceValue}` : "No entrance set"}>
               <Text style={styles.entranceDisplayText}>{entranceValue}</Text>
             </View>
 
-            <TouchableOpacity style={styles.entranceDoneButton} onPress={handleEntranceDone}>
+            <TouchableOpacity
+              style={styles.entranceDoneButton}
+              onPress={handleEntranceDone}
+              accessibilityRole="button"
+              accessibilityLabel="Done"
+            >
               <Text style={styles.entranceDoneText}>Done</Text>
             </TouchableOpacity>
 
             <View style={styles.keypadContainer}>
               <View style={styles.keypadRow}>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '1')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '1')}
+                  accessibilityRole="button"
+                  accessibilityLabel="1"
+                >
                   <Text style={styles.keypadNumber}>1</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '2')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '2')}
+                  accessibilityRole="button"
+                  accessibilityLabel="2"
+                >
                   <Text style={styles.keypadNumber}>2</Text>
                   <Text style={styles.keypadLetters}>ABC</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '3')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '3')}
+                  accessibilityRole="button"
+                  accessibilityLabel="3"
+                >
                   <Text style={styles.keypadNumber}>3</Text>
                   <Text style={styles.keypadLetters}>DEF</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.keypadRow}>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '4')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '4')}
+                  accessibilityRole="button"
+                  accessibilityLabel="4"
+                >
                   <Text style={styles.keypadNumber}>4</Text>
                   <Text style={styles.keypadLetters}>GHI</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '5')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '5')}
+                  accessibilityRole="button"
+                  accessibilityLabel="5"
+                >
                   <Text style={styles.keypadNumber}>5</Text>
                   <Text style={styles.keypadLetters}>JKL</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '6')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '6')}
+                  accessibilityRole="button"
+                  accessibilityLabel="6"
+                >
                   <Text style={styles.keypadNumber}>6</Text>
                   <Text style={styles.keypadLetters}>MNO</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.keypadRow}>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '7')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '7')}
+                  accessibilityRole="button"
+                  accessibilityLabel="7"
+                >
                   <Text style={styles.keypadNumber}>7</Text>
                   <Text style={styles.keypadLetters}>PQRS</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '8')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '8')}
+                  accessibilityRole="button"
+                  accessibilityLabel="8"
+                >
                   <Text style={styles.keypadNumber}>8</Text>
                   <Text style={styles.keypadLetters}>TUV</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '9')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '9')}
+                  accessibilityRole="button"
+                  accessibilityLabel="9"
+                >
                   <Text style={styles.keypadNumber}>9</Text>
                   <Text style={styles.keypadLetters}>WXYZ</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.keypadRow}>
                 <View style={styles.keypadButtonEmpty} />
-                <TouchableOpacity style={styles.keypadButton} onPress={() => setEntranceValue(prev => prev + '0')}>
+                <TouchableOpacity
+                  style={styles.keypadButton}
+                  onPress={() => setEntranceValue(prev => prev + '0')}
+                  accessibilityRole="button"
+                  accessibilityLabel="0"
+                >
                   <Text style={styles.keypadNumber}>0</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.keypadButtonBackspace} onPress={() => setEntranceValue(prev => prev.slice(0, -1))}>
+                <TouchableOpacity
+                  style={styles.keypadButtonBackspace}
+                  onPress={() => setEntranceValue(prev => prev.slice(0, -1))}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete"
+                >
                   <Delete color="#000" size={26} />
                 </TouchableOpacity>
               </View>
@@ -5512,11 +5700,21 @@ export default function RideConfirmScreen() {
               </View>
             ))}
             
-            <TouchableOpacity style={styles.raiseFareActionButton} onPress={handleRaiseFare}>
+            <TouchableOpacity
+              style={styles.raiseFareActionButton}
+              onPress={handleRaiseFare}
+              accessibilityRole="button"
+              accessibilityLabel={`Raise fare to ${currency.symbol} ${estimatedPrice + committedFareRaise + searchFareAdjustment + 5}`}
+            >
               <Text style={styles.raiseFareActionText}>Raise fare to {currency.symbol} {estimatedPrice + committedFareRaise + searchFareAdjustment + 5}</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.keepFareButton} onPress={handleKeepFare}>
+            <TouchableOpacity
+              style={styles.keepFareButton}
+              onPress={handleKeepFare}
+              accessibilityRole="button"
+              accessibilityLabel={`Keep ${currency.symbol} ${estimatedPrice + committedFareRaise + searchFareAdjustment}`}
+            >
               <Text style={styles.keepFareText}>Keep {currency.symbol} {estimatedPrice + committedFareRaise + searchFareAdjustment}</Text>
             </TouchableOpacity>
           </View>
@@ -5560,6 +5758,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity 
             style={{ flex: 1 }} 
             activeOpacity={1} 
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             onPress={closeCancelConfirmSheet} 
           />
           <Animated.View
@@ -5576,10 +5776,20 @@ export default function RideConfirmScreen() {
             ]}
           >
             <Text style={styles.cancelConfirmTitle}>Sure you want to cancel{"\n"}your request?</Text>
-            <TouchableOpacity style={styles.keepSearchingButton} onPress={closeCancelConfirmSheet}>
+            <TouchableOpacity
+              style={styles.keepSearchingButton}
+              onPress={closeCancelConfirmSheet}
+              accessibilityRole="button"
+              accessibilityLabel="Keep searching"
+            >
               <Text style={styles.keepSearchingText}>Keep searching</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmCancelButton} onPress={handleCancelRequest}>
+            <TouchableOpacity
+              style={styles.confirmCancelButton}
+              onPress={handleCancelRequest}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel request"
+            >
               <Text style={styles.confirmCancelText}>Cancel request</Text>
             </TouchableOpacity>
           </Animated.View>
@@ -5599,6 +5809,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity 
             style={{ flex: 1 }} 
             activeOpacity={1} 
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             onPress={closeNoFareRaiseCancelSheet} 
           />
           <Animated.View
@@ -5616,16 +5828,32 @@ export default function RideConfirmScreen() {
           >
             <View style={styles.noFareRaiseCancelHeader}>
               <Text style={styles.noFareRaiseCancelTitle}>Still need a ride? Search again with the higher fare</Text>
-              <TouchableOpacity style={styles.noFareRaiseCancelClose} onPress={closeNoFareRaiseCancelSheet}>
+              <TouchableOpacity
+                style={styles.noFareRaiseCancelClose}
+                onPress={closeNoFareRaiseCancelSheet}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <X color="#000" size={18} />
               </TouchableOpacity>
             </View>
             <Text style={styles.noFareRaiseCancelSubtitle}>Increase your chances of getting a ride</Text>
-            <TouchableOpacity style={styles.searchHigherFareButton} onPress={handleSearchHigherFare}>
+            <TouchableOpacity
+              style={styles.searchHigherFareButton}
+              onPress={handleSearchHigherFare}
+              accessibilityRole="button"
+              accessibilityLabel={`Search at ${currency.symbol} ${estimatedPrice + 20}`}
+            >
               <Text style={styles.searchHigherFareText}>Search at {currency.symbol} {estimatedPrice + 20}</Text>
             </TouchableOpacity>
             <Text style={styles.searchHigherFareHint}>Most passengers get a ride at this fare on similar routes</Text>
-            <TouchableOpacity style={styles.wantToCancelButton} onPress={handleConfirmCancelFromNoFare}>
+            <TouchableOpacity
+              style={styles.wantToCancelButton}
+              onPress={handleConfirmCancelFromNoFare}
+              accessibilityRole="button"
+              accessibilityLabel="I want to cancel"
+            >
               <Text style={styles.wantToCancelText}>I want to cancel</Text>
             </TouchableOpacity>
           </Animated.View>
@@ -5645,6 +5873,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity 
             style={{ flex: 1 }} 
             activeOpacity={1} 
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             onPress={closePromoCodeSheet} 
           />
           <Animated.View
@@ -5663,7 +5893,13 @@ export default function RideConfirmScreen() {
           >
             <View style={styles.promoCodeHeader}>
               <Text style={styles.promoCodeTitle}>Enter promo code</Text>
-              <TouchableOpacity style={styles.promoCodeClose} onPress={closePromoCodeSheet}>
+              <TouchableOpacity
+                style={styles.promoCodeClose}
+                onPress={closePromoCodeSheet}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <X color="#000" size={18} />
               </TouchableOpacity>
             </View>
@@ -5687,11 +5923,16 @@ export default function RideConfirmScreen() {
                       autoCorrect={false}
                       onFocus={() => setIsPromoInputFocused(true)}
                       onBlur={() => setIsPromoInputFocused(false)}
+                      accessibilityLabel="Promo code"
+                      accessibilityHint={promoCodeError || undefined}
                     />
                   </View>
                   {promoCode.length > 0 && (
                     <TouchableOpacity 
                       style={styles.promoCodeClearButton} 
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear promo code"
                       onPress={() => {
                         setPromoCode('');
                         setPromoCodeError('');
@@ -5704,7 +5945,9 @@ export default function RideConfirmScreen() {
                   )}
                 </View>
                 {promoCodeError ? (
-                  <Text style={styles.promoCodeErrorText}>{promoCodeError}</Text>
+                  <Text style={styles.promoCodeErrorText} accessibilityLiveRegion="polite">
+                    {promoCodeError}
+                  </Text>
                 ) : null}
               </View>
               
@@ -5712,6 +5955,9 @@ export default function RideConfirmScreen() {
                 style={isValidatingPromo ? styles.promoCodeSubmitButtonDisabled : (!promoCode.trim() ? styles.promoCodeSubmitButtonInactive : styles.promoCodeSubmitButton)}
                 onPress={handleApplyPromoCode}
                 disabled={isValidatingPromo || !promoCode.trim()}
+                accessibilityRole="button"
+                accessibilityLabel={isValidatingPromo ? "Checking promo code" : "Apply promo code"}
+                accessibilityState={{ disabled: isValidatingPromo || !promoCode.trim(), busy: isValidatingPromo }}
               >
                 {isValidatingPromo ? (
                   <Animated.View 
@@ -5816,6 +6062,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity 
             style={{ flex: 1 }} 
             activeOpacity={1} 
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             onPress={closeDestinationsSheet} 
           />
           <Animated.View
@@ -5832,7 +6080,13 @@ export default function RideConfirmScreen() {
             ]}
           >
             <View style={styles.destinationsSheetHeader}>
-              <TouchableOpacity style={styles.destinationsSheetBack} onPress={closeDestinationsSheet}>
+              <TouchableOpacity
+                style={styles.destinationsSheetBack}
+                onPress={closeDestinationsSheet}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
                 <ArrowLeft color="#000" size={22} />
               </TouchableOpacity>
               <Text style={styles.destinationsSheetTitle}>Destination addresses</Text>
@@ -5867,12 +6121,19 @@ export default function RideConfirmScreen() {
                       style={styles.destinationRemoveButton}
                       onPress={() => removeDestination(index)}
                       disabled={destinations.length <= 1}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove stop ${index + 1}, ${dest.address}`}
+                      accessibilityState={{ disabled: destinations.length <= 1 }}
                     >
                       <X color={destinations.length <= 1 ? "#D1D5DB" : "#6B7280"} size={20} />
                     </TouchableOpacity>
                     <Animated.View 
                       style={isDragging ? styles.destinationDragHandleActive : styles.destinationDragHandle}
                       {...dragResponder.panHandlers}
+                      accessible
+                      accessibilityRole="adjustable"
+                      accessibilityLabel={`Reorder stop ${index + 1}, ${dest.address}`}
                     >
                       <Equal color={isDragging ? "#EF4444" : "#6B7280"} size={20} />
                     </Animated.View>
@@ -5903,6 +6164,8 @@ export default function RideConfirmScreen() {
           <TouchableOpacity 
             style={{ flex: 1 }} 
             activeOpacity={1} 
+            accessibilityRole="button"
+            accessibilityLabel="Close"
             onPress={closeTollSheet} 
           />
           <Animated.View 
@@ -5920,7 +6183,13 @@ export default function RideConfirmScreen() {
           >
             <View style={styles.tollSheetHeader}>
               <Text style={styles.tollSheetTitle}>Toll Booths on Route</Text>
-              <TouchableOpacity style={styles.tollSheetClose} onPress={closeTollSheet}>
+              <TouchableOpacity
+                style={styles.tollSheetClose}
+                onPress={closeTollSheet}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <X color="#fff" size={18} />
               </TouchableOpacity>
             </View>
