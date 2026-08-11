@@ -332,6 +332,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="ev-finance-options-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Option</Text>
@@ -360,6 +361,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       },
                     ]}
                     hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move up"
                   >
                     <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
                   </TouchableOpacity>
@@ -374,6 +377,8 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       },
                     ]}
                     hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Move down"
                   >
                     <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
                   </TouchableOpacity>
@@ -439,6 +444,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                 <TouchableOpacity
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -476,6 +482,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                             },
                           ]}
                           testID={`ev-finance-options-type-${t}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -500,6 +507,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                     }}
                     style={[styles.inputWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                     testID="ev-finance-options-field-country"
+                    accessibilityRole="button"
                   >
                     <Globe color={Colors.textSecondary} size={16} />
                     <Text
@@ -530,6 +538,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                             },
                           ]}
                           testID={`ev-finance-options-payment-${m}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -612,6 +621,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                             },
                           ]}
                           testID={`ev-finance-options-termUnit-${u}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -694,6 +704,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
               <TouchableOpacity
                 onPress={() => setCountryPickerOpen(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -729,6 +740,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       { borderBottomColor: Colors.border },
                     ]}
                     testID={`ev-finance-options-country-${name}`}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.countryName, { color: Colors.text }]}>{name}</Text>
                     {selected ? <Check color={Colors.accent} size={18} /> : null}

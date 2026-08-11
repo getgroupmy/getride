@@ -104,6 +104,7 @@ export default function NavigationScreen() {
               style={styles.optionItem}
               onPress={() => handleSelectApp(app.id)}
               activeOpacity={0.7}
+              accessibilityRole="button"
             >
               {renderAppIcon(app.icon)}
               <Text style={[styles.optionLabel, { color: Colors.text }]}>{app.name}</Text>

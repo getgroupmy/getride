@@ -806,6 +806,7 @@ export default function TeksiEvScreen() {
           ]}
           onPress={() => setOrderMode("custom")}
           testID="ev-mode-custom"
+          accessibilityRole="button"
         >
           <Sparkles color={orderMode === "custom" ? Colors.secondary : Colors.text} size={16} />
           <Text style={[styles.segmentText, { color: orderMode === "custom" ? Colors.secondary : Colors.text }]}>
@@ -822,6 +823,7 @@ export default function TeksiEvScreen() {
           ]}
           onPress={() => setOrderMode("inventory")}
           testID="ev-mode-inventory"
+          accessibilityRole="button"
         >
           <Package color={orderMode === "inventory" ? Colors.secondary : Colors.text} size={16} />
           <Text style={[styles.segmentText, { color: orderMode === "inventory" ? Colors.secondary : Colors.text }]}>
@@ -976,6 +978,7 @@ export default function TeksiEvScreen() {
                         },
                       ]}
                       testID={`ev-wheel-${w}`}
+                      accessibilityRole="button"
                     >
                       <CircleDot color={sel ? Colors.secondary : Colors.text} size={14} />
                       <Text style={[styles.chipText, { color: sel ? Colors.secondary : Colors.text }]}>{w}</Text>
@@ -1002,6 +1005,7 @@ export default function TeksiEvScreen() {
                           },
                         ]}
                         testID={`ev-acc-${a.name}`}
+                        accessibilityRole="button"
                       >
                         <View
                           style={[
@@ -1134,6 +1138,7 @@ export default function TeksiEvScreen() {
                           },
                         ]}
                         testID={`ev-inv-wheel-${w}`}
+                        accessibilityRole="button"
                       >
                         <CircleDot color={sel ? Colors.secondary : Colors.text} size={14} />
                         <Text style={[styles.chipText, { color: sel ? Colors.secondary : Colors.text }]}>{w}</Text>
@@ -1286,6 +1291,7 @@ export default function TeksiEvScreen() {
           ]}
           onPress={() => setPayMethod("card")}
           testID="ev-pay-card"
+          accessibilityRole="button"
         >
           <CreditCard color={payMethod === "card" ? Colors.secondary : Colors.text} size={16} />
           <Text style={[styles.segmentText, { color: payMethod === "card" ? Colors.secondary : Colors.text }]}>
@@ -1302,6 +1308,7 @@ export default function TeksiEvScreen() {
           ]}
           onPress={() => setPayMethod("fpx")}
           testID="ev-pay-fpx"
+          accessibilityRole="button"
         >
           <Banknote color={payMethod === "fpx" ? Colors.secondary : Colors.text} size={16} />
           <Text style={[styles.segmentText, { color: payMethod === "fpx" ? Colors.secondary : Colors.text }]}>
@@ -1341,6 +1348,7 @@ export default function TeksiEvScreen() {
                     },
                   ]}
                   testID={`ev-bank-${b}`}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.chipText, { color: sel ? Colors.secondary : Colors.text }]}>{b}</Text>
                 </TouchableOpacity>
@@ -1361,6 +1369,7 @@ export default function TeksiEvScreen() {
           },
         ]}
         testID="ev-pay-now"
+        accessibilityRole="button"
       >
         {depositPaid ? (
           <>
@@ -1445,6 +1454,7 @@ export default function TeksiEvScreen() {
                 },
               ]}
               testID={`ev-plate-${opt.k}`}
+              accessibilityRole="button"
             >
               <Hash color={sel ? Colors.secondary : Colors.text} size={18} />
               <Text style={[styles.ownerTypeText, { color: sel ? Colors.secondary : Colors.text }]}>
@@ -1548,6 +1558,7 @@ export default function TeksiEvScreen() {
             },
           ]}
           testID={`ev-fintype-${value}`}
+          accessibilityRole="button"
         >
           <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
             <Icon color={Colors.accent} size={22} />
@@ -1613,6 +1624,7 @@ export default function TeksiEvScreen() {
                     },
                   ]}
                   testID={`ev-fin-${f.id}`}
+                  accessibilityRole="button"
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.cardTitle, { color: Colors.text }]}>{String(f.values.name ?? "")}</Text>
@@ -1652,6 +1664,7 @@ export default function TeksiEvScreen() {
                 },
               ]}
               testID="ev-cash-pay"
+              accessibilityRole="button"
             >
               {cashBalancePaid ? (
                 <>
@@ -1717,6 +1730,7 @@ export default function TeksiEvScreen() {
                       },
                     ]}
                     testID={`ev-lease-addon-${opt.k}`}
+                    accessibilityRole="button"
                   >
                     <Banknote color={sel ? Colors.secondary : Colors.text} size={18} />
                     <Text style={[styles.ownerTypeText, { color: sel ? Colors.secondary : Colors.text }]}>{opt.label}</Text>
@@ -1754,6 +1768,7 @@ export default function TeksiEvScreen() {
                     },
                   ]}
                   testID="ev-lease-pay"
+                  accessibilityRole="button"
                 >
                   {leasingAddonPaid ? (
                     <>
@@ -1843,6 +1858,7 @@ export default function TeksiEvScreen() {
                   },
                 ]}
                 testID={`ev-date-${s.iso}`}
+                accessibilityRole="button"
               >
                 <Text style={[styles.chipText, { color: sel ? Colors.secondary : Colors.text }]}>{s.label}</Text>
               </TouchableOpacity>
@@ -1941,6 +1957,7 @@ export default function TeksiEvScreen() {
             },
           ]}
           testID="ev-accept-delivery"
+          accessibilityRole="button"
         >
           {checklistAccepted ? (
             <>
@@ -2107,6 +2124,7 @@ export default function TeksiEvScreen() {
             },
           ]}
           testID={`ev-owner-${value}`}
+          accessibilityRole="button"
         >
           <Icon color={sel ? Colors.secondary : Colors.text} size={18} />
           <Text style={[styles.ownerTypeText, { color: sel ? Colors.secondary : Colors.text }]}>{label}</Text>
@@ -2157,6 +2175,7 @@ export default function TeksiEvScreen() {
                     },
                   ]}
                   testID={`ev-idtype-${opt.k}`}
+                  accessibilityRole="button"
                 >
                   <IdCard color={sel ? Colors.secondary : Colors.text} size={14} />
                   <Text style={[styles.chipText, { color: sel ? Colors.secondary : Colors.text }]}>{opt.label}</Text>
@@ -2181,6 +2200,7 @@ export default function TeksiEvScreen() {
                     },
                   ]}
                   testID={`ev-country-${c}`}
+                  accessibilityRole="button"
                 >
                   <Globe color={sel ? Colors.secondary : Colors.text} size={12} />
                   <Text style={[styles.chipText, { color: sel ? Colors.secondary : Colors.text }]}>{c}</Text>
@@ -2271,6 +2291,7 @@ export default function TeksiEvScreen() {
                   },
                 ]}
                 testID="ev-owner-confirm"
+                accessibilityRole="button"
               >
                 {ownershipConfirmed ? (
                   <>
@@ -2368,6 +2389,7 @@ export default function TeksiEvScreen() {
                 style={styles.stepNodeWrap}
                 testID={`ev-step-${s.key}`}
                 activeOpacity={0.8}
+                accessibilityRole="button"
               >
                 <View
                   style={[
@@ -2433,6 +2455,7 @@ export default function TeksiEvScreen() {
             },
           ]}
           testID="ev-prev"
+          accessibilityRole="button"
         >
           <Text style={[styles.footerBtnText, { color: Colors.text }]}>Back</Text>
         </TouchableOpacity>
@@ -2448,6 +2471,7 @@ export default function TeksiEvScreen() {
             },
           ]}
           testID="ev-next"
+          accessibilityRole="button"
         >
           <Text
             style={[
@@ -2507,6 +2531,7 @@ export default function TeksiEvScreen() {
                 onPress={skipAgentCode}
                 style={[styles.modalBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                 testID="ev-agent-code-skip"
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnText, { color: Colors.text }]}>Skip</Text>
               </TouchableOpacity>
@@ -2514,6 +2539,7 @@ export default function TeksiEvScreen() {
                 onPress={applyAgentCode}
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="ev-agent-code-apply"
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Apply</Text>
               </TouchableOpacity>
@@ -2555,6 +2581,7 @@ export default function TeksiEvScreen() {
                 onPress={closeEdit}
                 style={[styles.modalBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                 testID="ev-edit-cancel"
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnText, { color: Colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -2562,6 +2589,7 @@ export default function TeksiEvScreen() {
                 onPress={saveEdit}
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="ev-edit-save"
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Save</Text>
               </TouchableOpacity>
@@ -2627,6 +2655,7 @@ function TrimPicker({
               },
             ]}
             testID={`${testIDPrefix}-${it.id}`}
+            accessibilityRole="button"
           >
             {it.imageUri ? (
               <Image source={{ uri: it.imageUri }} style={styles.trimRowImg} resizeMode="cover" />
@@ -2767,7 +2796,7 @@ function TapField({
 }) {
   const hasValue = !!value && value.length > 0;
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8} testID={testID}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} testID={testID} accessibilityRole="button">
       <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>{label}</Text>
       <View
         style={[

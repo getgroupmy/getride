@@ -108,6 +108,7 @@ export default function DocumentMetadataEditModal({
             onPress={onClose}
             style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
             testID="doc-edit-close"
+            accessibilityRole="button"
           >
             <X color={Colors.text} size={22} />
           </TouchableOpacity>
@@ -198,6 +199,7 @@ export default function DocumentMetadataEditModal({
             disabled={deleting || saving}
             style={[styles.actionBtn, { backgroundColor: Colors.error + "20", borderColor: Colors.error }]}
             testID="doc-edit-delete"
+            accessibilityRole="button"
           >
             {deleting ? (
               <ActivityIndicator color={Colors.error} size="small" />
@@ -213,6 +215,7 @@ export default function DocumentMetadataEditModal({
             disabled={saving || deleting}
             style={[styles.actionBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
             testID="doc-edit-save"
+            accessibilityRole="button"
           >
             {saving ? (
               <ActivityIndicator color={Colors.onAccent} size="small" />
@@ -280,6 +283,8 @@ function DateField({ label, value, onChange, show, setShow, Colors, testID }: Da
           onPress={() => setShow(true)}
           style={[styles.dateBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
           testID={`${testID}-picker-btn`}
+          accessibilityRole="button"
+          accessibilityLabel="Pick a date"
         >
           <Calendar color={Colors.text} size={18} />
         </TouchableOpacity>
@@ -288,6 +293,7 @@ function DateField({ label, value, onChange, show, setShow, Colors, testID }: Da
             onPress={() => onChange("")}
             style={[styles.dateBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             testID={`${testID}-clear`}
+            accessibilityRole="button"
           >
             <X color={Colors.text} size={18} />
           </TouchableOpacity>

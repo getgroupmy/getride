@@ -764,6 +764,7 @@ export default function AdminSessionHistoryScreen() {
           { backgroundColor: Colors.gray[100], borderColor: Colors.border },
         ]}
         testID={`user-${item.key}`}
+        accessibilityRole="button"
       >
         <View style={[styles.avatar, { backgroundColor: Colors.accent + "20" }]}>
           <Text style={[styles.avatarText, { color: Colors.accent }]}>{initials || "?"}</Text>
@@ -1085,6 +1086,7 @@ export default function AdminSessionHistoryScreen() {
           onPress={() => setTrailPopupVisible(true)}
           style={[styles.trailBtn, { backgroundColor: Colors.accent, marginBottom: 14 }]}
           testID="open-trail"
+          accessibilityRole="button"
         >
           <MapIcon color="#000000" size={16} />
           <Text style={styles.trailBtnText}>View full trail</Text>
@@ -1120,6 +1122,7 @@ export default function AdminSessionHistoryScreen() {
         <TouchableOpacity
           onPress={() => exportDetailCsv("locations")}
           style={[styles.exportPill, { backgroundColor: Colors.accent + "20" }]}
+          accessibilityRole="button"
         >
           <Download color={Colors.accent} size={12} />
           <Text style={[styles.exportPillText, { color: Colors.accent }]}>CSV</Text>
@@ -1159,6 +1162,9 @@ export default function AdminSessionHistoryScreen() {
               { backgroundColor: flaggedOnly ? Colors.warning + "26" : Colors.gray[100] },
             ]}
             testID="toggle-flagged"
+            accessibilityRole="button"
+            accessibilityState={{ selected: flaggedOnly }}
+            accessibilityLabel="Show flagged sessions only"
           >
             <Users color={flaggedOnly ? Colors.warning : Colors.text} size={20} />
           </TouchableOpacity>
@@ -1170,6 +1176,9 @@ export default function AdminSessionHistoryScreen() {
             { backgroundColor: showGuardConfig ? Colors.accent + "20" : Colors.gray[100] },
           ]}
           testID="toggle-guard-config"
+          accessibilityRole="button"
+          accessibilityState={{ selected: showGuardConfig }}
+          accessibilityLabel="Guard settings"
         >
           <ShieldCheck color={showGuardConfig ? Colors.accent : Colors.text} size={20} />
         </TouchableOpacity>
@@ -1183,6 +1192,9 @@ export default function AdminSessionHistoryScreen() {
             },
           ]}
           testID="toggle-date"
+          accessibilityRole="button"
+          accessibilityState={{ selected: showDateFilter }}
+          accessibilityLabel="Filter by date"
         >
           <Calendar color={showDateFilter || fromDate || toDate ? Colors.accent : Colors.text} size={20} />
         </TouchableOpacity>
@@ -1190,6 +1202,8 @@ export default function AdminSessionHistoryScreen() {
           onPress={exportAllSessions}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="export-all"
+          accessibilityRole="button"
+          accessibilityLabel="Export all sessions"
         >
           <Download color={Colors.text} size={20} />
         </TouchableOpacity>
@@ -1250,6 +1264,7 @@ export default function AdminSessionHistoryScreen() {
               }}
               style={[styles.iconBtn, { backgroundColor: Colors.gray[100], width: 36, height: 36, borderRadius: 18 }]}
               testID="date-clear"
+              accessibilityRole="button"
             >
               <X color={Colors.text} size={16} />
             </TouchableOpacity>
@@ -1321,6 +1336,8 @@ export default function AdminSessionHistoryScreen() {
                 disabled={!guardConfig || savingGuard || (guardConfig?.maxAccountsPerDevice ?? 1) <= 1}
                 style={[styles.stepBtn, { backgroundColor: Colors.gray[200], opacity: (guardConfig?.maxAccountsPerDevice ?? 1) <= 1 ? 0.4 : 1 }]}
                 testID="guard-dec"
+                accessibilityRole="button"
+                accessibilityLabel="Lower the guard threshold"
               >
                 <Minus color={Colors.text} size={16} />
               </TouchableOpacity>
@@ -1338,6 +1355,8 @@ export default function AdminSessionHistoryScreen() {
                 disabled={!guardConfig || savingGuard}
                 style={[styles.stepBtn, { backgroundColor: Colors.gray[200] }]}
                 testID="guard-inc"
+                accessibilityRole="button"
+                accessibilityLabel="Raise the guard threshold"
               >
                 <Plus color={Colors.text} size={16} />
               </TouchableOpacity>
@@ -1403,6 +1422,7 @@ export default function AdminSessionHistoryScreen() {
             },
           ]}
           testID="shared-device-banner"
+          accessibilityRole="button"
         >
           <Users color={Colors.warning} size={16} />
           <Text style={[styles.warningText, { color: Colors.text }]}>
@@ -1462,6 +1482,7 @@ export default function AdminSessionHistoryScreen() {
                   onPress={() => setTrailVisible(false)}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="close-trail"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1486,6 +1507,7 @@ export default function AdminSessionHistoryScreen() {
                     },
                   ]}
                   testID="trail-polyline"
+                  accessibilityRole="button"
                 >
                   <RouteIcon color={trailMode === "polyline" ? "#000000" : Colors.text} size={14} />
                   <Text
@@ -1507,6 +1529,7 @@ export default function AdminSessionHistoryScreen() {
                     },
                   ]}
                   testID="trail-heatmap"
+                  accessibilityRole="button"
                 >
                   <Flame color={trailMode === "heatmap" ? "#000000" : Colors.text} size={14} />
                   <Text
@@ -1605,6 +1628,7 @@ export default function AdminSessionHistoryScreen() {
                   onPress={closeDetail}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="close-detail"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1620,6 +1644,8 @@ export default function AdminSessionHistoryScreen() {
                   onPress={() => exportDetailCsv("sessions")}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="export-detail"
+                  accessibilityRole="button"
+                  accessibilityLabel="Export this session"
                 >
                   <Download color={Colors.text} size={18} />
                 </TouchableOpacity>
@@ -1684,6 +1710,7 @@ export default function AdminSessionHistoryScreen() {
                         },
                       ]}
                       testID={`trail-scope-${opt.key}`}
+                      accessibilityRole="button"
                     >
                       <Text
                         style={[
@@ -1761,6 +1788,7 @@ export default function AdminSessionHistoryScreen() {
                         },
                       ]}
                       testID={`trail-timemode-${opt.key}`}
+                      accessibilityRole="button"
                     >
                       <Text
                         style={[
@@ -1821,6 +1849,7 @@ export default function AdminSessionHistoryScreen() {
                     style={[styles.popupBtn, { backgroundColor: Colors.gray[100] }]}
                     disabled={trailLoading}
                     testID="trail-popup-cancel"
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.popupBtnText, { color: Colors.text }]}>Cancel</Text>
                   </TouchableOpacity>
@@ -1829,6 +1858,7 @@ export default function AdminSessionHistoryScreen() {
                     style={[styles.popupBtn, { backgroundColor: Colors.accent }]}
                     disabled={trailLoading}
                     testID="trail-popup-apply"
+                    accessibilityRole="button"
                   >
                     {trailLoading ? (
                       <ActivityIndicator color="#000000" size="small" />

@@ -344,6 +344,7 @@ export default function AdminSettingsGetCoinScreen() {
                 onPress={handleSave}
                 disabled={saving || !dirty}
                 testID="getcoin-save"
+                accessibilityRole="button"
               >
                 {saving ? (
                   <ActivityIndicator color={Colors.onAccent} size="small" />

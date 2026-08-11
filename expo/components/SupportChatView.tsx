@@ -120,7 +120,7 @@ function AudioBubble({
 
   return (
     <View style={styles.audioRow}>
-      <TouchableOpacity onPress={toggle} style={[styles.audioBtn, { backgroundColor: tint }]}>
+      <TouchableOpacity onPress={toggle} style={[styles.audioBtn, { backgroundColor: tint }]} accessibilityRole="button" accessibilityLabel="Play or pause">
         {status.playing ? (
           <Pause color="#fff" size={18} fill="#fff" />
         ) : (
@@ -446,7 +446,7 @@ export default function SupportChatView({
             ) : null}
 
             {item.type === "image" && item.media_url ? (
-              <TouchableOpacity activeOpacity={0.9} onPress={() => setViewerUri(item.media_url)}>
+              <TouchableOpacity activeOpacity={0.9} onPress={() => setViewerUri(item.media_url)} accessibilityRole="button">
                 <Image source={{ uri: item.media_url }} style={styles.imageMsg} />
               </TouchableOpacity>
             ) : null}
@@ -456,6 +456,7 @@ export default function SupportChatView({
                 activeOpacity={0.9}
                 onPress={() => openVideo(item.media_url as string)}
                 style={styles.videoMsg}
+                accessibilityRole="button"
               >
                 <View style={styles.videoPlayBadge}>
                   <Play color="#fff" size={26} fill="#fff" />
@@ -481,6 +482,7 @@ export default function SupportChatView({
                 activeOpacity={0.9}
                 onPress={() => openLocation(item.latitude as number, item.longitude as number)}
                 style={[styles.locationCard, { borderColor: mine ? "rgba(255,255,255,0.3)" : Colors.border }]}
+                accessibilityRole="button"
               >
                 <View style={[styles.locationIcon, { backgroundColor: mine ? "rgba(255,255,255,0.2)" : Colors.accent + "20" }]}>
                   <MapPin color={mine ? "#fff" : Colors.accent} size={20} />
@@ -542,7 +544,7 @@ export default function SupportChatView({
           ) : null}
         </View>
         {onCall ? (
-          <TouchableOpacity onPress={onCall} style={[styles.iconBtn, { backgroundColor: Colors.accent }]} testID="support-call">
+          <TouchableOpacity onPress={onCall} style={[styles.iconBtn, { backgroundColor: Colors.accent }]} testID="support-call" accessibilityRole="button" accessibilityLabel="Call support">
             <Phone color="#000000" size={20} />
           </TouchableOpacity>
         ) : (
@@ -587,6 +589,8 @@ export default function SupportChatView({
               onPress={stopAndSendRecording}
               style={[styles.sendBtn, { backgroundColor: Colors.accent }]}
               testID="stop-record"
+              accessibilityRole="button"
+              accessibilityLabel="Stop recording and send"
             >
               <Square color="#000000" size={18} fill="#000000" />
             </TouchableOpacity>
@@ -597,6 +601,8 @@ export default function SupportChatView({
               onPress={() => setAttachOpen(true)}
               style={[styles.composerIcon, { backgroundColor: Colors.gray[100] }]}
               testID="attach"
+              accessibilityRole="button"
+              accessibilityLabel="Attach a file"
             >
               <Plus color={Colors.text} size={22} />
             </TouchableOpacity>
@@ -614,6 +620,8 @@ export default function SupportChatView({
                 disabled={sending}
                 style={[styles.sendBtn, { backgroundColor: Colors.accent }]}
                 testID="send"
+                accessibilityRole="button"
+                accessibilityLabel="Send"
               >
                 <Send color="#000000" size={18} />
               </TouchableOpacity>
@@ -622,6 +630,8 @@ export default function SupportChatView({
                 onPress={startRecording}
                 style={[styles.sendBtn, { backgroundColor: Colors.accent }]}
                 testID="record"
+                accessibilityRole="button"
+                accessibilityLabel="Record a voice message"
               >
                 <Mic color="#000000" size={20} />
               </Pressable>
@@ -632,13 +642,13 @@ export default function SupportChatView({
 
       {/* Attachment sheet */}
       <Modal visible={attachOpen} transparent animationType="fade" onRequestClose={() => setAttachOpen(false)}>
-        <Pressable style={styles.sheetOverlay} onPress={() => setAttachOpen(false)}>
+        <Pressable style={styles.sheetOverlay} onPress={() => setAttachOpen(false)} accessibilityRole="button">
           <View style={[styles.sheet, { backgroundColor: Colors.background }]}>
             <View style={[styles.sheetHandle, { backgroundColor: Colors.border }]} />
             <Text style={[styles.sheetTitle, { color: Colors.text }]}>Attach</Text>
             <View style={styles.attachGrid}>
               {attachItems.map((it) => (
-                <TouchableOpacity key={it.key} style={styles.attachItem} onPress={it.onPress}>
+                <TouchableOpacity key={it.key} style={styles.attachItem} onPress={it.onPress} accessibilityRole="button">
                   <View style={[styles.attachCircle, { backgroundColor: Colors.accent + "20" }]}>
                     <it.icon color={Colors.accent} size={24} />
                   </View>
@@ -653,7 +663,7 @@ export default function SupportChatView({
       {/* Image viewer */}
       <Modal visible={!!viewerUri} transparent animationType="fade" onRequestClose={() => setViewerUri(null)}>
         <View style={styles.viewerBackdrop}>
-          <TouchableOpacity style={styles.viewerClose} onPress={() => setViewerUri(null)}>
+          <TouchableOpacity style={styles.viewerClose} onPress={() => setViewerUri(null)} accessibilityRole="button">
             <X color="#fff" size={26} />
           </TouchableOpacity>
           {viewerUri ? (

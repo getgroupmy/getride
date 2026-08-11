@@ -1187,6 +1187,7 @@ export default function DriverTeksiScreen() {
               onPress={openPartnerModeSelector}
               activeOpacity={0.8}
               testID="partner-teksi-idle-mode-switch"
+              accessibilityRole="button"
             >
               <Car color="#000000" size={16} />
               <Text style={styles.headerBadgeText}>TEKSI</Text>
@@ -1487,6 +1488,7 @@ export default function DriverTeksiScreen() {
             }}
             activeOpacity={0.85}
             testID="partner-teksi-meter-digital"
+            accessibilityRole="button"
           >
             <Gauge color={Colors.accent} size={18} />
             <Text style={[styles.meterDigitalText, { color: Colors.accent }]}>
@@ -1508,6 +1510,7 @@ export default function DriverTeksiScreen() {
             disabled={!permitLoaded}
             activeOpacity={0.9}
             testID="partner-teksi-start-pickup"
+            accessibilityRole="button"
           >
             {permitLoaded ? (
               <>
@@ -1596,6 +1599,7 @@ export default function DriverTeksiScreen() {
             style={styles.tariffBackdrop}
             activeOpacity={1}
             onPress={() => setTariffPickerVisible(false)}
+            accessibilityRole="button"
           >
             <TouchableOpacity
               activeOpacity={1}
@@ -1636,6 +1640,7 @@ export default function DriverTeksiScreen() {
                   setIsIdle(false);
                 }}
                 testID="tariff-option-new"
+                accessibilityRole="button"
               >
                 <View style={styles.tariffOptionTop}>
                   <View style={[styles.tariffBadge, { backgroundColor: Colors.accent }]}>
@@ -1667,6 +1672,7 @@ export default function DriverTeksiScreen() {
                   setIsIdle(false);
                 }}
                 testID="tariff-option-old"
+                accessibilityRole="button"
               >
                 <View style={styles.tariffOptionTop}>
                   <View style={[styles.tariffBadge, { backgroundColor: "#6B7280" }]}>
@@ -1702,6 +1708,7 @@ export default function DriverTeksiScreen() {
                 onPress={() => setDocPreviewVisible(false)}
                 style={styles.docPreviewClose}
                 testID="partner-teksi-doc-preview-close-idle"
+                accessibilityRole="button"
               >
                 <X color="#fff" size={20} />
               </TouchableOpacity>
@@ -1868,6 +1875,7 @@ export default function DriverTeksiScreen() {
               onPress={openPartnerModeSelector}
               activeOpacity={0.8}
               testID="partner-teksi-mode-switch"
+              accessibilityRole="button"
             >
               <Car color="#000000" size={16} />
               <Text style={styles.headerBadgeText}>TEKSI</Text>
@@ -1905,6 +1913,7 @@ export default function DriverTeksiScreen() {
               onPress={() => setStatusModalVisible(true)}
               activeOpacity={0.8}
               testID="partner-teksi-speed"
+              accessibilityRole="button"
             >
               <Gauge color={speedColor} size={12} />
               <Text style={[styles.speedValue, { color: speedColor }]}>{speedKmh}</Text>
@@ -1923,6 +1932,7 @@ export default function DriverTeksiScreen() {
               onPress={() => setCommTypeVisible(true)}
               activeOpacity={0.8}
               testID="partner-teksi-obd2"
+              accessibilityRole="button"
             >
               <Cpu color={obdColor} size={12} />
               <Text style={[styles.obdPillLabel, { color: Colors.text }]}>OBD2</Text>
@@ -1944,6 +1954,7 @@ export default function DriverTeksiScreen() {
               ]}
               onPress={() => router.push("/wallet?mode=partner&focus=credit" as any)}
               testID="partner-teksi-wallet-credit"
+              accessibilityRole="button"
             >
               <View style={styles.walletTopRow}>
                 <View style={[styles.walletIconBubble, { backgroundColor: "#F59E0B22" }]}>
@@ -1962,6 +1973,7 @@ export default function DriverTeksiScreen() {
               ]}
               onPress={() => router.push("/wallet?mode=partner&focus=wallet" as any)}
               testID="partner-teksi-wallet-cash"
+              accessibilityRole="button"
             >
               <View style={styles.walletTopRow}>
                 <View style={[styles.walletIconBubble, { backgroundColor: Colors.accent + "22" }]}>
@@ -2044,6 +2056,8 @@ export default function DriverTeksiScreen() {
           });
         }}
         testID="partner-teksi-maptype"
+        accessibilityRole="button"
+        accessibilityLabel="Map type"
       >
         <Layers
           color={mapType === "satellite" ? "#fff" : isLightMode ? "#000" : "#fff"}
@@ -2071,6 +2085,8 @@ export default function DriverTeksiScreen() {
           });
         }}
         testID="partner-teksi-traffic"
+        accessibilityRole="button"
+        accessibilityLabel="Traffic overlay"
       >
         <TrafficCone
           color={trafficVisible ? "#fff" : isLightMode ? "#000" : "#fff"}
@@ -2098,6 +2114,8 @@ export default function DriverTeksiScreen() {
           });
         }}
         testID="partner-teksi-heatmap"
+        accessibilityRole="button"
+        accessibilityLabel="Demand heatmap"
       >
         <Hexagon
           color={heatmapVisible ? "#fff" : isLightMode ? "#000" : "#fff"}
@@ -2197,6 +2215,7 @@ export default function DriverTeksiScreen() {
           style={[styles.confirmButton, { backgroundColor: Colors.accent }]}
           onPress={handleConfirm}
           testID="partner-teksi-confirm"
+          accessibilityRole="button"
         >
           <Text style={styles.confirmButtonText}>Confirm drop location</Text>
         </TouchableOpacity>
@@ -2291,6 +2310,7 @@ export default function DriverTeksiScreen() {
                 style={[styles.secondaryBtn, { borderColor: Colors.border }]}
                 onPress={handleCloseFareModal}
                 testID="fare-modal-cancel"
+                accessibilityRole="button"
               >
                 <Text style={[styles.secondaryBtnText, { color: Colors.text }]}>Edit</Text>
               </TouchableOpacity>
@@ -2298,6 +2318,7 @@ export default function DriverTeksiScreen() {
                 style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
                 onPress={handleStartDriving}
                 testID="fare-modal-start"
+                accessibilityRole="button"
               >
                 <Text style={styles.primaryBtnText}>Start driving</Text>
               </TouchableOpacity>
@@ -2324,6 +2345,7 @@ export default function DriverTeksiScreen() {
                 }}
                 style={styles.searchClose}
                 testID="partner-teksi-search-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={24} />
               </TouchableOpacity>
@@ -2352,7 +2374,7 @@ export default function DriverTeksiScreen() {
                 autoFocus
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery("")}>
+                <TouchableOpacity onPress={() => setSearchQuery("")} accessibilityRole="button">
                   <X color={Colors.textSecondary} size={18} />
                 </TouchableOpacity>
               )}
@@ -2386,6 +2408,7 @@ export default function DriverTeksiScreen() {
                       { borderBottomColor: Colors.border },
                     ]}
                     onPress={() => handlePickSuggestion(loc)}
+                    accessibilityRole="button"
                   >
                     <View
                       style={[
@@ -2451,6 +2474,7 @@ export default function DriverTeksiScreen() {
           style={styles.statusBackdrop}
           activeOpacity={1}
           onPress={() => setCommTypeVisible(false)}
+          accessibilityRole="button"
         >
           <TouchableOpacity
             activeOpacity={1}
@@ -2469,6 +2493,7 @@ export default function DriverTeksiScreen() {
                 onPress={() => setCommTypeVisible(false)}
                 style={[styles.statusClose, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}
                 testID="comm-type-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
@@ -2514,6 +2539,7 @@ export default function DriverTeksiScreen() {
                       onPress={() => handleSelectCommType(opt)}
                       activeOpacity={0.7}
                       testID={`comm-type-${opt.id}`}
+                      accessibilityRole="button"
                     >
                       <View style={{ flex: 1, opacity: unavailable ? 0.55 : 1 }}>
                         <Text style={[styles.commTitle, { color: Colors.text }]}>{opt.title}</Text>
@@ -2552,6 +2578,7 @@ export default function DriverTeksiScreen() {
           style={styles.statusBackdrop}
           activeOpacity={1}
           onPress={() => setStatusModalVisible(false)}
+          accessibilityRole="button"
         >
           <TouchableOpacity
             activeOpacity={1}
@@ -2576,6 +2603,7 @@ export default function DriverTeksiScreen() {
                 onPress={() => setStatusModalVisible(false)}
                 style={[styles.statusClose, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}
                 testID="status-modal-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
@@ -2689,6 +2717,7 @@ export default function DriverTeksiScreen() {
                     else void canbus.connect();
                   }}
                   testID="canbus-connect-button"
+                  accessibilityRole="button"
                 >
                   <Text
                     style={[
@@ -2727,6 +2756,7 @@ export default function DriverTeksiScreen() {
               onPress={() => setDocPreviewVisible(false)}
               style={styles.docPreviewClose}
               testID="partner-teksi-doc-preview-close"
+              accessibilityRole="button"
             >
               <X color="#fff" size={20} />
             </TouchableOpacity>
@@ -3015,6 +3045,7 @@ export default function DriverTeksiScreen() {
                 disabled={isCalculatingRoute || !Number.isFinite(fareEstimate) || fareEstimate <= 0}
                 activeOpacity={0.9}
                 testID="start-confirm-go"
+                accessibilityRole="button"
               >
                 <Play color="#fff" size={18} fill="#fff" />
                 <Text style={styles.startGoBtnText}>

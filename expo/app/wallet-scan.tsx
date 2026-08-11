@@ -418,6 +418,7 @@ export default function WalletScanScreen() {
             style={styles.circleBtn}
             onPress={() => router.back()}
             testID="wallet-scan-close"
+            accessibilityRole="button"
           >
             <X color="#FFFFFF" size={22} />
           </TouchableOpacity>
@@ -425,6 +426,8 @@ export default function WalletScanScreen() {
             style={styles.circleBtn}
             onPress={() => setHelpVisible(true)}
             testID="wallet-scan-help"
+            accessibilityRole="button"
+            accessibilityLabel="Help"
           >
             <HelpCircle color="#FFFFFF" size={22} />
           </TouchableOpacity>
@@ -464,6 +467,7 @@ export default function WalletScanScreen() {
                   }
                 }}
                 testID="wallet-scan-allow-camera"
+                accessibilityRole="button"
               >
                 <Text style={styles.permissionBtnText}>
                   {permission?.canAskAgain === false ? "Open Settings" : "Allow Camera"}
@@ -478,6 +482,9 @@ export default function WalletScanScreen() {
             style={styles.circleBtn}
             onPress={() => setTorchOn((v) => !v)}
             testID="wallet-scan-torch"
+            accessibilityRole="button"
+            accessibilityState={{ selected: torchOn }}
+            accessibilityLabel="Torch"
           >
             {torchOn ? <Zap color="#FFD400" size={20} /> : <ZapOff color="#FFFFFF" size={20} />}
           </TouchableOpacity>
@@ -487,6 +494,7 @@ export default function WalletScanScreen() {
             onPress={openShowCode}
             activeOpacity={0.9}
             testID="wallet-scan-show-code"
+            accessibilityRole="button"
           >
             <QrCode color={wc.textStrong} size={20} />
             <Text style={styles.showCodeText}>Show Code</Text>
@@ -535,6 +543,7 @@ export default function WalletScanScreen() {
                     }}
                     activeOpacity={0.9}
                     testID="wallet-scan-pay-done"
+                    accessibilityRole="button"
                   >
                     <LinearGradient
                       colors={[Colors.accent, Colors.accentDark]}
@@ -671,6 +680,7 @@ export default function WalletScanScreen() {
               onPress={() => setHelpVisible(false)}
               activeOpacity={0.9}
               testID="wallet-scan-help-close"
+              accessibilityRole="button"
             >
               <LinearGradient
                 colors={[Colors.accent, Colors.accentDark]}

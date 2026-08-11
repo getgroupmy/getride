@@ -165,6 +165,7 @@ export default function AdminSettingsFareAILogsScreen() {
               onPress={() => toggleExpanded(item.id)}
               style={styles.rawToggle}
               testID={`fare-ai-log-raw-${item.id}`}
+              accessibilityRole="button"
             >
               {expanded[item.id] ? (
                 <ChevronDown color={Colors.accent} size={14} />

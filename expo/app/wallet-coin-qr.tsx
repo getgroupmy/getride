@@ -307,6 +307,8 @@ export default function WalletCoinQrScreen() {
               style={styles.copyBtn}
               onPress={handleCopy}
               testID="wallet-coin-qr-copy"
+              accessibilityRole="button"
+              accessibilityLabel="Copy the account number"
             >
               {copied ? (
                 <Check color={wc.amountPositive} size={22} />
@@ -324,6 +326,7 @@ export default function WalletCoinQrScreen() {
           onPress={handleDownload}
           disabled={downloading}
           testID="wallet-coin-qr-download"
+          accessibilityRole="button"
         >
           {downloading ? (
             <ActivityIndicator color={wc.textStrong} size="small" />

@@ -419,6 +419,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={() => addColor(key)}
           style={[styles.addBtn, { backgroundColor: Colors.accent + "20" }]}
           testID={`add-${key}`}
+          accessibilityRole="button"
         >
           <Plus color={Colors.accent} size={14} />
           <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -467,6 +468,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               <TouchableOpacity
                 onPress={() => removeColor(key, c.id)}
                 style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                accessibilityRole="button"
+                accessibilityLabel="Remove colour"
               >
                 <Trash2 color={Colors.error} size={14} />
               </TouchableOpacity>
@@ -493,6 +496,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={() => addPriced(key)}
           style={[styles.addBtn, { backgroundColor: Colors.accent + "20" }]}
           testID={`add-${key}`}
+          accessibilityRole="button"
         >
           <Plus color={Colors.accent} size={14} />
           <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -540,6 +544,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               <TouchableOpacity
                 onPress={() => removePriced(key, c.id)}
                 style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                accessibilityRole="button"
+                accessibilityLabel="Remove option"
               >
                 <Trash2 color={Colors.error} size={14} />
               </TouchableOpacity>
@@ -580,6 +586,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 { backgroundColor: Colors.gray[100], borderColor: Colors.border },
               ]}
               testID={`${key}-slot-${idx}`}
+              accessibilityRole="button"
             >
               {uri ? (
                 <>
@@ -588,6 +595,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                     onPress={() => removeGalleryImage(key, idx)}
                     style={[styles.gallerySlotRemove, { backgroundColor: Colors.text + "CC" }]}
                     hitSlop={8}
+                    accessibilityRole="button"
                   >
                     <X color={Colors.background} size={12} />
                   </TouchableOpacity>
@@ -618,6 +626,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           onPress={addTax}
           style={[styles.addBtn, { backgroundColor: Colors.accent + "20" }]}
           testID="add-tax"
+          accessibilityRole="button"
         >
           <Plus color={Colors.accent} size={14} />
           <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -679,6 +688,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               <TouchableOpacity
                 onPress={() => removeTax(c.id)}
                 style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
+                accessibilityRole="button"
+                accessibilityLabel="Remove tax"
               >
                 <Trash2 color={Colors.error} size={14} />
               </TouchableOpacity>
@@ -749,6 +760,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="ev-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Vehicle</Text>
@@ -775,6 +787,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="ev-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -796,6 +809,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                     { backgroundColor: Colors.gray[100], borderColor: Colors.border },
                   ]}
                   testID="ev-image-pick"
+                  accessibilityRole="button"
                 >
                   {form.imageUri ? (
                     <Image source={{ uri: form.imageUri }} style={styles.imagePreviewImg} />

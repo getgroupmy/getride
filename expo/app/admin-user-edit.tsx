@@ -261,6 +261,8 @@ export default function AdminUserEditScreen() {
           onPress={onDelete}
           style={[styles.iconBtn, { backgroundColor: Colors.error + "20" }]}
           testID="edit-user-delete"
+          accessibilityRole="button"
+          accessibilityLabel="Delete this user"
         >
           <Trash2 color={Colors.error} size={20} />
         </TouchableOpacity>
@@ -277,6 +279,7 @@ export default function AdminUserEditScreen() {
             style={[styles.profileWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             activeOpacity={0.85}
             testID="edit-user-profile-image"
+            accessibilityRole="button"
           >
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
@@ -301,6 +304,7 @@ export default function AdminUserEditScreen() {
               style={[styles.idImageWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
               activeOpacity={0.85}
               testID="edit-user-id-image"
+              accessibilityRole="button"
             >
               {idImage ? (
                 <Image source={{ uri: idImage }} style={styles.idImage} />
@@ -333,6 +337,7 @@ export default function AdminUserEditScreen() {
                     ]}
                     testID={`edit-user-gender-${g.key}`}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.chipText, { color: selected ? Colors.onAccent : Colors.text }]}>
                       {g.label}
@@ -368,6 +373,7 @@ export default function AdminUserEditScreen() {
                   ]}
                   testID={`edit-user-status-${s.key}`}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.chipText, { color: selected ? Colors.onAccent : Colors.text }]}>
                     {s.label}
@@ -385,6 +391,7 @@ export default function AdminUserEditScreen() {
             ]}
             activeOpacity={0.85}
             testID="edit-user-docs-toggle"
+            accessibilityRole="button"
           >
             <View style={{ flex: 1 }}>
               <Text style={[styles.toggleTitle, { color: Colors.text }]}>Documents verified</Text>
@@ -410,6 +417,7 @@ export default function AdminUserEditScreen() {
             style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
             testID="save-user"
             activeOpacity={0.9}
+            accessibilityRole="button"
           >
             <Save color={Colors.onAccent} size={18} />
             <Text style={[styles.submitText, { color: Colors.onAccent }]}>Save Changes</Text>

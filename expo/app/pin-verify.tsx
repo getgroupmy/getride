@@ -262,6 +262,7 @@ export default function PinVerifyScreen() {
             style={styles.forgotButton}
             onPress={handleForgotPin}
             disabled={isSendingOtp}
+            accessibilityRole="button"
           >
             <Text style={[styles.forgotButtonText, { color: colors.accent }]}>{isSendingOtp ? "Sending code\u2026" : "Forgot PIN?"}</Text>
           </TouchableOpacity>

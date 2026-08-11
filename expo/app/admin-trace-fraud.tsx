@@ -339,6 +339,7 @@ export default function AdminTraceFraudScreen() {
         onPress={() => showEvidence(item)}
         style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
         testID={`finding-${item.id}`}
+        accessibilityRole="button"
       >
         <View style={styles.cardHeaderRow}>
           <View style={[styles.iconWrap, { backgroundColor: color + "20" }]}>
@@ -398,6 +399,8 @@ export default function AdminTraceFraudScreen() {
           onPress={exportFindings}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="export"
+          accessibilityRole="button"
+          accessibilityLabel="Export findings"
         >
           <Download color={Colors.text} size={20} />
         </TouchableOpacity>
@@ -405,6 +408,8 @@ export default function AdminTraceFraudScreen() {
           onPress={onRefresh}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="refresh"
+          accessibilityRole="button"
+          accessibilityLabel="Refresh"
         >
           <RefreshCcw color={Colors.text} size={20} />
         </TouchableOpacity>
@@ -452,6 +457,7 @@ export default function AdminTraceFraudScreen() {
               },
             ]}
             testID={`filter-severity-${s}`}
+            accessibilityRole="button"
           >
             <Text style={[styles.filterChipText, { color: severityFilter === s ? "#000000" : Colors.text }]}>
               {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -482,6 +488,7 @@ export default function AdminTraceFraudScreen() {
                   },
                 ]}
                 testID={`filter-category-${c}`}
+                accessibilityRole="button"
               >
                 <Text style={[styles.filterChipText, { color: active ? Colors.background : Colors.text }]}>
                   {label}

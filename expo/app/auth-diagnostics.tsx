@@ -323,6 +323,7 @@ export default function AuthDiagnosticsScreen() {
           ]}
           onPress={runAll}
           disabled={running}
+          accessibilityRole="button"
         >
           <Play color={colors.secondary} size={18} />
           <Text style={[styles.runBtnText, { color: colors.secondary }]}>
@@ -366,6 +367,7 @@ export default function AuthDiagnosticsScreen() {
             { borderColor: colors.gray[200], backgroundColor: colors.gray[50] },
           ]}
           onPress={copyReport}
+          accessibilityRole="button"
         >
           <Copy color={colors.text} size={18} />
           <Text style={[styles.copyBtnText, { color: colors.text }]}>

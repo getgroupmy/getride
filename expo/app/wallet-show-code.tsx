@@ -189,6 +189,9 @@ export default function WalletShowCodeScreen() {
             ]}
             onPress={() => setMode("qr")}
             testID="wallet-show-code-mode-qr"
+            accessibilityRole="button"
+            accessibilityState={{ selected: mode === "qr" }}
+            accessibilityLabel="Show QR code"
           >
             <QrCode color={mode === "qr" ? Colors.accentDark : "#6B7280"} size={22} />
           </TouchableOpacity>
@@ -201,6 +204,9 @@ export default function WalletShowCodeScreen() {
             ]}
             onPress={() => setMode("barcode")}
             testID="wallet-show-code-mode-barcode"
+            accessibilityRole="button"
+            accessibilityState={{ selected: mode === "barcode" }}
+            accessibilityLabel="Show barcode"
           >
             <Barcode color={mode === "barcode" ? Colors.accentDark : "#6B7280"} size={22} />
           </TouchableOpacity>

@@ -127,6 +127,7 @@ export default function AdminPartnersScreen() {
         onPress={() => handlePress(item)}
         testID={`partner-row-${item.id}`}
         activeOpacity={0.85}
+        accessibilityRole="button"
       >
         <View style={[styles.rowIcon, { backgroundColor: color + "20" }]}>
           <Icon color={color} size={20} />

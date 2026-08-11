@@ -316,6 +316,8 @@ export default function AdminSettingsRorkChatScreen() {
               },
             ]}
             testID="rork-chat-send"
+            accessibilityRole="button"
+            accessibilityLabel="Send"
           >
             <Send
               color={

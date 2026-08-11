@@ -31,6 +31,7 @@ export default function WalletBalanceBar({
         onPress={onReload}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         testID={testID ? `${testID}-reload` : undefined}
+        accessibilityRole="button"
       >
         <Text style={[styles.reloadText, { color: Colors.accent }]}>Reload</Text>
       </TouchableOpacity>

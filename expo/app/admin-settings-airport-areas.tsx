@@ -971,6 +971,7 @@ export default function AdminSettingsAirportAreasScreen() {
         },
       ]}
       testID={`airport-filter-${label.toLowerCase()}`}
+      accessibilityRole="button"
     >
       <Text
         style={[
@@ -1024,6 +1025,8 @@ export default function AdminSettingsAirportAreasScreen() {
           onPress={() => openGeo(entry)}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`airport-geo-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Set the area on a map"
         >
           <MapIcon color={hasBoundary ? Colors.accent : Colors.textSecondary} size={16} />
         </TouchableOpacity>
@@ -1031,6 +1034,8 @@ export default function AdminSettingsAirportAreasScreen() {
           onPress={() => router.push({ pathname: "/admin-settings-multi-gate-place-gates" as any, params: { placeId: entry.id, parentKey: STORAGE_KEY } })}
           style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
           testID={`airport-gates-${entry.id}`}
+          accessibilityRole="button"
+          accessibilityLabel="Manage gates"
         >
           <DoorOpen color={Colors.accent} size={16} />
         </TouchableOpacity>
@@ -1112,7 +1117,7 @@ export default function AdminSettingsAirportAreasScreen() {
           </Text>
         </View>
         {(filterCountry || filterState || filterCity) && (
-          <TouchableOpacity onPress={clearFilters} testID="airport-clear-filters">
+          <TouchableOpacity onPress={clearFilters} testID="airport-clear-filters" accessibilityRole="button">
             <Text style={[styles.clearText, { color: Colors.accent }]}>Clear</Text>
           </TouchableOpacity>
         )}
@@ -1153,6 +1158,7 @@ export default function AdminSettingsAirportAreasScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="airport-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Airport</Text>
@@ -1179,6 +1185,7 @@ export default function AdminSettingsAirportAreasScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="airport-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1198,7 +1205,7 @@ export default function AdminSettingsAirportAreasScreen() {
                     />
                     {placeSearching ? <ActivityIndicator size="small" color={Colors.accent} /> : null}
                     {!placeSearching && placeQuery.length > 0 ? (
-                      <TouchableOpacity onPress={() => { setPlaceQuery(""); setPlaceResults([]); }}>
+                      <TouchableOpacity onPress={() => { setPlaceQuery(""); setPlaceResults([]); }} accessibilityRole="button">
                         <X color={Colors.textSecondary} size={16} />
                       </TouchableOpacity>
                     ) : null}
@@ -1216,6 +1223,7 @@ export default function AdminSettingsAirportAreasScreen() {
                             onPress={() => pickPlace(r)}
                             style={[styles.placeRow, { borderBottomColor: Colors.border }]}
                             testID={`airport-place-${r.id}`}
+                            accessibilityRole="button"
                           >
                             <View style={[styles.resultIcon, { backgroundColor: Colors.accent + "15" }]}>
                               <MapPin color={Colors.accent} size={14} />
@@ -1259,6 +1267,7 @@ export default function AdminSettingsAirportAreasScreen() {
                         onPress={() => setForm((p) => ({ ...p, lat: "", lon: "", address: "", placeName: "" }))}
                         style={[styles.iconBtnSmall, { backgroundColor: Colors.background }]}
                         testID="airport-coords-clear"
+                        accessibilityRole="button"
                       >
                         <X color={Colors.textSecondary} size={14} />
                       </TouchableOpacity>
@@ -1326,7 +1335,7 @@ export default function AdminSettingsAirportAreasScreen() {
                   {geoEntry ? queryFromEntry(geoEntry) : ""}
                 </Text>
               </View>
-              <TouchableOpacity onPress={closeGeo} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}>
+              <TouchableOpacity onPress={closeGeo} style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]} accessibilityRole="button">
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
             </View>
@@ -1421,6 +1430,7 @@ export default function AdminSettingsAirportAreasScreen() {
                       onPress={startDraw}
                       style={[styles.actionBtn, styles.actionBtnGhost, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
                       testID="airport-draw-start"
+                      accessibilityRole="button"
                     >
                       <PenLine size={16} color={Colors.text} />
                       <Text style={[styles.actionBtnGhostText, { color: Colors.text }]}>Draw</Text>
@@ -1430,6 +1440,7 @@ export default function AdminSettingsAirportAreasScreen() {
                       style={[styles.actionBtn, styles.actionBtnGhost, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }, !boundary && { opacity: 0.5 }]}
                       disabled={!boundary}
                       testID="airport-draw-edit"
+                      accessibilityRole="button"
                     >
                       <Move size={16} color={Colors.text} />
                       <Text style={[styles.actionBtnGhostText, { color: Colors.text }]}>Edit polygon</Text>
@@ -1441,6 +1452,7 @@ export default function AdminSettingsAirportAreasScreen() {
                       onPress={cancelDraw}
                       style={[styles.actionBtn, styles.actionBtnGhost, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
                       testID="airport-draw-cancel"
+                      accessibilityRole="button"
                     >
                       <X size={16} color={Colors.text} />
                       <Text style={[styles.actionBtnGhostText, { color: Colors.text }]}>Cancel</Text>
@@ -1451,6 +1463,7 @@ export default function AdminSettingsAirportAreasScreen() {
                         style={[styles.actionBtn, styles.actionBtnGhost, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }, draftPoints.length === 0 && { opacity: 0.5 }]}
                         disabled={draftPoints.length === 0}
                         testID="airport-draw-undo"
+                        accessibilityRole="button"
                       >
                         <Undo2 size={16} color={Colors.text} />
                         <Text style={[styles.actionBtnGhostText, { color: Colors.text }]}>Undo</Text>
@@ -1461,6 +1474,7 @@ export default function AdminSettingsAirportAreasScreen() {
                       style={[styles.actionBtn, { backgroundColor: Colors.accent }, draftPoints.length < 3 && { opacity: 0.5 }]}
                       disabled={draftPoints.length < 3}
                       testID="airport-draw-finish"
+                      accessibilityRole="button"
                     >
                       <Check size={16} color={Colors.onAccent} />
                       <Text style={[styles.actionBtnGhostText, { color: Colors.onAccent }]}>Finish</Text>
@@ -1486,6 +1500,7 @@ export default function AdminSettingsAirportAreasScreen() {
                         fetching !== null && !active && { opacity: 0.6 },
                       ]}
                       testID={`airport-fetch-${src}`}
+                      accessibilityRole="button"
                     >
                       {active ? (
                         <ActivityIndicator size="small" color={Colors.onAccent} />
@@ -1527,6 +1542,7 @@ export default function AdminSettingsAirportAreasScreen() {
                   style={[styles.actionBtn, styles.actionBtnGhost, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
                   disabled={!boundary && !geoEntry?.values?.boundary}
                   testID="airport-clear-boundary"
+                  accessibilityRole="button"
                 >
                   <Eraser size={16} color={Colors.text} />
                   <Text style={[styles.actionBtnGhostText, { color: Colors.text }]}>Clear</Text>
@@ -1536,6 +1552,7 @@ export default function AdminSettingsAirportAreasScreen() {
                   style={[styles.actionBtn, { backgroundColor: Colors.accent }, !boundary && { opacity: 0.5 }]}
                   disabled={!boundary}
                   testID="airport-save-boundary"
+                  accessibilityRole="button"
                 >
                   <Download size={16} color={Colors.onAccent} />
                   <Text style={[styles.actionBtnGhostText, { color: Colors.onAccent }]}>Save geofence</Text>
@@ -1550,6 +1567,7 @@ export default function AdminSettingsAirportAreasScreen() {
                 style={StyleSheet.absoluteFill}
                 onPress={() => { setCandidates(null); setSearchCtx(null); }}
                 activeOpacity={1}
+                accessibilityRole="button"
               />
               <View style={[styles.modalSheet, { backgroundColor: Colors.background, maxHeight: "80%" }]}>
                 <View style={styles.modalHeader}>
@@ -1564,6 +1582,7 @@ export default function AdminSettingsAirportAreasScreen() {
                   <TouchableOpacity
                     onPress={() => { setCandidates(null); setSearchCtx(null); }}
                     style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                    accessibilityRole="button"
                   >
                     <X color={Colors.text} size={20} />
                   </TouchableOpacity>
@@ -1581,6 +1600,7 @@ export default function AdminSettingsAirportAreasScreen() {
                       <TouchableOpacity
                         style={[styles.candidateRow, { backgroundColor: Colors.gray[100] }]}
                         onPress={() => pickCandidate(item)}
+                        accessibilityRole="button"
                       >
                         <View style={{ flex: 1, paddingRight: 8 }}>
                           <Text style={{ color: Colors.text, fontSize: 15 }} numberOfLines={2}>
@@ -1603,6 +1623,7 @@ export default function AdminSettingsAirportAreasScreen() {
                           onPress={loadMore}
                           disabled={loadingMore}
                           style={[styles.actionBtn, styles.actionBtnGhost, { alignSelf: "center", borderColor: Colors.border, backgroundColor: Colors.gray[100], flex: 0, paddingHorizontal: 18 }]}
+                          accessibilityRole="button"
                         >
                           {loadingMore ? (
                             <ActivityIndicator color={Colors.text} />
@@ -1639,6 +1660,7 @@ export default function AdminSettingsAirportAreasScreen() {
                 onPress={() => setPickerOpen(null)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="airport-picker-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -1648,6 +1670,7 @@ export default function AdminSettingsAirportAreasScreen() {
                 onPress={() => onPickFilter("")}
                 style={[styles.pickerItem, { borderBottomColor: Colors.border }]}
                 testID="airport-picker-all"
+                accessibilityRole="button"
               >
                 <Text style={[styles.pickerText, { color: Colors.textSecondary }]}>All</Text>
                 {!pickerValue && <Check color={Colors.accent} size={18} />}
@@ -1658,6 +1681,7 @@ export default function AdminSettingsAirportAreasScreen() {
                   onPress={() => onPickFilter(opt)}
                   style={[styles.pickerItem, { borderBottomColor: Colors.border }]}
                   testID={`airport-picker-${opt}`}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.pickerText, { color: Colors.text }]}>{opt}</Text>
                   {pickerValue === opt && <Check color={Colors.accent} size={18} />}

@@ -403,6 +403,8 @@ export default function AdminCrudList({
             onPress={openAdd}
             style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
             testID={`${testID ?? "crud"}-add`}
+            accessibilityRole="button"
+            accessibilityLabel="Add"
           >
             <Plus color={Colors.onAccent} size={22} />
           </TouchableOpacity>
@@ -441,6 +443,7 @@ export default function AdminCrudList({
                 onPress={openAdd}
                 style={[styles.cta, { backgroundColor: Colors.accent }]}
                 testID={`${testID ?? "crud"}-empty-add`}
+                accessibilityRole="button"
               >
                 <Plus color={Colors.onAccent} size={16} />
                 <Text style={[styles.ctaText, { color: Colors.onAccent }]}>{primaryAction ?? "Add new"}</Text>
@@ -468,6 +471,7 @@ export default function AdminCrudList({
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID={`${testID ?? "crud"}-modal-close`}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -524,6 +528,7 @@ export default function AdminCrudList({
                 onPress={onSave}
                 style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                 testID={`${testID ?? "crud"}-save`}
+                accessibilityRole="button"
               >
                 <Save color={Colors.onAccent} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>

@@ -150,6 +150,7 @@ export default function AdminSupportChatScreen() {
                     borderColor: meta.color,
                   },
                 ]}
+                accessibilityRole="button"
               >
                 {active ? <Check color="#fff" size={13} /> : null}
                 <Text

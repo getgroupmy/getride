@@ -89,6 +89,7 @@ export default function PartnerTypePicker({
           { backgroundColor: Colors.gray[100], borderColor: Colors.border },
         ]}
         testID={testID}
+        accessibilityRole="button"
       >
         <Users2 color={Colors.textSecondary} size={18} />
         <Text

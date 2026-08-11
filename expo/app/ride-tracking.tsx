@@ -1417,6 +1417,7 @@ export default function RideTrackingScreen() {
                 disabled={cancelling}
                 onPress={() => closeCancelConfirm()}
                 style={[styles.cancelGhost, { backgroundColor: Colors.gray[100] }]}
+                accessibilityRole="button"
               >
                 <Text style={[styles.cancelGhostText, { color: Colors.text }]}>Keep ride</Text>
               </TouchableOpacity>
@@ -1429,6 +1430,7 @@ export default function RideTrackingScreen() {
                   styles.cancelConfirm,
                   { backgroundColor: Colors.error, opacity: cancelling ? 0.7 : 1 },
                 ]}
+                accessibilityRole="button"
               >
                 {cancelling ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />

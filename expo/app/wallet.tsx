@@ -1454,6 +1454,7 @@ export default function WalletScreen() {
                       style={styles.changeAmountBtn}
                       onPress={() => setTopUpStep("amount")}
                       testID="wallet-topup-change-amount"
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.changeAmountText, { color: Colors.accent }]}>
                         Change Amount
@@ -1628,6 +1629,7 @@ export default function WalletScreen() {
                     ]}
                     onPress={() => setAmountText(String(q))}
                     testID={`wallet-quick-${q}`}
+                    accessibilityRole="button"
                   >
                     <Text
                       style={[
@@ -1664,6 +1666,7 @@ export default function WalletScreen() {
                 style={[styles.modalBtn, { borderColor: Colors.border, borderWidth: 1 }]}
                 onPress={() => setRechargeVisible(false)}
                 disabled={submitting}
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnText, { color: Colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -1675,6 +1678,7 @@ export default function WalletScreen() {
                 onPress={handleRecharge}
                 disabled={submitting}
                 testID="wallet-recharge-confirm"
+                accessibilityRole="button"
               >
                 {submitting ? (
                   <ActivityIndicator color={Colors.onAccent} size="small" />
@@ -2149,6 +2153,7 @@ export default function WalletScreen() {
               style={[styles.duitNowBtn, { backgroundColor: Colors.accent }]}
               onPress={() => setDuitNowVisible(false)}
               testID="wallet-duitnow-close"
+              accessibilityRole="button"
             >
               <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>OK</Text>
             </TouchableOpacity>
@@ -2175,6 +2180,7 @@ export default function WalletScreen() {
               style={[styles.duitNowBtn, { backgroundColor: Colors.accent }]}
               onPress={() => setComingSoonVisible(false)}
               testID="wallet-transfer-close"
+              accessibilityRole="button"
             >
               <Text style={[styles.duitNowBtnText, { color: Colors.onAccent }]}>Got It</Text>
             </TouchableOpacity>

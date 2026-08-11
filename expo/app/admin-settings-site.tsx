@@ -326,6 +326,8 @@ export default function AdminAppSettingsScreen() {
           onPress={handleReset}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="app-settings-reset"
+          accessibilityRole="button"
+          accessibilityLabel="Reset settings"
         >
           <RotateCcw color={Colors.text} size={18} />
         </TouchableOpacity>
@@ -362,6 +364,7 @@ export default function AdminAppSettingsScreen() {
                       },
                     ]}
                     testID={`mode-${m}`}
+                    accessibilityRole="button"
                   >
                     <Icon color={active ? "#000000" : Colors.text} size={14} />
                     <Text
@@ -423,6 +426,7 @@ export default function AdminAppSettingsScreen() {
                   onPress={() => pickImage("app")}
                   style={[styles.uploadBtn, { backgroundColor: Colors.accent }]}
                   testID="upload-app-icon"
+                  accessibilityRole="button"
                 >
                   <Upload color="#000000" size={14} />
                   <Text style={styles.uploadBtnText}>
@@ -470,6 +474,7 @@ export default function AdminAppSettingsScreen() {
                   onPress={() => pickImage("splash")}
                   style={[styles.uploadBtn, { backgroundColor: Colors.accent }]}
                   testID="upload-splash-icon"
+                  accessibilityRole="button"
                 >
                   <Upload color="#000000" size={14} />
                   <Text style={styles.uploadBtnText}>
@@ -567,6 +572,7 @@ export default function AdminAppSettingsScreen() {
             ]}
             testID="save-app-settings"
             activeOpacity={0.85}
+            accessibilityRole="button"
           >
             {saving ? (
               <ActivityIndicator color="#000000" />

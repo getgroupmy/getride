@@ -603,6 +603,7 @@ export default function AdminSettingsMeterDigitalScreen() {
               }}
               activeOpacity={0.85}
               testID={`${testId}-${opt.key}`}
+              accessibilityRole="button"
             >
               <Text
                 style={[
@@ -693,6 +694,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                 else if (field === "state") setDraft((p) => ({ ...p, city: null }));
                 setFocusField(null);
               }}
+              accessibilityRole="button"
             >
               <Text style={[styles.suggestText, { color: Colors.text }]}>{name}</Text>
             </TouchableOpacity>
@@ -886,6 +888,7 @@ export default function AdminSettingsMeterDigitalScreen() {
             onPress={openGlobal}
             activeOpacity={0.85}
             testID="meter-settings-global"
+            accessibilityRole="button"
           >
             <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
               <Gauge color={Colors.accent} size={20} />
@@ -917,6 +920,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                     onPress={() => openAdd(meta.level)}
                     style={[styles.addBtn, { backgroundColor: Colors.accent + "15" }]}
                     testID={`meter-settings-add-${meta.level}`}
+                    accessibilityRole="button"
                   >
                     <Plus color={Colors.accent} size={14} />
                     <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -971,6 +975,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                 onPress={() => setEditorOpen(false)}
                 style={styles.iconAction}
                 testID="meter-settings-editor-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.textSecondary} size={20} />
               </TouchableOpacity>
@@ -1136,6 +1141,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                             }}
                             activeOpacity={0.85}
                             testID={`meter-settings-leave-app-${app.id}`}
+                            accessibilityRole="button"
                           >
                             <View style={styles.cardInfo}>
                               <Text
@@ -1177,6 +1183,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                         }}
                         activeOpacity={0.85}
                         testID="meter-settings-leave-app-other"
+                        accessibilityRole="button"
                       >
                         <View style={styles.cardInfo}>
                           <Text

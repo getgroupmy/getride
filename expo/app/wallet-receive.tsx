@@ -358,6 +358,8 @@ export default function WalletReceiveScreen() {
               style={styles.copyBtn}
               onPress={handleCopy}
               testID="wallet-receive-copy"
+              accessibilityRole="button"
+              accessibilityLabel="Copy the account number"
             >
               {copied ? (
                 <Check color={wc.amountPositive} size={22} />
@@ -376,6 +378,7 @@ export default function WalletReceiveScreen() {
               style={[styles.filledBtn, { backgroundColor: Colors.accent }]}
               onPress={openAmountModal}
               testID="wallet-receive-new-amount"
+              accessibilityRole="button"
             >
               <Text style={styles.filledBtnText}>ENTER NEW AMOUNT</Text>
             </TouchableOpacity>
@@ -383,6 +386,7 @@ export default function WalletReceiveScreen() {
               style={styles.outlineBtn}
               onPress={cancelAmount}
               testID="wallet-receive-cancel-amount"
+              accessibilityRole="button"
             >
               <Text style={styles.outlineBtnText}>CANCEL</Text>
             </TouchableOpacity>
@@ -394,6 +398,7 @@ export default function WalletReceiveScreen() {
               onPress={handleDownload}
               disabled={downloading}
               testID="wallet-receive-download"
+              accessibilityRole="button"
             >
               {downloading ? (
                 <ActivityIndicator color={wc.textStrong} size="small" />
@@ -405,6 +410,7 @@ export default function WalletReceiveScreen() {
               style={[styles.filledBtn, { backgroundColor: Colors.accent }]}
               onPress={openAmountModal}
               testID="wallet-receive-enter-amount"
+              accessibilityRole="button"
             >
               <Text style={styles.filledBtnText}>ENTER SPECIFIC AMOUNT</Text>
             </TouchableOpacity>
@@ -459,6 +465,7 @@ export default function WalletReceiveScreen() {
                 style={[styles.filledBtn, styles.expiredBtn, { backgroundColor: Colors.accent }]}
                 onPress={regenerateQr}
                 testID="wallet-receive-regenerate"
+                accessibilityRole="button"
               >
                 <Text style={styles.filledBtnText}>REGENERATE</Text>
               </TouchableOpacity>
@@ -466,6 +473,7 @@ export default function WalletReceiveScreen() {
                 style={[styles.outlineBtn, styles.expiredBtnOutline]}
                 onPress={dismissExpired}
                 testID="wallet-receive-expired-cancel"
+                accessibilityRole="button"
               >
                 <Text style={styles.outlineBtnText}>CANCEL</Text>
               </TouchableOpacity>
@@ -480,14 +488,15 @@ export default function WalletReceiveScreen() {
         animationType="fade"
         onRequestClose={() => setAmountModalVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setAmountModalVisible(false)}>
-          <Pressable style={styles.amountSheet} onPress={() => {}}>
+        <Pressable style={styles.modalOverlay} onPress={() => setAmountModalVisible(false)} accessibilityRole="button">
+          <Pressable style={styles.amountSheet} onPress={() => {}} accessibilityRole="button">
             <View style={styles.amountSheetHeader}>
               <Text style={styles.amountSheetTitle}>Enter Amount</Text>
               <TouchableOpacity
                 style={styles.amountSheetClose}
                 onPress={() => setAmountModalVisible(false)}
                 testID="wallet-receive-amount-close"
+                accessibilityRole="button"
               >
                 <X color={wc.textMuted} size={20} />
               </TouchableOpacity>
@@ -516,6 +525,7 @@ export default function WalletReceiveScreen() {
               onPress={confirmAmount}
               disabled={!amountValid}
               testID="wallet-receive-amount-confirm"
+              accessibilityRole="button"
             >
               <Text style={styles.filledBtnText}>SET AMOUNT</Text>
             </TouchableOpacity>

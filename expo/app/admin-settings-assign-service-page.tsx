@@ -196,6 +196,7 @@ export default function AdminSettingsAssignServicePageScreen() {
                   ]}
                   testID={`assign-pick-${cap}`}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
                 >
                   {info && info.provider && info.service ? (
                     <>
@@ -239,7 +240,7 @@ export default function AdminSettingsAssignServicePageScreen() {
               <Text style={[styles.modalTitle, { color: Colors.text }]}>
                 {pickerCap ? `Assign for ${CAPABILITY_LABELS[pickerCap]}` : "Assign"}
               </Text>
-              <TouchableOpacity onPress={() => setPickerCap(null)} hitSlop={8}>
+              <TouchableOpacity onPress={() => setPickerCap(null)} hitSlop={8} accessibilityRole="button">
                 <X color={Colors.text} size={22} />
               </TouchableOpacity>
             </View>
@@ -280,6 +281,7 @@ export default function AdminSettingsAssignServicePageScreen() {
                             ]}
                             testID={`pick-${prov.id}-${svc.id}`}
                             activeOpacity={0.85}
+                            accessibilityRole="button"
                           >
                             <View style={{ flex: 1 }}>
                               <Text style={[styles.svcName, { color: Colors.text }]}>{svc.name}</Text>

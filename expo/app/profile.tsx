@@ -380,6 +380,7 @@ export default function ProfileScreen() {
                 style={styles.linkRow}
                 onPress={handleForgotPin}
                 testID="profile-forgot-pin"
+                accessibilityRole="button"
               >
                 <KeyRound color={Colors.textSecondary} size={18} />
                 <View style={styles.rowBody}>
@@ -395,6 +396,7 @@ export default function ProfileScreen() {
             style={[styles.signOut, { borderColor: Colors.border }]}
             onPress={handleSignOut}
             testID="profile-signout"
+            accessibilityRole="button"
           >
             <LogOut color="#E11D48" size={18} />
             <Text style={styles.signOutText}>Sign out</Text>

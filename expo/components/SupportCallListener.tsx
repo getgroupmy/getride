@@ -124,13 +124,13 @@ export default function SupportCallListener() {
 
         <View style={styles.actions}>
           <View style={styles.actionCol}>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.error }]} onPress={decline} testID="decline-call">
+            <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.error }]} onPress={decline} testID="decline-call" accessibilityRole="button" accessibilityLabel="Decline the call">
               <PhoneOff color="#fff" size={28} />
             </TouchableOpacity>
             <Text style={[styles.btnLabel, { color: Colors.textSecondary }]}>Decline</Text>
           </View>
           <View style={styles.actionCol}>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.success }]} onPress={accept} testID="accept-call">
+            <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.success }]} onPress={accept} testID="accept-call" accessibilityRole="button" accessibilityLabel="Accept the call">
               <Phone color="#fff" size={28} />
             </TouchableOpacity>
             <Text style={[styles.btnLabel, { color: Colors.textSecondary }]}>Accept</Text>

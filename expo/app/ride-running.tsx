@@ -1658,6 +1658,7 @@ export default function RideRunningScreen() {
                     useNativeDriver: true,
                   }).start(() => setShowCompleteModal(false));
                 }}
+                accessibilityRole="button"
               >
                 <Text style={[styles.endModalGhostText, { color: Colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -1666,6 +1667,7 @@ export default function RideRunningScreen() {
                 activeOpacity={0.9}
                 onPress={handleCompleteContinue}
                 style={[styles.endModalBtn, { backgroundColor: Colors.success ?? Colors.accent }]}
+                accessibilityRole="button"
               >
                 <Text style={styles.endModalConfirmText}>Continue</Text>
                 <ChevronRight color="#FFFFFF" size={18} />
@@ -1706,6 +1708,7 @@ export default function RideRunningScreen() {
                 style={[styles.endModalBtn, styles.endModalGhost, { borderColor: Colors.gray[300] }]}
                 activeOpacity={0.85}
                 onPress={closeEndModal}
+                accessibilityRole="button"
               >
                 <Text style={[styles.endModalGhostText, { color: Colors.text }]}>Keep driving</Text>
               </TouchableOpacity>
@@ -1714,6 +1717,7 @@ export default function RideRunningScreen() {
                 style={[styles.endModalBtn, { backgroundColor: Colors.error }]}
                 activeOpacity={0.9}
                 onPress={handleConfirmEndEarly}
+                accessibilityRole="button"
               >
                 <Power color="#FFFFFF" size={18} />
                 <Text style={styles.endModalConfirmText}>End ride</Text>
@@ -1768,6 +1772,7 @@ export default function RideRunningScreen() {
                 style={[styles.endModalBtn, styles.endModalGhost, { borderColor: Colors.gray[300] }]}
                 activeOpacity={0.85}
                 onPress={handleDeclineRiderCancel}
+                accessibilityRole="button"
               >
                 <Text style={[styles.endModalGhostText, { color: Colors.text }]}>Decline</Text>
               </TouchableOpacity>
@@ -1776,6 +1781,7 @@ export default function RideRunningScreen() {
                 style={[styles.endModalBtn, { backgroundColor: Colors.error }]}
                 activeOpacity={0.9}
                 onPress={handleAcceptRiderCancel}
+                accessibilityRole="button"
               >
                 <XCircle color="#FFFFFF" size={18} />
                 <Text style={styles.endModalConfirmText}>Accept cancel</Text>
@@ -1830,6 +1836,7 @@ export default function RideRunningScreen() {
                 style={[styles.endModalBtn, { backgroundColor: Colors.error }]}
                 activeOpacity={0.9}
                 onPress={handleUserCancelledDismiss}
+                accessibilityRole="button"
               >
                 <Text style={styles.endModalConfirmText}>OK</Text>
               </TouchableOpacity>
@@ -1958,6 +1965,7 @@ export default function RideRunningScreen() {
                   activeOpacity={0.9}
                   onPress={handleConfirmCompletion}
                   style={[styles.confirmBtn, { backgroundColor: Colors.text }]}
+                  accessibilityRole="button"
                 >
                   <Check color={Colors.background} size={20} />
                   <Text style={[styles.confirmBtnText, { color: Colors.background }]}>
@@ -2076,6 +2084,7 @@ export default function RideRunningScreen() {
                   style={[styles.endModalBtn, styles.endModalGhost, { borderColor: Colors.gray[300] }]}
                   activeOpacity={0.85}
                   onPress={handleTollsBack}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.endModalGhostText, { color: Colors.text }]}>Back</Text>
                 </TouchableOpacity>
@@ -2084,6 +2093,7 @@ export default function RideRunningScreen() {
                   activeOpacity={0.9}
                   onPress={handleTollsContinue}
                   style={[styles.endModalBtn, { backgroundColor: Colors.text }]}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.endModalConfirmText, { color: Colors.background }]}>Continue</Text>
                   <ChevronRight color={Colors.background} size={18} />
@@ -2168,6 +2178,7 @@ export default function RideRunningScreen() {
                     openTollsModal();
                   });
                 }}
+                accessibilityRole="button"
               >
                 <Text style={[styles.endModalGhostText, { color: Colors.text }]}>Back</Text>
               </TouchableOpacity>
@@ -2176,6 +2187,7 @@ export default function RideRunningScreen() {
                 activeOpacity={0.9}
                 onPress={handlePaymentReceivedConfirm}
                 style={[styles.endModalBtn, { backgroundColor: Colors.success ?? Colors.accent }]}
+                accessibilityRole="button"
               >
                 <Check color="#FFFFFF" size={18} />
                 <Text style={styles.endModalConfirmText}>Yes, received</Text>
@@ -2195,8 +2207,9 @@ export default function RideRunningScreen() {
           activeOpacity={1}
           style={styles.navMenuOverlay}
           onPress={() => setShowNavMenu(false)}
+          accessibilityRole="button"
         >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={[styles.navMenuSheet, { backgroundColor: Colors.background, paddingBottom: Math.max(insets.bottom, 16) + 12 }]}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} style={[styles.navMenuSheet, { backgroundColor: Colors.background, paddingBottom: Math.max(insets.bottom, 16) + 12 }]} accessibilityRole="button">
             <View style={[styles.navMenuHandle, { backgroundColor: Colors.gray[300] }]} />
             <Text style={[styles.navMenuTitle, { color: Colors.text }]}>Open in navigation app</Text>
             {(() => {
@@ -2264,6 +2277,7 @@ export default function RideRunningScreen() {
                       activeOpacity={0.85}
                       onPress={app.onPress}
                       style={[styles.navMenuItem, { borderColor: Colors.gray[200], backgroundColor: Colors.gray[50] ?? Colors.background }]}
+                      accessibilityRole="button"
                     >
                       <View style={[styles.navMenuIconWrap, { backgroundColor: app.color }]}>
                         {app.icon}
@@ -2277,6 +2291,7 @@ export default function RideRunningScreen() {
                     activeOpacity={0.85}
                     onPress={() => setShowNavMenu(false)}
                     style={[styles.navMenuCancel, { backgroundColor: Colors.gray[100] }]}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.navMenuCancelText, { color: Colors.text }]}>Cancel</Text>
                   </TouchableOpacity>
@@ -2412,6 +2427,7 @@ export default function RideRunningScreen() {
                 style={[styles.endModalBtn, styles.endModalGhost, { borderColor: Colors.gray[300] }]}
                 activeOpacity={0.85}
                 onPress={() => closeCancelModal()}
+                accessibilityRole="button"
               >
                 <Text style={[styles.endModalGhostText, { color: Colors.text }]}>Keep order</Text>
               </TouchableOpacity>
@@ -2525,6 +2541,7 @@ export default function RideRunningScreen() {
             activeOpacity={1}
             onPress={closePaymentSheet}
             style={styles.recalcDim}
+            accessibilityRole="button"
           />
           <Animated.View
             style={[
@@ -2593,6 +2610,7 @@ export default function RideRunningScreen() {
                         backgroundColor: isSelected ? Colors.accent + "10" : "transparent",
                       },
                     ]}
+                    accessibilityRole="button"
                   >
                     <View style={[styles.paymentOptionIconWrap, { backgroundColor: opt.tint + "1A" }]}>
                       <Icon color={opt.tint} size={22} />

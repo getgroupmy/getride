@@ -226,6 +226,7 @@ export default function AdminSettingsAlwaysOnScreen() {
                           style={styles.removeBtn}
                           testID={`always-on-remove-${row.route}`}
                           hitSlop={8}
+                          accessibilityRole="button"
                         >
                           <Trash2 color={Colors.error} size={14} />
                           <Text style={[styles.removeText, { color: Colors.error }]}>Remove</Text>
@@ -264,6 +265,7 @@ export default function AdminSettingsAlwaysOnScreen() {
               onPress={addCustom}
               style={[styles.addBtn, { backgroundColor: Colors.accent }]}
               testID="always-on-add"
+              accessibilityRole="button"
             >
               <Plus color="#fff" size={18} />
               <Text style={styles.addBtnText}>Add</Text>
@@ -273,7 +275,7 @@ export default function AdminSettingsAlwaysOnScreen() {
             Enter the page name from its URL (the part after the slash). Adding a page turns it on.
           </Text>
 
-          <TouchableOpacity onPress={restoreDefaults} style={styles.restoreBtn} testID="always-on-restore">
+          <TouchableOpacity onPress={restoreDefaults} style={styles.restoreBtn} testID="always-on-restore" accessibilityRole="button">
             <Text style={[styles.restoreText, { color: Colors.accent }]}>Restore defaults</Text>
           </TouchableOpacity>
 

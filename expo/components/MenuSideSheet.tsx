@@ -843,6 +843,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
             style={[styles.csButton, { backgroundColor: Colors.accent }]}
             onPress={() => setComingSoonVisible(false)}
             testID="coming-soon-ok"
+            accessibilityRole="button"
           >
             <Text style={[styles.csButtonText, { color: Colors.onAccent }]}>OK</Text>
           </TouchableOpacity>
@@ -882,6 +883,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
             style={styles.overlayTouchable}
             activeOpacity={1}
             onPress={onClose}
+            accessibilityRole="button"
           />
         </Animated.View>
 

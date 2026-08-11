@@ -274,6 +274,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="payment-type-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>

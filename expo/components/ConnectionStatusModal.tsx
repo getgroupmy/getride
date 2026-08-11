@@ -126,6 +126,7 @@ export function ConnectionStatusModal({
                 onPress={() => setExpanded((v) => !v)}
                 style={styles.expandRow}
                 testID="connection-toggle-details"
+                accessibilityRole="button"
               >
                 <Text style={styles.expandText}>
                   {expanded ? "Hide details" : "Show details"}
@@ -180,6 +181,7 @@ export function ConnectionStatusModal({
                 { opacity: pressed ? 0.85 : 1 },
               ]}
               testID="connection-status-diagnose"
+              accessibilityRole="button"
             >
               <Stethoscope size={18} color="#ffffff" />
               <Text style={styles.diagButtonText}>Diagnose</Text>
@@ -193,6 +195,7 @@ export function ConnectionStatusModal({
               { backgroundColor: accent, opacity: pressed ? 0.85 : 1 },
             ]}
             testID="connection-status-ok"
+            accessibilityRole="button"
           >
             <Text style={styles.buttonText}>{connected ? "OK" : "Continue"}</Text>
           </Pressable>

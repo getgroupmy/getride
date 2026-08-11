@@ -60,6 +60,8 @@ export default function AdminSettingPlaceholder({
         <TouchableOpacity
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID={`${testID ?? "setting"}-search`}
+          accessibilityRole="button"
+          accessibilityLabel="Search"
         >
           <Search color={Colors.text} size={20} />
         </TouchableOpacity>

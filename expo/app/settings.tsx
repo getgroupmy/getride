@@ -126,6 +126,8 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.menuButton}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Menu color={Colors.text} size={24} />
           </TouchableOpacity>
@@ -142,6 +144,7 @@ export default function SettingsScreen() {
               style={styles.settingItem}
               onPress={() => handleSettingPress(option.id)}
               activeOpacity={0.7}
+              accessibilityRole="button"
             >
               <Text style={[styles.settingLabel, { color: Colors.text }]} numberOfLines={1}>
                 {option.label}
@@ -169,6 +172,7 @@ export default function SettingsScreen() {
           style={[styles.logoutButton, { backgroundColor: Colors.gray[100] }]}
           onPress={handleLogout}
           activeOpacity={0.7}
+          accessibilityRole="button"
         >
           <Text style={[styles.logoutText, { color: Colors.text }]}>Log out</Text>
         </TouchableOpacity>
@@ -177,6 +181,7 @@ export default function SettingsScreen() {
           style={[styles.deleteButton, { backgroundColor: Colors.gray[100] }]}
           onPress={handleDeleteAccount}
           activeOpacity={0.7}
+          accessibilityRole="button"
         >
           <Text style={[styles.deleteText, { color: Colors.error }]}>Delete my account</Text>
         </TouchableOpacity>

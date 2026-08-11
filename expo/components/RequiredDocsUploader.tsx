@@ -502,6 +502,7 @@ export default function RequiredDocsUploader({
                   },
                 ]}
                 testID={`required-doc-upload-${d.id}`}
+                accessibilityRole="button"
               >
                 <View
                   style={[

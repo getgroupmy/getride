@@ -483,6 +483,8 @@ export default function WalletTradeScreen() {
           style={styles.backBtn}
           onPress={() => router.push("/wallet-coin-qr" as never)}
           testID="trade-show-qr"
+          accessibilityRole="button"
+          accessibilityLabel="Show my GET.coin QR code"
         >
           <QrCode color={wc.textStrong} size={22} />
         </TouchableOpacity>
@@ -601,6 +603,7 @@ export default function WalletTradeScreen() {
                         setSuccessNote("");
                       }}
                       testID={`trade-tab-${d}`}
+                      accessibilityRole="button"
                     >
                       <Text
                         style={[
@@ -620,6 +623,7 @@ export default function WalletTradeScreen() {
                   style={styles.myQrRow}
                   onPress={() => router.push("/wallet-coin-qr" as never)}
                   testID="trade-my-qr"
+                  accessibilityRole="button"
                 >
                   <QrCode color={COIN_AMBER_DARK} size={14} />
                   <Text style={styles.myQrText}>Receiving instead? Show my QR code</Text>
@@ -647,6 +651,8 @@ export default function WalletTradeScreen() {
                     style={styles.scanBtn}
                     onPress={openScanner}
                     testID="trade-scan-qr"
+                    accessibilityRole="button"
+                    accessibilityLabel="Scan a QR code"
                   >
                     <ScanLine color={COIN_AMBER_DARK} size={18} />
                   </TouchableOpacity>
@@ -676,6 +682,7 @@ export default function WalletTradeScreen() {
                     key={v}
                     style={styles.quickChip}
                     onPress={() => handleQuick(v)}
+                    accessibilityRole="button"
                   >
                     <Text style={styles.quickChipText}>{v}</Text>
                   </TouchableOpacity>
@@ -684,6 +691,7 @@ export default function WalletTradeScreen() {
                   style={[styles.quickChip, styles.quickChipMax]}
                   onPress={() => handleQuick("max")}
                   testID="trade-max"
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.quickChipText, { color: COIN_AMBER_DARK }]}>MAX</Text>
                 </TouchableOpacity>
@@ -741,6 +749,7 @@ export default function WalletTradeScreen() {
                 onPress={handleConfirm}
                 disabled={!canConfirm}
                 testID="trade-confirm"
+                accessibilityRole="button"
               >
                 {trading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
@@ -789,6 +798,7 @@ export default function WalletTradeScreen() {
                 style={styles.scanCloseBtn}
                 onPress={() => setScanVisible(false)}
                 testID="trade-scan-close"
+                accessibilityRole="button"
               >
                 <X color="#FFFFFF" size={22} />
               </TouchableOpacity>
@@ -826,6 +836,7 @@ export default function WalletTradeScreen() {
                       }
                     }}
                     testID="trade-scan-allow-camera"
+                    accessibilityRole="button"
                   >
                     <Text style={styles.scanPermissionBtnText}>
                       {permission?.canAskAgain === false ? "Open Settings" : "Allow Camera"}
@@ -862,6 +873,7 @@ export default function WalletTradeScreen() {
                 style={styles.approvalCancelBtn}
                 onPress={handleCancelRequest}
                 testID="transfer-cancel-request"
+                accessibilityRole="button"
               >
                 <Text style={styles.approvalCancelText}>Cancel request</Text>
               </TouchableOpacity>
@@ -913,6 +925,7 @@ export default function WalletTradeScreen() {
                 ]}
                 onPress={() => setOutcome(null)}
                 testID="transfer-outcome-done"
+                accessibilityRole="button"
               >
                 <Text style={styles.approvalDoneText}>Done</Text>
               </TouchableOpacity>

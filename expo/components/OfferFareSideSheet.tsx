@@ -601,7 +601,7 @@ export default function OfferFareSideSheet({
 
   return (
     <View style={styles.overlay}>
-      <Pressable onPress={handleClose} style={StyleSheet.absoluteFill}>
+      <Pressable onPress={handleClose} style={StyleSheet.absoluteFill} accessibilityRole="button">
         <Animated.View
           style={[
             styles.backdrop,
@@ -692,6 +692,7 @@ export default function OfferFareSideSheet({
             style={styles.fareContainer}
             onPress={() => { if (biddingEnabled) setIsEditing(true); }}
             activeOpacity={biddingEnabled ? 0.8 : 1}
+            accessibilityRole="button"
           >
             <View style={styles.fareRow}>
               <Text style={styles.fareCurrency}>{currency.symbol}</Text>
@@ -831,7 +832,7 @@ export default function OfferFareSideSheet({
         {isEditing ? (
           <View>
             <View style={styles.doneContainer}>
-              <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
+              <TouchableOpacity style={styles.doneButton} onPress={handleDone} accessibilityRole="button">
                 <Text style={styles.doneButtonText}>Done</Text>
               </TouchableOpacity>
             </View>
@@ -840,12 +841,14 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("1")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>1</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("2")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>2</Text>
                   <Text style={styles.keypadLetters}>ABC</Text>
@@ -853,6 +856,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("3")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>3</Text>
                   <Text style={styles.keypadLetters}>DEF</Text>
@@ -862,6 +866,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("4")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>4</Text>
                   <Text style={styles.keypadLetters}>GHI</Text>
@@ -869,6 +874,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("5")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>5</Text>
                   <Text style={styles.keypadLetters}>JKL</Text>
@@ -876,6 +882,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("6")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>6</Text>
                   <Text style={styles.keypadLetters}>MNO</Text>
@@ -885,6 +892,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("7")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>7</Text>
                   <Text style={styles.keypadLetters}>PQRS</Text>
@@ -892,6 +900,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("8")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>8</Text>
                   <Text style={styles.keypadLetters}>TUV</Text>
@@ -899,6 +908,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("9")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>9</Text>
                   <Text style={styles.keypadLetters}>WXYZ</Text>
@@ -908,18 +918,22 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress(".")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>.</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.keypadButton}
                   onPress={() => handleKeyPress("0")}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.keypadNumber}>0</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.keypadButtonBackspace}
                   onPress={() => handleKeyPress("backspace")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete"
                 >
                   <Delete color="#000" size={26} />
                 </TouchableOpacity>
@@ -963,6 +977,7 @@ export default function OfferFareSideSheet({
             <TouchableOpacity
               style={styles.embeddedSearchClose}
               onPress={closeEmbeddedSearch}
+              accessibilityRole="button"
             >
               <X color="#999" size={24} />
             </TouchableOpacity>
@@ -977,6 +992,7 @@ export default function OfferFareSideSheet({
                 ]}
                 onPress={() => setSearchActiveField('pickup')}
                 activeOpacity={1}
+                accessibilityRole="button"
               >
                 <View style={styles.embeddedSearchFromIcon}>
                   <View style={styles.embeddedSearchFromDot} />
@@ -1002,6 +1018,7 @@ export default function OfferFareSideSheet({
                   <TouchableOpacity
                     style={styles.embeddedSearchClearButton}
                     onPress={() => setSearchPickup('')}
+                    accessibilityRole="button"
                   >
                     <View style={styles.embeddedSearchClearInner}>
                       <X color="#888" size={14} />
@@ -1018,6 +1035,7 @@ export default function OfferFareSideSheet({
               ]}
               onPress={() => setSearchActiveField('destination')}
               activeOpacity={1}
+              accessibilityRole="button"
             >
               <View style={styles.embeddedSearchSearchIcon}>
                 <Search color="#888" size={20} />
@@ -1043,6 +1061,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={styles.embeddedSearchClearButton}
                   onPress={() => setSearchDestination('')}
+                  accessibilityRole="button"
                 >
                   <View style={styles.embeddedSearchClearInner}>
                     <X color="#888" size={14} />
@@ -1056,6 +1075,7 @@ export default function OfferFareSideSheet({
                 <TouchableOpacity
                   style={[styles.embeddedSearchTab, activeTab === 'results' && styles.embeddedSearchTabActive]}
                   onPress={() => setActiveTab('results')}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.embeddedSearchTabText, activeTab === 'results' && styles.embeddedSearchTabTextActive]}>Search Results</Text>
                 </TouchableOpacity>
@@ -1063,12 +1083,14 @@ export default function OfferFareSideSheet({
               <TouchableOpacity
                 style={[styles.embeddedSearchTab, activeTab === 'suggested' && styles.embeddedSearchTabActive]}
                 onPress={() => setActiveTab('suggested')}
+                accessibilityRole="button"
               >
                 <Text style={[styles.embeddedSearchTabText, activeTab === 'suggested' && styles.embeddedSearchTabTextActive]}>Suggested</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.embeddedSearchTab, activeTab === 'saved' && styles.embeddedSearchTabActive]}
                 onPress={() => setActiveTab('saved')}
+                accessibilityRole="button"
               >
                 <Text style={[styles.embeddedSearchTabText, activeTab === 'saved' && styles.embeddedSearchTabTextActive]}>Saved</Text>
               </TouchableOpacity>
@@ -1128,6 +1150,7 @@ function EmbeddedSearchRow({ item, onSelect, usage }: { item: LocationResult; on
         if (blockPlaceTap) return;
         onSelect(item);
       }}
+      accessibilityRole="button"
     >
       <View style={styles.embeddedSearchItemIcon}>
         <MapPin color={item.source === 'google' ? "#4285F4" : "#888"} size={18} />

@@ -1293,6 +1293,7 @@ export default function HomeScreen() {
         <Pressable
           onPress={handleCloseMenu}
           style={[styles.menuOverlay, { pointerEvents: menuFullyOpen ? 'auto' : 'none' }]}
+          accessibilityRole="button"
         >
           <Animated.View
             style={[
@@ -1486,6 +1487,7 @@ export default function HomeScreen() {
               useNativeDriver: true,
             }).start(() => setInfoSheetModalVisible(false));
           }}
+          accessibilityRole="button"
         >
           <Animated.View 
             style={[styles.infoSheetContainer, { backgroundColor: Colors.secondary, transform: [{ translateY: Animated.add(infoSheetAnim, infoSheetDragOffset) }] }]}

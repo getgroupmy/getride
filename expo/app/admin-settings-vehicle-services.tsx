@@ -396,6 +396,8 @@ export default function AdminSettingsVehicleServicesScreen() {
             ]}
             testID={`vehicle-service-move-up-${entry.id}`}
             hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move service up"
           >
             <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -411,6 +413,8 @@ export default function AdminSettingsVehicleServicesScreen() {
             ]}
             testID={`vehicle-service-move-down-${entry.id}`}
             hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move service down"
           >
             <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -553,6 +557,7 @@ export default function AdminSettingsVehicleServicesScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="vehicle-service-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>
@@ -586,6 +591,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="vehicle-service-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -646,6 +652,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID="vehicle-service-icon-remove"
+                          accessibilityRole="button"
                         >
                           <X color={Colors.text} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -664,6 +671,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID="vehicle-service-icon-download"
+                          accessibilityRole="button"
                         >
                           <Download color={Colors.text} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -722,6 +730,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                           },
                         ]}
                         testID="vehicle-service-hero-remove"
+                        accessibilityRole="button"
                       >
                         <X color={Colors.text} size={16} />
                         <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -740,6 +749,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                           },
                         ]}
                         testID="vehicle-service-hero-download"
+                        accessibilityRole="button"
                       >
                         <Download color={Colors.text} size={16} />
                         <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -809,6 +819,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID="vehicle-service-map-icon-remove"
+                          accessibilityRole="button"
                         >
                           <X color={Colors.text} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -827,6 +838,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID="vehicle-service-map-icon-download"
+                          accessibilityRole="button"
                         >
                           <Download color={Colors.text} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -857,6 +869,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                         },
                       ]}
                       testID="vehicle-service-map-color-none"
+                      accessibilityRole="button"
                     >
                       <X color={Colors.textSecondary} size={14} />
                     </TouchableOpacity>
@@ -875,6 +888,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID={`vehicle-service-map-color-${c}`}
+                          accessibilityRole="button"
                         />
                       );
                     })}
@@ -991,6 +1005,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                               },
                             ]}
                             testID={`vehicle-service-service-${opt}`}
+                            accessibilityRole="button"
                           >
                             <Text
                               style={[
@@ -1034,6 +1049,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                             },
                           ]}
                           testID={`vehicle-service-fuel-${opt}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[

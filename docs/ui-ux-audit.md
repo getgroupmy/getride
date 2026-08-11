@@ -422,10 +422,63 @@ from the other, landing at 40pt. Recorded rather than faked.
 | `accessibilityLabel` occurrences | 2 | **510** |
 | `accessibilityRole` occurrences | 0 | **495** |
 
-**243 icon-only controls across 94 files are still unlabelled**, concentrated in
-the admin panel's bespoke (non-`AdminCrudList`) screens — `admin-settings-display`
-alone has 19. Nothing customer-facing is in the top of that list beyond the
-per-screen controls already covered.
+See the next pass for the remainder.
+
+## Closing the gap (eighth pass)
+
+### A correction to the last pass's number
+
+The "243 remaining" figure was wrong, and wrong in a way worth recording: the
+detector only scanned **12 lines** past a touchable for a `<Text>` child, so any
+control whose text sat further down its body was counted as icon-only. Scanning
+each element to its actual closing tag put the real figure at **114**. The other
+~129 were rows that already announce their own text, and giving those an
+`accessibilityLabel` would have *overridden* richer content with a worse
+summary. Measure the element, not a window over it.
+
+### Every icon-only control in the app is now named
+
+All 114 were labelled from their icon, testID and handler — the reveal toggles
+on the API-key and Supabase screens, the ± steppers throughout the display
+settings, reorder arrows, map/geo pickers, the meter's print and vehicle
+controls, the e-hailing and Teksi map overlays, the support chat's
+record/attach/send, the wallet's copy and torch. **The count of unlabelled
+icon-only controls across `app/` and `components/` is now zero.**
+
+### Declaring what is actionable
+
+1,370 touchables exist; 764 of them had an `onPress` and no `accessibilityRole`,
+so a screen reader announced them as text rather than as something you can
+activate. 757 now carry `accessibilityRole="button"`. The ones that needed a
+truer role — `radio`, `tab`, `switch`, `link`, `checkbox`, `radiogroup` — were
+given it in the earlier passes and were left alone here.
+
+| | before this session | now |
+|---|---|---|
+| Files with any accessibility attribute | 8 of 211 | **142 of 211** |
+| `accessibilityLabel` | 2 | **622** |
+| `accessibilityRole` | 0 | **1,364** |
+| Touchables carrying a role | 0% | **99%** |
+
+### Four more dead controls
+
+Auditing the handler-less touchables — the ones with neither a role nor an
+`onPress` — turned up four more:
+
+- `app/offer-fare.tsx` had **both** a payment row rendered as a
+  `TouchableOpacity` that only reports the method, and an add-stop `+` with no
+  handler. That screen has now yielded three dead controls in total.
+- `app/search.tsx` carried the **original** of the bookmark button already
+  removed from `OfferFareSideSheet` — same defect, copied forward.
+- `app/change-number.tsx`'s error sheet had a backdrop with no `onPress`, while
+  the identical backdrop 70 lines above it closes its sheet. `handleCloseErrorSheet`
+  already existed, so the error sheet simply could not be dismissed by tapping
+  outside. Wired.
+
+Left alone deliberately: five `TouchableOpacity`/`Pressable` wrappers with
+`activeOpacity={1}` and no handler. Those are the standard React Native idiom
+for stopping a tap on a sheet from reaching the backdrop behind it. They are
+structure, not controls, and converting them to `View` would let taps through.
 
 ## Known, not fixed
 
@@ -437,10 +490,10 @@ Deliberately out of scope for a targeted pass — each would be its own change:
    implementation is index-addressed (`getItemAnimatedValue(index)`,
    `createDragResponder(index)`), so fixing the key means giving destinations
    stable ids and rewriting the reorder logic. Left as its own change.
-2. **243 icon-only controls across 94 files remain unlabelled**, almost all in
-   bespoke admin screens that do not go through `AdminCrudList`. They need
-   per-screen judgement rather than another sweep — the regular testID patterns
-   are already exhausted.
+2. **`components/AdminSettingPlaceholder.tsx` has a CTA with no handler**, but
+   the component takes `primaryAction` as a *label* with no `onPress` prop at
+   all, and nothing in the app imports it. Dead code rather than a dead button;
+   deleting the file is a separate call.
 3. **Reduced motion in `map-picker`.** Its loop is a loading spinner, which is
    `essential` and correctly left alone; nothing else there animates.
 4. **Dynamic Type.** No screen was verified at the largest system text size;

@@ -561,6 +561,7 @@ export default function Obd2ReaderScreen() {
                     else void handleConnect();
                   }}
                   testID="obd2-connect"
+                  accessibilityRole="button"
                 >
                   <Text
                     style={[
@@ -577,6 +578,7 @@ export default function Obd2ReaderScreen() {
                     style={[styles.secondaryButton, { borderColor: Colors.border }]}
                     onPress={() => canbus.connectDemo()}
                     testID="obd2-demo"
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>
                       Demo Mode
@@ -595,6 +597,7 @@ export default function Obd2ReaderScreen() {
                 style={styles.addButton}
                 onPress={() => setAddVisible(true)}
                 testID="obd2-add"
+                accessibilityRole="button"
               >
                 <Plus color={Colors.accent} size={18} />
                 <Text style={[styles.addButtonText, { color: Colors.accent }]}>Add reader</Text>
@@ -656,6 +659,8 @@ export default function Obd2ReaderScreen() {
                         style={styles.deleteButton}
                         onPress={() => handleDelete(adapter)}
                         testID={`obd2-delete-${adapter.id}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete ${adapter.name}`}
                       >
                         <Trash2 color="#EF4444" size={18} />
                       </TouchableOpacity>
@@ -720,6 +725,7 @@ export default function Obd2ReaderScreen() {
             style={styles.backdrop}
             activeOpacity={1}
             onPress={() => setAddVisible(false)}
+            accessibilityRole="button"
           />
           <View
             style={[
@@ -733,6 +739,7 @@ export default function Obd2ReaderScreen() {
                 onPress={() => setAddVisible(false)}
                 style={[styles.sheetClose, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}
                 testID="obd2-add-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
@@ -873,6 +880,7 @@ export default function Obd2ReaderScreen() {
                     disabled={scanning}
                     onPress={() => void handleScanBle()}
                     testID="obd2-scan"
+                    accessibilityRole="button"
                   >
                     {scanning ? (
                       <ActivityIndicator color={Colors.text} size="small" />
@@ -941,6 +949,7 @@ export default function Obd2ReaderScreen() {
                 disabled={saving}
                 onPress={() => void handleSaveAdapter()}
                 testID="obd2-save"
+                accessibilityRole="button"
               >
                 <Text style={[styles.primaryButtonText, { color: Colors.onAccent }]}>
                   {saving ? "Saving…" : "Save reader"}

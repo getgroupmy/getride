@@ -138,6 +138,8 @@ export default function AdminAppIconScreen() {
           onPress={handleClear}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="app-icon-reset"
+          accessibilityRole="button"
+          accessibilityLabel="Reset to the default icon"
         >
           <RotateCcw color={Colors.text} size={18} />
         </TouchableOpacity>
@@ -167,6 +169,7 @@ export default function AdminAppIconScreen() {
               onPress={pickIcon}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
               testID="app-icon-pick"
+              accessibilityRole="button"
             >
               <Upload color="#000000" size={16} />
               <Text style={styles.primaryBtnText}>{icon ? "Replace icon" : "Upload icon"}</Text>
@@ -176,6 +179,7 @@ export default function AdminAppIconScreen() {
                 onPress={() => setIcon(null)}
                 style={[styles.ghostBtn, { borderColor: Colors.border }]}
                 testID="app-icon-clear"
+                accessibilityRole="button"
               >
                 <Trash2 color={Colors.error} size={16} />
                 <Text style={[styles.ghostBtnText, { color: Colors.error }]}>Use default</Text>
@@ -200,6 +204,7 @@ export default function AdminAppIconScreen() {
           disabled={saving}
           style={[styles.saveBtn, { backgroundColor: Colors.accent, opacity: saving ? 0.6 : 1 }]}
           testID="app-icon-save"
+          accessibilityRole="button"
         >
           {saving ? (
             <ActivityIndicator color="#000000" />
@@ -227,6 +232,7 @@ export default function AdminAppIconScreen() {
               onPress={() => setShowSuccess(false)}
               style={[styles.modalBtn, { backgroundColor: Colors.accent }]}
               testID="app-icon-success-ok"
+              accessibilityRole="button"
             >
               <Text style={styles.modalBtnText}>Got it</Text>
             </TouchableOpacity>

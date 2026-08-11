@@ -113,6 +113,7 @@ export default function AdminDocumentsScreen() {
                 }}
                 testID={`admin-documents-${item.id}`}
                 activeOpacity={0.85}
+                accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: color + "20" }]}>
                   <Icon color={color} size={20} />

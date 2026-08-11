@@ -388,6 +388,7 @@ export default function AdminSettingsCommissionScreen() {
                 }
                 setFocusField(null);
               }}
+              accessibilityRole="button"
             >
               <Text style={[styles.suggestText, { color: Colors.text }]}>{name}</Text>
             </TouchableOpacity>
@@ -534,6 +535,7 @@ export default function AdminSettingsCommissionScreen() {
                 <TouchableOpacity
                   onPress={() => setMasterEditing(false)}
                   style={[styles.masterSaveBtn, { backgroundColor: Colors.gray[300] }]}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={16} />
                 </TouchableOpacity>
@@ -571,6 +573,7 @@ export default function AdminSettingsCommissionScreen() {
                     onPress={() => openAdd(meta.level)}
                     style={[styles.addBtn, { backgroundColor: Colors.accent + "15" }]}
                     testID={`commission-add-${meta.level}`}
+                    accessibilityRole="button"
                   >
                     <Plus color={Colors.accent} size={14} />
                     <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
@@ -602,7 +605,7 @@ export default function AdminSettingsCommissionScreen() {
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: Colors.text }]}>{modalTitle}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.ruleBtn} testID="commission-modal-close">
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.ruleBtn} testID="commission-modal-close" accessibilityRole="button">
                 <X color={Colors.textSecondary} size={20} />
               </TouchableOpacity>
             </View>
@@ -651,6 +654,7 @@ export default function AdminSettingsCommissionScreen() {
                           setSelUserLabel("");
                         }}
                         style={styles.ruleBtn}
+                        accessibilityRole="button"
                       >
                         <X color={Colors.textSecondary} size={16} />
                       </TouchableOpacity>
@@ -684,6 +688,7 @@ export default function AdminSettingsCommissionScreen() {
                             setUserQuery("");
                           }}
                           testID={`commission-user-hit-${u.id}`}
+                          accessibilityRole="button"
                         >
                           <Text style={[styles.userHitName, { color: Colors.text }]} numberOfLines={1}>
                             {u.name ?? "Unnamed"}

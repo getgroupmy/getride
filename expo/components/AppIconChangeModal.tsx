@@ -53,6 +53,7 @@ export function AppIconChangeModal() {
             onPress={onClose}
             style={[styles.btn, { backgroundColor: Colors.accent }]}
             testID="app-icon-change-ok"
+            accessibilityRole="button"
           >
             <Text style={styles.btnText}>Continue</Text>
           </TouchableOpacity>

@@ -78,6 +78,7 @@ export default function AdminSupportScreen() {
           onPress={() =>
             router.push({ pathname: "/admin-support-chat", params: { ticketId: item.id } } as never)
           }
+          accessibilityRole="button"
         >
           <View style={[styles.avatar, { backgroundColor: Colors.accent + "25" }]}>
             {avatar ? (
@@ -151,6 +152,8 @@ export default function AdminSupportScreen() {
           onPress={() => router.push("/admin-support-pool" as never)}
           style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
           testID="open-pool"
+          accessibilityRole="button"
+          accessibilityLabel="Open the support pool"
         >
           <Inbox color="#000000" size={20} />
         </TouchableOpacity>

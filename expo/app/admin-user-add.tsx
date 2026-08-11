@@ -193,6 +193,7 @@ export default function AdminUserAddScreen() {
             style={[styles.profileWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             activeOpacity={0.85}
             testID="add-user-profile-image"
+            accessibilityRole="button"
           >
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
@@ -217,6 +218,7 @@ export default function AdminUserAddScreen() {
               style={[styles.idImageWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
               activeOpacity={0.85}
               testID="add-user-id-image"
+              accessibilityRole="button"
             >
               {idImage ? (
                 <Image source={{ uri: idImage }} style={styles.idImage} />
@@ -249,6 +251,7 @@ export default function AdminUserAddScreen() {
                     ]}
                     testID={`add-user-gender-${g.key}`}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.chipText, { color: selected ? Colors.onAccent : Colors.text }]}>
                       {g.label}
@@ -275,6 +278,7 @@ export default function AdminUserAddScreen() {
             ]}
             activeOpacity={0.85}
             testID="user-auto-approve-toggle"
+            accessibilityRole="button"
           >
             <View style={{ flex: 1 }}>
               <Text style={[styles.toggleTitle, { color: Colors.text }]}>Auto approve</Text>
@@ -300,6 +304,7 @@ export default function AdminUserAddScreen() {
             style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
             testID="submit-user"
             activeOpacity={0.9}
+            accessibilityRole="button"
           >
             <UserPlus color={Colors.onAccent} size={18} />
             <Text style={[styles.submitText, { color: Colors.onAccent }]}>Add User</Text>

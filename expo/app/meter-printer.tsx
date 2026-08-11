@@ -305,6 +305,7 @@ export default function MeterPrinterScreen() {
             disabled={printer.scanning}
             onPress={() => void handleScan()}
             testID="printer-scan"
+            accessibilityRole="button"
           >
             {printer.scanning ? (
               <ActivityIndicator color={Colors.text} size="small" />
@@ -451,6 +452,7 @@ export default function MeterPrinterScreen() {
                 disabled={printer.printing}
                 onPress={() => void handleTestPrint()}
                 testID="printer-test"
+                accessibilityRole="button"
               >
                 <Text style={[styles.secondaryButtonText, { color: Colors.text }]}>Test print</Text>
               </TouchableOpacity>
@@ -481,7 +483,7 @@ export default function MeterPrinterScreen() {
         {/* --- Saved printers --- */}
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionHeader, { color: Colors.textSecondary }]}>MY PRINTERS</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => setAddVisible(true)} testID="printer-add">
+          <TouchableOpacity style={styles.addButton} onPress={() => setAddVisible(true)} testID="printer-add" accessibilityRole="button">
             <Plus color={Colors.accent} size={18} />
             <Text style={[styles.addButtonText, { color: Colors.accent }]}>Add printer</Text>
           </TouchableOpacity>
@@ -538,6 +540,8 @@ export default function MeterPrinterScreen() {
                     style={styles.deleteButton}
                     onPress={() => handleDelete(p)}
                     testID={`printer-delete-${p.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${p.name}`}
                   >
                     <Trash2 color="#EF4444" size={18} />
                   </TouchableOpacity>
@@ -603,6 +607,7 @@ export default function MeterPrinterScreen() {
                 onPress={() => setAddVisible(false)}
                 style={[styles.sheetClose, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}
                 testID="printer-add-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
@@ -695,6 +700,7 @@ export default function MeterPrinterScreen() {
                 disabled={saving}
                 onPress={() => void handleSave()}
                 testID="printer-save"
+                accessibilityRole="button"
               >
                 <Text style={[styles.primaryButtonText, { color: Colors.onAccent }]}>
                   {saving ? "Saving…" : "Save printer"}

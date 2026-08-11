@@ -187,6 +187,7 @@ export default function SupportScreen() {
         onPress={startNew}
         activeOpacity={0.9}
         testID="support-new"
+        accessibilityRole="button"
       >
         <Plus color="#000000" size={22} />
         <Text style={styles.fabText}>New chat</Text>

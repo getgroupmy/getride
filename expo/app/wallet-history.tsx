@@ -305,6 +305,7 @@ export default function WalletHistoryScreen() {
                   setExpandedId(null);
                 }}
                 testID={`wallet-history-filter-${f.id}`}
+                accessibilityRole="button"
               >
                 <Text
                   style={[
@@ -349,6 +350,7 @@ export default function WalletHistoryScreen() {
                 setExpandedId(null);
               }}
               testID={`wallet-history-category-${c.id}`}
+              accessibilityRole="button"
             >
               <Text
                 style={[
@@ -370,6 +372,7 @@ export default function WalletHistoryScreen() {
           style={styles.monthPill}
           onPress={openMonthMenu}
           testID="wallet-history-month-pill"
+          accessibilityRole="button"
         >
           <Text style={styles.monthPillText}>{selectedMonth.label}</Text>
           {monthMenuVisible ? (
@@ -409,6 +412,7 @@ export default function WalletHistoryScreen() {
                     style={styles.txRow}
                     onPress={() => setExpandedId(expanded ? null : tx.id)}
                     testID={`wallet-history-tx-${tx.id}`}
+                    accessibilityRole="button"
                   >
                     <View style={[styles.txIconWrap, { backgroundColor: cat.bg }]}>
                       <cat.Icon color={cat.color} size={17} strokeWidth={2.4} />
@@ -449,6 +453,7 @@ export default function WalletHistoryScreen() {
                       style={styles.viewDetailsRow}
                       onPress={() => setDetailTx(tx)}
                       testID={`wallet-history-details-${tx.id}`}
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.viewDetailsText, { color: Colors.accent }]}>
                         View Details
@@ -473,6 +478,7 @@ export default function WalletHistoryScreen() {
           style={[styles.backTopPill, { backgroundColor: wc.surfaceReferral }]}
           onPress={scrollToTop}
           testID="wallet-history-back-top"
+          accessibilityRole="button"
         >
           <Text style={[styles.backTopText, { color: Colors.accent }]}>Back to Top</Text>
           <ChevronUp color={Colors.accent} size={16} />
@@ -488,6 +494,8 @@ export default function WalletHistoryScreen() {
           style={styles.backBtn}
           onPress={handleBack}
           testID="wallet-history-back"
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <View style={styles.backCircle}>
             <ChevronLeft color="#FFFFFF" size={22} />
@@ -512,6 +520,8 @@ export default function WalletHistoryScreen() {
             style={styles.homeFab}
             onPress={() => router.push("/")}
             testID="wallet-history-home"
+            accessibilityRole="button"
+            accessibilityLabel="Go home"
           >
             <Home color={Colors.accent} size={24} />
           </TouchableOpacity>
@@ -524,7 +534,7 @@ export default function WalletHistoryScreen() {
         animationType="fade"
         onRequestClose={() => setMonthMenuVisible(false)}
       >
-        <Pressable style={styles.menuOverlay} onPress={() => setMonthMenuVisible(false)}>
+        <Pressable style={styles.menuOverlay} onPress={() => setMonthMenuVisible(false)} accessibilityRole="button">
           <View style={[styles.monthMenu, { top: monthMenuTop }]}>
             {monthOptions.map((m) => {
               const selected = m.id === selectedMonthId;
@@ -541,6 +551,7 @@ export default function WalletHistoryScreen() {
                     setMonthMenuVisible(false);
                   }}
                   testID={`wallet-history-month-${m.id}`}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.monthMenuItemText}>{m.label}</Text>
                 </TouchableOpacity>

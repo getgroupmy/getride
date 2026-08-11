@@ -274,6 +274,7 @@ export default function AdminSettingsPushNotificationScreen() {
           onPress={refreshCount}
           style={[styles.refreshBtn, { borderColor: Colors.border }]}
           testID="push-notification-refresh"
+          accessibilityRole="button"
         >
           <Text style={[styles.refreshText, { color: Colors.accent }]}>Refresh</Text>
         </TouchableOpacity>
@@ -292,6 +293,7 @@ export default function AdminSettingsPushNotificationScreen() {
                 onPress={() => openCompose()}
                 style={[styles.cta, { backgroundColor: Colors.accent }]}
                 testID="push-notification-empty-add"
+                accessibilityRole="button"
               >
                 <Plus color={Colors.onAccent} size={16} />
                 <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Notification</Text>
@@ -332,6 +334,8 @@ export default function AdminSettingsPushNotificationScreen() {
                       disabled={sendingId === entry.id}
                       style={[styles.sendBtn, { backgroundColor: Colors.accent }]}
                       testID={`push-notification-send-${entry.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel="Send this notification"
                     >
                       {sendingId === entry.id ? (
                         <ActivityIndicator color={Colors.onAccent} size="small" />
@@ -383,6 +387,7 @@ export default function AdminSettingsPushNotificationScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="push-notification-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -441,6 +446,7 @@ export default function AdminSettingsPushNotificationScreen() {
                             },
                           ]}
                           testID={`push-notification-audience-${a.key}`}
+                          accessibilityRole="button"
                         >
                           <Text
                             style={[
@@ -462,6 +468,7 @@ export default function AdminSettingsPushNotificationScreen() {
                   onPress={onSaveTemplate}
                   style={[styles.secondaryBtn, { borderColor: Colors.accent }]}
                   testID="push-notification-save"
+                  accessibilityRole="button"
                 >
                   <Save color={Colors.accent} size={18} />
                   <Text style={[styles.secondaryText, { color: Colors.accent }]}>Save</Text>
@@ -470,6 +477,7 @@ export default function AdminSettingsPushNotificationScreen() {
                   onPress={onSendFromModal}
                   style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
                   testID="push-notification-send-now"
+                  accessibilityRole="button"
                 >
                   <Send color={Colors.onAccent} size={18} />
                   <Text style={[styles.submitText, { color: Colors.onAccent }]}>Send now</Text>

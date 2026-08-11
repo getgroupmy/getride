@@ -247,6 +247,7 @@ function DateSpinner({
               { backgroundColor: Colors.gray[100], borderColor: Colors.border },
             ]}
             testID={`${testID}-trigger`}
+            accessibilityRole="button"
           >
             {icon}
             <Text style={[styles.input, { color: value ? Colors.text : Colors.textSecondary, paddingVertical: 14 }]}>
@@ -273,6 +274,7 @@ function DateSpinner({
         onPress={() => onChange(toDateOnly(new Date()))}
         style={styles.helperBtn}
         testID={`${testID}-today`}
+        accessibilityRole="button"
       >
         <Text style={[styles.helperBtnText, { color: Colors.accent }]}>Today</Text>
       </TouchableOpacity>
@@ -907,6 +909,7 @@ export default function DocumentUploadModal({
               }}
               style={[styles.secondaryBtn, { borderColor: Colors.accent }]}
               testID="doc-ai-retry"
+              accessibilityRole="button"
             >
               <RefreshCw color={Colors.accent} size={16} />
               <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>
@@ -928,6 +931,7 @@ export default function DocumentUploadModal({
               },
             ]}
             testID="doc-ai-override"
+            accessibilityRole="button"
           >
             <View
               style={[
@@ -1030,6 +1034,7 @@ export default function DocumentUploadModal({
                 { borderColor: Colors.accent, backgroundColor: Colors.accent + "10" },
               ]}
               testID="doc-source-snap"
+              accessibilityRole="button"
             >
               <View style={[styles.sourceIcon, { backgroundColor: Colors.accent }]}>
                 <Camera color={Colors.onAccent} size={22} />
@@ -1051,6 +1056,7 @@ export default function DocumentUploadModal({
                 { borderColor: Colors.border, backgroundColor: Colors.gray[100] },
               ]}
               testID="doc-source-upload"
+              accessibilityRole="button"
             >
               <View style={[styles.sourceIcon, { backgroundColor: Colors.gray[200] }]}>
                 <ImageIcon color={Colors.text} size={22} />
@@ -1073,6 +1079,7 @@ export default function DocumentUploadModal({
                   { borderColor: Colors.border, backgroundColor: Colors.gray[100] },
                 ]}
                 testID="doc-source-pdf"
+                accessibilityRole="button"
               >
                 <View style={[styles.sourceIcon, { backgroundColor: Colors.gray[200] }]}>
                   <FileText color={Colors.text} size={22} />
@@ -1176,6 +1183,7 @@ export default function DocumentUploadModal({
                 onPress={isBack ? replaceBack : replaceFront}
                 style={[styles.secondaryBtn, { borderColor: Colors.accent }]}
                 testID={`doc-replace-${isBack ? "back" : "front"}`}
+                accessibilityRole="button"
               >
                 <RefreshCw color={Colors.accent} size={16} />
                 <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>
@@ -1241,6 +1249,7 @@ export default function DocumentUploadModal({
                   },
                 ]}
                 testID="doc-number-open-picker"
+                accessibilityRole="button"
               >
                 <Sparkles color={Colors.accent} size={14} />
                 <Text
@@ -1316,6 +1325,7 @@ export default function DocumentUploadModal({
                         },
                       ]}
                       testID={`doc-insurance-${p.id}`}
+                      accessibilityRole="button"
                     >
                       <View
                         style={[
@@ -1509,6 +1519,7 @@ export default function DocumentUploadModal({
               onPress={() => setShowNumberPicker(false)}
               style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
               testID="doc-number-picker-close"
+              accessibilityRole="button"
             >
               <X color={Colors.text} size={20} />
             </TouchableOpacity>
@@ -1533,6 +1544,7 @@ export default function DocumentUploadModal({
                     },
                   ]}
                   testID={`doc-number-candidate-${n}`}
+                  accessibilityRole="button"
                 >
                   <View
                     style={[
@@ -1585,6 +1597,7 @@ export default function DocumentUploadModal({
               onPress={onClose}
               style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
               testID="doc-modal-close"
+              accessibilityRole="button"
             >
               <X color={Colors.text} size={20} />
             </TouchableOpacity>
@@ -1625,6 +1638,7 @@ export default function DocumentUploadModal({
                     },
                   ]}
                   testID="doc-modal-back"
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.footerBtnText, { color: Colors.text }]}>Back</Text>
                 </TouchableOpacity>
@@ -1644,6 +1658,7 @@ export default function DocumentUploadModal({
                     },
                   ]}
                   testID="doc-modal-submit"
+                  accessibilityRole="button"
                 >
                   {busy ? (
                     <ActivityIndicator color={Colors.onAccent} />
@@ -1666,6 +1681,7 @@ export default function DocumentUploadModal({
                     },
                   ]}
                   testID="doc-modal-next"
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.footerBtnText, { color: Colors.onAccent }]}>
                     Continue

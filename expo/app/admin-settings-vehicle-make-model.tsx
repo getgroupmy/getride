@@ -788,6 +788,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
         style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
         testID={`vmm-cat-${lvl}-${name}`}
         activeOpacity={0.85}
+        accessibilityRole="button"
       >
         <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
           <Icon color={Colors.accent} size={18} />
@@ -1015,6 +1016,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                   },
                 ]}
                 testID={`vmm-crumb-${c.id}`}
+                accessibilityRole="button"
               >
                 {idx === 0 ? (
                   <HomeIcon
@@ -1117,6 +1119,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                   onPress={() => setModalOpen(false)}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="vmm-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1173,6 +1176,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     borderColor: active ? Colors.accent : Colors.border,
                                   },
                                 ]}
+                                accessibilityRole="button"
                               >
                                 <Text
                                   style={[
@@ -1234,6 +1238,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     borderColor: active ? Colors.accent : Colors.border,
                                   },
                                 ]}
+                                accessibilityRole="button"
                               >
                                 <Text
                                   style={[
@@ -1319,6 +1324,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                   },
                                 ]}
                                 testID={`vmm-cat-sugg-${name}`}
+                                accessibilityRole="button"
                               >
                                 <Text
                                   style={[
@@ -1411,6 +1417,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                               },
                             ]}
                             testID="vmm-model-icon-remove"
+                            accessibilityRole="button"
                           >
                             <X color={Colors.text} size={16} />
                             <Text style={[styles.uploadBtnText, { color: Colors.text }]}>
@@ -1465,6 +1472,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     : Colors.border,
                               },
                             ]}
+                            accessibilityRole="button"
                           >
                             <Text
                               style={[
@@ -1528,6 +1536,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     : Colors.border,
                                 },
                               ]}
+                              accessibilityRole="button"
                             >
                               <Text
                                 style={[
@@ -1589,6 +1598,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                     : Colors.border,
                                 },
                               ]}
+                              accessibilityRole="button"
                             >
                               <Text
                                 style={[
@@ -1669,6 +1679,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                                   },
                                 ]}
                                 testID={`vmm-model-sugg-${m.id}`}
+                                accessibilityRole="button"
                               >
                                 <Text
                                   style={[
@@ -1843,8 +1854,9 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           activeOpacity={1}
           onPress={() => setAddPickerOpen(false)}
           style={styles.modalBackdrop}
+          accessibilityRole="button"
         >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+          <TouchableOpacity activeOpacity={1} onPress={() => {}} accessibilityRole="button">
             <View style={[styles.pickerSheet, { backgroundColor: Colors.background }]}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: Colors.text }]}>
@@ -1854,6 +1866,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                   onPress={() => setAddPickerOpen(false)}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="vmm-picker-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -1883,6 +1896,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                     ]}
                     testID={`vmm-picker-${opt.id}`}
                     activeOpacity={0.85}
+                    accessibilityRole="button"
                   >
                     <View
                       style={[

@@ -708,6 +708,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="required-documents-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add document</Text>
@@ -736,6 +737,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="required-documents-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -799,6 +801,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                       },
                     ]}
                     testID="required-documents-doctype-all"
+                    accessibilityRole="button"
                   >
                     {allSelected ? <Check color={Colors.onAccent} size={13} /> : null}
                     <Text
@@ -842,6 +845,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                             },
                           ]}
                           testID={`required-documents-doctype-${id}`}
+                          accessibilityRole="button"
                         >
                           {checked ? <Check color={Colors.onAccent} size={13} /> : null}
                           <Text
@@ -883,6 +887,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                       },
                     ]}
                     testID="required-documents-partnertype-all"
+                    accessibilityRole="button"
                   >
                     {form.partnerTypes.includes(ALL_TOKEN) ? (
                       <Check color={Colors.onAccent} size={13} />
@@ -935,6 +940,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                             },
                           ]}
                           testID={`required-documents-partnertype-${name}`}
+                          accessibilityRole="button"
                         >
                           {checked ? <Check color={Colors.onAccent} size={13} /> : null}
                           <Text
@@ -973,6 +979,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     },
                   ]}
                   testID="required-documents-region-global"
+                  accessibilityRole="button"
                 >
                   <View
                     style={[
@@ -1014,6 +1021,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                         },
                       ]}
                       testID="required-documents-region-global-cycle"
+                      accessibilityRole="button"
                     >
                       <Text
                         style={[
@@ -1096,6 +1104,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                                 },
                               ]}
                               testID={`required-documents-region-selected-${r.key}`}
+                              accessibilityRole="button"
                             >
                               {r.type === "country" ? (
                                 <Globe2
@@ -1207,6 +1216,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                                 },
                               ]}
                               testID={`required-documents-region-country-${c.key}`}
+                              accessibilityRole="button"
                             >
                               <Globe2
                                 color={checked ? Colors.onAccent : Colors.textSecondary}
@@ -1277,6 +1287,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                                 },
                               ]}
                               testID={`required-documents-region-state-${s.key}`}
+                              accessibilityRole="button"
                             >
                               <MapPin
                                 color={checked ? Colors.onAccent : Colors.textSecondary}

@@ -220,6 +220,7 @@ export default function EmergencyContactEditScreen() {
                 style={[styles.pickContactButton, { borderColor: Colors.border }]}
                 onPress={handlePickContact}
                 testID="ece-pick-contact"
+                accessibilityRole="button"
               >
                 <BookUser color={Colors.accent} size={18} />
                 <Text style={[styles.pickContactText, { color: Colors.accent }]}>Contacts</Text>
@@ -285,6 +286,7 @@ export default function EmergencyContactEditScreen() {
             onPress={handleSave}
             disabled={!canSave || isSyncing}
             testID="ece-save"
+            accessibilityRole="button"
           >
             {isSyncing ? (
               <ActivityIndicator color={canSave ? "#FFFFFF" : Colors.gray[400]} />
@@ -296,7 +298,7 @@ export default function EmergencyContactEditScreen() {
           </TouchableOpacity>
 
           {editingId ? (
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} testID="ece-delete">
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} testID="ece-delete" accessibilityRole="button">
               <Trash2 color={Colors.error} size={18} />
               <Text style={[styles.deleteText, { color: Colors.error }]}>Remove contact</Text>
             </TouchableOpacity>
@@ -314,6 +316,7 @@ export default function EmergencyContactEditScreen() {
           style={styles.pickerOverlay}
           activeOpacity={1}
           onPress={() => setPickerVisible(false)}
+          accessibilityRole="button"
         >
           <View style={[styles.pickerSheet, { backgroundColor: Colors.background }]}>
             <View style={styles.pickerHandleWrap}>
@@ -330,6 +333,7 @@ export default function EmergencyContactEditScreen() {
                     style={styles.pickerRow}
                     onPress={() => selectCode(item.code)}
                     testID={`ece-code-${item.code}`}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.pickerCode, { color: Colors.text }]}>{item.code}</Text>
                     <Text style={[styles.pickerLabel, { color: Colors.textSecondary }]}>{item.label}</Text>

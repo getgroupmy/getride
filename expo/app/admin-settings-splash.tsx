@@ -140,6 +140,8 @@ export default function AdminSplashScreen() {
           onPress={handleReset}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="splash-reset"
+          accessibilityRole="button"
+          accessibilityLabel="Reset the splash screen"
         >
           <RotateCcw color={Colors.text} size={18} />
         </TouchableOpacity>
@@ -169,6 +171,7 @@ export default function AdminSplashScreen() {
               onPress={pickImage}
               style={[styles.primaryBtn, { backgroundColor: Colors.accent }]}
               testID="splash-pick"
+              accessibilityRole="button"
             >
               <Upload color="#000000" size={16} />
               <Text style={styles.primaryBtnText}>{image ? "Replace image" : "Upload image"}</Text>
@@ -178,6 +181,7 @@ export default function AdminSplashScreen() {
                 onPress={() => setImage(null)}
                 style={[styles.ghostBtn, { borderColor: Colors.border }]}
                 testID="splash-clear"
+                accessibilityRole="button"
               >
                 <Trash2 color={Colors.error} size={16} />
                 <Text style={[styles.ghostBtnText, { color: Colors.error }]}>Remove</Text>
@@ -225,6 +229,7 @@ export default function AdminSplashScreen() {
                   },
                 ]}
                 testID={`splash-preset-${c}`}
+                accessibilityRole="button"
               />
             ))}
           </View>
@@ -235,6 +240,7 @@ export default function AdminSplashScreen() {
           disabled={saving}
           style={[styles.saveBtn, { backgroundColor: saved ? Colors.success : Colors.accent }]}
           testID="splash-save"
+          accessibilityRole="button"
         >
           {saving ? (
             <>

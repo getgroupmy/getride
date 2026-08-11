@@ -364,6 +364,7 @@ export default function AdminPartnerEditScreen() {
                   style={[styles.addBtn, { borderColor: Colors.accent }]}
                   activeOpacity={0.85}
                   testID="edit-partner-add-vehicle"
+                  accessibilityRole="button"
                 >
                   <Plus color={Colors.accent} size={14} />
                   <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add new</Text>
@@ -389,6 +390,7 @@ export default function AdminPartnerEditScreen() {
                     onPress={() => setVehicleId("")}
                     style={[styles.iconBtnSm, { backgroundColor: Colors.background }]}
                     testID="edit-clear-vehicle"
+                    accessibilityRole="button"
                   >
                     <X color={Colors.text} size={16} />
                   </TouchableOpacity>
@@ -423,6 +425,7 @@ export default function AdminPartnerEditScreen() {
                           style={[styles.vehicleCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                           activeOpacity={0.85}
                           testID={`edit-select-vehicle-${v.id}`}
+                          accessibilityRole="button"
                         >
                           <View style={[styles.vehicleIcon, { backgroundColor: Colors.accent + "15" }]}>
                             <CarFront color={Colors.accent} size={18} />

@@ -108,6 +108,7 @@ export default function EmergencyContactsScreen() {
               style={styles.contactRow}
               onPress={() => openEdit(c)}
               testID={`ec-contact-${c.id}`}
+              accessibilityRole="button"
             >
               <View
                 style={[
@@ -140,6 +141,7 @@ export default function EmergencyContactsScreen() {
             style={[styles.addButton, { backgroundColor: Colors.success }]}
             onPress={openAdd}
             testID="ec-add"
+            accessibilityRole="button"
           >
             <Text style={styles.addButtonText}>Add</Text>
           </TouchableOpacity>

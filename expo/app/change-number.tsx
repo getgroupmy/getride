@@ -340,10 +340,12 @@ export default function ChangeNumberScreen() {
             style={[styles.inputContainer, isFocused && styles.inputContainerFocused]}
             activeOpacity={1}
             onPress={() => inputRef.current?.focus()}
+            accessibilityRole="button"
           >
             <TouchableOpacity
               style={styles.countrySelector}
               onPress={handleOpenSheet}
+              accessibilityRole="button"
             >
               <Text style={styles.flag}>{selectedCountry.flag}</Text>
               <ChevronDown color={Colors.text} size={16} strokeWidth={2.5} />
@@ -379,6 +381,7 @@ export default function ChangeNumberScreen() {
               <TouchableOpacity
                 style={styles.clearButton}
                 onPress={handleClearPhone}
+                accessibilityRole="button"
               >
                 <View style={styles.clearButtonInner}>
                   <X color="#FFFFFF" size={12} strokeWidth={3} />
@@ -398,6 +401,7 @@ export default function ChangeNumberScreen() {
             ]}
             onPress={handleContinue}
             disabled={!phoneNumber || isLoading}
+            accessibilityRole="button"
           >
             {isLoading ? (
               <View style={styles.loadingIndicator} />
@@ -425,6 +429,7 @@ export default function ChangeNumberScreen() {
           <Pressable
             style={styles.modalBackdrop}
             onPress={handleCloseSheet}
+            accessibilityRole="button"
           />
           <Animated.View 
             style={[
@@ -442,6 +447,7 @@ export default function ChangeNumberScreen() {
                 <TouchableOpacity
                   onPress={handleCloseSheet}
                   style={styles.closeButton}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={24} />
                 </TouchableOpacity>
@@ -460,6 +466,7 @@ export default function ChangeNumberScreen() {
                   <TouchableOpacity
                     onPress={() => setSearchQuery("")}
                     style={styles.searchClearButton}
+                    accessibilityRole="button"
                   >
                     <X color={Colors.textSecondary} size={16} />
                   </TouchableOpacity>
@@ -478,6 +485,7 @@ export default function ChangeNumberScreen() {
                     selectedCountry.code === item.code && styles.countryItemSelected,
                   ]}
                   onPress={() => handleCountrySelect(item)}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.countryFlag}>{item.flag}</Text>
                   <Text style={styles.countryName}>{item.name}</Text>
@@ -500,6 +508,9 @@ export default function ChangeNumberScreen() {
         <View style={styles.modalOverlay}>
           <Pressable
             style={styles.modalBackdrop}
+            onPress={handleCloseErrorSheet}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
           />
           <Animated.View 
             style={[
@@ -512,6 +523,7 @@ export default function ChangeNumberScreen() {
               <TouchableOpacity
                 onPress={handleCloseErrorSheet}
                 style={styles.errorCloseButton}
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={24} />
               </TouchableOpacity>
@@ -529,6 +541,7 @@ export default function ChangeNumberScreen() {
               <TouchableOpacity
                 style={styles.errorCloseButtonBottom}
                 onPress={handleCloseErrorSheet}
+                accessibilityRole="button"
               >
                 <Text style={styles.errorCloseButtonText}>Close</Text>
               </TouchableOpacity>

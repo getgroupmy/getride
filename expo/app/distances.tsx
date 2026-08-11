@@ -61,6 +61,7 @@ export default function DistancesScreen() {
             style={styles.unitItem}
             onPress={() => handleUnitSelect(unit.id)}
             activeOpacity={0.7}
+            accessibilityRole="button"
           >
             <Text style={[styles.unitName, { color: Colors.text }]}>
               {unit.name}

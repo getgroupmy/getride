@@ -104,6 +104,8 @@ export default function AdminDashboardScreen() {
           onPress={() => setSideSheetVisible(true)}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="admin-menu"
+          accessibilityRole="button"
+          accessibilityLabel="Open menu"
         >
           <Menu color={Colors.text} size={22} />
         </TouchableOpacity>
@@ -118,6 +120,8 @@ export default function AdminDashboardScreen() {
           onPress={handleLogout}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="admin-logout"
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
         >
           <LogOut color={Colors.text} size={20} />
         </TouchableOpacity>
@@ -170,6 +174,7 @@ export default function AdminDashboardScreen() {
                   else Alert.alert(a.label, "Coming soon");
                 }}
                 testID={`admin-action-${a.id}`}
+                accessibilityRole="button"
               >
                 <View style={[styles.actionIcon, { backgroundColor: Colors.accent + "20" }]}>
                   <Icon color={Colors.accent} size={20} />

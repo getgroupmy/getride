@@ -2029,6 +2029,7 @@ export default function MeterDigitalScreen() {
             onPress={openVehiclePicker}
             activeOpacity={0.85}
             testID="meter-digital-vehicle-chip"
+            accessibilityRole="button"
           >
             <FitText
               style={[styles.plateChipLabel, !vehicle && styles.plateChipLabelUnbound]}
@@ -2086,6 +2087,8 @@ export default function MeterDigitalScreen() {
         disabled={odometerChecking}
         activeOpacity={0.85}
         testID="meter-digital-toggle"
+        accessibilityRole="button"
+        accessibilityLabel={meter.running ? "End trip" : started ? "New trip" : "Start trip"}
       >
         {odometerChecking ? (
           <ActivityIndicator color="#fff" />
@@ -2314,6 +2317,8 @@ export default function MeterDigitalScreen() {
               onPress={() => setPeriod(key)}
               activeOpacity={0.8}
               testID={`meter-digital-period-${key}`}
+              accessibilityRole="button"
+              accessibilityLabel={key}
             >
               <Icon color={active ? DASH.bgDeep : DASH.accent} size={ui.keyIcon} />
               <FitText
@@ -2477,6 +2482,7 @@ export default function MeterDigitalScreen() {
             onPress={() => onSelect(n)}
             activeOpacity={0.8}
             testID={`${testPrefix}-${n}`}
+            accessibilityRole="button"
           >
             <FitText
               style={[styles.countChipText, active && styles.countChipTextActive]}
@@ -2656,6 +2662,7 @@ export default function MeterDigitalScreen() {
         ]}
         onPress={() => setTab("ehailing")}
         testID="meter-digital-strip-back"
+        accessibilityRole="button"
       >
         <FitText style={styles.stripButtonText} size={ui.captionText}>
           OPEN METER
@@ -2687,6 +2694,8 @@ export default function MeterDigitalScreen() {
           disabled={trips.length === 0}
           activeOpacity={0.85}
           testID="meter-digital-clear-log"
+          accessibilityRole="button"
+          accessibilityLabel="Clear the trip log"
         >
           <Trash2 color={trips.length === 0 ? DASH.dim : DASH.danger} size={ui.iconSize} />
           <FitText
@@ -2779,6 +2788,8 @@ export default function MeterDigitalScreen() {
                 onPress={() => void printReceipt(trip)}
                 activeOpacity={0.85}
                 testID={`meter-digital-print-${trip.id}`}
+                accessibilityRole="button"
+                accessibilityLabel="Print this receipt"
               >
                 <Printer color={DASH.accent} size={ui.iconSize} />
               </TouchableOpacity>
@@ -2971,6 +2982,7 @@ export default function MeterDigitalScreen() {
               onPress={() => router.push("/obd2-reader" as never)}
               activeOpacity={0.85}
               testID="meter-digital-reader-settings"
+              accessibilityRole="button"
             >
               <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
                 READER SETTINGS
@@ -3090,6 +3102,7 @@ export default function MeterDigitalScreen() {
                   onPress={() => setTariff(opt.key)}
                   activeOpacity={0.85}
                   testID={`meter-digital-tariff-${opt.key}`}
+                  accessibilityRole="button"
                 >
                   <FitText
                     style={[
@@ -3153,6 +3166,7 @@ export default function MeterDigitalScreen() {
                   onPress={() => setPeriod(key)}
                   activeOpacity={0.85}
                   testID={`meter-digital-shift-${key}`}
+                  accessibilityRole="button"
                 >
                   <FitText
                     style={[
@@ -3193,6 +3207,7 @@ export default function MeterDigitalScreen() {
             onPress={handleNewTrip}
             activeOpacity={0.85}
             testID="meter-digital-reset"
+            accessibilityRole="button"
           >
             <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
               CLEAR METER
@@ -3348,6 +3363,7 @@ export default function MeterDigitalScreen() {
               disabled={!tappable}
               activeOpacity={0.8}
               testID={`meter-digital-tab-${item.id}`}
+              accessibilityRole="button"
             >
               <item.icon color={active ? DASH.accent : DASH.muted} size={ui.tabIcon} />
               {/* Two of the five labels are two-liners, and five of them share
@@ -3584,6 +3600,7 @@ export default function MeterDigitalScreen() {
                         onPress={() => setAirport(opt.key)}
                         activeOpacity={0.85}
                         testID={`meter-digital-details-airport-${opt.key}`}
+                        accessibilityRole="button"
                       >
                         <FitText
                           style={[
@@ -3672,6 +3689,8 @@ export default function MeterDigitalScreen() {
                 onPress={resumeEndedTrip}
                 activeOpacity={0.85}
                 testID="meter-digital-details-resume"
+                accessibilityRole="button"
+                accessibilityLabel="Resume the hire"
               >
                 <Play color={DASH.text} size={ui.iconSize} />
                 <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
@@ -3689,6 +3708,8 @@ export default function MeterDigitalScreen() {
                 onPress={confirmEndTrip}
                 activeOpacity={0.85}
                 testID="meter-digital-details-confirm"
+                accessibilityRole="button"
+                accessibilityLabel="Confirm and print the receipt"
               >
                 <Receipt color={DASH.text} size={ui.iconSize} />
                 <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
@@ -3737,6 +3758,7 @@ export default function MeterDigitalScreen() {
                 onPress={() => setTotalOpen(false)}
                 style={[styles.modalClose, { width: ui.headerButton, height: ui.headerButton }]}
                 testID="meter-digital-total-close"
+                accessibilityRole="button"
               >
                 <X color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
               </TouchableOpacity>
@@ -3852,6 +3874,8 @@ export default function MeterDigitalScreen() {
                 onPress={() => void printReceipt(lastTrip)}
                 activeOpacity={0.85}
                 testID="meter-digital-total-print"
+                accessibilityRole="button"
+                accessibilityLabel="Print the receipt"
               >
                 {printing ? (
                   <ActivityIndicator color={DASH.text} size="small" />
@@ -3876,6 +3900,7 @@ export default function MeterDigitalScreen() {
                 }}
                 activeOpacity={0.85}
                 testID="meter-digital-total-new"
+                accessibilityRole="button"
               >
                 <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
                   NEW TRIP
@@ -3925,6 +3950,7 @@ export default function MeterDigitalScreen() {
                   { width: ui.headerButton, height: ui.headerButton },
                 ]}
                 testID="meter-digital-connect-close"
+                accessibilityRole="button"
               >
                 <X color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
               </TouchableOpacity>
@@ -3973,6 +3999,7 @@ export default function MeterDigitalScreen() {
                   }}
                   activeOpacity={0.85}
                   testID="meter-digital-connect-location"
+                  accessibilityRole="button"
                 >
                   {gpsDenied ? (
                     <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
@@ -3999,6 +4026,7 @@ export default function MeterDigitalScreen() {
                   }}
                   activeOpacity={0.85}
                   testID="meter-digital-connect-settings"
+                  accessibilityRole="button"
                 >
                   <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
                     READER SETTINGS
@@ -4019,6 +4047,8 @@ export default function MeterDigitalScreen() {
                   }}
                   activeOpacity={0.85}
                   testID="meter-digital-connect-retry"
+                  accessibilityRole="button"
+                  accessibilityLabel="Try connecting again"
                 >
                   {startGate.connecting ? (
                     <ActivityIndicator color={DASH.text} size="small" />
@@ -4073,6 +4103,7 @@ export default function MeterDigitalScreen() {
                   { width: ui.headerButton, height: ui.headerButton },
                 ]}
                 testID="meter-digital-exit-close"
+                accessibilityRole="button"
               >
                 <X color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
               </TouchableOpacity>
@@ -4097,6 +4128,8 @@ export default function MeterDigitalScreen() {
                     onPress={() => leaveMeter(option)}
                     activeOpacity={0.85}
                     testID={`meter-digital-exit-${option.key}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={option.label}
                   >
                     <Icon color={DASH.text} size={ui.iconSize} />
                     <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
@@ -4130,6 +4163,7 @@ export default function MeterDigitalScreen() {
                 onPress={() => setExitPromptOpen(false)}
                 activeOpacity={0.85}
                 testID="meter-digital-exit-stay"
+                accessibilityRole="button"
               >
                 <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
                   STAY ON THE METER
@@ -4179,6 +4213,7 @@ export default function MeterDigitalScreen() {
                   { width: ui.headerButton, height: ui.headerButton },
                 ]}
                 testID="meter-digital-vehicle-close"
+                accessibilityRole="button"
               >
                 <X color={DASH.muted} size={Math.round(ui.headerButton * 0.6)} />
               </TouchableOpacity>
@@ -4234,6 +4269,8 @@ export default function MeterDigitalScreen() {
                       disabled={!row.selectable || claimingId !== null}
                       activeOpacity={0.85}
                       testID={`meter-digital-vehicle-${row.vehicle.id}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={row.vehicle.plate}
                     >
                       <Car
                         color={row.selectable ? DASH.accent : DASH.dim}
@@ -4264,6 +4301,7 @@ export default function MeterDigitalScreen() {
                 disabled={vehicleLoading}
                 activeOpacity={0.85}
                 testID="meter-digital-vehicle-refresh"
+                accessibilityRole="button"
               >
                 <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
                   REFRESH
@@ -4278,6 +4316,7 @@ export default function MeterDigitalScreen() {
                 onPress={() => setVehiclePickerOpen(false)}
                 activeOpacity={0.85}
                 testID="meter-digital-vehicle-dismiss"
+                accessibilityRole="button"
               >
                 <FitText style={styles.wideButtonText} size={ui.wideButtonText}>
                   {vehicle ? "DONE" : "NOT NOW"}

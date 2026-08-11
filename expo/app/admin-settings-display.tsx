@@ -501,6 +501,8 @@ export default function AdminSettingsDisplayScreen() {
           onPress={handleReset}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="display-reset"
+          accessibilityRole="button"
+          accessibilityLabel="Reset display settings"
         >
           <RotateCcw color={Colors.text} size={20} />
         </TouchableOpacity>
@@ -608,6 +610,8 @@ export default function AdminSettingsDisplayScreen() {
                 },
               ]}
               testID="display-recent-minus"
+              accessibilityRole="button"
+              accessibilityLabel="Show fewer recent locations"
             >
               <Minus color={Colors.text} size={16} />
             </TouchableOpacity>
@@ -626,6 +630,8 @@ export default function AdminSettingsDisplayScreen() {
                 },
               ]}
               testID="display-recent-plus"
+              accessibilityRole="button"
+              accessibilityLabel="Show more recent locations"
             >
               <Plus color={Colors.text} size={16} />
             </TouchableOpacity>
@@ -663,6 +669,8 @@ export default function AdminSettingsDisplayScreen() {
                       },
                     ]}
                     testID={`display-${item.key}-minus`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease"
                   >
                     <Minus color={Colors.text} size={16} />
                   </TouchableOpacity>
@@ -682,6 +690,8 @@ export default function AdminSettingsDisplayScreen() {
                       },
                     ]}
                     testID={`display-${item.key}-plus`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase"
                   >
                     <Plus color={Colors.text} size={16} />
                   </TouchableOpacity>
@@ -766,6 +776,8 @@ export default function AdminSettingsDisplayScreen() {
                       },
                     ]}
                     testID={`display-${item.key}-minus`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease"
                   >
                     <Minus color={Colors.text} size={16} />
                   </TouchableOpacity>
@@ -785,6 +797,8 @@ export default function AdminSettingsDisplayScreen() {
                       },
                     ]}
                     testID={`display-${item.key}-plus`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase"
                   >
                     <Plus color={Colors.text} size={16} />
                   </TouchableOpacity>
@@ -825,6 +839,8 @@ export default function AdminSettingsDisplayScreen() {
                       },
                     ]}
                     testID={`display-${item.key}-minus`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease"
                   >
                     <Minus color={Colors.text} size={16} />
                   </TouchableOpacity>
@@ -844,6 +860,8 @@ export default function AdminSettingsDisplayScreen() {
                       },
                     ]}
                     testID={`display-${item.key}-plus`}
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase"
                   >
                     <Plus color={Colors.text} size={16} />
                   </TouchableOpacity>
@@ -1006,6 +1024,7 @@ export default function AdminSettingsDisplayScreen() {
                   style={[styles.fieldBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                   onPress={() => setPicker({ kind: "service", index: idx })}
                   testID={`display-box-${idx}-service`}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>Service</Text>
                   <View style={styles.fieldValueRow}>
@@ -1020,6 +1039,7 @@ export default function AdminSettingsDisplayScreen() {
                   style={[styles.fieldBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                   onPress={() => setPicker({ kind: "icon", index: idx })}
                   testID={`display-box-${idx}-icon`}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>Icon</Text>
                   <View style={styles.fieldValueRow}>
@@ -1035,6 +1055,7 @@ export default function AdminSettingsDisplayScreen() {
                   style={[styles.fieldBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                   onPress={() => setPicker({ kind: "box-route", index: idx })}
                   testID={`display-box-${idx}-route`}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>Opens</Text>
                   <View style={styles.fieldValueRow}>
@@ -1075,6 +1096,7 @@ export default function AdminSettingsDisplayScreen() {
                     style={[styles.imageBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                     onPress={() => pickImageForBox(idx)}
                     testID={`display-box-${idx}-upload`}
+                    accessibilityRole="button"
                   >
                     <Upload color={Colors.text} size={16} />
                     <Text style={[styles.imageBtnText, { color: Colors.text }]}>
@@ -1086,6 +1108,7 @@ export default function AdminSettingsDisplayScreen() {
                       style={[styles.imageBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                       onPress={() => updateServiceBox(idx, { imageUri: undefined })}
                       testID={`display-box-${idx}-remove-image`}
+                      accessibilityRole="button"
                     >
                       <X color={Colors.error} size={16} />
                       <Text style={[styles.imageBtnText, { color: Colors.error }]}>Remove</Text>
@@ -1135,6 +1158,7 @@ export default function AdminSettingsDisplayScreen() {
           style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginBottom: 10 }]}
           onPress={() => setPicker({ kind: "vehicle-bar-services" })}
           testID="display-row-vehicle-bar"
+          accessibilityRole="button"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <Layers color={Colors.accent} size={20} />
@@ -1151,6 +1175,7 @@ export default function AdminSettingsDisplayScreen() {
           style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginBottom: 24 }]}
           onPress={() => setPicker({ kind: "vehicle-bar-arrangement" })}
           testID="display-row-vehicle-bar-arrangement"
+          accessibilityRole="button"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <ArrowUpDown color={Colors.accent} size={20} />
@@ -1169,6 +1194,7 @@ export default function AdminSettingsDisplayScreen() {
           style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginBottom: 10 }]}
           onPress={() => setPicker({ kind: "sidemenu", menu: "user" })}
           testID="display-row-user-menu"
+          accessibilityRole="button"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <UserRound color={Colors.accent} size={20} />
@@ -1185,6 +1211,7 @@ export default function AdminSettingsDisplayScreen() {
           style={[styles.row, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
           onPress={() => setPicker({ kind: "sidemenu", menu: "partner" })}
           testID="display-row-partner-menu"
+          accessibilityRole="button"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <Briefcase color={Colors.accent} size={20} />
@@ -1333,7 +1360,7 @@ export default function AdminSettingsDisplayScreen() {
                   ? "Box Opens"
                   : ""}
               </Text>
-              <TouchableOpacity onPress={() => setPicker(null)} style={styles.modalClose} testID="display-picker-close">
+              <TouchableOpacity onPress={() => setPicker(null)} style={styles.modalClose} testID="display-picker-close" accessibilityRole="button">
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
             </View>
@@ -1390,6 +1417,7 @@ export default function AdminSettingsDisplayScreen() {
                                 },
                               ]}
                               testID={`display-sidemenu-comingsoon-${menu}-profile`}
+                              accessibilityRole="button"
                             >
                               {profileComingSoon ? <Check color={Colors.accent} size={13} /> : null}
                               <Text
@@ -1453,6 +1481,8 @@ export default function AdminSettingsDisplayScreen() {
                               onPress={() => moveMenuItem(menu, o.id, -1, orderedIds)}
                               style={[styles.arrangeBtnSm, { backgroundColor: Colors.background, borderColor: Colors.border, opacity: isFirst ? 0.4 : 1 }]}
                               testID={`display-sidemenu-up-${menu}-${o.id}`}
+                              accessibilityRole="button"
+                              accessibilityLabel="Move up"
                             >
                               <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={14} />
                             </TouchableOpacity>
@@ -1461,6 +1491,8 @@ export default function AdminSettingsDisplayScreen() {
                               onPress={() => moveMenuItem(menu, o.id, 1, orderedIds)}
                               style={[styles.arrangeBtnSm, { backgroundColor: Colors.background, borderColor: Colors.border, opacity: isLast ? 0.4 : 1 }]}
                               testID={`display-sidemenu-down-${menu}-${o.id}`}
+                              accessibilityRole="button"
+                              accessibilityLabel="Move down"
                             >
                               <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={14} />
                             </TouchableOpacity>
@@ -1488,6 +1520,7 @@ export default function AdminSettingsDisplayScreen() {
                                 },
                               ]}
                               testID={`display-sidemenu-comingsoon-${menu}-${o.id}`}
+                              accessibilityRole="button"
                             >
                               {isComingSoon ? (
                                 <Check color={Colors.accent} size={13} />
@@ -1511,6 +1544,8 @@ export default function AdminSettingsDisplayScreen() {
                               }}
                               style={[styles.arrangeBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                               testID={`display-sidemenu-rename-${menu}-${o.id}`}
+                              accessibilityRole="button"
+                              accessibilityLabel="Rename"
                             >
                               <Pencil color={Colors.accent} size={16} />
                             </TouchableOpacity>
@@ -1583,6 +1618,7 @@ export default function AdminSettingsDisplayScreen() {
                                 },
                               ]}
                               testID={`display-sidemenu-comingsoon-${menu}-footer-mode`}
+                              accessibilityRole="button"
                             >
                               {footerComingSoon ? <Check color={Colors.accent} size={13} /> : null}
                               <Text
@@ -1604,6 +1640,8 @@ export default function AdminSettingsDisplayScreen() {
                               }}
                               style={[styles.arrangeBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                               testID={`display-sidemenu-rename-${menu}-footer-mode`}
+                              accessibilityRole="button"
+                              accessibilityLabel="Rename"
                             >
                               <Pencil color={Colors.accent} size={16} />
                             </TouchableOpacity>
@@ -1630,6 +1668,7 @@ export default function AdminSettingsDisplayScreen() {
                         setPicker({ kind: "sidemenu-add", menu });
                       }}
                       testID={`display-sidemenu-add-${menu}`}
+                      accessibilityRole="button"
                     >
                       <Plus color={Colors.onAccent} size={18} />
                       <Text style={[styles.addItemBtnText, { color: Colors.onAccent }]}>
@@ -1658,6 +1697,7 @@ export default function AdminSettingsDisplayScreen() {
                     style={[styles.fieldBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                     onPress={() => setPicker({ kind: "sidemenu-route", menu: picker.menu, target: { itemId: picker.itemId, isCustom: picker.isCustom } })}
                     testID="display-sidemenu-rename-route"
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>Page</Text>
                     <View style={styles.fieldValueRow}>
@@ -1672,6 +1712,7 @@ export default function AdminSettingsDisplayScreen() {
                       onPress={() => setRouteDraft("")}
                       style={{ alignSelf: "flex-start", marginTop: 8, flexDirection: "row", alignItems: "center", gap: 6 }}
                       testID="display-sidemenu-rename-route-clear"
+                      accessibilityRole="button"
                     >
                       <X color={Colors.error} size={14} />
                       <Text style={[styles.rowDesc, { color: Colors.error }]}>Clear page link</Text>
@@ -1682,6 +1723,7 @@ export default function AdminSettingsDisplayScreen() {
                       style={[styles.modalBtn, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
                       onPress={() => setPicker({ kind: "sidemenu", menu: picker.menu })}
                       testID="display-sidemenu-rename-cancel"
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.modalBtnText, { color: Colors.text }]}>Cancel</Text>
                     </TouchableOpacity>
@@ -1693,6 +1735,7 @@ export default function AdminSettingsDisplayScreen() {
                         setPicker({ kind: "sidemenu", menu: picker.menu });
                       }}
                       testID="display-sidemenu-rename-save"
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Save</Text>
                     </TouchableOpacity>
@@ -1712,6 +1755,7 @@ export default function AdminSettingsDisplayScreen() {
                       }
                     }}
                     testID="display-sidemenu-route-none"
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.optionText, { color: Colors.text }]}>None (no navigation)</Text>
                     {!(picker.target === "new" ? newItemRoute : routeDraft) ? (
@@ -1734,6 +1778,7 @@ export default function AdminSettingsDisplayScreen() {
                           }
                         }}
                         testID={`display-sidemenu-route-${r.path}`}
+                        accessibilityRole="button"
                       >
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
@@ -1757,6 +1802,7 @@ export default function AdminSettingsDisplayScreen() {
                       setPicker(null);
                     }}
                     testID="display-box-route-none"
+                    accessibilityRole="button"
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.optionText, { color: Colors.text }]}>None</Text>
@@ -1779,6 +1825,7 @@ export default function AdminSettingsDisplayScreen() {
                           setPicker(null);
                         }}
                         testID={`display-box-route-${r.path}`}
+                        accessibilityRole="button"
                       >
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
@@ -1810,6 +1857,7 @@ export default function AdminSettingsDisplayScreen() {
                     style={[styles.fieldBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginTop: 12 }]}
                     onPress={() => setPicker({ kind: "sidemenu-icon", menu: picker.menu, selected: newItemIcon })}
                     testID="display-sidemenu-add-icon"
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>Icon</Text>
                     <View style={styles.fieldValueRow}>
@@ -1827,6 +1875,7 @@ export default function AdminSettingsDisplayScreen() {
                     style={[styles.fieldBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginTop: 12 }]}
                     onPress={() => setPicker({ kind: "sidemenu-route", menu: picker.menu, target: "new" })}
                     testID="display-sidemenu-add-route"
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>Linked page</Text>
                     <View style={styles.fieldValueRow}>
@@ -1841,6 +1890,7 @@ export default function AdminSettingsDisplayScreen() {
                       style={[styles.modalBtn, { borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
                       onPress={() => setPicker({ kind: "sidemenu", menu: picker.menu })}
                       testID="display-sidemenu-add-cancel"
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.modalBtnText, { color: Colors.text }]}>Cancel</Text>
                     </TouchableOpacity>
@@ -1859,6 +1909,7 @@ export default function AdminSettingsDisplayScreen() {
                         setPicker({ kind: "sidemenu", menu: picker.menu });
                       }}
                       testID="display-sidemenu-add-save"
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.modalBtnText, { color: Colors.onAccent }]}>Add</Text>
                     </TouchableOpacity>
@@ -1884,6 +1935,7 @@ export default function AdminSettingsDisplayScreen() {
                           setPicker({ kind: "sidemenu-add", menu: picker.menu });
                         }}
                         testID={`display-sidemenu-icon-${opt.name}`}
+                        accessibilityRole="button"
                       >
                         <Comp color={selected ? Colors.accent : Colors.text} size={24} strokeWidth={1.6} />
                         <Text
@@ -1939,6 +1991,8 @@ export default function AdminSettingsDisplayScreen() {
                                 },
                               ]}
                               testID={`display-vbar-arrange-up-${e.id}`}
+                              accessibilityRole="button"
+                              accessibilityLabel="Move up"
                             >
                               <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
                             </TouchableOpacity>
@@ -1954,6 +2008,8 @@ export default function AdminSettingsDisplayScreen() {
                                 },
                               ]}
                               testID={`display-vbar-arrange-down-${e.id}`}
+                              accessibilityRole="button"
+                              accessibilityLabel="Move down"
                             >
                               <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
                             </TouchableOpacity>
@@ -1981,6 +2037,7 @@ export default function AdminSettingsDisplayScreen() {
                           style={[styles.optionRow, { borderColor: Colors.border }]}
                           onPress={() => setPicker({ kind: "vehicle-bar-list", serviceName: svcName })}
                           testID={`display-vbar-service-${svc.id}`}
+                          accessibilityRole="button"
                         >
                           <View style={[styles.svcIconWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
                             {iconUri ? (
@@ -2063,6 +2120,7 @@ export default function AdminSettingsDisplayScreen() {
                       }
                     }}
                     testID="display-service-option-default"
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.optionText, { color: Colors.text }]}>Default (Box {(picker?.index ?? 0) + 1})</Text>
                     {!settings.serviceBoxes[picker?.index ?? 0]?.serviceId && (
@@ -2090,6 +2148,7 @@ export default function AdminSettingsDisplayScreen() {
                             }
                           }}
                           testID={`display-service-option-${svc.id}`}
+                          accessibilityRole="button"
                         >
                           <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
                             {String(svc.values.name ?? "Unnamed")}
@@ -2122,6 +2181,7 @@ export default function AdminSettingsDisplayScreen() {
                           }
                         }}
                         testID={`display-icon-option-${opt.name}`}
+                        accessibilityRole="button"
                       >
                         <Comp color={selected ? Colors.accent : Colors.text} size={26} strokeWidth={1.6} />
                         <Text

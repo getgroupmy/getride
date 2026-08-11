@@ -11,7 +11,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { MapPin, X, Search, Navigation, Bookmark } from "lucide-react-native";
+import {
+  MapPin,
+  X,
+  Search,
+  Navigation,
+} from "lucide-react-native";
 import * as Location from "expo-location";
 import { useColors } from "@/hooks/useColors";
 import { POPULAR_LOCATIONS } from "@/constants/mockLocations";
@@ -649,6 +654,7 @@ export default function SearchScreen() {
             }
             router.back();
           }}
+          accessibilityRole="button"
         >
           <X color="#999" size={24} />
         </TouchableOpacity>
@@ -660,6 +666,7 @@ export default function SearchScreen() {
             style={[styles.inputCard, activeInput === "pickup" && styles.inputCardActive]}
             onPress={() => setActiveInput("pickup")}
             activeOpacity={1}
+            accessibilityRole="button"
           >
             <View style={styles.fromIconContainer}>
               <View style={styles.fromIcon} />
@@ -698,6 +705,7 @@ export default function SearchScreen() {
                   setPickupCoords(null);
                 }}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
               >
                 <View style={styles.clearButtonInner}>
                   <X color="#888" size={14} />
@@ -711,6 +719,7 @@ export default function SearchScreen() {
           style={[styles.inputCard, activeInput === "destination" && styles.inputCardActive]}
           onPress={() => setActiveInput("destination")}
           activeOpacity={1}
+          accessibilityRole="button"
         >
           <View style={styles.searchIconContainer}>
             <Search color="#888" size={20} />
@@ -740,6 +749,7 @@ export default function SearchScreen() {
                 setDestination("");
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
             >
               <View style={styles.clearButtonInner}>
                 <X color="#888" size={14} />
@@ -773,6 +783,7 @@ export default function SearchScreen() {
               });
             }, 100);
           }}
+          accessibilityRole="button"
         >
           <Navigation color="#3B9EFF" size={18} />
           <Text style={styles.chooseOnMapText}>Choose on map</Text>
@@ -783,6 +794,7 @@ export default function SearchScreen() {
             <TouchableOpacity
               style={[styles.tab, activeTab === "results" && styles.tabActive]}
               onPress={() => setActiveTab("results")}
+              accessibilityRole="button"
             >
               <Text style={[styles.tabText, activeTab === "results" && styles.tabTextActive]}>Search Results</Text>
             </TouchableOpacity>
@@ -790,12 +802,14 @@ export default function SearchScreen() {
           <TouchableOpacity
             style={[styles.tab, activeTab === "suggested" && styles.tabActive]}
             onPress={() => setActiveTab("suggested")}
+            accessibilityRole="button"
           >
             <Text style={[styles.tabText, activeTab === "suggested" && styles.tabTextActive]}>Suggested</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "saved" && styles.tabActive]}
             onPress={() => setActiveTab("saved")}
+            accessibilityRole="button"
           >
             <Text style={[styles.tabText, activeTab === "saved" && styles.tabTextActive]}>Saved</Text>
           </TouchableOpacity>
@@ -866,6 +880,7 @@ function SuggestionRow({ item, searchQuery, highlightText, onSelect, styles, usa
         if (blockPlaceTap) return;
         onSelect(item);
       }}
+      accessibilityRole="button"
     >
       <View style={styles.suggestionIcon}>
         <MapPin color="#888" size={18} />
@@ -897,9 +912,6 @@ function SuggestionRow({ item, searchQuery, highlightText, onSelect, styles, usa
         {item.distance && (
           <Text style={styles.distanceText}>{item.distance}</Text>
         )}
-        <TouchableOpacity style={styles.bookmarkButton}>
-          <Bookmark color="#666" size={20} />
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -1103,9 +1115,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: "#888",
-  },
-  bookmarkButton: {
-    padding: 4,
   },
   emptyState: {
     alignItems: "center",

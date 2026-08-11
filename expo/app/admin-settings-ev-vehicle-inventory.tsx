@@ -339,6 +339,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                   },
                 ]}
                 testID={`${key}-${c.id}`}
+                accessibilityRole="button"
               >
                 <View
                   style={[
@@ -398,6 +399,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                   },
                 ]}
                 testID={`${key}-${c.id}`}
+                accessibilityRole="button"
               >
                 <Text
                   style={[
@@ -481,6 +483,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="inv-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Unit</Text>
@@ -507,6 +510,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="inv-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -537,6 +541,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                     { backgroundColor: Colors.gray[100], borderColor: Colors.border },
                   ]}
                   testID="inv-vehicle-select"
+                  accessibilityRole="button"
                 >
                   {selectedVehicle ? (
                     <View style={styles.selectInner}>
@@ -662,6 +667,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                 onPress={() => setVehiclePickerOpen(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="inv-picker-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -694,6 +700,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                       },
                     ]}
                     testID={`inv-pick-${v.id}`}
+                    accessibilityRole="button"
                   >
                     {v.values.imageUri ? (
                       <Image

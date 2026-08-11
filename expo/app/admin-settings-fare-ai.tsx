@@ -309,6 +309,8 @@ export default function AdminSettingsFareAIScreen() {
           onPress={() => router.push("/admin-settings-fare-ai-logs")}
           style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
           testID="fare-ai-logs"
+          accessibilityRole="button"
+          accessibilityLabel="Fare AI logs"
         >
           <ListChecks color={Colors.text} size={20} />
         </TouchableOpacity>
@@ -396,6 +398,7 @@ export default function AdminSettingsFareAIScreen() {
                     },
                   ]}
                   testID={`fare-ai-provider-${p.id}`}
+                  accessibilityRole="button"
                 >
                   <View style={[styles.providerIcon, { backgroundColor: Colors.accent + "20" }]}>
                     <Sparkles color={Colors.accent} size={18} />
@@ -462,6 +465,7 @@ export default function AdminSettingsFareAIScreen() {
                         },
                       ]}
                       testID={`fare-ai-retry-unit-${u.id}`}
+                      accessibilityRole="button"
                     >
                       <Text style={[styles.unitChipTxt, { color: selected ? "#000000" : Colors.text }]}>
                         {u.label}
@@ -478,7 +482,7 @@ export default function AdminSettingsFareAIScreen() {
                 {activeMeta.label} keys
               </Text>
               {editable ? (
-                <TouchableOpacity onPress={addKey} style={styles.addBtn} testID="fare-ai-add-key">
+                <TouchableOpacity onPress={addKey} style={styles.addBtn} testID="fare-ai-add-key" accessibilityRole="button">
                   <Plus color={Colors.accent} size={16} />
                   <Text style={[styles.addBtnTxt, { color: Colors.accent }]}>Add key</Text>
                 </TouchableOpacity>
@@ -633,6 +637,7 @@ export default function AdminSettingsFareAIScreen() {
               onPress={() => router.push("/admin-settings-fare-ai-logs")}
               style={[styles.logsBtn, { borderColor: Colors.border }]}
               testID="fare-ai-open-logs"
+              accessibilityRole="button"
             >
               <ListChecks color={Colors.accent} size={18} />
               <Text style={[styles.logsTxt, { color: Colors.text }]}>View response log</Text>

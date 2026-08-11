@@ -200,6 +200,7 @@ export default function AdminSupportPoolScreen() {
             onPress={() =>
               router.push({ pathname: "/admin-support-chat", params: { ticketId: item.id } } as never)
             }
+            accessibilityRole="button"
           >
             <View style={[styles.avatar, { backgroundColor: Colors.accent + "25" }]}>
               {avatar ? (
@@ -243,6 +244,7 @@ export default function AdminSupportPoolScreen() {
                 style={[styles.reopenBtn, { borderColor: Colors.accent }]}
                 onPress={() => doReopen(item)}
                 activeOpacity={0.85}
+                accessibilityRole="button"
               >
                 <RotateCcw color={Colors.accent} size={16} />
                 <Text style={[styles.reopenBtnText, { color: Colors.accent }]}>Reopen</Text>
@@ -252,6 +254,7 @@ export default function AdminSupportPoolScreen() {
               style={[styles.assignBtn, { backgroundColor: Colors.accent }]}
               onPress={() => setAssignTarget(item)}
               activeOpacity={0.85}
+              accessibilityRole="button"
             >
               <UserPlus color="#000000" size={16} />
               <Text style={styles.assignBtnText}>{item.assigned_admin_id ? "Reassign" : "Assign"}</Text>
@@ -306,6 +309,7 @@ export default function AdminSupportPoolScreen() {
               ]}
               onPress={() => setStatusFilter(f.key)}
               activeOpacity={0.8}
+              accessibilityRole="button"
             >
               <Text style={[styles.filterChipText, { color: active ? "#000000" : tint }]}>{f.label}</Text>
             </TouchableOpacity>
@@ -350,6 +354,7 @@ export default function AdminSupportPoolScreen() {
                 style={styles.historyHeader}
                 activeOpacity={0.7}
                 onPress={() => setShowHistory((v) => !v)}
+                accessibilityRole="button"
               >
                 {showHistory ? (
                   <ChevronDown color={Colors.textSecondary} size={16} />
@@ -384,11 +389,11 @@ export default function AdminSupportPoolScreen() {
         animationType="fade"
         onRequestClose={() => setAssignTarget(null)}
       >
-        <Pressable style={styles.sheetOverlay} onPress={() => setAssignTarget(null)}>
+        <Pressable style={styles.sheetOverlay} onPress={() => setAssignTarget(null)} accessibilityRole="button">
           <Pressable style={[styles.sheet, { backgroundColor: Colors.background }]}>
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: Colors.text }]}>Assign ticket</Text>
-              <TouchableOpacity onPress={() => setAssignTarget(null)}>
+              <TouchableOpacity onPress={() => setAssignTarget(null)} accessibilityRole="button">
                 <X color={Colors.textSecondary} size={22} />
               </TouchableOpacity>
             </View>
@@ -401,6 +406,7 @@ export default function AdminSupportPoolScreen() {
                   doAssign(assignTarget, { profile_id: profileId, name: myName })
                 }
                 activeOpacity={0.8}
+                accessibilityRole="button"
               >
                 <View style={[styles.agentAvatar, { backgroundColor: Colors.accent }]}>
                   <UserCheck color="#000000" size={18} />
@@ -429,6 +435,7 @@ export default function AdminSupportPoolScreen() {
                       doAssign(assignTarget, { profile_id: agent.profile_id, name: agent.name })
                     }
                     activeOpacity={0.8}
+                    accessibilityRole="button"
                   >
                     <View style={[styles.agentAvatar, { backgroundColor: Colors.accent + "25" }]}>
                       {agent.avatar_url ? (

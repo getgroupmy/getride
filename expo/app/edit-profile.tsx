@@ -1097,6 +1097,7 @@ export default function EditProfileScreen() {
             setPhonePersisted(false);
           }}
           testID="edit-profile-number-changed-banner"
+          accessibilityRole="button"
         >
           <ShieldCheck color={Colors.success} size={16} strokeWidth={2.5} />
           <Text style={styles.successBannerText}>
@@ -1199,6 +1200,7 @@ export default function EditProfileScreen() {
                 });
               }}
               testID="edit-profile-change-number"
+              accessibilityRole="button"
             >
               <Phone color={Colors.textSecondary} size={18} />
               <View style={styles.linkBody}>
@@ -1216,6 +1218,7 @@ export default function EditProfileScreen() {
               style={styles.linkRow}
               onPress={() => setCountryPickerOpen(true)}
               testID="edit-profile-country"
+              accessibilityRole="button"
             >
               <Globe2 color={Colors.textSecondary} size={18} />
               <View style={styles.linkBody}>
@@ -1290,6 +1293,7 @@ export default function EditProfileScreen() {
                 onPress={confirmRescan}
                 disabled={scanningId}
                 testID="edit-profile-rescan-id"
+                accessibilityRole="button"
               >
                 <ScanLine color={Colors.accent} size={16} />
                 <Text style={[styles.rescanBtnText, { color: Colors.accent }]}>
@@ -1318,6 +1322,7 @@ export default function EditProfileScreen() {
                 }
               }}
               testID="edit-profile-pin"
+              accessibilityRole="button"
             >
               <Shield color={Colors.textSecondary} size={18} />
               <View style={styles.linkBody}>
@@ -1338,6 +1343,7 @@ export default function EditProfileScreen() {
                 style={styles.linkRow}
                 onPress={handleForgotPin}
                 testID="edit-profile-forgot-pin"
+                accessibilityRole="button"
               >
                 <KeyRound color={Colors.textSecondary} size={18} />
                 <View style={styles.linkBody}>
@@ -1401,6 +1407,7 @@ export default function EditProfileScreen() {
                     setCountryQuery("");
                   }}
                   testID={`country-${item.isoCode}`}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.countryFlag}>{item.flag}</Text>
                   <Text style={styles.countryName}>{item.name}</Text>

@@ -226,6 +226,7 @@ export default function VehicleMakeModelPicker({ value, onChange, testID }: Prop
         ]}
         testID={testID ?? "vmm-picker-trigger"}
         activeOpacity={0.85}
+        accessibilityRole="button"
       >
         <View style={[styles.triggerIcon, { backgroundColor: Colors.accent + "22" }]}>
           {value?.iconUri ? (
@@ -264,6 +265,8 @@ export default function VehicleMakeModelPicker({ value, onChange, testID }: Prop
                 onPress={goBack}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="vmm-picker-back"
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
               >
                 {step === 0 ? (
                   <X color={Colors.text} size={20} />
@@ -287,6 +290,7 @@ export default function VehicleMakeModelPicker({ value, onChange, testID }: Prop
                 onPress={close}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                 testID="vmm-picker-close"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -403,6 +407,7 @@ function Row({ Icon, iconUri, label, meta, selected, onPress }: RowProps) {
         },
       ]}
       activeOpacity={0.85}
+      accessibilityRole="button"
     >
       <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "22" }]}>
         {iconUri ? (

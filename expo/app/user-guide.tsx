@@ -627,6 +627,7 @@ export default function UserGuideScreen() {
             style={[styles.headerBtn, { backgroundColor: Colors.accent + "18" }]}
             testID="user-guide-download"
             accessibilityLabel="Download user guide as PDF"
+            accessibilityRole="button"
           >
             {downloading ? (
               <ActivityIndicator size="small" color={Colors.accent} />
@@ -684,6 +685,7 @@ export default function UserGuideScreen() {
                         },
                       ]}
                       testID={`guide-row-${screen.id}`}
+                      accessibilityRole="button"
                     >
                       <View style={[styles.iconBubble, { backgroundColor: Colors.accent + "22" }]}>
                         <Icon color={Colors.accent} size={20} />
@@ -742,6 +744,7 @@ export default function UserGuideScreen() {
           activeOpacity={0.85}
           style={[styles.downloadBtn, { backgroundColor: Colors.accent }]}
           testID="user-guide-download-cta"
+          accessibilityRole="button"
         >
           {downloading ? (
             <ActivityIndicator size="small" color={"#000000"} />

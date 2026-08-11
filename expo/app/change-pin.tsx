@@ -282,6 +282,7 @@ export default function ChangePinScreen() {
                 router.back();
               }}
               testID="change-pin-success-close"
+              accessibilityRole="button"
             >
               <Text style={styles.modalButtonText}>Close</Text>
             </TouchableOpacity>

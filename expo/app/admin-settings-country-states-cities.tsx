@@ -1209,6 +1209,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
         style={styles.row}
         onPress={() => openRow(item)}
         activeOpacity={item.level === "suburb" ? 1 : 0.7}
+        accessibilityRole="button"
       >
         <View style={[styles.rowIcon, isCustom && styles.rowIconCustom]}>
           <Icon size={18} color={isCustom ? Colors.accent : Colors.textSecondary} />
@@ -1242,6 +1243,8 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
             onPress={() => openMap(item)}
             style={styles.iconBtn}
             testID={`map-${item.id}`}
+            accessibilityRole="button"
+            accessibilityLabel="Set the location on a map"
           >
             <MapIcon size={16} color={hasBoundary ? Colors.accent : Colors.textSecondary} />
           </TouchableOpacity>
@@ -1291,7 +1294,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
           <Text style={styles.headerTitleText}>Regions</Text>
           <Text style={styles.headerSubtitle}>{totalLabel}</Text>
         </View>
-        <TouchableOpacity onPress={openAdd} style={styles.headerBtn} testID="add">
+        <TouchableOpacity onPress={openAdd} style={styles.headerBtn} testID="add" accessibilityRole="button" accessibilityLabel="Add">
           <Plus size={22} color={Colors.accent} />
         </TouchableOpacity>
       </View>
@@ -1299,7 +1302,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
       {/* Breadcrumb */}
       {(selCountry || selState || selCity) && (
         <View style={styles.crumbBar}>
-          <TouchableOpacity onPress={goBackBreadcrumb} style={styles.crumbBack}>
+          <TouchableOpacity onPress={goBackBreadcrumb} style={styles.crumbBack} accessibilityRole="button">
             <ArrowLeft size={14} color={Colors.textSecondary} />
             <Text style={styles.crumbBackText}>Back</Text>
           </TouchableOpacity>
@@ -1339,7 +1342,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
           testID="search"
         />
         {query ? (
-          <TouchableOpacity onPress={() => setQuery("")}>
+          <TouchableOpacity onPress={() => setQuery("")} accessibilityRole="button">
             <X size={16} color={Colors.textSecondary} />
           </TouchableOpacity>
         ) : null}
@@ -1360,7 +1363,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 ? "Add a suburb for this city to get started."
                 : "Try a different search or add a custom entry."}
             </Text>
-            <TouchableOpacity onPress={openAdd} style={styles.emptyBtn}>
+            <TouchableOpacity onPress={openAdd} style={styles.emptyBtn} accessibilityRole="button">
               <Plus size={14} color={Colors.onAccent} />
               <Text style={styles.emptyBtnText}>Add {currentLevel}</Text>
             </TouchableOpacity>
@@ -1384,13 +1387,14 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
               style={StyleSheet.absoluteFill}
               onPress={closeForm}
               activeOpacity={1}
+              accessibilityRole="button"
             />
             <View style={[styles.sheet, { maxHeight: "92%" }]}>
               <View style={styles.sheetHeader}>
                 <Text style={styles.sheetTitle}>
                   {editEntry ? "Edit region" : `Add ${currentLevel}`}
                 </Text>
-                <TouchableOpacity onPress={closeForm} style={styles.iconBtn}>
+                <TouchableOpacity onPress={closeForm} style={styles.iconBtn} accessibilityRole="button">
                   <X size={20} color={Colors.text} />
                 </TouchableOpacity>
               </View>
@@ -1555,6 +1559,8 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                         }}
                         style={styles.pickBtn}
                         testID="tz-pick"
+                        accessibilityRole="button"
+                        accessibilityLabel="Choose a time zone"
                       >
                         <ChevronDown size={16} color={Colors.text} />
                       </TouchableOpacity>
@@ -1687,6 +1693,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
             style={StyleSheet.absoluteFill}
             onPress={closeMap}
             activeOpacity={1}
+            accessibilityRole="button"
           />
           <View style={[styles.sheet, { maxHeight: "92%" }]}>
             <View style={styles.sheetHeader}>
@@ -1696,7 +1703,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                   {mapRow ? queryFromRow(mapRow) : ""}
                 </Text>
               </View>
-              <TouchableOpacity onPress={closeMap} style={styles.iconBtn}>
+              <TouchableOpacity onPress={closeMap} style={styles.iconBtn} accessibilityRole="button">
                 <X size={20} color={Colors.text} />
               </TouchableOpacity>
             </View>
@@ -1801,6 +1808,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     onPress={startDraw}
                     style={[styles.actionBtn, styles.actionBtnGhost]}
                     testID="draw-start"
+                    accessibilityRole="button"
                   >
                     <PenLine size={16} color={Colors.text} />
                     <Text style={styles.actionBtnGhostText}>Draw</Text>
@@ -1810,6 +1818,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     style={[styles.actionBtn, styles.actionBtnGhost, !boundary && { opacity: 0.5 }]}
                     disabled={!boundary}
                     testID="draw-edit"
+                    accessibilityRole="button"
                   >
                     <Move size={16} color={Colors.text} />
                     <Text style={styles.actionBtnGhostText}>Edit polygon</Text>
@@ -1821,6 +1830,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     onPress={cancelDraw}
                     style={[styles.actionBtn, styles.actionBtnGhost]}
                     testID="draw-cancel"
+                    accessibilityRole="button"
                   >
                     <X size={16} color={Colors.text} />
                     <Text style={styles.actionBtnGhostText}>Cancel</Text>
@@ -1831,6 +1841,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                       style={[styles.actionBtn, styles.actionBtnGhost, draftPoints.length === 0 && { opacity: 0.5 }]}
                       disabled={draftPoints.length === 0}
                       testID="draw-undo"
+                      accessibilityRole="button"
                     >
                       <Undo2 size={16} color={Colors.text} />
                       <Text style={styles.actionBtnGhostText}>Undo</Text>
@@ -1841,6 +1852,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     style={[styles.actionBtn, draftPoints.length < 3 && { opacity: 0.5 }]}
                     disabled={draftPoints.length < 3}
                     testID="draw-finish"
+                    accessibilityRole="button"
                   >
                     <Check size={16} color={Colors.onAccent} />
                     <Text style={styles.saveBtnText}>Finish</Text>
@@ -1937,6 +1949,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 style={[styles.actionBtn, styles.actionBtnGhost]}
                 disabled={!boundary && !mapRow?.entry?.values?.boundary}
                 testID="clear-boundary"
+                accessibilityRole="button"
               >
                 <Eraser size={16} color={Colors.text} />
                 <Text style={styles.actionBtnGhostText}>Clear</Text>
@@ -1946,6 +1959,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 style={[styles.actionBtn, !boundary && { opacity: 0.5 }]}
                 disabled={!boundary}
                 testID="save-boundary"
+                accessibilityRole="button"
               >
                 {fetching ? (
                   <ActivityIndicator color={Colors.onAccent} />
@@ -1966,6 +1980,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 style={StyleSheet.absoluteFill}
                 onPress={() => { setOsmCandidates(null); setSearchCtx(null); }}
                 activeOpacity={1}
+                accessibilityRole="button"
               />
               <View style={[styles.sheet, { maxHeight: "80%" }]}>
                 <View style={styles.sheetHeader}>
@@ -1975,7 +1990,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                       {(osmCandidates?.length ?? 0)} matches found
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={() => { setOsmCandidates(null); setSearchCtx(null); }} style={styles.iconBtn}>
+                  <TouchableOpacity onPress={() => { setOsmCandidates(null); setSearchCtx(null); }} style={styles.iconBtn} accessibilityRole="button">
                     <X size={20} color={Colors.text} />
                   </TouchableOpacity>
                 </View>
@@ -1993,6 +2008,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                         style={styles.pickerRow}
                         onPress={() => pickOsmCandidate(item)}
                         testID={`osm-candidate-${item.osmId ?? ""}`}
+                        accessibilityRole="button"
                       >
                         <View style={{ flex: 1, paddingRight: 8 }}>
                           <Text style={styles.pickerText} numberOfLines={2}>
@@ -2017,6 +2033,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                           disabled={loadingMore}
                           style={[styles.actionBtn, styles.actionBtnGhost, { alignSelf: "center" }]}
                           testID="load-more-candidates"
+                          accessibilityRole="button"
                         >
                           {loadingMore ? (
                             <ActivityIndicator color={Colors.text} />
@@ -2049,11 +2066,12 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
             style={StyleSheet.absoluteFill}
             onPress={() => setTzPickerOpen(false)}
             activeOpacity={1}
+            accessibilityRole="button"
           />
           <View style={[styles.sheet, { maxHeight: "80%" }]}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Select time zone</Text>
-              <TouchableOpacity onPress={() => setTzPickerOpen(false)} style={styles.iconBtn}>
+              <TouchableOpacity onPress={() => setTzPickerOpen(false)} style={styles.iconBtn} accessibilityRole="button">
                 <X size={20} color={Colors.text} />
               </TouchableOpacity>
             </View>
@@ -2088,6 +2106,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     setFormTimezone(item.zoneName);
                     setTzPickerOpen(false);
                   }}
+                  accessibilityRole="button"
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={styles.pickerText}>{item.zoneName}</Text>
@@ -2117,11 +2136,12 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
             style={StyleSheet.absoluteFill}
             onPress={() => setPicker(null)}
             activeOpacity={1}
+            accessibilityRole="button"
           />
           <View style={[styles.sheet, { maxHeight: "80%" }]}>
             <View style={styles.sheetHeader}>
               <Text style={styles.sheetTitle}>Select {picker}</Text>
-              <TouchableOpacity onPress={() => setPicker(null)} style={styles.iconBtn}>
+              <TouchableOpacity onPress={() => setPicker(null)} style={styles.iconBtn} accessibilityRole="button">
                 <X size={20} color={Colors.text} />
               </TouchableOpacity>
             </View>
@@ -2159,6 +2179,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     setPicker(null);
                     setPickerQuery("");
                   }}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.pickerText}>{item}</Text>
                   <ChevronRight size={16} color={Colors.gray[400]} />
@@ -2196,6 +2217,7 @@ function FetchChip({
       disabled={disabled}
       style={[styles.chip, active && styles.chipActive, disabled && !active && { opacity: 0.6 }]}
       testID={`fetch-${label.toLowerCase()}`}
+      accessibilityRole="button"
     >
       {active ? (
         <ActivityIndicator size="small" color={Colors.onAccent} />
@@ -2219,7 +2241,7 @@ function CrumbChip({
   const styles = createStyles(Colors);
   const Wrapper: React.ComponentType<{ children: React.ReactNode }> = ({ children }) =>
     onPress ? (
-      <TouchableOpacity onPress={onPress} style={styles.crumbChip}>
+      <TouchableOpacity onPress={onPress} style={styles.crumbChip} accessibilityRole="button">
         {children}
       </TouchableOpacity>
     ) : (
@@ -2263,7 +2285,7 @@ function FormField({
           autoCorrect={false}
         />
         {onPick ? (
-          <TouchableOpacity onPress={onPick} style={styles.pickBtn}>
+          <TouchableOpacity onPress={onPick} style={styles.pickBtn} accessibilityRole="button" accessibilityLabel="Choose">
             <ChevronDown size={16} color={Colors.text} />
           </TouchableOpacity>
         ) : null}

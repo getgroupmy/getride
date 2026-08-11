@@ -332,7 +332,7 @@ export default function ProfilePhotoScreen() {
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Colors.background }}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: Colors.text }]}>Add a profile photo</Text>
-          <TouchableOpacity onPress={handleSkip} disabled={busy} testID="profile-photo-skip">
+          <TouchableOpacity onPress={handleSkip} disabled={busy} testID="profile-photo-skip" accessibilityRole="button">
             <Text style={[styles.skip, { color: Colors.textSecondary }]}>Skip</Text>
           </TouchableOpacity>
         </View>
@@ -433,6 +433,7 @@ export default function ProfilePhotoScreen() {
                 style={[styles.secondaryBtn, { borderColor: Colors.border, flex: 1 }]}
                 onPress={() => closeInstruction(false)}
                 testID="instruction-cancel"
+                accessibilityRole="button"
               >
                 <Text style={[styles.secondaryBtnText, { color: Colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -462,6 +463,7 @@ export default function ProfilePhotoScreen() {
                 onPress={startChallenge}
                 disabled={busy}
                 testID="profile-photo-retry"
+                accessibilityRole="button"
               >
                 <Text style={[styles.secondaryBtnText, { color: Colors.text }]}>Retake</Text>
               </TouchableOpacity>
@@ -470,6 +472,7 @@ export default function ProfilePhotoScreen() {
                 onPress={handleContinue}
                 disabled={busy}
                 testID="profile-photo-continue"
+                accessibilityRole="button"
               >
                 {saving ? (
                   <ActivityIndicator color={Colors.secondary} />
@@ -487,6 +490,7 @@ export default function ProfilePhotoScreen() {
               onPress={startChallenge}
               disabled={busy}
               testID="profile-photo-start"
+              accessibilityRole="button"
             >
               {verifying ? (
                 <ActivityIndicator color={Colors.secondary} />

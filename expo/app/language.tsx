@@ -86,6 +86,7 @@ export default function LanguageScreen() {
               style={styles.languageItem}
               onPress={() => handleLanguageSelect(language.code)}
               activeOpacity={0.7}
+              accessibilityRole="button"
             >
               <View style={styles.languageInfo}>
                 <Text style={[styles.languageNative, { color: Colors.text }]}>

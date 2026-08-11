@@ -255,6 +255,8 @@ export default function AdminSettingsApiKeysKeysScreen() {
           disabled={!editable}
           style={[styles.iconBtn, { backgroundColor: editable ? Colors.accent + "20" : Colors.gray[100], opacity: editable ? 1 : 0.5 }]}
           testID="keys-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add a key"
         >
           <Plus color={editable ? Colors.accent : Colors.textSecondary} size={20} />
         </TouchableOpacity>
@@ -350,7 +352,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                         : k.value
                       : mask(k.value)}
                   </Text>
-                  <TouchableOpacity onPress={() => onToggleReveal(k)} style={styles.inputAction} testID={`key-reveal-${k.id}`}>
+                  <TouchableOpacity onPress={() => onToggleReveal(k)} style={styles.inputAction} testID={`key-reveal-${k.id}`} accessibilityRole="button" accessibilityLabel="Show or hide the key">
                     {isRevealed ? <EyeOff color={Colors.textSecondary} size={18} /> : <Eye color={Colors.textSecondary} size={18} />}
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => onCopy(k)} style={styles.inputAction} testID={`key-copy-${k.id}`} accessibilityRole="button" accessibilityLabel="Copy">
@@ -368,6 +370,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                       onPress={refresh}
                       style={[styles.warnBtn, { backgroundColor: Colors.error }]}
                       testID={`key-refetch-${k.id}`}
+                      accessibilityRole="button"
                     >
                       <RefreshCw color="#fff" size={12} />
                       <Text style={styles.warnBtnTxt}>Refresh</Text>
@@ -393,6 +396,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                     onPress={() => onSimulate(k, true)}
                     style={[styles.actionBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                     testID={`key-success-${k.id}`}
+                    accessibilityRole="button"
                   >
                     <CheckCircle2 color={Colors.accent} size={14} />
                     <Text style={[styles.actionTxt, { color: Colors.text }]}>+ Use</Text>
@@ -401,6 +405,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                     onPress={() => onSimulate(k, false)}
                     style={[styles.actionBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                     testID={`key-fail-${k.id}`}
+                    accessibilityRole="button"
                   >
                     <XCircle color={Colors.error} size={14} />
                     <Text style={[styles.actionTxt, { color: Colors.text }]}>+ Fail</Text>
@@ -409,6 +414,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                     onPress={() => onResetCounts(k)}
                     style={[styles.actionBtn, { backgroundColor: Colors.background, borderColor: Colors.border }]}
                     testID={`key-reset-${k.id}`}
+                    accessibilityRole="button"
                   >
                     <RotateCcw color={Colors.textSecondary} size={14} />
                     <Text style={[styles.actionTxt, { color: Colors.text }]}>Reset</Text>
@@ -423,6 +429,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                       },
                     ]}
                     testID={`key-toggle-${k.id}`}
+                    accessibilityRole="button"
                   >
                     <Power color={k.disabled ? Colors.accent : Colors.text} size={14} />
                     <Text style={[styles.actionTxt, { color: k.disabled ? Colors.accent : Colors.text }]}>
@@ -446,6 +453,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
             onPress={() => setShowAdd(true)}
             style={[styles.addBtn, { backgroundColor: Colors.accent }]}
             testID="keys-add-bottom"
+            accessibilityRole="button"
           >
             <Plus color="#000000" size={18} />
             <Text style={styles.addTxt}>Add Key</Text>
@@ -463,7 +471,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: Colors.text }]}>New API Key</Text>
-              <TouchableOpacity onPress={() => setShowAdd(false)} hitSlop={8}>
+              <TouchableOpacity onPress={() => setShowAdd(false)} hitSlop={8} accessibilityRole="button">
                 <X color={Colors.text} size={22} />
               </TouchableOpacity>
             </View>
@@ -492,6 +500,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
               <TouchableOpacity
                 onPress={() => setShowAdd(false)}
                 style={[styles.modalBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnTxt, { color: Colors.text }]}>Cancel</Text>
               </TouchableOpacity>
@@ -499,6 +508,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                 onPress={onAdd}
                 style={[styles.modalBtn, { backgroundColor: Colors.accent, borderColor: Colors.accent }]}
                 testID="key-add-confirm"
+                accessibilityRole="button"
               >
                 <Text style={[styles.modalBtnTxt, { color: "#000000" }]}>Add</Text>
               </TouchableOpacity>

@@ -63,6 +63,7 @@ export default function DarkModeScreen() {
             ]}
             onPress={() => handleSelectMode(option.id)}
             activeOpacity={0.7}
+            accessibilityRole="button"
           >
             <Text style={[styles.optionLabel, { color: Colors.text }]}>{option.label}</Text>
             {themeMode === option.id && (

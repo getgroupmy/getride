@@ -182,6 +182,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
         { backgroundColor: Colors.gray[100], borderColor: selected ? Colors.accent : Colors.border },
       ]}
       testID={`service-area-row-${key}`}
+      accessibilityRole="button"
     >
       <View style={{ flex: 1 }}>
         <Text style={[styles.pickerRowText, { color: Colors.text }]} numberOfLines={1}>
@@ -249,6 +250,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
         },
       ]}
       testID={tid}
+      accessibilityRole="button"
     >
       {icon}
       <View style={{ flex: 1 }}>
@@ -295,7 +297,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
             <View key={`c-${c}`} style={[styles.chip, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent }]}>
               <Globe color={Colors.accent} size={11} />
               <Text style={[styles.chipText, { color: Colors.accent }]} numberOfLines={1}>{c}</Text>
-              <TouchableOpacity onPress={() => toggleCountry(c)} testID={`chip-remove-country-${c}`}>
+              <TouchableOpacity onPress={() => toggleCountry(c)} testID={`chip-remove-country-${c}`} accessibilityRole="button">
                 <X color={Colors.accent} size={12} />
               </TouchableOpacity>
             </View>
@@ -306,7 +308,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
               <View key={`s-${sk}`} style={[styles.chip, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
                 <MapPin color={Colors.textSecondary} size={11} />
                 <Text style={[styles.chipText, { color: Colors.text }]} numberOfLines={1}>{sn}</Text>
-                <TouchableOpacity onPress={() => toggleState(sk)} testID={`chip-remove-state-${sk}`}>
+                <TouchableOpacity onPress={() => toggleState(sk)} testID={`chip-remove-state-${sk}`} accessibilityRole="button">
                   <X color={Colors.textSecondary} size={12} />
                 </TouchableOpacity>
               </View>
@@ -319,7 +321,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
               <View key={`ci-${ck}`} style={[styles.chip, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
                 <Building2 color={Colors.textSecondary} size={11} />
                 <Text style={[styles.chipText, { color: Colors.text }]} numberOfLines={1}>{ci}</Text>
-                <TouchableOpacity onPress={() => toggleCity(ck)} testID={`chip-remove-city-${ck}`}>
+                <TouchableOpacity onPress={() => toggleCity(ck)} testID={`chip-remove-city-${ck}`} accessibilityRole="button">
                   <X color={Colors.textSecondary} size={12} />
                 </TouchableOpacity>
               </View>
@@ -335,7 +337,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
               <Text style={[styles.modalTitle, { color: Colors.text }]}>
                 {open === "country" ? "Select countries" : open === "state" ? "Select states" : "Select cities"}
               </Text>
-              <TouchableOpacity onPress={closeModal} style={[styles.modalClose, { backgroundColor: Colors.gray[100] }]} testID="service-area-close">
+              <TouchableOpacity onPress={closeModal} style={[styles.modalClose, { backgroundColor: Colors.gray[100] }]} testID="service-area-close" accessibilityRole="button">
                 <X color={Colors.text} size={18} />
               </TouchableOpacity>
             </View>
@@ -409,6 +411,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
               style={[styles.doneBtn, { backgroundColor: Colors.accent }]}
               activeOpacity={0.9}
               testID="service-area-done"
+              accessibilityRole="button"
             >
               <Text style={[styles.doneText, { color: Colors.onAccent }]}>Done</Text>
             </TouchableOpacity>

@@ -377,6 +377,7 @@ export default function AdminVehicleEditScreen() {
                   ]}
                   activeOpacity={0.85}
                   testID={`edit-status-${s.value}`}
+                  accessibilityRole="button"
                 >
                   <Text style={[styles.chipText, { color: selected ? Colors.accent : Colors.text }]}>
                     {s.label}
@@ -403,6 +404,7 @@ export default function AdminVehicleEditScreen() {
                   ]}
                   activeOpacity={0.85}
                   testID={`edit-permit-${p.value}`}
+                  accessibilityRole="button"
                 >
                   <ShieldCheck color={selected ? Colors.accent : Colors.textSecondary} size={14} />
                   <Text style={[styles.chipText, { color: selected ? Colors.accent : Colors.text }]}>
@@ -418,6 +420,7 @@ export default function AdminVehicleEditScreen() {
             style={[styles.toggleRow, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
             activeOpacity={0.85}
             testID="edit-vehicle-docs-ok"
+            accessibilityRole="button"
           >
             <View style={{ flex: 1 }}>
               <Text style={[styles.toggleTitle, { color: Colors.text }]}>Documents verified</Text>
@@ -443,6 +446,7 @@ export default function AdminVehicleEditScreen() {
             style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
             activeOpacity={0.9}
             testID="edit-vehicle-save"
+            accessibilityRole="button"
           >
             <Save color={Colors.onAccent} size={18} />
             <Text style={[styles.submitText, { color: Colors.onAccent }]}>Save changes</Text>

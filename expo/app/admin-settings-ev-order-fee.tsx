@@ -411,6 +411,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                 <TouchableOpacity
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -426,6 +427,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     }}
                     style={[styles.inputWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                     testID="ev-order-fee-field-country"
+                    accessibilityRole="button"
                   >
                     <Globe color={Colors.textSecondary} size={16} />
                     <Text
@@ -544,6 +546,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
               <TouchableOpacity
                 onPress={() => setCountryPickerOpen(false)}
                 style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={20} />
               </TouchableOpacity>
@@ -573,6 +576,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     onPress={() => selectCountry(name)}
                     style={[styles.countryRow, { borderBottomColor: Colors.border }]}
                     testID={`ev-order-fee-country-${name}`}
+                    accessibilityRole="button"
                   >
                     <Text style={[styles.countryName, { color: Colors.text }]}>{name}</Text>
                     {selected ? <Check color={Colors.accent} size={18} /> : null}

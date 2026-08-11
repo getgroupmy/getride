@@ -228,6 +228,7 @@ export default function AdminPartnerAddScreen() {
       style={[styles.userRow, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
       activeOpacity={0.85}
       testID={`select-user-${item.id}`}
+      accessibilityRole="button"
     >
       <View style={[styles.avatar, { backgroundColor: Colors.accent }]}>
         <Text style={[styles.avatarText, { color: Colors.secondary }]}>
@@ -301,6 +302,7 @@ export default function AdminPartnerAddScreen() {
                 style={[styles.addUserBtn, { borderColor: Colors.accent }]}
                 activeOpacity={0.85}
                 testID="add-new-user"
+                accessibilityRole="button"
               >
                 <UserPlus color={Colors.accent} size={18} />
                 <View style={{ flex: 1 }}>
@@ -373,6 +375,7 @@ export default function AdminPartnerAddScreen() {
                 onPress={() => setSelectedUser(null)}
                 style={[styles.iconBtnSm, { backgroundColor: Colors.background }]}
                 testID="change-user"
+                accessibilityRole="button"
               >
                 <X color={Colors.text} size={16} />
               </TouchableOpacity>
@@ -419,6 +422,7 @@ export default function AdminPartnerAddScreen() {
                     style={[styles.addBtn, { borderColor: Colors.accent }]}
                     activeOpacity={0.85}
                     testID="add-partner-add-vehicle"
+                    accessibilityRole="button"
                   >
                     <Plus color={Colors.accent} size={14} />
                     <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add new</Text>
@@ -444,6 +448,7 @@ export default function AdminPartnerAddScreen() {
                       onPress={() => setVehicleId("")}
                       style={[styles.iconBtnSm, { backgroundColor: Colors.background }]}
                       testID="clear-vehicle"
+                      accessibilityRole="button"
                     >
                       <X color={Colors.text} size={16} />
                     </TouchableOpacity>
@@ -478,6 +483,7 @@ export default function AdminPartnerAddScreen() {
                             style={[styles.vehicleCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                             activeOpacity={0.85}
                             testID={`select-vehicle-${v.id}`}
+                            accessibilityRole="button"
                           >
                             <View style={[styles.vehicleIcon, { backgroundColor: Colors.accent + "15" }]}>
                               <CarFront color={Colors.accent} size={18} />
@@ -528,6 +534,7 @@ export default function AdminPartnerAddScreen() {
               ]}
               activeOpacity={0.85}
               testID="auto-approve-toggle"
+              accessibilityRole="button"
             >
               <View style={{ flex: 1 }}>
                 <Text style={[styles.toggleTitle, { color: Colors.text }]}>Auto approve</Text>
@@ -553,6 +560,7 @@ export default function AdminPartnerAddScreen() {
               style={[styles.submitBtn, { backgroundColor: Colors.accent }]}
               testID="submit-driver"
               activeOpacity={0.9}
+              accessibilityRole="button"
             >
               <UserPlus color={Colors.onAccent} size={18} />
               <Text style={[styles.submitText, { color: Colors.onAccent }]}>
@@ -625,6 +633,7 @@ export default function AdminPartnerAddScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.gray[100], borderWidth: 1, borderColor: Colors.border, flex: 1, marginTop: 0 }]}
                 activeOpacity={0.9}
                 testID="open-partner-edit"
+                accessibilityRole="button"
               >
                 <Text style={[styles.submitText, { color: Colors.text }]}>Open partner</Text>
               </TouchableOpacity>
@@ -633,6 +642,7 @@ export default function AdminPartnerAddScreen() {
                 style={[styles.submitBtn, { backgroundColor: Colors.accent, flex: 1, marginTop: 0 }]}
                 activeOpacity={0.9}
                 testID="finish-add-partner"
+                accessibilityRole="button"
               >
                 <Check color={Colors.secondary} size={18} />
                 <Text style={[styles.submitText, { color: Colors.onAccent }]}>Done</Text>

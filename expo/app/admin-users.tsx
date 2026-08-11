@@ -114,6 +114,7 @@ export default function AdminUsersScreen() {
         onPress={() => handlePress(item)}
         testID={`user-row-${item.id}`}
         activeOpacity={0.85}
+        accessibilityRole="button"
       >
         <View style={[styles.rowIcon, { backgroundColor: color + "20" }]}>
           <Icon color={color} size={20} />

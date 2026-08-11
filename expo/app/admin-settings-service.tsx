@@ -237,6 +237,8 @@ export default function AdminSettingsServiceScreen() {
               },
             ]}
             hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move up"
           >
             <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -251,6 +253,8 @@ export default function AdminSettingsServiceScreen() {
               },
             ]}
             hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move down"
           >
             <ChevronDown color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -373,6 +377,7 @@ export default function AdminSettingsServiceScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="service-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add Service</Text>
@@ -399,6 +404,7 @@ export default function AdminSettingsServiceScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="service-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -442,6 +448,7 @@ export default function AdminSettingsServiceScreen() {
                             { backgroundColor: Colors.gray[100], borderWidth: 1, borderColor: Colors.border },
                           ]}
                           testID="service-icon-remove"
+                          accessibilityRole="button"
                         >
                           <Trash2 color={Colors.error} size={16} />
                           <Text style={[styles.uploadBtnText, { color: Colors.error }]}>Remove</Text>

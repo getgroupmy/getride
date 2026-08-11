@@ -74,6 +74,7 @@ export function AppAlertModal({
               { backgroundColor: colors.accent, opacity: pressed ? 0.85 : 1 },
             ]}
             testID="app-alert-ok"
+            accessibilityRole="button"
           >
             <Text style={styles.buttonText}>{okLabel}</Text>
           </Pressable>

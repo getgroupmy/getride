@@ -292,6 +292,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
             ]}
             testID={`gate-move-up-${entry.id}`}
             hitSlop={{ top: 4, bottom: 2, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move gate up"
           >
             <ChevronUp color={isFirst ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -307,6 +309,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
             ]}
             testID={`gate-move-down-${entry.id}`}
             hitSlop={{ top: 2, bottom: 4, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel="Move gate down"
           >
             <ChevronDownIcon color={isLast ? Colors.textSecondary : Colors.accent} size={16} />
           </TouchableOpacity>
@@ -446,6 +450,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               onPress={openAdd}
               style={[styles.cta, { backgroundColor: Colors.accent }]}
               testID="gates-empty-add"
+              accessibilityRole="button"
             >
               <Plus color={Colors.onAccent} size={16} />
               <Text style={[styles.ctaText, { color: Colors.onAccent }]}>Add gate</Text>
@@ -472,6 +477,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                   onPress={closeModal}
                   style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
                   testID="gates-modal-close"
+                  accessibilityRole="button"
                 >
                   <X color={Colors.text} size={20} />
                 </TouchableOpacity>
@@ -542,6 +548,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                   onPress={() => setMapOpen(true)}
                   style={[styles.pickBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}
                   testID="gate-pick-map"
+                  accessibilityRole="button"
                 >
                   <Crosshair color={Colors.accent} size={16} />
                   <Text style={[styles.pickText, { color: Colors.text }]}>
@@ -558,6 +565,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                       { backgroundColor: Colors.gray[100], borderColor: Colors.border, justifyContent: "space-between" },
                     ]}
                     testID="gate-field-priority"
+                    accessibilityRole="button"
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <ListOrdered color={Colors.accent} size={16} />
@@ -584,6 +592,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                                 selected && { backgroundColor: Colors.accent + "20" },
                               ]}
                               testID={`gate-priority-${n}`}
+                              accessibilityRole="button"
                             >
                               <Text style={[styles.dropdownText, { color: Colors.text, fontWeight: selected ? "800" : "500" }]}>
                                 {n}
@@ -618,6 +627,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                             },
                           ]}
                           testID={`gate-mode-${opt.id}`}
+                          accessibilityRole="button"
                         >
                           <View
                             style={[
@@ -779,6 +789,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               onPress={() => setMapOpen(false)}
               style={[styles.iconBtn, { backgroundColor: Colors.gray[100] }]}
               testID="gate-map-close"
+              accessibilityRole="button"
             >
               <X color={Colors.text} size={20} />
             </TouchableOpacity>
@@ -794,6 +805,8 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               onPress={() => setMapOpen(false)}
               style={[styles.iconBtn, { backgroundColor: Colors.accent }]}
               testID="gate-map-done"
+              accessibilityRole="button"
+              accessibilityLabel="Done"
             >
               <Save color={Colors.onAccent} size={18} />
             </TouchableOpacity>

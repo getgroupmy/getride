@@ -429,6 +429,7 @@ export default function PhoneAuthScreen() {
                   setCheckError(null);
                 }}
                 disabled={isSendingOtp}
+                accessibilityRole="button"
               >
                 <Text style={[styles.sheetSecondaryButtonText, { color: colors.textSecondary }]}>Use a different number</Text>
               </TouchableOpacity>
@@ -457,6 +458,7 @@ export default function PhoneAuthScreen() {
             <TouchableOpacity
               style={[styles.alertButton, { backgroundColor: colors.accent }]}
               onPress={() => setRegistrationBlocked(false)}
+              accessibilityRole="button"
             >
               <Text style={[styles.alertButtonText, { color: colors.secondary }]}>OK</Text>
             </TouchableOpacity>
