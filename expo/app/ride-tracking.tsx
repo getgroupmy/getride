@@ -41,6 +41,8 @@ import {
   AlertTriangle,
 } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { motionDuration, motionSpring, resolveMotion } from "@/utils/reducedMotion";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
@@ -217,6 +219,7 @@ export default function RideTrackingScreen() {
   // 0 = not yet rated. The stars used to render permanently full, so the
   // control gave no feedback that a tap had registered.
   const [rating, setRating] = useState<number>(0);
+  const reducedMotion = useReducedMotion();
   const [coinToast, setCoinToast] = useState<{
     earned: number;
     redeemedCoins: number;
@@ -236,12 +239,12 @@ export default function RideTrackingScreen() {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
-    Animated.spring(coinToastAnim, {
+    Animated.spring(coinToastAnim, motionSpring({
       toValue: 1,
       useNativeDriver: true,
       tension: 60,
       friction: 9,
-    }).start();
+    }, "transition", reducedMotion)).start();
     if (coinToastTimerRef.current) clearTimeout(coinToastTimerRef.current);
     coinToastTimerRef.current = setTimeout(() => {
       Animated.timing(coinToastAnim, {
@@ -253,7 +256,7 @@ export default function RideTrackingScreen() {
     return () => {
       if (coinToastTimerRef.current) clearTimeout(coinToastTimerRef.current);
     };
-  }, [coinToast, coinToastAnim]);
+  }, [coinToast, coinToastAnim, reducedMotion]);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -426,16 +429,24 @@ export default function RideTrackingScreen() {
   // Entrance + driver pulse
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 60, friction: 10 }),
+      Animated.spring(slideAnim, motionSpring({ toValue: 0, useNativeDriver: true, tension: 60, friction: 10 }, "transition", reducedMotion)),
       Animated.timing(cardOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
     ]).start();
-    Animated.loop(
+    // The ring around the driver marker is decorative — the marker is already
+    // where it is, pulsing or not.
+    if (!resolveMotion("decorative", reducedMotion).run) {
+      pulseAnim.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1, duration: 1600, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
       ])
-    ).start();
-  }, [slideAnim, cardOpacity, pulseAnim]);
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [slideAnim, cardOpacity, pulseAnim, reducedMotion]);
 
   // Fetch the route for the current leg (driver→pickup, then pickup→destination).
   useEffect(() => {
@@ -588,8 +599,8 @@ export default function RideTrackingScreen() {
     setCancelReason("");
     setCancelOtherText("");
     setShowCancel(true);
-    Animated.spring(cancelAnim, { toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }).start();
-  }, [cancelAnim]);
+    Animated.spring(cancelAnim, motionSpring({ toValue: 1, useNativeDriver: true, tension: 80, friction: 11 }, "transition", reducedMotion)).start();
+  }, [cancelAnim, reducedMotion]);
 
   const closeCancel = useCallback((cb?: () => void) => {
     Animated.timing(cancelAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
@@ -612,15 +623,15 @@ export default function RideTrackingScreen() {
       // Small delay so the first modal fully dismisses before the next opens (iOS).
       setTimeout(() => {
         setShowCancelConfirm(true);
-        Animated.spring(cancelConfirmAnim, {
+        Animated.spring(cancelConfirmAnim, motionSpring({
           toValue: 1,
           useNativeDriver: true,
           tension: 80,
           friction: 11,
-        }).start();
+        }, "transition", reducedMotion)).start();
       }, 250);
     });
-  }, [closeCancel, cancelReason, cancelOtherText, cancelConfirmAnim]);
+  }, [closeCancel, cancelReason, cancelOtherText, cancelConfirmAnim, reducedMotion]);
 
   const closeCancelConfirm = useCallback((cb?: () => void) => {
     Animated.timing(cancelConfirmAnim, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {

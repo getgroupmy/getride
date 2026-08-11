@@ -28,6 +28,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import MenuSideSheet from "@/components/MenuSideSheet";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { motionDuration, motionSpring, resolveMotion } from "@/utils/reducedMotion";
 import {
   resolveServiceBoxAction,
   serviceBoxBadge,
@@ -112,6 +114,7 @@ export default function HomeScreen() {
   const [mapKey, setMapKey] = useState<number>(0);
   const [serviceComingSoonVisible, setServiceComingSoonVisible] = useState<boolean>(false);
   const [comingSoonService, setComingSoonService] = useState<string | null>(null);
+  const reducedMotion = useReducedMotion();
   const prevColorScheme = useRef<string>(colorScheme);
   const [currentAddress, setCurrentAddress] = useState<{
     name: string;
@@ -880,13 +883,13 @@ export default function HomeScreen() {
   }, [location]);
 
   useEffect(() => {
-    Animated.spring(slideAnim, {
+    Animated.spring(slideAnim, motionSpring({
       toValue: 0,
       useNativeDriver: true,
       tension: 50,
       friction: 8,
-    }).start();
-  }, [slideAnim]);
+    }, "transition", reducedMotion)).start();
+  }, [slideAnim, reducedMotion]);
 
   const resetAnimations = React.useCallback(() => {
     console.log("Resetting index screen animations");
@@ -1054,23 +1057,31 @@ export default function HomeScreen() {
   }, [colorScheme]);
 
   useEffect(() => {
-    if (location) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
+    if (!location) return;
+    // Decorative: the ring pulses forever and says nothing the static marker
+    // does not. Under Reduce Motion it simply does not run, and the value rests
+    // at 0 so the ring sits at its base size.
+    if (!resolveMotion("decorative", reducedMotion).run) {
+      pulseAnim.setValue(0);
+      return;
     }
-  }, [location, pulseAnim]);
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [location, pulseAnim, reducedMotion]);
 
   useEffect(() => {
     if (isLoadingAddress) {
@@ -1106,30 +1117,32 @@ export default function HomeScreen() {
       Animated.parallel([
         Animated.timing(menuButtonAnim, {
           toValue: -150,
-          duration: 200,
+          duration: motionDuration(200, "transition", reducedMotion),
           useNativeDriver: true,
         }),
         Animated.timing(bottomSheetAnim, {
           toValue: BOTTOM_SHEET_MIN_HEIGHT + 56,
-          duration: 200,
+          duration: motionDuration(200, "transition", reducedMotion),
           useNativeDriver: true,
         }),
-        Animated.spring(pinInnerScaleAnim, {
+        Animated.spring(pinInnerScaleAnim, motionSpring({
           toValue: 2,
           useNativeDriver: true,
           tension: 100,
           friction: 8,
-        }),
+        }, "transition", reducedMotion)),
         Animated.timing(pinShadowOpacity, {
           toValue: 1,
-          duration: 200,
+          duration: motionDuration(200, "transition", reducedMotion),
           useNativeDriver: true,
         }),
         Animated.timing(pinDropAnim, {
           toValue: -25,
-          duration: 200,
+          duration: motionDuration(200, "transition", reducedMotion),
           useNativeDriver: true,
         }),
+        // A cross-fade is not the motion Reduce Motion is about, so opacity
+        // keeps its duration.
         Animated.timing(addressBarOpacity, {
           toValue: 0,
           duration: 150,
@@ -1170,30 +1183,30 @@ export default function HomeScreen() {
       console.log("Map stopped moving - showing menu button and sliding bottom sheet up");
       pinShadowOpacity.setValue(0);
       Animated.parallel([
-        Animated.spring(menuButtonAnim, {
+        Animated.spring(menuButtonAnim, motionSpring({
           toValue: 0,
           useNativeDriver: true,
           tension: 80,
           friction: 10,
-        }),
-        Animated.spring(bottomSheetAnim, {
+        }, "transition", reducedMotion)),
+        Animated.spring(bottomSheetAnim, motionSpring({
           toValue: 0,
           useNativeDriver: true,
           tension: 80,
           friction: 10,
-        }),
-        Animated.spring(pinInnerScaleAnim, {
+        }, "transition", reducedMotion)),
+        Animated.spring(pinInnerScaleAnim, motionSpring({
           toValue: 1,
           useNativeDriver: true,
           tension: 80,
           friction: 10,
-        }),
-        Animated.spring(pinDropAnim, {
+        }, "transition", reducedMotion)),
+        Animated.spring(pinDropAnim, motionSpring({
           toValue: 0,
           useNativeDriver: true,
           tension: 200,
           friction: 8,
-        }),
+        }, "transition", reducedMotion)),
         Animated.timing(addressBarOpacity, {
           toValue: 1,
           duration: 200,

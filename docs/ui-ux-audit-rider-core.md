@@ -243,6 +243,63 @@ drew white on `#FF3B30` — **3.55:1**, under AA for 11pt text. It is now
 `#D32F26` (4.99:1), and SOON uses a neutral slate rather than borrowing the red
 that means "new".
 
+## Reduced motion (fifth pass)
+
+`AccessibilityInfo` appeared **nowhere** in the app: 24 files run `Animated`
+sequences, ~140 calls in the rider core alone, and none of them asked whether
+the device wants reduced motion.
+
+### Reduce Motion is not "no motion"
+
+WCAG 2.3.3 and both platform HIGs ask for *non-essential* motion to go — large
+travel, parallax, spin, zoom — while motion that carries information stays. A
+spinner replaced by a static glyph tells the user nothing is happening. So
+`utils/reducedMotion.ts` (pure + tested) makes each animation declare what it is
+for, and that decides what happens:
+
+| kind | example | when reduced |
+|---|---|---|
+| `decorative` | pulsing map ring, radar rings, ringing-call pulse | does not run |
+| `transition` | sheet slide, pin drop, drawer, card entry/exit | snaps to its end state |
+| `essential` | spinner, progress bar, countdown | unchanged |
+
+A `transition` still runs — a transition that did not would leave the sheet
+closed forever — it just arrives without the travel. `motionSpring` also drops
+the caller's `tension`/`friction` before setting `speed`/`bounciness`, because
+`Animated` throws if given both, and clamps overshoot, since the bounce is the
+part that causes trouble.
+
+`hooks/useReducedMotion.ts` reads the OS setting and subscribes to
+`reduceMotionChanged`, with the value also cached at module scope
+(`isMotionReduced()`) for animations started from a gesture handler rather than
+from render. A host that does not implement `AccessibilityInfo` reads as "no
+preference" rather than crashing.
+
+### What this changed
+
+Decorative loops now stop: the pulsing ring on the user's location marker and
+on the driver marker, the three staggered radar rings on the searching screen,
+and the pulsing avatar on the incoming-support-call popup — which is mounted
+app-wide, so it followed a rider onto every screen.
+
+Transitions now snap: the bottom-sheet entrance and its map-drag hide/show, the
+pin drop, the menu drawer (open, close and the gesture fling), the coin toast,
+the two cancel modals, and the driver-offer cards — whose exit slid a card off
+screen **while rotating it 15°**, the largest single piece of motion in the app.
+
+### What deliberately did not change
+
+- **Spinners and progress bars** (`loadingSpinnerAnim`, `promoLoadingSpinnerAnim`,
+  `searchProgressAnim`, `map-picker`'s loader). These say "still working";
+  freezing them says the app has hung.
+- **`acceptProgress` on the driver-offer cards.** It looks like an animation but
+  it is a **10-second countdown** the rider has to accept an offer within, and
+  its completion handler dismisses the card. Zeroing its duration would have
+  expired every offer the instant it arrived — the clearest argument against
+  treating "reduced motion" as a blanket duration cut.
+- **Opacity cross-fades**, which are not the kind of motion the setting is about.
+- **Gesture-driven values** that follow the finger.
+
 ## Known, not fixed
 
 Deliberately out of scope for a targeted pass — each would be its own change:
@@ -255,9 +312,10 @@ Deliberately out of scope for a targeted pass — each would be its own change:
    stable ids and rewriting the reorder logic. Left as its own change.
 2. **`hitSlop` coverage app-wide.** 140 files use `TouchableOpacity`; 25 use
    `hitSlop`. The partner and admin surfaces were not touched by this pass.
-3. **Reduced motion is not honoured anywhere.** The app runs `Animated`
-   sequences (pin drop, bottom sheets, coin toast) without checking
-   `AccessibilityInfo.isReduceMotionEnabled()`.
+3. **Reduced motion outside the rider core.** `ride-running`,
+   `partner-ehailing` and `map-picker` still run un-gated `Animated.loop`s. The
+   primitive is in place (`utils/reducedMotion.ts` + `hooks/useReducedMotion.ts`);
+   applying it to the partner surface is its own pass.
 4. **Dynamic Type.** No screen was verified at the largest system text size;
    `allowFontScaling` is left at its default everywhere except the meter console.
 

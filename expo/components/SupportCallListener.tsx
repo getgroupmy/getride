@@ -11,6 +11,8 @@ import {
 import { useRouter } from "expo-router";
 import { Phone, PhoneOff, UserRound } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { resolveMotion } from "@/utils/reducedMotion";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/utils/supabase";
 import { updateCallStatus, type SupportCall } from "@/utils/supportStore";
@@ -25,6 +27,7 @@ export default function SupportCallListener() {
   const Colors = useColors();
   const { authState } = useAuth();
   const userId = authState.userId ?? null;
+  const reducedMotion = useReducedMotion();
   const [incoming, setIncoming] = useState<SupportCall | null>(null);
   const pulse = useRef(new Animated.Value(1)).current;
 
@@ -71,7 +74,11 @@ export default function SupportCallListener() {
   }, [userId]);
 
   useEffect(() => {
-    if (incoming) {
+    // Decorative: the avatar pulses while a call rings. The popup, the caller's
+    // name and the ringtone all already say a call is incoming, and this
+    // component is mounted app-wide, so the pulse would follow a rider onto
+    // every screen.
+    if (incoming && resolveMotion("decorative", reducedMotion).run) {
       const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(pulse, { toValue: 1.12, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -81,8 +88,9 @@ export default function SupportCallListener() {
       loop.start();
       return () => loop.stop();
     }
+    pulse.setValue(1);
     return undefined;
-  }, [incoming, pulse]);
+  }, [incoming, pulse, reducedMotion]);
 
   const accept = async () => {
     if (!incoming) return;

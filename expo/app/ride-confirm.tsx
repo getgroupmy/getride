@@ -53,6 +53,8 @@ import { useLocation } from "@/contexts/LocationContext";
 import { useRegionBidding } from "@/utils/regionBidding";
 import { Star } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { motionDuration, motionSpring, resolveMotion } from "@/utils/reducedMotion";
 import { useDisplaySettings } from "@/contexts/DisplaySettingsContext";
 import { useIpAccess } from "@/contexts/IpAccessContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -230,6 +232,7 @@ export default function RideConfirmScreen() {
   
   const insets = useSafeAreaInsets();
   const colors = useColors();
+  const reducedMotion = useReducedMotion();
   const [expiredAlertVisible, setExpiredAlertVisible] = React.useState<boolean>(false);
   const { settings: displaySettings } = useDisplaySettings();
   const { authState } = useAuth();
@@ -808,7 +811,7 @@ export default function RideConfirmScreen() {
                 if (!offerAnimations[offer.id]) return;
                 Animated.timing(offerAnimations[offer.id].cardSlide, {
                     toValue: 1,
-                    duration: 300,
+                    duration: motionDuration(300, "transition", reducedMotion),
                     useNativeDriver: true,
                   }).start(() => {
                     setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
@@ -828,12 +831,12 @@ export default function RideConfirmScreen() {
     chimePlayer.seekTo(0);
     chimePlayer.play();
 
-    Animated.spring(offerAnimations[offer.id].slideIn, {
+    Animated.spring(offerAnimations[offer.id].slideIn, motionSpring({
       toValue: 0,
       useNativeDriver: true,
       tension: 80,
       friction: 12,
-    }).start();
+    }, "transition", reducedMotion)).start();
 
     Animated.timing(offerAnimations[offer.id].acceptProgress, {
       toValue: 1,
@@ -843,7 +846,7 @@ export default function RideConfirmScreen() {
       if (!offerAnimations[offer.id]) return;
       Animated.timing(offerAnimations[offer.id].cardSlide, {
           toValue: 1,
-          duration: 300,
+          duration: motionDuration(300, "transition", reducedMotion),
           useNativeDriver: true,
         }).start(() => {
           setDriverOffers(prev => prev.filter(o => o.id !== offer.id));
@@ -1320,7 +1323,9 @@ export default function RideConfirmScreen() {
   }, [routeCoords, pickupLat, pickupLng, destinations]);
 
   useEffect(() => {
-    if (isSearchingDriver) {
+    // Decorative: the three radar rings loop for as long as the search runs and
+    // carry nothing the countdown and progress bar do not already say.
+    if (isSearchingDriver && resolveMotion("decorative", reducedMotion).run) {
       const createPulseAnimation = (anim: Animated.Value, delay: number) => {
         return Animated.loop(
           Animated.sequence([
@@ -1356,7 +1361,11 @@ export default function RideConfirmScreen() {
         pulse3Anim.setValue(0);
       };
     }
-  }, [isSearchingDriver]);
+    pulse1Anim.setValue(0);
+    pulse2Anim.setValue(0);
+    pulse3Anim.setValue(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearchingDriver, reducedMotion]);
 
   useEffect(() => {
     if (isSearchingDriver && mapRef.current && Platform.OS !== "web") {

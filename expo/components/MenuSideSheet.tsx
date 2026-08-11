@@ -42,6 +42,8 @@ import {
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/useColors";
+import { isMotionReduced, useReducedMotion } from "@/hooks/useReducedMotion";
+import { motionDuration, motionSpring } from "@/utils/reducedMotion";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePushNotifications } from "@/contexts/PushNotificationContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase";
@@ -105,6 +107,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
   const router = useRouter();
   const { width } = useWindowDimensions();
   const Colors = useColors();
+  const reducedMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { logout, authState, profile, refreshProfile } = useAuth();
   const { unregister } = usePushNotifications();
@@ -233,7 +236,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
         Animated.parallel([
           Animated.timing(dragOffset, {
             toValue: -menuWidthRef.current,
-            duration,
+            duration: motionDuration(duration, "transition", isMotionReduced()),
             useNativeDriver: true,
           }),
           Animated.timing(overlayOpacity, {
@@ -249,12 +252,12 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
         });
       } else {
         Animated.parallel([
-          Animated.spring(dragOffset, {
+          Animated.spring(dragOffset, motionSpring({
             toValue: 0,
             useNativeDriver: true,
             tension: 100,
             friction: 10,
-          }),
+          }, "transition", isMotionReduced())),
           Animated.timing(overlayOpacity, {
             toValue: 1,
             duration: 150,
@@ -282,12 +285,12 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
       overlayOpacity.setValue(0);
       dragOffset.setValue(0);
       Animated.parallel([
-        Animated.spring(slideAnim, {
+        Animated.spring(slideAnim, motionSpring({
           toValue: 0,
           useNativeDriver: true,
           tension: 65,
           friction: 11,
-        }),
+        }, "transition", reducedMotion)),
         Animated.timing(overlayOpacity, {
           toValue: 1,
           duration: 280,
@@ -301,7 +304,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: -currentMenuWidth,
-          duration: 150,
+          duration: motionDuration(150, "transition", reducedMotion),
           useNativeDriver: true,
         }),
         Animated.timing(overlayOpacity, {
@@ -315,7 +318,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
         dragOffset.setValue(0);
       });
     }
-  }, [visible, slideAnim, overlayOpacity, dragOffset]);
+  }, [visible, slideAnim, overlayOpacity, dragOffset, reducedMotion]);
 
   const handleLogout = async () => {
     console.log("Logging out...");
