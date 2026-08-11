@@ -374,6 +374,7 @@ export default function AdminSettingsFareAIScreen() {
                 trackColor={{ true: Colors.accent, false: Colors.border }}
                 thumbColor="#fff"
                 testID="fare-ai-service-toggle"
+                accessibilityLabel="AI fare service"
               />
             </View>
 
@@ -448,6 +449,7 @@ export default function AdminSettingsFareAIScreen() {
                   { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] },
                 ]}
                 testID="fare-ai-retry-value"
+                accessibilityLabel="Retry failed keys after"
               />
               <View style={styles.unitRow}>
                 {RETRY_UNITS.map((u) => {
@@ -503,6 +505,7 @@ export default function AdminSettingsFareAIScreen() {
                 { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100], marginBottom: 14 },
               ]}
               testID="fare-ai-model"
+              accessibilityLabel="Model"
             />
 
             {activeKeys.length === 0 ? (
@@ -530,6 +533,7 @@ export default function AdminSettingsFareAIScreen() {
                         editable={editable}
                         style={[styles.keyLabelInput, { color: Colors.text }]}
                         testID={`fare-ai-key-label-${idx}`}
+                        accessibilityLabel="Key label"
                       />
                       <Switch
                         value={k.enabled}
@@ -537,6 +541,7 @@ export default function AdminSettingsFareAIScreen() {
                         disabled={!editable}
                         trackColor={{ true: Colors.accent, false: Colors.border }}
                         thumbColor="#fff"
+                        accessibilityLabel="Key enabled"
                       />
                       {editable ? (
                         <TouchableOpacity
@@ -565,6 +570,7 @@ export default function AdminSettingsFareAIScreen() {
                         { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.background },
                       ]}
                       testID={`fare-ai-key-value-${idx}`}
+                      accessibilityLabel="API key"
                     />
 
                     {/* Stats */}

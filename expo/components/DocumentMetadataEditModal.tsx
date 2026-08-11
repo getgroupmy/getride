@@ -128,6 +128,7 @@ export default function DocumentMetadataEditModal({
               placeholderTextColor={Colors.textSecondary}
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
               testID="doc-edit-name"
+              accessibilityLabel="Edit document"
             />
           </Field>
 
@@ -140,6 +141,7 @@ export default function DocumentMetadataEditModal({
               autoCapitalize="characters"
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
               testID="doc-edit-number"
+              accessibilityLabel="Optional"
             />
           </Field>
 
@@ -151,6 +153,7 @@ export default function DocumentMetadataEditModal({
               placeholderTextColor={Colors.textSecondary}
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
               testID="doc-edit-provider"
+              accessibilityLabel="e.g. Allianz, JPJ"
             />
           </Field>
 
@@ -162,6 +165,7 @@ export default function DocumentMetadataEditModal({
               placeholderTextColor={Colors.textSecondary}
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
               testID="doc-edit-country"
+              accessibilityLabel="e.g. Malaysia"
             />
           </Field>
 
@@ -189,7 +193,7 @@ export default function DocumentMetadataEditModal({
               <Text style={[styles.rowLabel, { color: Colors.text }]}>Disabled / PWD</Text>
               <Text style={[styles.rowHint, { color: Colors.textSecondary }]}>Mark this document as a PWD record.</Text>
             </View>
-            <Switch value={isPwd} onValueChange={setIsPwd} testID="doc-edit-pwd" />
+            <Switch value={isPwd} onValueChange={setIsPwd} testID="doc-edit-pwd" accessibilityLabel="Disabled / PWD" />
           </View>
         </ScrollView>
 
@@ -278,6 +282,7 @@ function DateField({ label, value, onChange, show, setShow, Colors, testID }: Da
             { flex: 1, backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border },
           ]}
           testID={`${testID}-input`}
+          accessibilityLabel="YYYY-MM-DD"
         />
         <TouchableOpacity
           onPress={() => setShow(true)}

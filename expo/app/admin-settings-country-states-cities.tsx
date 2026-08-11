@@ -1340,6 +1340,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
           autoCorrect={false}
           autoCapitalize="none"
           testID="search"
+          accessibilityLabel="Search"
         />
         {query ? (
           <TouchableOpacity onPress={() => setQuery("")} accessibilityRole="button">
@@ -1471,6 +1472,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                         style={styles.input}
                         autoCapitalize="characters"
                         autoCorrect={false}
+                        accessibilityLabel="Currency name"
                       />
                     </View>
                     <View style={styles.col}>
@@ -1482,6 +1484,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={styles.input}
                         autoCorrect={false}
+                        accessibilityLabel="Currency symbol"
                       />
                     </View>
                   </View>
@@ -1495,6 +1498,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={styles.input}
                         keyboardType="phone-pad"
+                        accessibilityLabel="Emergency number"
                       />
                     </View>
                     <View style={styles.col}>
@@ -1506,6 +1510,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={styles.input}
                         keyboardType="phone-pad"
+                        accessibilityLabel="Calling code"
                       />
                     </View>
                   </View>
@@ -1520,6 +1525,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                         style={styles.input}
                         autoCapitalize="none"
                         autoCorrect={false}
+                        accessibilityLabel="Language code"
                       />
                     </View>
                     <View style={styles.col}>
@@ -1532,6 +1538,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                         style={styles.input}
                         autoCapitalize="characters"
                         autoCorrect={false}
+                        accessibilityLabel="Date format"
                       />
                     </View>
                   </View>
@@ -1550,6 +1557,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                       style={[styles.input, { flex: 1 }]}
                       autoCapitalize="none"
                       autoCorrect={false}
+                      accessibilityLabel="Time zone"
                     />
                     {formCountry && countryByName.get(formCountry)?.timezones?.length ? (
                       <TouchableOpacity
@@ -1605,6 +1613,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                             }
                             trackColor={{ true: Colors.accent, false: Colors.gray[300] }}
                             thumbColor={Colors.secondary}
+                            accessibilityLabel={s.name}
                           />
                         </View>
                       );
@@ -1628,6 +1637,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                   trackColor={{ true: Colors.accent, false: Colors.gray[300] }}
                   thumbColor={Colors.secondary}
                   testID="bidding-toggle"
+                  accessibilityLabel="Bidding (OfferMe)"
                 />
               </View>
 
@@ -1641,6 +1651,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={styles.input}
                     keyboardType="numbers-and-punctuation"
+                    accessibilityLabel="Latitude"
                   />
                 </View>
                 <View style={styles.col}>
@@ -1652,6 +1663,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={styles.input}
                     keyboardType="numbers-and-punctuation"
+                    accessibilityLabel="Longitude"
                   />
                 </View>
               </View>
@@ -1906,6 +1918,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   style={styles.input}
                   keyboardType="numbers-and-punctuation"
+                  accessibilityLabel="North"
                 />
               </View>
               <View style={styles.col}>
@@ -1917,6 +1930,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   style={styles.input}
                   keyboardType="numbers-and-punctuation"
+                  accessibilityLabel="South"
                 />
               </View>
               <View style={styles.col}>
@@ -1928,6 +1942,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   style={styles.input}
                   keyboardType="numbers-and-punctuation"
+                  accessibilityLabel="East"
                 />
               </View>
               <View style={styles.col}>
@@ -1939,6 +1954,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   style={styles.input}
                   keyboardType="numbers-and-punctuation"
+                  accessibilityLabel="West"
                 />
               </View>
             </View>
@@ -2085,6 +2101,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 style={styles.searchInput}
                 autoCorrect={false}
                 autoCapitalize="none"
+                accessibilityLabel="Select time zone"
               />
             </View>
             <FlatList
@@ -2155,6 +2172,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
                 style={styles.searchInput}
                 autoCorrect={false}
                 autoCapitalize="none"
+                accessibilityLabel="Search"
               />
             </View>
             <FlatList
@@ -2283,6 +2301,7 @@ function FormField({
           placeholderTextColor={Colors.textSecondary}
           style={[styles.input, { flex: 1 }]}
           autoCorrect={false}
+          accessibilityLabel={label}
         />
         {onPick ? (
           <TouchableOpacity onPress={onPick} style={styles.pickBtn} accessibilityRole="button" accessibilityLabel="Choose">

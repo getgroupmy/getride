@@ -798,6 +798,7 @@ export default function Obd2ReaderScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 maxLength={60}
                 testID="obd2-name-input"
+                accessibilityLabel="NAME"
               />
 
               {draftKind === "wifi" ? (
@@ -820,6 +821,7 @@ export default function Obd2ReaderScreen() {
                       autoCorrect={false}
                       keyboardType="numbers-and-punctuation"
                       testID="obd2-host-input"
+                      accessibilityLabel="ADAPTER ADDRESS"
                     />
                     <TextInput
                       style={[
@@ -833,6 +835,7 @@ export default function Obd2ReaderScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       keyboardType="number-pad"
                       testID="obd2-port-input"
+                      accessibilityLabel="Adapter port"
                     />
                   </View>
                   <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
@@ -856,6 +859,7 @@ export default function Obd2ReaderScreen() {
                     autoCorrect={false}
                     maxLength={60}
                     testID="obd2-accessory-input"
+                    accessibilityLabel="PAIRED NAME (OPTIONAL)"
                   />
                   <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
                     Pair the adapter in iOS Settings → Bluetooth first. Leave the name blank

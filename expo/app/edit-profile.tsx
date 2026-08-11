@@ -1163,6 +1163,7 @@ export default function EditProfileScreen() {
                 placeholder="Your full name"
                 placeholderTextColor={Colors.textSecondary}
                 testID="edit-profile-name"
+                accessibilityLabel="Name"
               />
             </View>
 
@@ -1179,6 +1180,7 @@ export default function EditProfileScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   testID="edit-profile-email"
+                  accessibilityLabel="Email"
                 />
               </View>
             </View>
@@ -1390,6 +1392,7 @@ export default function EditProfileScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="country-picker-search"
+              accessibilityLabel="Search country…"
             />
           </View>
           <FlatList

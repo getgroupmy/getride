@@ -263,6 +263,7 @@ export default function AdminVehicleEditScreen() {
           autoCapitalize={opts?.autoCapitalize ?? "words"}
           keyboardType={opts?.keyboardType ?? "default"}
           testID={`edit-vehicle-${key}`}
+          accessibilityLabel={label}
         />
       </View>
     </View>

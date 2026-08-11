@@ -454,6 +454,7 @@ function DocumentReviewModal({
               { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border },
             ]}
             testID="docs-modal-notes"
+            accessibilityLabel="Reviewer notes"
           />
         </ScrollView>
 

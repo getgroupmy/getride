@@ -310,6 +310,7 @@ export default function AdminSettingsIpAccessScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="ip-access-search"
+              accessibilityLabel="Search IP rules"
             />
           </View>
 
@@ -466,6 +467,7 @@ export default function AdminSettingsIpAccessScreen() {
                   autoCorrect={false}
                   keyboardType="numbers-and-punctuation"
                   testID="ip-access-form-ip"
+                  accessibilityLabel="IP address"
                 />
                 {myIp && ipInput.trim() !== myIp ? (
                   <TouchableOpacity onPress={() => setIpInput(myIp)} hitSlop={8} testID="ip-access-use-mine" accessibilityRole="button">
@@ -483,6 +485,7 @@ export default function AdminSettingsIpAccessScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.input, { color: Colors.text }]}
                   testID="ip-access-form-label"
+                  accessibilityLabel="Label (optional)"
                 />
               </View>
 

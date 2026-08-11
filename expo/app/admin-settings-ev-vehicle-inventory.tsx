@@ -468,6 +468,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="inv-search"
+          accessibilityLabel="Search make, model or VIN"
         />
       </View>
 
@@ -602,6 +603,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                     autoCapitalize="characters"
                     style={[styles.input, { color: Colors.text }]}
                     testID="inv-vin"
+                    accessibilityLabel="VIN Number *"
                   />
                 </View>
 

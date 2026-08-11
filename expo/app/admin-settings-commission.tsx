@@ -371,6 +371,7 @@ export default function AdminSettingsCommissionScreen() {
         autoCapitalize="words"
         autoCorrect={false}
         testID={`commission-field-${label.toLowerCase()}`}
+        accessibilityLabel={label}
       />
       {focusField === field && suggestions.length > 0 && (
         <View style={[styles.suggestBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
@@ -433,6 +434,7 @@ export default function AdminSettingsCommissionScreen() {
         trackColor={{ false: Colors.gray[300], true: Colors.accent }}
         thumbColor="#fff"
         testID={`commission-active-${rule.id}`}
+        accessibilityLabel={`Active${rule.country ? ` for ${rule.country}` : ""}`}
       />
       <TouchableOpacity onPress={() => openEdit(rule)} style={styles.ruleBtn} testID={`commission-edit-${rule.id}`} accessibilityRole="button" accessibilityLabel="Edit commission">
         <Pencil color={Colors.textSecondary} size={16} />
@@ -520,6 +522,7 @@ export default function AdminSettingsCommissionScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   autoFocus
                   testID="commission-master-input"
+                  accessibilityLabel="Master commission rate"
                 />
                 <Text style={[styles.masterPct, { color: Colors.textSecondary }]}>%</Text>
                 <TouchableOpacity
@@ -630,6 +633,7 @@ export default function AdminSettingsCommissionScreen() {
                     autoCapitalize="words"
                     autoCorrect={false}
                     testID="commission-field-suburb"
+                    accessibilityLabel="Suburb"
                   />
                 </View>
               )}
@@ -672,6 +676,7 @@ export default function AdminSettingsCommissionScreen() {
                           autoCapitalize="none"
                           autoCorrect={false}
                           testID="commission-user-search"
+                          accessibilityLabel="Search name, phone or ID…"
                         />
                         {userSearching && <ActivityIndicator size="small" color={Colors.accent} />}
                       </View>
@@ -719,6 +724,7 @@ export default function AdminSettingsCommissionScreen() {
                   placeholder="e.g. 12.5"
                   placeholderTextColor={Colors.textSecondary}
                   testID="commission-field-rate"
+                  accessibilityLabel="Commission rate (%)"
                 />
               </View>
 
@@ -730,6 +736,7 @@ export default function AdminSettingsCommissionScreen() {
                   trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                   thumbColor="#fff"
                   testID="commission-field-active"
+                  accessibilityLabel="Active"
                 />
               </View>
             </ScrollView>

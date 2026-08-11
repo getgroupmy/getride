@@ -1043,6 +1043,7 @@ export default function VehicleInformationScreen() {
                     autoCorrect={false}
                     maxLength={24}
                     testID="vehicle-info-raw-input"
+                    accessibilityLabel="COMMAND"
                   />
                   {rawCommandCheck && !rawCommandCheck.ok ? (
                     <Text style={styles.writeBlocked}>{rawCommandCheck.error}</Text>
@@ -1225,6 +1226,7 @@ export default function VehicleInformationScreen() {
                 keyboardType="decimal-pad"
                 maxLength={6}
                 testID="vehicle-info-tank-input"
+                accessibilityLabel="TANK CAPACITY (LITRES)"
               />
 
               <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>
@@ -1239,6 +1241,7 @@ export default function VehicleInformationScreen() {
                 keyboardType="decimal-pad"
                 maxLength={5}
                 testID="vehicle-info-consumption-input"
+                accessibilityLabel="AVERAGE CONSUMPTION (L/100 KM)"
               />
 
               {fuelProfile.measuredL100 !== null ? (

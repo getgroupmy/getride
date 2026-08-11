@@ -225,6 +225,7 @@ export default function ChangePinScreen() {
                   secureTextEntry
                   editable={!done}
                   testID={`change-pin-digit-${index}`}
+                  accessibilityLabel={`PIN digit ${index + 1}`}
                 />
                 <View
                   style={[

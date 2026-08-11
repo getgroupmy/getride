@@ -1106,6 +1106,7 @@ export default function AdminSettingsAirportAreasScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="airport-search"
+          accessibilityLabel="Search airports"
         />
       </View>
 
@@ -1202,6 +1203,7 @@ export default function AdminSettingsAirportAreasScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text, marginLeft: 8 }]}
                       testID="airport-place-search"
+                      accessibilityLabel="Search & Assign Place"
                     />
                     {placeSearching ? <ActivityIndicator size="small" color={Colors.accent} /> : null}
                     {!placeSearching && placeQuery.length > 0 ? (
@@ -1297,6 +1299,7 @@ export default function AdminSettingsAirportAreasScreen() {
                         style={[styles.input, { color: Colors.text }]}
                         autoCapitalize={f.key === "code" ? "characters" : "words"}
                         testID={`airport-field-${f.key}`}
+                        accessibilityLabel={f.label}
                       />
                     </View>
                   </View>
@@ -1531,6 +1534,7 @@ export default function AdminSettingsAirportAreasScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.bboxInput, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
                       keyboardType="numbers-and-punctuation"
+                      accessibilityLabel={c.label}
                     />
                   </View>
                 ))}

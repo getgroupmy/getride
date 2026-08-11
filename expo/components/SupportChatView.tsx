@@ -613,6 +613,7 @@ export default function SupportChatView({
               placeholderTextColor={Colors.textSecondary}
               style={[styles.input, { backgroundColor: Colors.gray[100], color: Colors.text }]}
               multiline
+              accessibilityLabel="Message"
             />
             {text.trim().length > 0 ? (
               <TouchableOpacity

@@ -306,6 +306,7 @@ export default function VehicleMakeModelPicker({ value, onChange, testID }: Prop
                 style={[styles.searchInput, { color: Colors.text }]}
                 autoCapitalize="none"
                 testID="vmm-picker-search"
+                accessibilityLabel="Search"
               />
             </View>
 

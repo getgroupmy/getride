@@ -3531,6 +3531,7 @@ export default function MeterDigitalScreen() {
                         allowFontScaling={false}
                         maxLength={7}
                         testID="meter-digital-details-charges"
+                        accessibilityLabel="RM"
                       />
                     </View>
                     <TouchableOpacity

@@ -257,6 +257,7 @@ export default function MeterPrinterScreen() {
               autoCorrect={false}
               keyboardType="numbers-and-punctuation"
               testID="printer-host-input"
+              accessibilityLabel="PRINTER ADDRESS"
             />
             <TextInput
               style={[styles.input, styles.portInput, { color: Colors.text, borderColor: Colors.border }]}
@@ -266,6 +267,7 @@ export default function MeterPrinterScreen() {
               placeholderTextColor={Colors.textSecondary}
               keyboardType="number-pad"
               testID="printer-port-input"
+              accessibilityLabel="Printer port"
             />
           </View>
           <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
@@ -289,6 +291,7 @@ export default function MeterPrinterScreen() {
             autoCorrect={false}
             maxLength={60}
             testID="printer-ble-name-input"
+            accessibilityLabel="BLUETOOTH NAME"
           />
           <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
             A Bluetooth LE printer never shows in the phone&apos;s Bluetooth settings — scan for it
@@ -371,6 +374,7 @@ export default function MeterPrinterScreen() {
           autoCorrect={false}
           maxLength={60}
           testID="printer-classic-name-input"
+          accessibilityLabel="PAIRED NAME OR ADDRESS (OPTIONAL)"
         />
         <Text style={[styles.helpText, { color: Colors.textSecondary }]}>
           Pair the printer in the system Bluetooth settings first. Leave this blank to use the
@@ -659,6 +663,7 @@ export default function MeterPrinterScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 maxLength={60}
                 testID="printer-name-input"
+                accessibilityLabel="NAME"
               />
 
               {renderTransportForm()}

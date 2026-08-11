@@ -567,6 +567,7 @@ function Field({ label, icon, value, placeholder, onChangeText, keyboardType, au
           autoCapitalize={autoCapitalize ?? "sentences"}
           secureTextEntry={secureTextEntry}
           autoCorrect={false}
+          accessibilityLabel={placeholder}
         />
         {trailing}
       </View>

@@ -304,6 +304,7 @@ export default function AdminSettingsRorkChatScreen() {
             returnKeyType="send"
             editable={!loading}
             multiline={false}
+            accessibilityLabel="Message"
           />
           <TouchableOpacity
             onPress={sendMessage}

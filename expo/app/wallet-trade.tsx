@@ -646,6 +646,7 @@ export default function WalletTradeScreen() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     testID="trade-recipient-input"
+                    accessibilityLabel="Receiving instead? Show my QR code"
                   />
                   <TouchableOpacity
                     style={styles.scanBtn}
@@ -672,6 +673,7 @@ export default function WalletTradeScreen() {
                   placeholder="0"
                   placeholderTextColor={wc.placeholder}
                   testID="trade-amount-input"
+                  accessibilityLabel="Amount"
                 />
                 <Text style={styles.amountUnit}>GC</Text>
               </View>

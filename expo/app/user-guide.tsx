@@ -646,6 +646,7 @@ export default function UserGuideScreen() {
             placeholderTextColor={Colors.textSecondary}
             style={[styles.searchInput, { color: Colors.text }]}
             testID="user-guide-search"
+            accessibilityLabel="Search the guide"
           />
         </View>
       </SafeAreaView>

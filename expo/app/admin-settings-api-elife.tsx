@@ -332,6 +332,7 @@ export default function AdminSettingsApiElifeScreen() {
                 trackColor={{ true: Colors.accent, false: Colors.border }}
                 thumbColor="#fff"
                 testID="elife-enabled-switch"
+                accessibilityLabel="Integration enabled"
               />
             </View>
           </View>
@@ -389,6 +390,7 @@ export default function AdminSettingsApiElifeScreen() {
               autoCorrect={false}
               style={[styles.fieldInput, { color: Colors.text }]}
               testID="elife-base-url"
+              accessibilityLabel="API base URL"
             />
           </View>
 
@@ -404,6 +406,7 @@ export default function AdminSettingsApiElifeScreen() {
               autoCorrect={false}
               style={[styles.fieldInput, { color: Colors.text }]}
               testID="elife-token-url"
+              accessibilityLabel="OAuth token URL"
             />
           </View>
 
@@ -419,6 +422,7 @@ export default function AdminSettingsApiElifeScreen() {
               autoCorrect={false}
               style={[styles.fieldInput, { color: Colors.text }]}
               testID="elife-client-id"
+              accessibilityLabel="Client ID"
             />
           </View>
 
@@ -436,6 +440,7 @@ export default function AdminSettingsApiElifeScreen() {
                 secureTextEntry={!revealSecret}
                 style={[styles.fieldInput, { color: Colors.text, flex: 1 }]}
                 testID="elife-client-secret"
+                accessibilityLabel="Client Secret"
               />
               <TouchableOpacity onPress={() => setRevealSecret((v) => !v)} hitSlop={8} style={styles.secretToggle} accessibilityRole="button" accessibilityLabel="Show or hide the secret">
                 {revealSecret ? (
@@ -459,6 +464,7 @@ export default function AdminSettingsApiElifeScreen() {
               autoCorrect={false}
               style={[styles.fieldInput, { color: Colors.text }]}
               testID="elife-webhook-url"
+              accessibilityLabel="Webhook URL (optional)"
             />
           </View>
 

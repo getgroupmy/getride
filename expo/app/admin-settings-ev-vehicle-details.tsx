@@ -442,6 +442,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholder="Colour name"
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="Colour name"
                 />
               </View>
               <View style={[styles.inlineInput, { backgroundColor: Colors.background, borderColor: Colors.border, flex: 1 }]}>
@@ -452,6 +453,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   autoCapitalize="none"
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="#hex"
                 />
               </View>
             </View>
@@ -460,6 +462,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 <Switch
                   value={c.enabled}
                   onValueChange={(v) => updateColor(key, c.id, { enabled: v })}
+                  accessibilityLabel="Enabled"
                 />
                 <Text style={[styles.toggleLabel, { color: Colors.textSecondary }]}>
                   {c.enabled ? "Enabled" : "Disabled"}
@@ -518,6 +521,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholder={placeholder}
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel={placeholder}
                 />
               </View>
               <View style={[styles.inlineInput, { backgroundColor: Colors.background, borderColor: Colors.border, flex: 1 }]}>
@@ -528,6 +532,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   keyboardType="decimal-pad"
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="Price"
                 />
               </View>
             </View>
@@ -536,6 +541,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 <Switch
                   value={c.enabled}
                   onValueChange={(v) => updatePriced(key, c.id, { enabled: v })}
+                  accessibilityLabel="Enabled"
                 />
                 <Text style={[styles.toggleLabel, { color: Colors.textSecondary }]}>
                   {c.enabled ? "Enabled" : "Disabled"}
@@ -648,6 +654,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholder="Tax name (e.g. SST)"
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="Tax name (e.g. SST)"
                 />
               </View>
               <View style={[styles.inlineInput, { backgroundColor: Colors.background, borderColor: Colors.border, flex: 1 }]}>
@@ -658,6 +665,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   keyboardType="decimal-pad"
                   style={[styles.input, { color: Colors.text }]}
+                  accessibilityLabel="Amount"
                 />
               </View>
             </View>
@@ -673,6 +681,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 placeholder="Description"
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.input, { color: Colors.text }]}
+                accessibilityLabel="Description"
               />
             </View>
             <View style={styles.itemFooter}>
@@ -680,6 +689,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 <Switch
                   value={c.enabled}
                   onValueChange={(v) => updateTax(c.id, { enabled: v })}
+                  accessibilityLabel="Enabled"
                 />
                 <Text style={[styles.toggleLabel, { color: Colors.textSecondary }]}>
                   {c.enabled ? "Enabled" : "Disabled"}
@@ -745,6 +755,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="ev-search"
+          accessibilityLabel="Search make or model"
         />
       </View>
 
@@ -853,6 +864,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-make"
+                        accessibilityLabel="Make *"
                       />
                     </View>
                   </View>
@@ -871,6 +883,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-model"
+                        accessibilityLabel="Model *"
                       />
                     </View>
                   </View>
@@ -892,6 +905,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                     keyboardType="decimal-pad"
                     style={[styles.input, { color: Colors.text }]}
                     testID="ev-price"
+                    accessibilityLabel="Price (RM)"
                   />
                 </View>
 

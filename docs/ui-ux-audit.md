@@ -480,6 +480,48 @@ Left alone deliberately: five `TouchableOpacity`/`Pressable` wrappers with
 for stopping a tap on a sheet from reaching the backdrop behind it. They are
 structure, not controls, and converting them to `View` would let taps through.
 
+## Switches and text inputs (ninth pass)
+
+Answering "are all pages updated?" honestly turned up two element types the
+earlier passes never swept, because they were only ever fixed in files worked by
+hand: **73 of 78 `Switch` components and 235 of 246 `TextInput`s were unlabelled.**
+
+Both matter for the same reason. A `Switch` announces its on/off *value* but
+never what it controls, so a screen reader user hears "on" with no idea of what.
+And React Native does not associate a nearby `<Text>` with an input the way
+HTML's `<label for>` does, so even a clearly captioned field announces as
+unnamed — the skill's *Form Control Labels* rule, severity Critical.
+
+The caption is already in the JSX, so labels were **derived, not invented**:
+where the caption is a literal it becomes a string, and where it is an
+expression (`{item.label}`) that expression is reused, which is safe because it
+is in scope at exactly that point. Three guards keep it honest:
+
+- **Prose is rejected.** Empty-state copy and helper sentences sit in the same
+  row and were being picked up as the nearest text — "No vehicles linked to this
+  service." was about to become a switch label.
+- **Distance matters.** A field label sits immediately above its input; a
+  caption 8+ lines away is usually a screen title. `admin-orders` was about to
+  label its search box "EV Orders". Those fall back to the placeholder instead.
+- **Scope is checked.** A caption can sit inside a `.map((t) => …)` that has
+  already closed by the time the control is reached; reusing `t` there does not
+  compile, and one such case did not.
+
+Whatever could not be read confidently was skipped and then labelled by hand —
+49 of them, mostly search boxes and shared field components whose caption is a
+prop.
+
+| | before this session | now |
+|---|---|---|
+| `Switch` labelled | 5 of 78 | **78 of 78** |
+| `TextInput` labelled | 11 of 246 | **244 of 244** |
+| Touchables carrying a role | 0% | **99%** |
+| Files with any accessibility attribute | 8 of 211 | **142 of 211** |
+| `accessibilityLabel` / `accessibilityRole` | 2 / 0 | **928 / 1,364** |
+
+The 69 files with no accessibility attribute contain no interactive element at
+all — layouts, type modules and presentational components.
+
 ## Known, not fixed
 
 Deliberately out of scope for a targeted pass — each would be its own change:

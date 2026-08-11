@@ -197,6 +197,7 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="partner-search"
+          accessibilityLabel="Search name, phone, plate or ID"
         />
       </View>
 

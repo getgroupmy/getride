@@ -312,6 +312,7 @@ export default function AuthDiagnosticsScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             style={[styles.input, { color: colors.text }]}
+            accessibilityLabel="Phone number"
           />
         </View>
 

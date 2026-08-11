@@ -441,6 +441,7 @@ export default function AdminTraceFraudScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="search"
+          accessibilityLabel="Low"
         />
       </View>
 

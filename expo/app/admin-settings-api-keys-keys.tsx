@@ -483,6 +483,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
               placeholderTextColor={Colors.textSecondary}
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               testID="key-add-label"
+              accessibilityLabel="Label (optional)"
             />
             <Text style={[styles.modalLabel, { color: Colors.textSecondary }]}>Key value</Text>
             <TextInput
@@ -495,6 +496,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
               secureTextEntry
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               testID="key-add-value"
+              accessibilityLabel="Key value"
             />
             <View style={styles.modalActions}>
               <TouchableOpacity

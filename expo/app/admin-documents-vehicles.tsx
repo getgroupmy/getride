@@ -450,6 +450,7 @@ function VehicleDocReviewModal({
               { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border },
             ]}
             testID="docs-veh-modal-notes"
+            accessibilityLabel="Reviewer notes"
           />
         </ScrollView>
 

@@ -270,6 +270,7 @@ export default function AdminAppSettingsScreen() {
             },
           ]}
           testID={testID}
+          accessibilityLabel="#RRGGBB"
         />
       </View>
     );
@@ -525,6 +526,7 @@ export default function AdminAppSettingsScreen() {
                     },
                   ]}
                   testID="start-lat"
+                  accessibilityLabel="Latitude"
                 />
               </View>
               <View style={{ flex: 1 }}>
@@ -546,6 +548,7 @@ export default function AdminAppSettingsScreen() {
                     },
                   ]}
                   testID="start-lng"
+                  accessibilityLabel="Longitude"
                 />
               </View>
             </View>

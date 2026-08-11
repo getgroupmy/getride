@@ -214,6 +214,7 @@ export default function AdminSplashScreen() {
               },
             ]}
             testID="splash-bg-hex"
+            accessibilityLabel="Background Color"
           />
           <View style={styles.presets}>
             {PRESET_COLORS.map((c) => (

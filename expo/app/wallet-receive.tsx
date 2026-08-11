@@ -515,6 +515,7 @@ export default function WalletReceiveScreen() {
                 keyboardType="number-pad"
                 autoFocus
                 testID="wallet-receive-amount-input"
+                accessibilityLabel="RM"
               />
             </View>
             <TouchableOpacity

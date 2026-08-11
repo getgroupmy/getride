@@ -1054,6 +1054,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="vmm-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -1152,6 +1153,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           placeholderTextColor={Colors.textSecondary}
                           style={[styles.input, { color: Colors.text }]}
                           testID="vmm-cat-parent-vt"
+                          accessibilityLabel="e.g. Car"
                         />
                       </View>
                       {vehicleTypes.length > 0 && (
@@ -1214,6 +1216,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           placeholderTextColor={Colors.textSecondary}
                           style={[styles.input, { color: Colors.text }]}
                           testID="vmm-cat-parent-et"
+                          accessibilityLabel="e.g. Petrol"
                         />
                       </View>
                       {allEnergyTypesForVT.length > 0 && (
@@ -1284,6 +1287,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-cat-name"
                         autoFocus={categoryLevel === 0 || !!categoryRenameFrom}
+                        accessibilityLabel="Category name"
                       />
                     </View>
                     {categoryNameSuggestions.length > 0 && (
@@ -1449,6 +1453,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-model-vtype"
+                        accessibilityLabel="Car"
                       />
                     </View>
                     {vehicleTypes.length > 0 && (
@@ -1513,6 +1518,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-model-etype"
+                        accessibilityLabel="Petrol"
                       />
                     </View>
                     {modelEnergySuggestions.length > 0 && (
@@ -1575,6 +1581,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-model-make"
+                        accessibilityLabel="Proton"
                       />
                     </View>
                     {modelMakeSuggestions.length > 0 && (
@@ -1637,6 +1644,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text }]}
                         testID="vmm-model-name"
+                        accessibilityLabel="WIRA"
                       />
                     </View>
                     {modelNameSuggestions.length > 0 && (
@@ -1728,6 +1736,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           maxLength={4}
                           style={[styles.input, { color: Colors.text }]}
                           testID="vmm-model-yearFrom"
+                          accessibilityLabel="Year from"
                         />
                       </View>
                       <Text style={[styles.yearDash, { color: Colors.textSecondary }]}>
@@ -1758,6 +1767,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           editable={!modelForm.ongoing}
                           style={[styles.input, { color: Colors.text }]}
                           testID="vmm-model-yearTo"
+                          accessibilityLabel="Year to"
                         />
                       </View>
                     </View>
@@ -1785,6 +1795,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                           setModelForm((p) => ({ ...p, ongoing: v, yearTo: v ? "" : p.yearTo }))
                         }
                         testID="vmm-model-ongoing"
+                        accessibilityLabel="Ongoing (~)"
                       />
                     </View>
                     <Text
@@ -1822,6 +1833,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         setModelForm((p) => ({ ...p, status: v }))
                       }
                       testID="vmm-model-status"
+                      accessibilityLabel="Status"
                     />
                   </View>
 

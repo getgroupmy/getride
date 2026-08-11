@@ -121,6 +121,7 @@ export default function SafetyScreen() {
             trackColor={{ false: Colors.gray[200], true: Colors.success }}
             thumbColor={Platform.OS === "android" ? "#FFFFFF" : undefined}
             testID="safety-alert-contacts"
+            accessibilityLabel="Alert Emergency Contacts"
           />
         </View>
 
@@ -172,6 +173,7 @@ export default function SafetyScreen() {
             trackColor={{ false: Colors.gray[200], true: Colors.success }}
             thumbColor={Platform.OS === "android" ? "#FFFFFF" : undefined}
             testID="safety-voice-protection"
+            accessibilityLabel="Enable VoiceProtection"
           />
         </View>
       </ScrollView>

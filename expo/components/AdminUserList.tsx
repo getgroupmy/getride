@@ -178,6 +178,7 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="user-search"
+          accessibilityLabel="Search name, phone, email or ID"
         />
       </View>
 

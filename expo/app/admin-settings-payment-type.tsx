@@ -188,6 +188,7 @@ export default function AdminSettingsPaymentTypeScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="payment-type-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -296,6 +297,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="payment-type-field-name"
+                      accessibilityLabel="Name *"
                     />
                   </View>
                 </View>
@@ -316,6 +318,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                       autoCapitalize="characters"
                       style={[styles.input, { color: Colors.text }]}
                       testID="payment-type-field-code"
+                      accessibilityLabel="Code"
                     />
                   </View>
                 </View>
@@ -341,6 +344,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                     value={form.enabled}
                     onValueChange={(v) => setForm((p) => ({ ...p, enabled: v }))}
                     testID="payment-type-field-enabled"
+                    accessibilityLabel="Enabled"
                   />
                 </View>
               </ScrollView>

@@ -212,6 +212,7 @@ export default function OTPVerifyScreen() {
                   maxLength={1}
                   selectTextOnFocus
                   editable={!isVerifying}
+                  accessibilityLabel="Enter the code"
                 />
                 <View
                   style={[

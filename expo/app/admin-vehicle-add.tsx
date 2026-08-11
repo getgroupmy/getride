@@ -179,6 +179,7 @@ export default function AdminVehicleAddScreen() {
           autoCapitalize={opts?.autoCapitalize ?? "words"}
           keyboardType={opts?.keyboardType ?? "default"}
           testID={`add-vehicle-${key}`}
+          accessibilityLabel={label}
         />
       </View>
     </View>

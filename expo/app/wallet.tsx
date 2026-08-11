@@ -1654,6 +1654,7 @@ export default function WalletScreen() {
                 placeholder="0.00"
                 placeholderTextColor={Colors.textSecondary}
                 testID="wallet-amount-input"
+                accessibilityLabel="RM"
               />
             </View>
 

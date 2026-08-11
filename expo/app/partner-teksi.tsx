@@ -2372,6 +2372,7 @@ export default function DriverTeksiScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.searchInput, { color: Colors.text }]}
                 autoFocus
+                accessibilityLabel="Search a place"
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery("")} accessibilityRole="button">

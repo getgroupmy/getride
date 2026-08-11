@@ -602,6 +602,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
             value={active}
             onValueChange={() => toggleActive(entry)}
             testID={`required-documents-toggle-${entry.id}`}
+            accessibilityLabel={`Active: ${name}`}
           />
         </View>
 
@@ -693,6 +694,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="required-documents-search"
+          accessibilityLabel="Search documents"
         />
       </View>
 
@@ -758,6 +760,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={[styles.input, { color: Colors.text }]}
                     testID="required-documents-field-name"
+                    accessibilityLabel="Document Name *"
                   />
                 </View>
 
@@ -778,6 +781,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     style={[styles.input, { color: Colors.text, height: 80, textAlignVertical: "top" }]}
                     multiline
                     testID="required-documents-field-description"
+                    accessibilityLabel="Short description"
                   />
                 </View>
 
@@ -1065,6 +1069,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                         placeholderTextColor={Colors.textSecondary}
                         style={[styles.input, { color: Colors.text, height: 40 }]}
                         testID="required-documents-region-search"
+                        accessibilityLabel="Search countries / states"
                       />
                     </View>
 
@@ -1402,6 +1407,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                           setForm((p) => ({ ...p, [key]: nv }))
                         }
                         testID={`required-documents-field-${key}`}
+                        accessibilityLabel={title}
                       />
                     </View>
                   );
@@ -1449,6 +1455,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     value={form.isTaxiPermit}
                     onValueChange={(v) => setForm((p) => ({ ...p, isTaxiPermit: v }))}
                     testID="required-documents-field-isTaxiPermit"
+                    accessibilityLabel="Taxi Driver Permit display"
                   />
                 </View>
 
@@ -1470,6 +1477,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     value={form.required}
                     onValueChange={(v) => setForm((p) => ({ ...p, required: v }))}
                     testID="required-documents-field-required"
+                    accessibilityLabel="Default Required"
                   />
                 </View>
 
@@ -1491,6 +1499,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="required-documents-field-active"
+                    accessibilityLabel="Status"
                   />
                 </View>
               </ScrollView>

@@ -537,6 +537,7 @@ export default function AdminSettingsVehicleServicesScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="vehicle-service-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -913,6 +914,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="vehicle-service-field-name"
+                      accessibilityLabel="Express"
                     />
                   </View>
                 </View>
@@ -938,6 +940,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                       numberOfLines={4}
                       textAlignVertical="top"
                       testID="vehicle-service-field-description"
+                      accessibilityLabel="Brief description of this service"
                     />
                   </View>
                 </View>
@@ -960,6 +963,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="vehicle-service-field-short-description"
+                      accessibilityLabel="One-liner shown in lists"
                     />
                   </View>
                 </View>
@@ -1089,6 +1093,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID={`vehicle-service-field-${nf.key}`}
+                        accessibilityLabel={nf.label}
                       />
                       {!!nf.suffix && (
                         <Text style={[styles.suffix, { color: Colors.textSecondary }]}>
@@ -1118,6 +1123,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                     value={Boolean(form.status)}
                     onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}
                     testID="vehicle-service-field-status"
+                    accessibilityLabel="Status"
                   />
                 </View>
               </ScrollView>

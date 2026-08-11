@@ -539,6 +539,7 @@ export default function AdminSettingsPartnerTypeScreen() {
             value={enabled}
             onValueChange={() => toggleEnabled(entry)}
             testID={`partner-type-toggle-${entry.id}`}
+            accessibilityLabel={name}
           />
         </View>
 
@@ -650,7 +651,7 @@ export default function AdminSettingsPartnerTypeScreen() {
           <Text style={[styles.nodeName, { color: Colors.text }]} numberOfLines={1}>
             {node.name}
           </Text>
-          <Switch value={node.enabled} onValueChange={() => toggleAtPath(path)} />
+          <Switch value={node.enabled} onValueChange={() => toggleAtPath(path)} accessibilityLabel={node.name} />
           <TouchableOpacity
             onPress={() => renameAtPath(path, node.name)}
             style={[styles.nodeBtn, { backgroundColor: Colors.background }]}
@@ -731,6 +732,7 @@ export default function AdminSettingsPartnerTypeScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="partner-type-search"
+          accessibilityLabel="Search partner types or sub-services"
         />
       </View>
 
@@ -801,6 +803,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={[styles.input, { color: Colors.text }]}
                     testID="partner-type-field-name"
+                    accessibilityLabel="Name *"
                   />
                 </View>
 
@@ -828,6 +831,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     multiline
                     maxLength={140}
                     testID="partner-type-field-short-info"
+                    accessibilityLabel="Shown as subtitle in the Select your service popup"
                   />
                 </View>
                 <Text style={[styles.helper, { color: Colors.textSecondary, marginTop: 4 }]}>
@@ -998,6 +1002,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     value={form.enabled}
                     onValueChange={(v) => setForm((p) => ({ ...p, enabled: v }))}
                     testID="partner-type-field-enabled"
+                    accessibilityLabel="Enabled"
                   />
                 </View>
 
@@ -1019,6 +1024,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     value={form.vehicleRequired}
                     onValueChange={(v) => setForm((p) => ({ ...p, vehicleRequired: v }))}
                     testID="partner-type-field-vehicle-required"
+                    accessibilityLabel="Vehicle required"
                   />
                 </View>
 
@@ -1040,6 +1046,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     value={form.subServicesEnabled}
                     onValueChange={(v) => setForm((p) => ({ ...p, subServicesEnabled: v }))}
                     testID="partner-type-field-sub-enabled"
+                    accessibilityLabel="Sub-services"
                   />
                 </View>
 
@@ -1130,6 +1137,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                       style={[styles.input, { color: Colors.text }]}
                       autoFocus
                       testID="partner-type-rename-input"
+                      accessibilityLabel="Sub-service name"
                     />
                   </View>
                   <View style={styles.renameActions}>

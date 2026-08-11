@@ -407,6 +407,7 @@ export default function AdminPartnerEditScreen() {
                       style={[styles.input, { color: Colors.text }]}
                       autoCapitalize="none"
                       testID="edit-vehicle-search"
+                      accessibilityLabel="Search by plate, make, model or owner"
                     />
                   </View>
                   {filteredVehicles.length === 0 ? (

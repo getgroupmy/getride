@@ -225,6 +225,7 @@ export default function AdminSettingsApiKeysScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="api-keys-search"
+              accessibilityLabel="Search providers"
             />
           </View>
 
@@ -318,6 +319,7 @@ export default function AdminSettingsApiKeysScreen() {
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               autoFocus
               testID="provider-add-name"
+              accessibilityLabel="Provider name"
             />
             <View style={styles.modalActions}>
               <TouchableOpacity

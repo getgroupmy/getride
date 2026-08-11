@@ -368,6 +368,7 @@ export default function ChangeNumberScreen() {
                   maxLength={15}
                   caretHidden={true}
                   autoFocus={false}
+                  accessibilityLabel="New phone number"
                 />
                 {isFocused && (
                   <View style={styles.cursorContainer}>
@@ -461,6 +462,7 @@ export default function ChangeNumberScreen() {
                   placeholder="Search country or code"
                   placeholderTextColor={Colors.textSecondary}
                   autoCapitalize="none"
+                  accessibilityLabel="Search country or code"
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity

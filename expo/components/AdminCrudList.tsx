@@ -427,6 +427,7 @@ export default function AdminCrudList({
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID={`${testID ?? "crud"}-search`}
+          accessibilityLabel="Read-only access"
         />
       </View>
 
@@ -493,6 +494,7 @@ export default function AdminCrudList({
                           value={Boolean(form[f.key])}
                           onValueChange={(v) => setForm((p) => ({ ...p, [f.key]: v }))}
                           testID={`${testID ?? "crud"}-field-${f.key}`}
+                          accessibilityLabel={f.label}
                         />
                       </View>
                     );
@@ -517,6 +519,7 @@ export default function AdminCrudList({
                           style={[styles.input, { color: Colors.text }]}
                           keyboardType={f.type === "number" ? "decimal-pad" : "default"}
                           testID={`${testID ?? "crud"}-field-${f.key}`}
+                          accessibilityLabel={f.label}
                         />
                       </View>
                     </View>

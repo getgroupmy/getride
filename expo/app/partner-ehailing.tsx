@@ -2260,6 +2260,7 @@ export default function DriverEhailingScreen() {
                 returnKeyType="search"
                 autoCorrect={false}
                 testID="dest-search-input"
+                accessibilityLabel="Search a place or address"
               />
               {searchLoading ? (
                 <ActivityIndicator size="small" color={Colors.accent} />

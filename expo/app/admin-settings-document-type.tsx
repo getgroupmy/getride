@@ -235,6 +235,7 @@ export default function AdminSettingsDocumentTypeScreen() {
             value={enabled}
             onValueChange={() => toggleEnabled(entry)}
             testID={`document-type-toggle-${entry.id}`}
+            accessibilityLabel={name}
           />
         </View>
 
@@ -312,6 +313,7 @@ export default function AdminSettingsDocumentTypeScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="document-type-search"
+          accessibilityLabel="Search document types"
         />
       </View>
 
@@ -382,6 +384,7 @@ export default function AdminSettingsDocumentTypeScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={[styles.input, { color: Colors.text }]}
                     testID="document-type-field-name"
+                    accessibilityLabel="Name *"
                   />
                 </View>
 
@@ -402,6 +405,7 @@ export default function AdminSettingsDocumentTypeScreen() {
                     style={[styles.input, { color: Colors.text, height: 80, textAlignVertical: "top" }]}
                     multiline
                     testID="document-type-field-description"
+                    accessibilityLabel="Short description"
                   />
                 </View>
 
@@ -423,6 +427,7 @@ export default function AdminSettingsDocumentTypeScreen() {
                     value={form.enabled}
                     onValueChange={(v) => setForm((p) => ({ ...p, enabled: v }))}
                     testID="document-type-field-enabled"
+                    accessibilityLabel="Enabled"
                   />
                 </View>
               </ScrollView>

@@ -491,6 +491,7 @@ export default function AdminDocumentsUsersScreen() {
                   { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border },
                 ]}
                 testID="docs-users-modal-notes"
+                accessibilityLabel="Reviewer notes"
               />
             </ScrollView>
 
@@ -574,7 +575,7 @@ export default function AdminDocumentsUsersScreen() {
                 <Text style={[styles.switchLabel, { color: Colors.text }]}>Documents OK</Text>
                 <Text style={[styles.switchHint, { color: Colors.textSecondary }]}>Marks the user as having submitted required docs.</Text>
               </View>
-              <Switch value={editDocsOk} onValueChange={setEditDocsOk} testID="docs-users-edit-docs-ok" />
+              <Switch value={editDocsOk} onValueChange={setEditDocsOk} testID="docs-users-edit-docs-ok" accessibilityLabel="Documents OK" />
             </View>
           </ScrollView>
           <View style={[styles.modalFooter, { borderTopColor: Colors.border, backgroundColor: Colors.background }]}>
@@ -633,6 +634,7 @@ function EditField({ label, value, onChange, testID, keyboardType, autoCapitaliz
         placeholderTextColor={Colors.textSecondary}
         style={[styles.editInput, { backgroundColor: Colors.gray[100], color: Colors.text, borderColor: Colors.border }]}
         testID={testID}
+        accessibilityLabel={label}
       />
     </View>
   );

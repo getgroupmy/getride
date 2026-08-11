@@ -404,6 +404,7 @@ export default function AdminSettingsPushNotificationScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="push-notification-field-title"
+                      accessibilityLabel="Title *"
                     />
                   </View>
                 </View>
@@ -425,6 +426,7 @@ export default function AdminSettingsPushNotificationScreen() {
                       style={[styles.input, styles.inputMultiline, { color: Colors.text }]}
                       multiline
                       testID="push-notification-field-body"
+                      accessibilityLabel="Message *"
                     />
                   </View>
                 </View>

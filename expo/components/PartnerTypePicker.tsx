@@ -150,6 +150,7 @@ export default function PartnerTypePicker({
                   style={[styles.searchInput, { color: Colors.text }]}
                   autoCapitalize="none"
                   testID={testID ? `${testID}-search` : undefined}
+                  accessibilityLabel="Search partner types"
                 />
               </View>
 

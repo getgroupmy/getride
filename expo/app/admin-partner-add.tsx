@@ -294,6 +294,7 @@ export default function AdminPartnerAddScreen() {
                   style={[styles.input, { color: Colors.text }]}
                   autoCapitalize="none"
                   testID="user-search"
+                  accessibilityLabel="Search users by name, phone, email…"
                 />
               </View>
 
@@ -465,6 +466,7 @@ export default function AdminPartnerAddScreen() {
                         style={[styles.input, { color: Colors.text }]}
                         autoCapitalize="none"
                         testID="vehicle-search"
+                        accessibilityLabel="Search by plate, make, model or owner"
                       />
                     </View>
                     {filteredVehicles.length === 0 ? (

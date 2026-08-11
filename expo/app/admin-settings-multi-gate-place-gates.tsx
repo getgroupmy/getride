@@ -499,6 +499,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="gate-field-name"
+                      accessibilityLabel="Gate Name *"
                     />
                   </View>
                 </View>
@@ -520,6 +521,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="gate-field-lat"
+                        accessibilityLabel="Latitude *"
                       />
                     </View>
                   </View>
@@ -539,6 +541,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="gate-field-lon"
+                        accessibilityLabel="Longitude *"
                       />
                     </View>
                   </View>
@@ -675,6 +678,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text, marginLeft: 8 }]}
                         testID="gate-field-pickup-surcharge"
+                        accessibilityLabel="Pickup Surcharge"
                       />
                     </View>
                     <Text style={[styles.helperText, { color: Colors.textSecondary }]}>
@@ -701,6 +705,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text, marginLeft: 8 }]}
                         testID="gate-field-drop-surcharge"
+                        accessibilityLabel="Drop Surcharge"
                       />
                     </View>
                     <Text style={[styles.helperText, { color: Colors.textSecondary }]}>
@@ -730,6 +735,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                     trackColor={{ false: Colors.border, true: Colors.accent }}
                     thumbColor={Platform.OS === "android" ? Colors.secondary : undefined}
                     testID="gate-field-active"
+                    accessibilityLabel="Status"
                   />
                 </View>
               </ScrollView>

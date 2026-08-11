@@ -532,6 +532,7 @@ export default function AdminSettingsDisplayScreen() {
                   trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                   thumbColor="#fff"
                   testID={`display-switch-${item.key}`}
+                  accessibilityLabel={item.label}
                 />
               </View>
             );
@@ -560,6 +561,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-connected-popup"
+            accessibilityLabel="Show 'Connected' popup"
           />
         </View>
         <View
@@ -581,6 +583,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-connection-failed-popup"
+            accessibilityLabel="Show 'Not Connected' popup"
           />
         </View>
 
@@ -723,6 +726,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-discountBar"
+            accessibilityLabel="Show discount bar"
           />
         </View>
 
@@ -745,6 +749,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-discountBarInFront"
+            accessibilityLabel="Discount bar in front"
           />
         </View>
 
@@ -893,6 +898,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-service-enabled"
+            accessibilityLabel="Service available"
           />
         </View>
 
@@ -915,6 +921,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-registration"
+            accessibilityLabel="Turn off Registration"
           />
         </View>
 
@@ -940,6 +947,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-user-mock"
+            accessibilityLabel="Turn off Mockup (User)"
           />
         </View>
 
@@ -962,6 +970,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-partner-mock"
+            accessibilityLabel="Turn off Mockup (Partner)"
           />
         </View>
 
@@ -987,6 +996,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-new-badge"
+            accessibilityLabel="Show 'NEW' badge"
           />
         </View>
 
@@ -1152,6 +1162,7 @@ export default function AdminSettingsDisplayScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="display-switch-vehicle-markers"
+            accessibilityLabel="On-map vehicle icons"
           />
         </View>
         <TouchableOpacity
@@ -1246,6 +1257,7 @@ export default function AdminSettingsDisplayScreen() {
               trackColor={{ false: Colors.gray[300], true: Colors.accent }}
               thumbColor="#fff"
               testID="display-switch-showAiTollBooths"
+              accessibilityLabel="Est. Toll Booth Count"
             />
           </View>
           <View
@@ -1267,6 +1279,7 @@ export default function AdminSettingsDisplayScreen() {
               trackColor={{ false: Colors.gray[300], true: Colors.accent }}
               thumbColor="#fff"
               testID="display-switch-showAiTollCharges"
+              accessibilityLabel="Est. Toll Charges"
             />
           </View>
         </View>
@@ -1440,6 +1453,7 @@ export default function AdminSettingsDisplayScreen() {
                               trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                               thumbColor="#fff"
                               testID={`display-sidemenu-toggle-${menu}-profile`}
+                              accessibilityLabel="Profile header at the top of the sheet"
                             />
                           </View>
                         </View>
@@ -1578,6 +1592,7 @@ export default function AdminSettingsDisplayScreen() {
                               trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                               thumbColor="#fff"
                               testID={`display-sidemenu-toggle-${menu}-${o.id}`}
+                              accessibilityLabel={`Show ${label}`}
                             />
                           </View>
                         </View>
@@ -1654,6 +1669,7 @@ export default function AdminSettingsDisplayScreen() {
                               trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                               thumbColor="#fff"
                               testID={`display-sidemenu-toggle-${menu}-footer-mode`}
+                              accessibilityLabel="Coming Soon"
                             />
                           </View>
                         </View>
@@ -1689,6 +1705,7 @@ export default function AdminSettingsDisplayScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={[styles.textInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
                     testID="display-sidemenu-rename-input"
+                    accessibilityLabel="Label"
                   />
                   <Text style={[styles.fieldLabel, { color: Colors.textSecondary, marginBottom: 6, marginTop: 12 }]}>
                     Linked page
@@ -1852,6 +1869,7 @@ export default function AdminSettingsDisplayScreen() {
                     placeholderTextColor={Colors.textSecondary}
                     style={[styles.textInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
                     testID="display-sidemenu-add-input"
+                    accessibilityLabel="Label"
                   />
                   <TouchableOpacity
                     style={[styles.fieldBtn, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginTop: 12 }]}
@@ -2103,6 +2121,7 @@ export default function AdminSettingsDisplayScreen() {
                             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
                             thumbColor="#fff"
                             testID={`display-vbar-veh-switch-${e.id}`}
+                            accessibilityLabel={name}
                           />
                         </View>
                       );

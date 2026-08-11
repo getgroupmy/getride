@@ -362,6 +362,7 @@ export default function AdminSettingsServiceScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="service-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -474,6 +475,7 @@ export default function AdminSettingsServiceScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="service-field-name"
+                      accessibilityLabel="Service Name *"
                     />
                   </View>
                 </View>
@@ -494,6 +496,7 @@ export default function AdminSettingsServiceScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="service-field-description"
+                      accessibilityLabel="Description"
                     />
                   </View>
                 </View>
@@ -515,6 +518,7 @@ export default function AdminSettingsServiceScreen() {
                       style={[styles.input, { color: Colors.text }]}
                       keyboardType="decimal-pad"
                       testID="service-field-priority"
+                      accessibilityLabel="Display Priority"
                     />
                   </View>
                 </View>
@@ -531,6 +535,7 @@ export default function AdminSettingsServiceScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="service-field-active"
+                    accessibilityLabel="Active"
                   />
                 </View>
 

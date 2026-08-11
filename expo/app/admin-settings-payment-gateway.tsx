@@ -475,6 +475,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="payment-gateway-search"
+          accessibilityLabel="Search account or provider"
         />
       </View>
 
@@ -821,6 +822,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="payment-gateway-field-account-name"
+                      accessibilityLabel="Account name *"
                     />
                   </View>
                 </View>
@@ -920,6 +922,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                               autoCorrect={false}
                               style={[styles.input, { color: Colors.text }]}
                               testID={`payment-gateway-field-${f.key}`}
+                              accessibilityLabel={f.label}
                             />
                             {f.secret ? (
                               <TouchableOpacity
@@ -966,6 +969,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                     value={form.isDefault}
                     onValueChange={(v) => setForm((p) => ({ ...p, isDefault: v }))}
                     testID="payment-gateway-field-default"
+                    accessibilityLabel="Default gateway"
                   />
                 </View>
 
@@ -980,6 +984,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="payment-gateway-field-active"
+                    accessibilityLabel="Active"
                   />
                 </View>
               </ScrollView>

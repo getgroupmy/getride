@@ -599,6 +599,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           autoCorrect={false}
           autoCapitalize="words"
           testID="mgp-search"
+          accessibilityLabel="Search places"
         />
         {searching ? (
           <ActivityIndicator size="small" color={Colors.accent} />
@@ -720,6 +721,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                         keyboardType={(f as { kb?: string }).kb as never}
                         multiline={f.key === "address"}
                         testID={`mgp-field-${f.key}`}
+                        accessibilityLabel={f.label}
                       />
                     </View>
                   </View>
@@ -746,6 +748,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                     trackColor={{ false: Colors.border, true: Colors.accent }}
                     thumbColor={Platform.OS === "android" ? Colors.secondary : undefined}
                     testID="mgp-field-gateRequired"
+                    accessibilityLabel="Gate selection"
                   />
                 </View>
 
@@ -770,6 +773,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                     trackColor={{ false: Colors.border, true: Colors.accent }}
                     thumbColor={Platform.OS === "android" ? Colors.secondary : undefined}
                     testID="mgp-field-active"
+                    accessibilityLabel="Status"
                   />
                 </View>
               </ScrollView>

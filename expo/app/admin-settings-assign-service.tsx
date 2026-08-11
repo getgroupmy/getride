@@ -174,6 +174,7 @@ export default function AdminSettingsAssignServiceScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="assign-service-search"
+              accessibilityLabel="Search services"
             />
           </View>
 

@@ -459,6 +459,7 @@ export default function AdminSettingsSubAdminScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="sub-admin-search"
+              accessibilityLabel="Search sub-admins"
             />
           </View>
 
@@ -620,6 +621,7 @@ export default function AdminSettingsSubAdminScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="sub-admin-form-profile-search"
+                        accessibilityLabel="Profile"
                       />
                       {searchingProfiles ? <ActivityIndicator color={Colors.accent} size="small" /> : null}
                     </View>
@@ -728,6 +730,7 @@ export default function AdminSettingsSubAdminScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="sub-admin-page-search-edit"
+                        accessibilityLabel="Search pages"
                       />
                       {pageQuery ? (
                         <TouchableOpacity onPress={() => setPageQuery("")} hitSlop={8} accessibilityRole="button">
@@ -833,6 +836,7 @@ export default function AdminSettingsSubAdminScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="sub-admin-page-search"
+                        accessibilityLabel="Search pages"
                       />
                       {pageQuery ? (
                         <TouchableOpacity onPress={() => setPageQuery("")} hitSlop={8} accessibilityRole="button">
@@ -980,6 +984,7 @@ export default function AdminSettingsSubAdminScreen() {
                     style={[styles.input, { color: Colors.text, height: 60, textAlignVertical: "top" as const }]}
                     multiline
                     testID="sub-admin-form-notes"
+                    accessibilityLabel="Notes (optional)"
                   />
                 </View>
               </ScrollView>

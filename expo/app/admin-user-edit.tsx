@@ -187,6 +187,7 @@ export default function AdminUserEditScreen() {
           keyboardType={keyboardType ?? "default"}
           autoCapitalize={key === "email" || key === "referralCode" ? "none" : "words"}
           testID={`edit-user-${key}`}
+          accessibilityLabel={label}
         />
       </View>
     </View>

@@ -216,6 +216,7 @@ function DateSpinner({
             placeholderTextColor={Colors.textSecondary}
             style={[styles.input, { color: Colors.text }]}
             testID={`${testID}-input`}
+            accessibilityLabel="YYYY-MM-DD"
           />
         </View>
       ) : Platform.OS === "ios" ? (
@@ -1235,6 +1236,7 @@ export default function DocumentUploadModal({
                 style={[styles.input, { color: Colors.text }]}
                 autoCapitalize="characters"
                 testID="doc-number-input"
+                accessibilityLabel="e.g. ABC-123456"
               />
             </View>
 
@@ -1400,7 +1402,7 @@ export default function DocumentUploadModal({
                   Turn on if this certifies disability status.
                 </Text>
               </View>
-              <Switch value={isPwd} onValueChange={setIsPwd} testID="doc-is-pwd" />
+              <Switch value={isPwd} onValueChange={setIsPwd} testID="doc-is-pwd" accessibilityLabel="Mark as PWD document" />
             </View>
           </View>
         );

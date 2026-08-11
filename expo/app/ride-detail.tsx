@@ -1129,6 +1129,7 @@ export default function RideDetailScreen() {
               autoCorrect={false}
               autoFocus
               style={[styles.modalInput, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200], color: Colors.text }]}
+              accessibilityLabel="Email address"
             />
             <TouchableOpacity
               accessibilityRole="button"

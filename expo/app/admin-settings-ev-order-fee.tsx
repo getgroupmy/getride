@@ -314,6 +314,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="ev-order-fee-search"
+          accessibilityLabel="Search country"
         />
       </View>
 
@@ -453,6 +454,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                         autoCapitalize="characters"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-order-fee-field-currency"
+                        accessibilityLabel="Currency"
                       />
                     </View>
                   </View>
@@ -467,6 +469,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-order-fee-field-amount"
+                        accessibilityLabel="Order Fee *"
                       />
                     </View>
                   </View>
@@ -498,6 +501,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     value={form.isDefault}
                     onValueChange={(v) => setForm((p) => ({ ...p, isDefault: v }))}
                     testID="ev-order-fee-field-default"
+                    accessibilityLabel="Default country"
                   />
                 </View>
 
@@ -512,6 +516,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="ev-order-fee-field-active"
+                    accessibilityLabel="Active"
                   />
                 </View>
               </ScrollView>
@@ -565,6 +570,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.searchInput, { color: Colors.text }]}
                 testID="ev-order-fee-country-search"
+                accessibilityLabel="Search country"
               />
             </View>
             <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ paddingBottom: 12 }}>

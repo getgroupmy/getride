@@ -147,6 +147,7 @@ export default function AdminUserAddScreen() {
           keyboardType={keyboardType ?? "default"}
           autoCapitalize={key === "email" || key === "referralCode" ? "none" : "words"}
           testID={`add-user-${key}`}
+          accessibilityLabel={label}
         />
       </View>
     </View>

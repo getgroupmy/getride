@@ -1007,6 +1007,7 @@ export default function OfferFareSideSheet({
                       value={searchPickup}
                       onChangeText={setSearchPickup}
                       autoFocus
+                      accessibilityLabel="From"
                     />
                   ) : (
                     <Text style={styles.embeddedSearchInputValue} numberOfLines={1}>
@@ -1050,6 +1051,7 @@ export default function OfferFareSideSheet({
                     value={searchDestination}
                     onChangeText={setSearchDestination}
                     autoFocus={isAddingNewStop}
+                    accessibilityLabel="To"
                   />
                 ) : (
                   <Text style={styles.embeddedSearchInputValue} numberOfLines={1}>

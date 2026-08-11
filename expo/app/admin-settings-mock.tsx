@@ -136,6 +136,7 @@ export default function AdminSettingsMockScreen() {
           trackColor={{ false: Colors.gray[300], true: Colors.accent }}
           thumbColor="#fff"
           testID={`mock-switch-${item.key}`}
+          accessibilityLabel={item.label}
         />
       </View>
     );
@@ -187,6 +188,7 @@ export default function AdminSettingsMockScreen() {
             trackColor={{ false: Colors.gray[300], true: Colors.accent }}
             thumbColor="#fff"
             testID="mock-switch-master"
+            accessibilityLabel="All mocks & simulations"
           />
         </View>
 

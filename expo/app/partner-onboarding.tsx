@@ -454,6 +454,7 @@ export default function PartnerOnboardingScreen() {
               style={[styles.input, { backgroundColor: Colors.gray[100], borderColor: Colors.border, color: Colors.text }]}
               autoCapitalize="characters"
               testID="onboard-ic-input"
+              accessibilityLabel="ID number"
             />
             <TouchableOpacity
               onPress={uploadIdImage}
@@ -495,6 +496,7 @@ export default function PartnerOnboardingScreen() {
               multiline
               numberOfLines={4}
               testID="onboard-address-input"
+              accessibilityLabel="Your address"
             />
             <TouchableOpacity
               onPress={saveAddress}

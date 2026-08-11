@@ -321,6 +321,7 @@ export default function AdminSettingsGetCoinScreen() {
                     placeholder="1"
                     placeholderTextColor={Colors.textSecondary}
                     testID="getcoin-rate-input"
+                    accessibilityLabel="RM 1"
                   />
                   <Text style={[styles.rateUnit, { color: "#A16207" }]}>GC</Text>
                 </View>
@@ -387,6 +388,7 @@ export default function AdminSettingsGetCoinScreen() {
                     placeholder="0"
                     placeholderTextColor={Colors.textSecondary}
                     testID="getcoin-earn-input"
+                    accessibilityLabel="RM 1 fare"
                   />
                   <Text style={[styles.rateUnit, { color: "#A16207" }]}>GC</Text>
                 </View>
@@ -419,6 +421,7 @@ export default function AdminSettingsGetCoinScreen() {
                   trackColor={{ false: Colors.gray[200], true: Colors.accent + "66" }}
                   thumbColor={marketEnabled ? Colors.accent : "#9CA3AF"}
                   testID="getcoin-market-toggle"
+                  accessibilityLabel="Market-driven rate"
                 />
               </View>
 
@@ -477,6 +480,7 @@ export default function AdminSettingsGetCoinScreen() {
                         trackColor={{ false: Colors.gray[200], true: Colors.accent + "66" }}
                         thumbColor={s.value ? Colors.accent : "#9CA3AF"}
                         testID={`getcoin-signal-${s.key}`}
+                        accessibilityLabel={s.label}
                       />
                     </View>
                   ))}
@@ -502,6 +506,7 @@ export default function AdminSettingsGetCoinScreen() {
                         placeholder="50"
                         placeholderTextColor={Colors.textSecondary}
                         testID="getcoin-swing-input"
+                        accessibilityLabel="Market swing band"
                       />
                       <Text style={[styles.smallInputUnit, { color: Colors.textSecondary }]}>%</Text>
                     </View>
@@ -543,6 +548,7 @@ export default function AdminSettingsGetCoinScreen() {
                   trackColor={{ false: Colors.gray[200], true: Colors.accent + "66" }}
                   thumbColor={referralEnabled ? Colors.accent : "#9CA3AF"}
                   testID="getcoin-referral-toggle"
+                  accessibilityLabel="Referral program"
                 />
               </View>
 
@@ -569,6 +575,7 @@ export default function AdminSettingsGetCoinScreen() {
                         placeholder="0"
                         placeholderTextColor={Colors.textSecondary}
                         testID="getcoin-referral-referrer-input"
+                        accessibilityLabel="Referrer bonus"
                       />
                       <Text style={[styles.smallInputUnit, { color: "#A16207" }]}>GC</Text>
                     </View>
@@ -595,6 +602,7 @@ export default function AdminSettingsGetCoinScreen() {
                         placeholder="0"
                         placeholderTextColor={Colors.textSecondary}
                         testID="getcoin-referral-referred-input"
+                        accessibilityLabel="Referred bonus"
                       />
                       <Text style={[styles.smallInputUnit, { color: "#A16207" }]}>GC</Text>
                     </View>
@@ -643,6 +651,7 @@ export default function AdminSettingsGetCoinScreen() {
                     placeholder="0"
                     placeholderTextColor={Colors.textSecondary}
                     testID="getcoin-supply-input"
+                    accessibilityLabel="Max supply"
                   />
                   <Text style={[styles.smallInputUnit, { color: "#A16207" }]}>GC</Text>
                 </View>

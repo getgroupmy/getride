@@ -317,6 +317,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="ev-finance-options-search"
+          accessibilityLabel="Search"
         />
       </View>
 
@@ -461,6 +462,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="ev-finance-options-field-name"
+                      accessibilityLabel="Plan Name *"
                     />
                   </View>
                 </View>
@@ -567,6 +569,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-finance-options-field-paymentAmount"
+                        accessibilityLabel="Custom payment sum"
                       />
                     </View>
                   ) : null}
@@ -584,6 +587,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                         keyboardType="decimal-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-finance-options-field-rate"
+                        accessibilityLabel="Rate (%)"
                       />
                       <Text style={[styles.suffix, { color: Colors.textSecondary }]}>%</Text>
                     </View>
@@ -599,6 +603,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                         keyboardType="number-pad"
                         style={[styles.input, { color: Colors.text }]}
                         testID="ev-finance-options-field-termValue"
+                        accessibilityLabel="Term"
                       />
                     </View>
                   </View>
@@ -647,6 +652,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                       placeholderTextColor={Colors.textSecondary}
                       style={[styles.input, { color: Colors.text }]}
                       testID="ev-finance-options-field-details"
+                      accessibilityLabel="Details"
                     />
                   </View>
                 </View>
@@ -670,6 +676,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                     value={form.active}
                     onValueChange={(v) => setForm((p) => ({ ...p, active: v }))}
                     testID="ev-finance-options-field-active"
+                    accessibilityLabel="Active"
                   />
                 </View>
               </ScrollView>
@@ -723,6 +730,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.searchInput, { color: Colors.text }]}
                 testID="ev-finance-options-country-search"
+                accessibilityLabel="Search country"
               />
             </View>
             <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ paddingBottom: 12 }}>

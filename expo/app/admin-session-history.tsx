@@ -1236,6 +1236,7 @@ export default function AdminSessionHistoryScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="date-from"
+              accessibilityLabel="From"
             />
           </View>
           <View
@@ -1254,6 +1255,7 @@ export default function AdminSessionHistoryScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="date-to"
+              accessibilityLabel="To"
             />
           </View>
           {(fromDate || toDate) && (
@@ -1286,6 +1288,7 @@ export default function AdminSessionHistoryScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="search"
+          accessibilityLabel="Search phone, user id, device…"
         />
       </View>
 
@@ -1317,6 +1320,7 @@ export default function AdminSessionHistoryScreen() {
                 if (guardConfig) void saveGuardConfig({ ...guardConfig, enabled: v });
               }}
               testID="guard-enabled"
+              accessibilityLabel="Enabled"
             />
           </View>
 
@@ -1380,6 +1384,7 @@ export default function AdminSessionHistoryScreen() {
                 if (guardConfig) void saveGuardConfig({ ...guardConfig, blockEmulators: v });
               }}
               testID="guard-block-emulators"
+              accessibilityLabel="Block emulators"
             />
           </View>
           {savingGuard && (
@@ -1742,6 +1747,7 @@ export default function AdminSessionHistoryScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="trail-range-from"
+                        accessibilityLabel="From"
                       />
                     </View>
                     <View
@@ -1760,6 +1766,7 @@ export default function AdminSessionHistoryScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="trail-range-to"
+                        accessibilityLabel="To"
                       />
                     </View>
                   </View>
@@ -1820,6 +1827,7 @@ export default function AdminSessionHistoryScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="trail-time-from"
+                        accessibilityLabel="From"
                       />
                     </View>
                     <View
@@ -1838,6 +1846,7 @@ export default function AdminSessionHistoryScreen() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         testID="trail-time-to"
+                        accessibilityLabel="To"
                       />
                     </View>
                   </View>

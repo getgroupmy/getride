@@ -303,6 +303,7 @@ export default function AdminOrdersScreen() {
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="orders-search"
+          accessibilityLabel="Search by customer, vehicle, order ID"
         />
       </View>
 
@@ -899,6 +900,7 @@ export default function AdminOrdersScreen() {
                         { color: Colors.text, backgroundColor: Colors.background, borderColor: Colors.border },
                       ]}
                       testID={`checklist-note-${i}`}
+                      accessibilityLabel={it.name}
                     />
                   </View>
                 ))

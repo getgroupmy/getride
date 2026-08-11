@@ -682,6 +682,7 @@ export default function SearchScreen() {
                   onChangeText={setPickup}
                   autoFocus
                   editable={!loadingAddress}
+                  accessibilityLabel="From"
                 />
               ) : (
                 <Text style={[styles.inputValue, !pickup && styles.placeholderText]} numberOfLines={1}>
@@ -734,6 +735,7 @@ export default function SearchScreen() {
                 value={destination}
                 onChangeText={setDestination}
                 autoFocus
+                accessibilityLabel="To"
               />
             ) : (
               <Text style={[styles.inputValue, !destination && styles.placeholderText]} numberOfLines={1}>

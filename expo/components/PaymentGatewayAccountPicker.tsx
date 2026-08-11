@@ -159,6 +159,7 @@ export default function PaymentGatewayAccountPicker({
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.searchInput, { color: Colors.text }]}
                 testID="payment-gateway-account-picker-search"
+                accessibilityLabel="Search provider or account"
               />
             </View>
 

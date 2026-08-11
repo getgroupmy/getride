@@ -809,6 +809,7 @@ export default function VehicleOnboardingScreen() {
                 style={[styles.inputFlex, { color: Colors.text }]}
                 autoCapitalize="characters"
                 testID="veh-onboard-plate"
+                accessibilityLabel="Plate number"
               />
             </View>
             <TouchableOpacity
@@ -898,6 +899,7 @@ export default function VehicleOnboardingScreen() {
                 style={[styles.inputFlex, { color: Colors.text }]}
                 autoCapitalize="characters"
                 testID="veh-onboard-owner-ic"
+                accessibilityLabel="Owner ID number"
               />
             </View>
             <TouchableOpacity
@@ -975,6 +977,7 @@ export default function VehicleOnboardingScreen() {
                 keyboardType="number-pad"
                 maxLength={4}
                 testID="veh-onboard-year"
+                accessibilityLabel="Year"
               />
             </View>
             <Text style={[styles.label, { color: Colors.textSecondary }]}>Colour</Text>
@@ -987,6 +990,7 @@ export default function VehicleOnboardingScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.inputFlex, { color: Colors.text }]}
                 testID="veh-onboard-color"
+                accessibilityLabel="Colour"
               />
             </View>
             <TouchableOpacity
@@ -1178,6 +1182,7 @@ export default function VehicleOnboardingScreen() {
                 placeholderTextColor={Colors.textSecondary}
                 style={[styles.inputFlex, { color: Colors.text }]}
                 testID="veh-onboard-owner-name"
+                accessibilityLabel="Owner name"
               />
             </View>
             <Text style={[styles.label, { color: Colors.textSecondary }]}>Owner phone</Text>
@@ -1191,6 +1196,7 @@ export default function VehicleOnboardingScreen() {
                 style={[styles.inputFlex, { color: Colors.text }]}
                 keyboardType="phone-pad"
                 testID="veh-onboard-owner-phone"
+                accessibilityLabel="Owner phone"
               />
             </View>
             <Text style={[styles.label, { color: Colors.textSecondary }]}>Owner ID number</Text>
@@ -1204,6 +1210,7 @@ export default function VehicleOnboardingScreen() {
                 style={[styles.inputFlex, { color: Colors.text }]}
                 autoCapitalize="characters"
                 testID="veh-onboard-owner-ic"
+                accessibilityLabel="Owner ID number"
               />
             </View>
             <TouchableOpacity

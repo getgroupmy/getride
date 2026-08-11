@@ -241,6 +241,7 @@ export default function AdminSettingsAlwaysOnScreen() {
                     trackColor={{ false: Colors.gray[300], true: warning }}
                     thumbColor="#fff"
                     testID={`always-on-switch-${row.route}`}
+                    accessibilityLabel={row.label}
                   />
                 </View>
               );
@@ -260,6 +261,7 @@ export default function AdminSettingsAlwaysOnScreen() {
               style={[styles.input, { color: Colors.text }]}
               testID="always-on-new-route"
               onSubmitEditing={addCustom}
+              accessibilityLabel="Add a page"
             />
             <TouchableOpacity
               onPress={addCustom}

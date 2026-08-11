@@ -353,6 +353,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
                 autoCapitalize="none"
                 autoCorrect={false}
                 testID="service-area-search"
+                accessibilityLabel="Search…"
               />
             </View>
 

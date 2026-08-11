@@ -2039,6 +2039,7 @@ export default function RideRunningScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   keyboardType="decimal-pad"
                   style={[styles.tollsInput, { color: Colors.text }]}
+                  accessibilityLabel="Toll charges"
                 />
               </View>
 
@@ -2056,6 +2057,7 @@ export default function RideRunningScreen() {
                   placeholderTextColor={Colors.textSecondary}
                   keyboardType="decimal-pad"
                   style={[styles.tollsInput, { color: Colors.text }]}
+                  accessibilityLabel="Other charges"
                 />
               </View>
 
@@ -2068,6 +2070,7 @@ export default function RideRunningScreen() {
                   placeholder="e.g. Parking, waiting time"
                   placeholderTextColor={Colors.textSecondary}
                   style={[styles.tollsInput, { color: Colors.text, paddingLeft: 14 }]}
+                  accessibilityLabel="Note (optional)"
                 />
               </View>
 

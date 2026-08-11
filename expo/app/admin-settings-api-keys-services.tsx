@@ -224,6 +224,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               testID="services-search"
+              accessibilityLabel="Search services"
             />
           </View>
 
@@ -316,6 +317,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               placeholderTextColor={Colors.textSecondary}
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               testID="bulk-key-label"
+              accessibilityLabel="Key label (optional)"
             />
             <Text style={[styles.modalLabel, { color: Colors.textSecondary }]}>API Key</Text>
             <TextInput
@@ -328,6 +330,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               autoCorrect={false}
               secureTextEntry
               testID="bulk-key-value"
+              accessibilityLabel="API Key"
             />
             <View style={styles.bulkSelectHeader}>
               <Text style={[styles.modalLabel, { color: Colors.textSecondary, marginTop: 0 }]}>Select services</Text>
@@ -467,6 +470,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               autoFocus
               testID="service-add-name"
+              accessibilityLabel="Service name"
             />
             <Text style={[styles.modalLabel, { color: Colors.textSecondary }]}>Description (optional)</Text>
             <TextInput
@@ -476,6 +480,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               placeholderTextColor={Colors.textSecondary}
               style={[styles.modalInput, { color: Colors.text, borderColor: Colors.border, backgroundColor: Colors.gray[100] }]}
               testID="service-add-desc"
+              accessibilityLabel="Description (optional)"
             />
             <View style={styles.modalActions}>
               <TouchableOpacity

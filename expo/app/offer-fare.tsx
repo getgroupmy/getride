@@ -476,6 +476,7 @@ export default function OfferFareScreen() {
             onValueChange={setAutoAccept}
             trackColor={{ false: Colors.gray[200], true: Colors.accentDark }}
             thumbColor={autoAccept ? Colors.accent : "#FFFFFF"}
+            accessibilityLabel="Fare doesn't include state entry tax, tolls, or parking fees"
           />
         </View>
 

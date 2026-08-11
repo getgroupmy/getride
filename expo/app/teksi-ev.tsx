@@ -2524,6 +2524,7 @@ export default function TeksiEvScreen() {
                 autoFocus
                 style={[styles.modalInput, { color: Colors.text, textAlignVertical: "center" }]}
                 testID="ev-agent-code-input"
+                accessibilityLabel="Agent code"
               />
             </View>
             <View style={styles.modalRow}>
@@ -2574,6 +2575,7 @@ export default function TeksiEvScreen() {
                 autoFocus
                 style={[styles.modalInput, { color: Colors.text, textAlignVertical: editKey && editMeta[editKey].multiline ? "top" : "center" }]}
                 testID="ev-edit-input"
+                accessibilityLabel={editKey ? editMeta[editKey].title : ""}
               />
             </View>
             <View style={styles.modalRow}>
@@ -2771,6 +2773,7 @@ function Field({
           keyboardType={keyboardType ?? "default"}
           style={[styles.input, { color: Colors.text }]}
           testID={testID}
+          accessibilityLabel={placeholder}
         />
       </View>
     </View>

@@ -235,6 +235,7 @@ export default function EmergencyContactEditScreen() {
                 onChangeText={setNameInput}
                 autoFocus
                 testID="ece-name-input"
+                accessibilityLabel="Contacts"
               />
             </View>
           </View>
@@ -269,6 +270,7 @@ export default function EmergencyContactEditScreen() {
                   onChangeText={setPhoneInput}
                   keyboardType="phone-pad"
                   testID="ece-phone-input"
+                  accessibilityLabel="Mobile number"
                 />
               </View>
             </View>

@@ -585,6 +585,7 @@ export default function WalletScanScreen() {
                       caretHidden
                       autoFocus
                       testID="wallet-scan-pay-amount"
+                      accessibilityLabel="Pay (RM)"
                     />
                   </Animated.View>
                   {parsedAmount > 0 ? (
@@ -630,6 +631,7 @@ export default function WalletScanScreen() {
                           trackColor={{ true: "#EAB308", false: wc.borderStrong }}
                           thumbColor="#FFFFFF"
                           testID="wallet-scan-coin-switch"
+                          accessibilityLabel="Use GET.coin"
                         />
                       </View>
                     ) : null}

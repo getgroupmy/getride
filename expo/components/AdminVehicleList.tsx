@@ -240,6 +240,7 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
           placeholderTextColor={Colors.textSecondary}
           style={[styles.searchInput, { color: Colors.text }]}
           testID="vehicle-search"
+          accessibilityLabel="Search plate, make, model or owner"
         />
       </View>
 
