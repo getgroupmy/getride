@@ -127,7 +127,7 @@ export default function AdminAppIconScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <AppWindow color={Colors.accent} size={18} />
+            <AppWindow color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>App Icon</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -181,8 +181,8 @@ export default function AdminAppIconScreen() {
                 testID="app-icon-clear"
                 accessibilityRole="button"
               >
-                <Trash2 color={Colors.error} size={16} />
-                <Text style={[styles.ghostBtnText, { color: Colors.error }]}>Use default</Text>
+                <Trash2 color={Colors.errorText} size={16} />
+                <Text style={[styles.ghostBtnText, { color: Colors.errorText }]}>Use default</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -192,7 +192,7 @@ export default function AdminAppIconScreen() {
         </View>
 
         <View style={[styles.noticeCard, { borderColor: Colors.border, backgroundColor: Colors.accent + "10" }]}>
-          <Info color={Colors.accent} size={18} />
+          <Info color={Colors.accentText} size={18} />
           <Text style={[styles.noticeText, { color: Colors.text }]}>
             Changes take effect after each user relaunches the app. They will see a
             one-time popup informing them that the app icon has been updated.
@@ -221,7 +221,7 @@ export default function AdminAppIconScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <View style={[styles.modalIconWrap, { backgroundColor: Colors.success + "20" }]}>
-              <Check color={Colors.success} size={28} />
+              <Check color={Colors.successText} size={28} />
             </View>
             <Text style={[styles.modalTitle, { color: Colors.text }]}>App icon updated</Text>
             <Text style={[styles.modalBody, { color: Colors.textSecondary }]}>

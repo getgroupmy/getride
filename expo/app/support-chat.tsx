@@ -52,7 +52,7 @@ export default function SupportChatScreen() {
     return (
       <View style={[styles.center, { backgroundColor: Colors.background }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator color={Colors.accent} />
+        <ActivityIndicator color={Colors.accentText} />
       </View>
     );
   }

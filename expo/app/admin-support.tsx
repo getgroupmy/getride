@@ -84,7 +84,7 @@ export default function AdminSupportScreen() {
             {avatar ? (
               <Image source={{ uri: avatar }} style={styles.avatarImg} />
             ) : (
-              <UserRound color={Colors.accent} size={22} />
+              <UserRound color={Colors.accentText} size={22} />
             )}
           </View>
           <View style={styles.rowInfo}>
@@ -140,7 +140,7 @@ export default function AdminSupportScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Headphones color={Colors.accent} size={18} />
+            <Headphones color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Support</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -161,7 +161,7 @@ export default function AdminSupportScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <FlatList

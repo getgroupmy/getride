@@ -755,7 +755,7 @@ export default function AdminSettingsMeterDigitalScreen() {
         accessibilityRole="button"
         accessibilityLabel="Delete meter settings"
       >
-        <Trash2 color={Colors.error} size={16} />
+        <Trash2 color={Colors.errorText} size={16} />
       </TouchableOpacity>
     </View>
   );
@@ -784,7 +784,7 @@ export default function AdminSettingsMeterDigitalScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Gauge color={Colors.accent} size={18} />
+            <Gauge color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Meter Digital Setting</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -796,7 +796,7 @@ export default function AdminSettingsMeterDigitalScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView
@@ -877,7 +877,7 @@ export default function AdminSettingsMeterDigitalScreen() {
           {/* The global card */}
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <Globe2 color={Colors.accent} size={16} />
+              <Globe2 color={Colors.accentText} size={16} />
               <Text style={[styles.sectionTitle, { color: Colors.text }]}>Global card</Text>
             </View>
           </View>
@@ -895,7 +895,7 @@ export default function AdminSettingsMeterDigitalScreen() {
             accessibilityRole="button"
           >
             <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-              <Gauge color={Colors.accent} size={20} />
+              <Gauge color={Colors.accentText} size={20} />
             </View>
             <View style={styles.cardInfo}>
               <Text style={[styles.cardScope, { color: Colors.text }]}>
@@ -917,7 +917,7 @@ export default function AdminSettingsMeterDigitalScreen() {
               <View key={meta.level} style={{ marginTop: 22 }}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionTitleRow}>
-                    <Icon color={Colors.accent} size={16} />
+                    <Icon color={Colors.accentText} size={16} />
                     <Text style={[styles.sectionTitle, { color: Colors.text }]}>{meta.title}</Text>
                   </View>
                   <TouchableOpacity
@@ -926,8 +926,8 @@ export default function AdminSettingsMeterDigitalScreen() {
                     testID={`meter-settings-add-${meta.level}`}
                     accessibilityRole="button"
                   >
-                    <Plus color={Colors.accent} size={14} />
-                    <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
+                    <Plus color={Colors.accentText} size={14} />
+                    <Text style={[styles.addBtnText, { color: Colors.accentText }]}>Add</Text>
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.sectionDesc, { color: Colors.textSecondary }]}>
@@ -1163,7 +1163,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                                 {describeAppIosRoute(app)}
                               </Text>
                             </View>
-                            {picked && <Check color={Colors.accent} size={16} />}
+                            {picked && <Check color={Colors.accentText} size={16} />}
                           </TouchableOpacity>
                         );
                       })}
@@ -1205,7 +1205,7 @@ export default function AdminSettingsMeterDigitalScreen() {
                             Open whatever the link below names
                           </Text>
                         </View>
-                        {!draft.leave.ehailingAppId && <Check color={Colors.accent} size={16} />}
+                        {!draft.leave.ehailingAppId && <Check color={Colors.accentText} size={16} />}
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1613,7 +1613,7 @@ function GroupTitle({
 }) {
   return (
     <View style={[styles.groupTitleRow, { borderTopColor: Colors.border }]}>
-      <Icon color={Colors.accent} size={15} />
+      <Icon color={Colors.accentText} size={15} />
       <Text style={[styles.groupTitle, { color: Colors.text }]}>{title}</Text>
     </View>
   );

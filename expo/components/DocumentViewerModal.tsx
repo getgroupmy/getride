@@ -105,7 +105,7 @@ export default function DocumentViewerModal({ visible, url, title, onClose }: Pr
               startInLoadingState
               renderLoading={() => (
                 <View style={styles.loadingWrap}>
-                  <ActivityIndicator color={Colors.accent} />
+                  <ActivityIndicator color={Colors.accentText} />
                 </View>
               )}
               scalesPageToFit

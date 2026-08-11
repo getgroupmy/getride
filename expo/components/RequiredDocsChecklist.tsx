@@ -259,7 +259,7 @@ export default function RequiredDocsChecklist({
   return (
     <View testID={testID}>
       <View style={styles.headerRow}>
-        <FileCheck2 color={Colors.accent} size={16} />
+        <FileCheck2 color={Colors.accentText} size={16} />
         <Text style={[styles.title, { color: Colors.text }]}>{title}</Text>
       </View>
       <Text style={[styles.subtitle, { color: Colors.textSecondary }]}>{computedSubtitle}</Text>

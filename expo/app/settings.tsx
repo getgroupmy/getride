@@ -183,7 +183,7 @@ export default function SettingsScreen() {
           activeOpacity={0.7}
           accessibilityRole="button"
         >
-          <Text style={[styles.deleteText, { color: Colors.error }]}>Delete my account</Text>
+          <Text style={[styles.deleteText, { color: Colors.errorText }]}>Delete my account</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </View>

@@ -133,13 +133,13 @@ export default function AdminSettingsApiElifeScreen() {
     const s: ElifeConnectionStatus = !config.enabled ? "disabled" : config.status;
     switch (s) {
       case "connected":
-        return { label: "Connected", color: Colors.success, Icon: CheckCircle2 };
+        return { label: "Connected", color: Colors.successText, Icon: CheckCircle2 };
       case "error":
-        return { label: "Connection error", color: Colors.error, Icon: XCircle };
+        return { label: "Connection error", color: Colors.errorText, Icon: XCircle };
       case "disabled":
         return { label: "Disabled", color: Colors.textSecondary, Icon: CircleDot };
       default:
-        return { label: "Not tested", color: Colors.warning, Icon: AlertTriangle };
+        return { label: "Not tested", color: Colors.warningText, Icon: AlertTriangle };
     }
   }, [config.enabled, config.status, Colors]);
 
@@ -257,7 +257,7 @@ export default function AdminSettingsApiElifeScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Plug color={Colors.accent} size={18} />
+            <Plug color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>
               Elife Connection
             </Text>
@@ -279,7 +279,7 @@ export default function AdminSettingsApiElifeScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView
@@ -309,7 +309,7 @@ export default function AdminSettingsApiElifeScreen() {
                 {config.environment === "production" ? "Production" : "Sandbox"}
               </Text>
               {config.lastError && config.status === "error" ? (
-                <Text style={[styles.statusErr, { color: Colors.error }]} numberOfLines={2}>
+                <Text style={[styles.statusErr, { color: Colors.errorText }]} numberOfLines={2}>
                   {config.lastError}
                 </Text>
               ) : null}
@@ -481,9 +481,9 @@ export default function AdminSettingsApiElifeScreen() {
               accessibilityRole="button"
             >
               {testing ? (
-                <ActivityIndicator color={Colors.accent} size="small" />
+                <ActivityIndicator color={Colors.accentText} size="small" />
               ) : (
-                <RefreshCw color={Colors.accent} size={18} />
+                <RefreshCw color={Colors.accentText} size={18} />
               )}
               <Text style={[styles.actionTxt, { color: Colors.text }]}>Test connection</Text>
             </TouchableOpacity>
@@ -519,13 +519,13 @@ export default function AdminSettingsApiElifeScreen() {
           {/* ACTIVITY LOG */}
           <View style={styles.activityHeader}>
             <View style={styles.headerTitleRow}>
-              <Activity color={Colors.accent} size={16} />
+              <Activity color={Colors.accentText} size={16} />
               <Text style={[styles.sectionLabelInline, { color: Colors.text }]}>ACTIVITY</Text>
             </View>
             {config.activity.length > 0 && editable ? (
               <TouchableOpacity onPress={onClearActivity} hitSlop={8} style={styles.clearBtn} testID="elife-clear-activity" accessibilityRole="button">
-                <Trash2 color={Colors.error} size={14} />
-                <Text style={[styles.clearTxt, { color: Colors.error }]}>Clear</Text>
+                <Trash2 color={Colors.errorText} size={14} />
+                <Text style={[styles.clearTxt, { color: Colors.errorText }]}>Clear</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -549,9 +549,9 @@ export default function AdminSettingsApiElifeScreen() {
                   ]}
                 >
                   {evt.ok ? (
-                    <CheckCircle2 color={Colors.success} size={14} />
+                    <CheckCircle2 color={Colors.successText} size={14} />
                   ) : (
-                    <XCircle color={Colors.error} size={14} />
+                    <XCircle color={Colors.errorText} size={14} />
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
@@ -575,7 +575,7 @@ export default function AdminSettingsApiElifeScreen() {
             accessibilityRole="button"
           >
             <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
-              <ShieldCheck color={Colors.accent} size={16} />
+              <ShieldCheck color={Colors.accentText} size={16} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.linkTitle, { color: Colors.text }]}>API Documentation</Text>

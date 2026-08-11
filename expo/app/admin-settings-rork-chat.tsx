@@ -153,7 +153,7 @@ export default function AdminSettingsRorkChatScreen() {
               { backgroundColor: Colors.gray[100], borderColor: Colors.border },
             ]}
           >
-            <Bot color={Colors.accent} size={16} style={{ marginTop: 2 }} />
+            <Bot color={Colors.accentText} size={16} style={{ marginTop: 2 }} />
             <Text style={[styles.systemText, { color: Colors.text }]}>
               {msg.content}
             </Text>
@@ -174,7 +174,7 @@ export default function AdminSettingsRorkChatScreen() {
           <View
             style={[styles.avatar, { backgroundColor: Colors.accent + "20" }]}
           >
-            <Bot color={Colors.accent} size={16} />
+            <Bot color={Colors.accentText} size={16} />
           </View>
         )}
         <View
@@ -230,7 +230,7 @@ export default function AdminSettingsRorkChatScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Bot color={Colors.accent} size={18} />
+            <Bot color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>
               Rork AI
             </Text>
@@ -260,7 +260,7 @@ export default function AdminSettingsRorkChatScreen() {
                 { backgroundColor: Colors.accent + "20" },
               ]}
             >
-              <Bot color={Colors.accent} size={16} />
+              <Bot color={Colors.accentText} size={16} />
             </View>
             <View
               style={[
@@ -269,7 +269,7 @@ export default function AdminSettingsRorkChatScreen() {
                 { backgroundColor: Colors.gray[100] },
               ]}
             >
-              <ActivityIndicator size="small" color={Colors.accent} />
+              <ActivityIndicator size="small" color={Colors.accentText} />
             </View>
           </View>
         )}

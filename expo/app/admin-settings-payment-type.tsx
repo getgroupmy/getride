@@ -154,7 +154,7 @@ export default function AdminSettingsPaymentTypeScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <CreditCard color={Colors.accent} size={18} />
+            <CreditCard color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Payment Type
             </Text>
@@ -216,7 +216,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                 testID={`payment-type-row-${e.id}`}
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <CreditCard color={Colors.accent} size={18} />
+                  <CreditCard color={Colors.accentText} size={18} />
                 </View>
                 <View style={styles.rowInfo}>
                   <View style={styles.rowTitleLine}>
@@ -242,7 +242,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Edit payment type"
                 >
-                  <Pencil color={Colors.accent} size={16} />
+                  <Pencil color={Colors.accentText} size={16} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => onDelete(e)}
@@ -251,7 +251,7 @@ export default function AdminSettingsPaymentTypeScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Delete payment type"
                 >
-                  <Trash2 color={Colors.error} size={16} />
+                  <Trash2 color={Colors.errorText} size={16} />
                 </TouchableOpacity>
               </View>
             );

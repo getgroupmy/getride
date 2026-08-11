@@ -861,7 +861,7 @@ export default function TeksiEvScreen() {
       ) : (
         <>
           <View style={[styles.fastBanner, { backgroundColor: Colors.success + "15", borderColor: Colors.success }]}>
-            <Package color={Colors.success} size={18} />
+            <Package color={Colors.successText} size={18} />
             <Text style={[styles.fastBannerText, { color: Colors.text }]}>
               Fast delivery — ready units assigned with a VIN.
             </Text>
@@ -1019,7 +1019,7 @@ export default function TeksiEvScreen() {
                           {sel && <Check color={Colors.secondary} size={14} />}
                         </View>
                         <Text style={[styles.accName, { color: Colors.text }]}>{a.name}</Text>
-                        <Text style={[styles.accCost, { color: Colors.accent }]}>+RM{a.cost.toLocaleString()}</Text>
+                        <Text style={[styles.accCost, { color: Colors.accentText }]}>+RM{a.cost.toLocaleString()}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -1028,7 +1028,7 @@ export default function TeksiEvScreen() {
 
               <View style={[styles.totalBox, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent }]}>
                 <Text style={[styles.totalLabel, { color: Colors.text }]}>Estimated total</Text>
-                <Text style={[styles.totalValue, { color: Colors.accent }]}>RM{totalPrice.toLocaleString()}</Text>
+                <Text style={[styles.totalValue, { color: Colors.accentText }]}>RM{totalPrice.toLocaleString()}</Text>
               </View>
               <View style={[styles.breakdownBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
                 <BreakdownRow Colors={Colors} label="Base" value={basePrice} />
@@ -1065,7 +1065,7 @@ export default function TeksiEvScreen() {
                       </View>
                       <Text style={[styles.accName, { color: Colors.text }]}>{f.name}</Text>
                       {f.price > 0 && (
-                        <Text style={[styles.accCost, { color: Colors.accent }]}>+RM{f.price.toLocaleString()}</Text>
+                        <Text style={[styles.accCost, { color: Colors.accentText }]}>+RM{f.price.toLocaleString()}</Text>
                       )}
                     </View>
                   ))}
@@ -1085,7 +1085,7 @@ export default function TeksiEvScreen() {
                       </View>
                       <Text style={[styles.accName, { color: Colors.text }]}>{a.name}</Text>
                       {a.price > 0 && (
-                        <Text style={[styles.accCost, { color: Colors.accent }]}>+RM{a.price.toLocaleString()}</Text>
+                        <Text style={[styles.accCost, { color: Colors.accentText }]}>+RM{a.price.toLocaleString()}</Text>
                       )}
                     </View>
                   ))}
@@ -1107,7 +1107,7 @@ export default function TeksiEvScreen() {
                 testID="ev-wheels-lock"
               >
                 {wheelsUnlocked ? (
-                  <Unlock color={Colors.accent} size={16} />
+                  <Unlock color={Colors.accentText} size={16} />
                 ) : (
                   <Lock color={Colors.textSecondary} size={16} />
                 )}
@@ -1151,7 +1151,7 @@ export default function TeksiEvScreen() {
               {basePrice > 0 && (
                 <View style={[styles.totalBox, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent }]}>
                   <Text style={[styles.totalLabel, { color: Colors.text }]}>Drive-away total</Text>
-                  <Text style={[styles.totalValue, { color: Colors.accent }]}>RM{totalPrice.toLocaleString()}</Text>
+                  <Text style={[styles.totalValue, { color: Colors.accentText }]}>RM{totalPrice.toLocaleString()}</Text>
                 </View>
               )}
               {basePrice > 0 && (
@@ -1164,7 +1164,7 @@ export default function TeksiEvScreen() {
               {wheelsSwapped && (
                 <View style={[styles.refitNotice, { backgroundColor: Colors.warning ? Colors.warning + "20" : "#F59E0B20", borderColor: Colors.warning ?? "#F59E0B" }]} testID="ev-refit-notice">
                   <Unlock color={Colors.warning ?? "#F59E0B"} size={14} />
-                  <Text style={[styles.refitText, { color: Colors.warning ?? "#F59E0B" }]} numberOfLines={3}>
+                  <Text style={[styles.refitText, { color: Colors.warningText ?? "#F59E0B" }]} numberOfLines={3}>
                     Wheels changed from {factoryWheels} to {selectedWheel}. Your build will be flagged for re-fitting before delivery.
                   </Text>
                 </View>
@@ -1202,7 +1202,7 @@ export default function TeksiEvScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.gatewayLabel, { color: Colors.textSecondary }]}>Offline session</Text>
-            <Text style={[styles.gatewayName, { color: Colors.warning ?? "#F59E0B" }]} numberOfLines={3}>
+            <Text style={[styles.gatewayName, { color: Colors.warningText ?? "#F59E0B" }]} numberOfLines={3}>
               Your order will be held on this device and uploaded once you sign in.
             </Text>
           </View>
@@ -1218,7 +1218,7 @@ export default function TeksiEvScreen() {
           testID="ev-checkout-gateway"
         >
           <View style={[styles.gatewayIcon, { backgroundColor: Colors.accent + "20" }]}>
-            <ShieldCheck color={Colors.accent} size={16} />
+            <ShieldCheck color={Colors.accentText} size={16} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.gatewayLabel, { color: Colors.textSecondary }]}>
@@ -1273,7 +1273,7 @@ export default function TeksiEvScreen() {
             <Text style={[styles.gatewayLabel, { color: Colors.textSecondary }]}>
               Payment gateway
             </Text>
-            <Text style={[styles.gatewayName, { color: Colors.warning ?? "#F59E0B" }]} numberOfLines={2}>
+            <Text style={[styles.gatewayName, { color: Colors.warningText ?? "#F59E0B" }]} numberOfLines={2}>
               Not configured — contact support before paying.
             </Text>
           </View>
@@ -1468,7 +1468,7 @@ export default function TeksiEvScreen() {
       {plateTransfer === "yes" && (
         <View style={[styles.ownerCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
           <View style={[styles.vsoBox, { backgroundColor: Colors.warning + "15", borderColor: Colors.warning }]} testID="ev-plate-disclaimer">
-            <FileSignature color={Colors.warning} size={18} />
+            <FileSignature color={Colors.warningText} size={18} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.vsoTitle, { color: Colors.text }]}>Disclaimer</Text>
               <Text style={[styles.vsoSub, { color: Colors.textSecondary }]}>
@@ -1495,7 +1495,7 @@ export default function TeksiEvScreen() {
 
       {plateTransfer === "no" && (
         <View style={[styles.vsoBox, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent }]}>
-          <FileSignature color={Colors.accent} size={18} />
+          <FileSignature color={Colors.accentText} size={18} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.vsoTitle, { color: Colors.text }]}>New plate will be issued</Text>
             <Text style={[styles.vsoSub, { color: Colors.textSecondary }]}>
@@ -1561,13 +1561,13 @@ export default function TeksiEvScreen() {
           accessibilityRole="button"
         >
           <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
-            <Icon color={Colors.accent} size={22} />
+            <Icon color={Colors.accentText} size={22} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.cardTitle, { color: Colors.text }]}>{FINANCE_TYPE_LABELS[value]}</Text>
             <Text style={[styles.cardSub, { color: Colors.textSecondary }]} numberOfLines={2}>{meta.sub}</Text>
           </View>
-          {sel && <Check color={Colors.accent} size={20} />}
+          {sel && <Check color={Colors.accentText} size={20} />}
         </TouchableOpacity>
       );
     };
@@ -1579,7 +1579,7 @@ export default function TeksiEvScreen() {
     return (
       <View style={{ gap: 12 }}>
         <View style={[styles.vsoBox, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent }]}>
-          <FileSignature color={Colors.accent} size={20} />
+          <FileSignature color={Colors.accentText} size={20} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.vsoTitle, { color: Colors.text }]}>Vehicle Sales Order issued</Text>
             <Text style={[styles.vsoSub, { color: Colors.textSecondary }]}>
@@ -1637,7 +1637,7 @@ export default function TeksiEvScreen() {
                       <Text style={[styles.cardMeta, { color: Colors.textSecondary }]}>{metaLine}</Text>
                     )}
                   </View>
-                  {sel && <Check color={Colors.accent} size={20} />}
+                  {sel && <Check color={Colors.accentText} size={20} />}
                 </TouchableOpacity>
               );
             })}
@@ -1648,7 +1648,7 @@ export default function TeksiEvScreen() {
           <View style={{ gap: 10 }}>
             <View style={[styles.totalBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
               <Text style={[styles.totalLabel, { color: Colors.text }]}>Outstanding balance</Text>
-              <Text style={[styles.totalValue, { color: Colors.accent }]}>RM{outstandingBalance.toLocaleString()}</Text>
+              <Text style={[styles.totalValue, { color: Colors.accentText }]}>RM{outstandingBalance.toLocaleString()}</Text>
             </View>
             <TouchableOpacity
               onPress={() => {
@@ -1683,7 +1683,7 @@ export default function TeksiEvScreen() {
 
         {financeType === "hp" && (
           <View style={[styles.vsoBox, { backgroundColor: Colors.success + "15", borderColor: Colors.success }]}>
-            <Check color={Colors.success} size={18} />
+            <Check color={Colors.successText} size={18} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.vsoTitle, { color: Colors.text }]}>Proceed to advisor</Text>
               <Text style={[styles.vsoSub, { color: Colors.textSecondary }]}>
@@ -1695,7 +1695,7 @@ export default function TeksiEvScreen() {
 
         {financeType === "rental" && (
           <View style={[styles.vsoBox, { backgroundColor: Colors.success + "15", borderColor: Colors.success }]}>
-            <Check color={Colors.success} size={18} />
+            <Check color={Colors.successText} size={18} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.vsoTitle, { color: Colors.text }]}>Proceed to advisor</Text>
               <Text style={[styles.vsoSub, { color: Colors.textSecondary }]}>
@@ -1786,7 +1786,7 @@ export default function TeksiEvScreen() {
             )}
             {leasingAddonRequired === "no" && (
               <View style={[styles.vsoBox, { backgroundColor: Colors.success + "15", borderColor: Colors.success }]}>
-                <Check color={Colors.success} size={18} />
+                <Check color={Colors.successText} size={18} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.vsoTitle, { color: Colors.text }]}>No add-on required</Text>
                   <Text style={[styles.vsoSub, { color: Colors.textSecondary }]}>You can proceed to your Delivery Advisor.</Text>
@@ -1869,7 +1869,7 @@ export default function TeksiEvScreen() {
         {!!deliveryDate && (
           <View style={[styles.totalBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
             <Text style={[styles.totalLabel, { color: Colors.text }]}>Selected date</Text>
-            <Text style={[styles.totalValue, { color: Colors.accent }]}>{deliveryDate}</Text>
+            <Text style={[styles.totalValue, { color: Colors.accentText }]}>{deliveryDate}</Text>
           </View>
         )}
       </View>
@@ -2262,7 +2262,7 @@ export default function TeksiEvScreen() {
           {extracted && (
             <View style={{ gap: 10, marginTop: 4 }}>
               <View style={[styles.extractedHeader, { backgroundColor: Colors.success + "15", borderColor: Colors.success }]}>
-                <Check color={Colors.success} size={14} />
+                <Check color={Colors.successText} size={14} />
                 <Text style={[styles.extractedHeaderText, { color: Colors.text }]}>Review and edit before confirming</Text>
               </View>
               {!!extractedPhoto && (
@@ -2351,7 +2351,7 @@ export default function TeksiEvScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Zap color={Colors.accent} size={18} />
+            <Zap color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>TEKSI EV</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
@@ -2507,7 +2507,7 @@ export default function TeksiEvScreen() {
           <View style={[styles.modalSheet, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
             <View style={styles.modalHandle} />
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <Ticket color={Colors.accent} size={18} />
+              <Ticket color={Colors.accentText} size={18} />
               <Text style={[styles.modalTitle, { color: Colors.text, marginBottom: 0 }]}>Agent code</Text>
             </View>
             <Text style={{ color: Colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
@@ -2663,7 +2663,7 @@ function TrimPicker({
               <Image source={{ uri: it.imageUri }} style={styles.trimRowImg} resizeMode="cover" />
             ) : (
               <View style={[styles.trimRowImg, { alignItems: "center", justifyContent: "center", backgroundColor: Colors.accent + "15" }]}>
-                <Zap color={Colors.accent} size={28} />
+                <Zap color={Colors.accentText} size={28} />
               </View>
             )}
             <View style={styles.trimRowBody}>
@@ -2857,7 +2857,7 @@ function InfoRow({
   return (
     <View style={styles.infoRow}>
       <View style={[styles.infoIcon, { backgroundColor: Colors.accent + "15" }]}>
-        <Icon color={Colors.accent} size={14} />
+        <Icon color={Colors.accentText} size={14} />
       </View>
       <Text style={[styles.infoLabel, { color: Colors.textSecondary }]}>{label}</Text>
       <Text style={[styles.infoValue, { color: Colors.text }]} numberOfLines={1}>{value}</Text>

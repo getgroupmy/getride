@@ -119,10 +119,10 @@ export default function OfferFareScreen() {
 
   const getValidationMessage = () => {
     if (isBelowMin) {
-      return { text: `Minimum fare is ${currency.symbol} ${minFare}`, color: Colors.error };
+      return { text: `Minimum fare is ${currency.symbol} ${minFare}`, color: Colors.errorText };
     }
     if (isAboveMax) {
-      return { text: `Maximum fare is ${currency.symbol} ${maxFare}`, color: Colors.error };
+      return { text: `Maximum fare is ${currency.symbol} ${maxFare}`, color: Colors.errorText };
     }
     return { text: `Recommended fare: ${currency.symbol} ${recommendedFare}`, color: Colors.text };
   };
@@ -174,7 +174,7 @@ export default function OfferFareScreen() {
     fareCurrency: {
       fontSize: 48,
       fontWeight: "300",
-      color: Colors.error,
+      color: Colors.errorText,
       marginRight: 4,
     },
     fareAmount: {
@@ -315,7 +315,7 @@ export default function OfferFareScreen() {
     },
     doneButtonText: {
       fontSize: 16,
-      color: "#3B82F6",
+      color: Colors.accentText,
       fontWeight: "500",
     },
     bottomBar: {

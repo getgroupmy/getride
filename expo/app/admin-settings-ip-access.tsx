@@ -206,7 +206,7 @@ export default function AdminSettingsIpAccessScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Globe color={Colors.accent} size={18} />
+            <Globe color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>IP Whitelist / Blacklist</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -230,7 +230,7 @@ export default function AdminSettingsIpAccessScreen() {
 
       {accessLoading || loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -259,9 +259,9 @@ export default function AdminSettingsIpAccessScreen() {
                   ]}
                 >
                   {myIpRule.list_type === "whitelist" ? (
-                    <ShieldCheck color={Colors.success} size={12} />
+                    <ShieldCheck color={Colors.successText} size={12} />
                   ) : (
-                    <ShieldX color={Colors.error} size={12} />
+                    <ShieldX color={Colors.errorText} size={12} />
                   )}
                   <Text
                     style={[
@@ -291,8 +291,8 @@ export default function AdminSettingsIpAccessScreen() {
                   testID="ip-access-add-mine"
                   accessibilityRole="button"
                 >
-                  <Plus color={Colors.accent} size={14} />
-                  <Text style={[styles.smallBtnTxt, { color: Colors.accent }]}>Add this IP</Text>
+                  <Plus color={Colors.accentText} size={14} />
+                  <Text style={[styles.smallBtnTxt, { color: Colors.accentText }]}>Add this IP</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -378,7 +378,7 @@ export default function AdminSettingsIpAccessScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Edit IP access"
                 >
-                  <Pencil color={Colors.accent} size={14} />
+                  <Pencil color={Colors.accentText} size={14} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => onDelete(rule)}
@@ -389,7 +389,7 @@ export default function AdminSettingsIpAccessScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Delete IP access"
                 >
-                  <Trash2 color={Colors.error} size={14} />
+                  <Trash2 color={Colors.errorText} size={14} />
                 </TouchableOpacity>
               </View>
             );
@@ -471,7 +471,7 @@ export default function AdminSettingsIpAccessScreen() {
                 />
                 {myIp && ipInput.trim() !== myIp ? (
                   <TouchableOpacity onPress={() => setIpInput(myIp)} hitSlop={8} testID="ip-access-use-mine" accessibilityRole="button">
-                    <Text style={[styles.useMine, { color: Colors.accent }]}>Use mine</Text>
+                    <Text style={[styles.useMine, { color: Colors.accentText }]}>Use mine</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>

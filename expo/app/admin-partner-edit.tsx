@@ -259,7 +259,7 @@ export default function AdminPartnerEditScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Pencil color={Colors.accent} size={18} />
+            <Pencil color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Edit Partner</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
@@ -273,7 +273,7 @@ export default function AdminPartnerEditScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete"
         >
-          <Trash2 color={Colors.error} size={20} />
+          <Trash2 color={Colors.errorText} size={20} />
         </TouchableOpacity>
       </View>
 
@@ -293,8 +293,8 @@ export default function AdminPartnerEditScreen() {
                 <Text style={[styles.userName, { color: Colors.text }]} numberOfLines={1}>{partner.name}</Text>
                 {partnerTypes.map((t) => (
                   <View key={t} style={[styles.typePill, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" }]} testID={`edit-partner-type-badge-${t}`}>
-                    <Tag color={Colors.accent} size={10} />
-                    <Text style={[styles.typePillText, { color: Colors.accent }]} numberOfLines={1}>{t}</Text>
+                    <Tag color={Colors.accentText} size={10} />
+                    <Text style={[styles.typePillText, { color: Colors.accentText }]} numberOfLines={1}>{t}</Text>
                   </View>
                 ))}
               </View>
@@ -366,8 +366,8 @@ export default function AdminPartnerEditScreen() {
                   testID="edit-partner-add-vehicle"
                   accessibilityRole="button"
                 >
-                  <Plus color={Colors.accent} size={14} />
-                  <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add new</Text>
+                  <Plus color={Colors.accentText} size={14} />
+                  <Text style={[styles.addBtnText, { color: Colors.accentText }]}>Add new</Text>
                 </TouchableOpacity>
               </View>
               <Text style={[styles.label, { color: Colors.textSecondary, marginTop: 8 }]}>
@@ -376,7 +376,7 @@ export default function AdminPartnerEditScreen() {
               {selectedVehicle ? (
                 <View style={[styles.vehicleCard, { backgroundColor: Colors.gray[100], borderColor: Colors.accent }]}>
                   <View style={[styles.vehicleIcon, { backgroundColor: Colors.accent + "20" }]}>
-                    <CarFront color={Colors.accent} size={18} />
+                    <CarFront color={Colors.accentText} size={18} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.userName, { color: Colors.text }]} numberOfLines={1}>
@@ -429,7 +429,7 @@ export default function AdminPartnerEditScreen() {
                           accessibilityRole="button"
                         >
                           <View style={[styles.vehicleIcon, { backgroundColor: Colors.accent + "15" }]}>
-                            <CarFront color={Colors.accent} size={18} />
+                            <CarFront color={Colors.accentText} size={18} />
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.userName, { color: Colors.text }]} numberOfLines={1}>

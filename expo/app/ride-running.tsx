@@ -1329,7 +1329,7 @@ export default function RideRunningScreen() {
         </MapView>
       ) : (
         <View style={[styles.map, styles.webMap, { backgroundColor: colorScheme === "dark" ? "#1a1a1a" : "#eef2f5" }]}>
-          <Navigation color={Colors.accent} size={56} />
+          <Navigation color={Colors.accentText} size={56} />
           <Text style={[styles.webText, { color: Colors.text }]}>Live tracking</Text>
           <Text style={[styles.webSub, { color: Colors.textSecondary }]}>Available on mobile</Text>
         </View>
@@ -1378,7 +1378,7 @@ export default function RideRunningScreen() {
             },
           ]}
         >
-          <Navigation2 color={Colors.accent} size={22} />
+          <Navigation2 color={Colors.accentText} size={22} />
         </TouchableOpacity>
       )}
 
@@ -1401,7 +1401,7 @@ export default function RideRunningScreen() {
             },
           ]}
         >
-          <Crosshair color={Colors.accent} size={22} />
+          <Crosshair color={Colors.accentText} size={22} />
         </TouchableOpacity>
       )}
 
@@ -1418,7 +1418,7 @@ export default function RideRunningScreen() {
                 : "On trip · Live"}
           </Text>
           <View style={[styles.statusSep, { backgroundColor: Colors.gray[300] }]} />
-          <Text style={[styles.kmText, { color: Colors.accent }]} testID="on-trip-traveled-km">
+          <Text style={[styles.kmText, { color: Colors.accentText }]} testID="on-trip-traveled-km">
             {traveledKm.toFixed(2)} km
           </Text>
           <Text style={[styles.elapsedText, { color: Colors.textSecondary }]}>{formatElapsed(elapsedSec)}</Text>
@@ -1480,7 +1480,7 @@ export default function RideRunningScreen() {
                 <View style={styles.locRow}>
                   <View style={styles.locIconCol}>
                     <View style={[styles.dropIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                      <MapPin color={Colors.accent} size={20} />
+                      <MapPin color={Colors.accentText} size={20} />
                     </View>
                   </View>
                   <View style={{ flex: 1 }}>
@@ -1507,19 +1507,19 @@ export default function RideRunningScreen() {
 
           <View style={[styles.statsRow, { borderColor: Colors.gray[200] }]}>
             <View style={styles.statItem}>
-              <Clock color={Colors.accent} size={18} />
+              <Clock color={Colors.accentText} size={18} />
               <Text style={[styles.statValue, { color: Colors.text }]}>{remainingMin}</Text>
               <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>min left</Text>
             </View>
             <View style={[styles.divider, { backgroundColor: Colors.gray[200] }]} />
             <View style={styles.statItem}>
-              <RouteIcon color={Colors.accent} size={18} />
+              <RouteIcon color={Colors.accentText} size={18} />
               <Text style={[styles.statValue, { color: Colors.text }]}>{remainingKm}</Text>
               <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>km to go</Text>
             </View>
             <View style={[styles.divider, { backgroundColor: Colors.gray[200] }]} />
             <View style={styles.statItem}>
-              <Wallet color={Colors.accent} size={18} />
+              <Wallet color={Colors.accentText} size={18} />
               <Text style={[styles.statValue, { color: Colors.text }]}>
                 {currency.symbol}{Math.ceil(fareParam)}
               </Text>
@@ -1624,19 +1624,19 @@ export default function RideRunningScreen() {
 
             <View style={[styles.completeStats, { borderColor: Colors.gray[200] }]}>
               <View style={styles.statItem}>
-                <Clock color={Colors.accent} size={18} />
+                <Clock color={Colors.accentText} size={18} />
                 <Text style={[styles.statValue, { color: Colors.text }]}>{formatElapsed(elapsedSec)}</Text>
                 <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>duration</Text>
               </View>
               <View style={[styles.divider, { backgroundColor: Colors.gray[200] }]} />
               <View style={styles.statItem}>
-                <RouteIcon color={Colors.accent} size={18} />
+                <RouteIcon color={Colors.accentText} size={18} />
                 <Text style={[styles.statValue, { color: Colors.text }]}>{distanceParam}</Text>
                 <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>km</Text>
               </View>
               <View style={[styles.divider, { backgroundColor: Colors.gray[200] }]} />
               <View style={styles.statItem}>
-                <Wallet color={Colors.accent} size={18} />
+                <Wallet color={Colors.accentText} size={18} />
                 <Text style={[styles.statValue, { color: Colors.text }]}>
                   {currency.symbol}{Math.ceil(fareParam)}
                 </Text>
@@ -1695,7 +1695,7 @@ export default function RideRunningScreen() {
             ]}
           >
             <View style={[styles.warnIconWrap, { backgroundColor: Colors.error + "1A" }]}>
-              <AlertTriangle color={Colors.error} size={28} />
+              <AlertTriangle color={Colors.errorText} size={28} />
             </View>
             <Text style={[styles.endModalTitle, { color: Colors.text }]}>End ride early?</Text>
             <Text style={[styles.endModalBody, { color: Colors.textSecondary }]}>
@@ -1758,7 +1758,7 @@ export default function RideRunningScreen() {
             ]}
           >
             <View style={[styles.warnIconWrap, { backgroundColor: Colors.error + "1A" }]}>
-              <XCircle color={Colors.error} size={32} />
+              <XCircle color={Colors.errorText} size={32} />
             </View>
             <Text style={[styles.endModalTitle, { color: Colors.text }]}>Passenger wants to cancel</Text>
             <Text style={[styles.endModalBody, { color: Colors.textSecondary }]}>
@@ -1822,7 +1822,7 @@ export default function RideRunningScreen() {
             ]}
           >
             <View style={[styles.warnIconWrap, { backgroundColor: Colors.error + "1A" }]}>
-              <XCircle color={Colors.error} size={32} />
+              <XCircle color={Colors.errorText} size={32} />
             </View>
             <Text style={[styles.endModalTitle, { color: Colors.text }]}>Passenger cancelled</Text>
             <Text style={[styles.endModalBody, { color: Colors.textSecondary }]}>
@@ -1865,7 +1865,7 @@ export default function RideRunningScreen() {
 
             <View style={styles.recalcHeaderRow}>
               <View style={[styles.recalcIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                <Receipt color={Colors.accent} size={22} />
+                <Receipt color={Colors.accentText} size={22} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.recalcTitle, { color: Colors.text }]}>Ride ended early</Text>
@@ -1886,7 +1886,7 @@ export default function RideRunningScreen() {
 
             {isRecalculating || !recalcResult ? (
               <View style={styles.recalcLoading}>
-                <ActivityIndicator color={Colors.accent} />
+                <ActivityIndicator color={Colors.accentText} />
                 <Text style={[styles.recalcLoadingText, { color: Colors.textSecondary }]}>
                   Recalculating fare…
                 </Text>
@@ -1922,13 +1922,13 @@ export default function RideRunningScreen() {
 
                 <View style={[styles.statsRow, { borderColor: Colors.gray[200], marginTop: 14 }]}>
                   <View style={styles.statItem}>
-                    <RouteIcon color={Colors.accent} size={18} />
+                    <RouteIcon color={Colors.accentText} size={18} />
                     <Text style={[styles.statValue, { color: Colors.text }]}>{recalcResult.distance}</Text>
                     <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>km</Text>
                   </View>
                   <View style={[styles.divider, { backgroundColor: Colors.gray[200] }]} />
                   <View style={styles.statItem}>
-                    <Clock color={Colors.accent} size={18} />
+                    <Clock color={Colors.accentText} size={18} />
                     <Text style={[styles.statValue, { color: Colors.text }]}>{recalcResult.duration}</Text>
                     <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>min</Text>
                   </View>
@@ -2011,7 +2011,7 @@ export default function RideRunningScreen() {
               contentContainerStyle={{ padding: 22 }}
             >
               <View style={[styles.warnIconWrap, { backgroundColor: Colors.accent + "1A", alignSelf: "center" }]}>
-                <HandCoins color={Colors.accent} size={30} />
+                <HandCoins color={Colors.accentText} size={30} />
               </View>
               <Text style={[styles.endModalTitle, { color: Colors.text }]}>Add tolls or extras</Text>
               <Text style={[styles.endModalBody, { color: Colors.textSecondary }]}>
@@ -2028,7 +2028,7 @@ export default function RideRunningScreen() {
               <Text style={[styles.tollsLabel, { color: Colors.textSecondary }]}>Toll charges</Text>
               <View style={[styles.tollsInputWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}>
                 <View style={[styles.tollsInputIcon, { backgroundColor: Colors.background }]}>
-                  <Coins color={Colors.accent} size={18} />
+                  <Coins color={Colors.accentText} size={18} />
                 </View>
                 <Text style={[styles.tollsCurrency, { color: Colors.textSecondary }]}>{currency.symbol}</Text>
                 <TextInput
@@ -2046,7 +2046,7 @@ export default function RideRunningScreen() {
               <Text style={[styles.tollsLabel, { color: Colors.textSecondary }]}>Other charges</Text>
               <View style={[styles.tollsInputWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}>
                 <View style={[styles.tollsInputIcon, { backgroundColor: Colors.background }]}>
-                  <Plus color={Colors.accent} size={18} />
+                  <Plus color={Colors.accentText} size={18} />
                 </View>
                 <Text style={[styles.tollsCurrency, { color: Colors.textSecondary }]}>{currency.symbol}</Text>
                 <TextInput
@@ -2147,7 +2147,7 @@ export default function RideRunningScreen() {
 
             <View style={[styles.completeStats, { borderColor: Colors.gray[200] }]}>
               <View style={styles.statItem}>
-                <Wallet color={Colors.accent} size={18} />
+                <Wallet color={Colors.accentText} size={18} />
                 <Text style={[styles.statValue, { color: Colors.text }]}>
                   {currency.symbol}{recalcResult ? recalcResult.total : Math.ceil(fareParam)}
                 </Text>
@@ -2155,7 +2155,7 @@ export default function RideRunningScreen() {
               </View>
               <View style={[styles.divider, { backgroundColor: Colors.gray[200] }]} />
               <View style={styles.statItem}>
-                <Coins color={Colors.accent} size={18} />
+                <Coins color={Colors.accentText} size={18} />
                 <Text style={[styles.statValue, { color: Colors.text }]}>
                   {currency.symbol}{parsedTolls}
                 </Text>
@@ -2163,7 +2163,7 @@ export default function RideRunningScreen() {
               </View>
               <View style={[styles.divider, { backgroundColor: Colors.gray[200] }]} />
               <View style={styles.statItem}>
-                <Plus color={Colors.accent} size={18} />
+                <Plus color={Colors.accentText} size={18} />
                 <Text style={[styles.statValue, { color: Colors.text }]}>
                   {currency.symbol}{parsedExtras}
                 </Text>
@@ -2339,7 +2339,7 @@ export default function RideRunningScreen() {
             ]}
           >
             <View style={[styles.warnIconWrap, { backgroundColor: Colors.error + "1A" }]}>
-              <XCircle color={Colors.error} size={32} />
+              <XCircle color={Colors.errorText} size={32} />
             </View>
             <Text style={[styles.endModalTitle, { color: Colors.text }]}>Cancel order?</Text>
             <Text style={[styles.endModalBody, { color: Colors.textSecondary }]}>
@@ -2495,7 +2495,7 @@ export default function RideRunningScreen() {
             ]}
           >
             <View style={[styles.warnIconWrap, { backgroundColor: Colors.error + "1A" }]}>
-              <AlertTriangle color={Colors.error} size={32} />
+              <AlertTriangle color={Colors.errorText} size={32} />
             </View>
             <Text style={[styles.endModalTitle, { color: Colors.text }]}>Cancel this ride?</Text>
             <Text style={[styles.endModalBody, { color: Colors.textSecondary }]}>
@@ -2570,7 +2570,7 @@ export default function RideRunningScreen() {
 
             <View style={styles.recalcHeaderRow}>
               <View style={[styles.recalcIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                <Wallet color={Colors.accent} size={22} />
+                <Wallet color={Colors.accentText} size={22} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.recalcTitle, { color: Colors.text }]}>Select payment mode</Text>

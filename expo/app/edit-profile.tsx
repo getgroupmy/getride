@@ -1071,7 +1071,7 @@ export default function EditProfileScreen() {
             testID="edit-profile-save"
           >
             {saving ? (
-              <ActivityIndicator size="small" color={Colors.accent} />
+              <ActivityIndicator size="small" color={Colors.accentText} />
             ) : (
               <Check color={dirty ? Colors.accent : Colors.textSecondary} size={22} />
             )}
@@ -1099,7 +1099,7 @@ export default function EditProfileScreen() {
           testID="edit-profile-number-changed-banner"
           accessibilityRole="button"
         >
-          <ShieldCheck color={Colors.success} size={16} strokeWidth={2.5} />
+          <ShieldCheck color={Colors.successText} size={16} strokeWidth={2.5} />
           <Text style={styles.successBannerText}>
             {numberWasPinVerified ? "PIN verified · " : ""}Phone updated{changedPhone ? ` to ${changedPhone}` : ""}
             {phonePersistError ? ` · ${phonePersistError}` : phonePersisted ? " · synced" : ""}
@@ -1108,7 +1108,7 @@ export default function EditProfileScreen() {
       )}
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView
@@ -1129,7 +1129,7 @@ export default function EditProfileScreen() {
                 {form.avatar ? (
                   <Image source={{ uri: form.avatar }} style={styles.avatarImage} />
                 ) : (
-                  <Text style={[styles.avatarText, { color: Colors.accent }]}>{firstChar}</Text>
+                  <Text style={[styles.avatarText, { color: Colors.accentText }]}>{firstChar}</Text>
                 )}
                 {verifyingFace && (
                   <View style={styles.avatarOverlay}>
@@ -1242,12 +1242,12 @@ export default function EditProfileScreen() {
                 testID="edit-profile-scan-id"
               >
                 {scanningId ? (
-                  <ActivityIndicator color={Colors.accent} />
+                  <ActivityIndicator color={Colors.accentText} />
                 ) : (
-                  <ScanLine color={Colors.accent} size={20} />
+                  <ScanLine color={Colors.accentText} size={20} />
                 )}
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.scanCtaTitle, { color: Colors.accent }]}>
+                  <Text style={[styles.scanCtaTitle, { color: Colors.accentText }]}>
                     {scanningId ? scanStep || "Scanning…" : "Scan Passport or ID"}
                   </Text>
                   <Text style={styles.scanCtaSub}>
@@ -1297,8 +1297,8 @@ export default function EditProfileScreen() {
                 testID="edit-profile-rescan-id"
                 accessibilityRole="button"
               >
-                <ScanLine color={Colors.accent} size={16} />
-                <Text style={[styles.rescanBtnText, { color: Colors.accent }]}>
+                <ScanLine color={Colors.accentText} size={16} />
+                <Text style={[styles.rescanBtnText, { color: Colors.accentText }]}>
                   Re-scan to change number or address
                 </Text>
               </TouchableOpacity>
@@ -1414,7 +1414,7 @@ export default function EditProfileScreen() {
                 >
                   <Text style={styles.countryFlag}>{item.flag}</Text>
                   <Text style={styles.countryName}>{item.name}</Text>
-                  {selected ? <Check color={Colors.accent} size={18} /> : null}
+                  {selected ? <Check color={Colors.accentText} size={18} /> : null}
                 </TouchableOpacity>
               );
             }}
@@ -1459,7 +1459,7 @@ const makeStyles = (Colors: ReturnType<typeof useColors>) =>
       flex: 1,
       fontSize: 13,
       fontWeight: "600" as const,
-      color: Colors.success,
+      color: Colors.successText,
     },
     warnBanner: {
       flexDirection: "row" as const,
@@ -1479,7 +1479,7 @@ const makeStyles = (Colors: ReturnType<typeof useColors>) =>
       flex: 1,
       fontSize: 13,
       fontWeight: "600" as const,
-      color: Colors.warning ?? "#B45309",
+      color: Colors.warningText ?? "#B45309",
     },
     scroll: { flex: 1 },
     scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },

@@ -490,7 +490,7 @@ export default function AdminSettingsDisplayScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Eye color={Colors.accent} size={18} />
+            <Eye color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Display Settings</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -1019,7 +1019,7 @@ export default function AdminSettingsDisplayScreen() {
                     {cfg.imageUri ? (
                       <Image source={{ uri: cfg.imageUri }} style={styles.boxPreviewImg} resizeMode="cover" />
                     ) : (
-                      <Icon color={Colors.accent} size={28} strokeWidth={1.6} />
+                      <Icon color={Colors.accentText} size={28} strokeWidth={1.6} />
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
@@ -1120,8 +1120,8 @@ export default function AdminSettingsDisplayScreen() {
                       testID={`display-box-${idx}-remove-image`}
                       accessibilityRole="button"
                     >
-                      <X color={Colors.error} size={16} />
-                      <Text style={[styles.imageBtnText, { color: Colors.error }]}>Remove</Text>
+                      <X color={Colors.errorText} size={16} />
+                      <Text style={[styles.imageBtnText, { color: Colors.errorText }]}>Remove</Text>
                     </TouchableOpacity>
                   ) : (
                     <View style={[styles.imageHint, { borderColor: Colors.border }]}>
@@ -1145,7 +1145,7 @@ export default function AdminSettingsDisplayScreen() {
           testID="display-row-vehicle-markers"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
-            <Car color={Colors.accent} size={20} />
+            <Car color={Colors.accentText} size={20} />
           </View>
           <View style={styles.rowInfo}>
             <Text style={[styles.rowLabel, { color: Colors.text }]}>On-map vehicle icons</Text>
@@ -1172,7 +1172,7 @@ export default function AdminSettingsDisplayScreen() {
           accessibilityRole="button"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
-            <Layers color={Colors.accent} size={20} />
+            <Layers color={Colors.accentText} size={20} />
           </View>
           <View style={styles.rowInfo}>
             <Text style={[styles.rowLabel, { color: Colors.text }]}>Manage vehicles in bar</Text>
@@ -1189,7 +1189,7 @@ export default function AdminSettingsDisplayScreen() {
           accessibilityRole="button"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
-            <ArrowUpDown color={Colors.accent} size={20} />
+            <ArrowUpDown color={Colors.accentText} size={20} />
           </View>
           <View style={styles.rowInfo}>
             <Text style={[styles.rowLabel, { color: Colors.text }]}>Icon in bar arrangement</Text>
@@ -1208,7 +1208,7 @@ export default function AdminSettingsDisplayScreen() {
           accessibilityRole="button"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
-            <UserRound color={Colors.accent} size={20} />
+            <UserRound color={Colors.accentText} size={20} />
           </View>
           <View style={styles.rowInfo}>
             <Text style={[styles.rowLabel, { color: Colors.text }]}>User side menu</Text>
@@ -1225,7 +1225,7 @@ export default function AdminSettingsDisplayScreen() {
           accessibilityRole="button"
         >
           <View style={[styles.rowIconWrap, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
-            <Briefcase color={Colors.accent} size={20} />
+            <Briefcase color={Colors.accentText} size={20} />
           </View>
           <View style={styles.rowInfo}>
             <Text style={[styles.rowLabel, { color: Colors.text }]}>Partner side menu</Text>
@@ -1408,7 +1408,7 @@ export default function AdminSettingsDisplayScreen() {
                           testID={`display-sidemenu-${menu}-profile`}
                         >
                           <View style={[styles.svcIconWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
-                            <User color={Colors.accent} size={18} />
+                            <User color={Colors.accentText} size={18} />
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
@@ -1432,7 +1432,7 @@ export default function AdminSettingsDisplayScreen() {
                               testID={`display-sidemenu-comingsoon-${menu}-profile`}
                               accessibilityRole="button"
                             >
-                              {profileComingSoon ? <Check color={Colors.accent} size={13} /> : null}
+                              {profileComingSoon ? <Check color={Colors.accentText} size={13} /> : null}
                               <Text
                                 style={[
                                   styles.comingSoonChipText,
@@ -1512,7 +1512,7 @@ export default function AdminSettingsDisplayScreen() {
                             </TouchableOpacity>
                           </View>
                           <View style={[styles.svcIconWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
-                            <Icon color={Colors.accent} size={18} />
+                            <Icon color={Colors.accentText} size={18} />
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
@@ -1537,7 +1537,7 @@ export default function AdminSettingsDisplayScreen() {
                               accessibilityRole="button"
                             >
                               {isComingSoon ? (
-                                <Check color={Colors.accent} size={13} />
+                                <Check color={Colors.accentText} size={13} />
                               ) : null}
                               <Text
                                 style={[
@@ -1561,7 +1561,7 @@ export default function AdminSettingsDisplayScreen() {
                               accessibilityRole="button"
                               accessibilityLabel="Rename"
                             >
-                              <Pencil color={Colors.accent} size={16} />
+                              <Pencil color={Colors.accentText} size={16} />
                             </TouchableOpacity>
                             {o.isCustom ? (
                               <TouchableOpacity
@@ -1580,7 +1580,7 @@ export default function AdminSettingsDisplayScreen() {
                                 accessibilityRole="button"
                                 accessibilityLabel="Remove display sidemenu"
                               >
-                                <Trash2 color={Colors.error} size={16} />
+                                <Trash2 color={Colors.errorText} size={16} />
                               </TouchableOpacity>
                             ) : null}
                             <Switch
@@ -1611,7 +1611,7 @@ export default function AdminSettingsDisplayScreen() {
                           testID={`display-sidemenu-${menu}-footer-mode`}
                         >
                           <View style={[styles.svcIconWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
-                            <FooterIcon color={Colors.accent} size={18} />
+                            <FooterIcon color={Colors.accentText} size={18} />
                           </View>
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
@@ -1635,7 +1635,7 @@ export default function AdminSettingsDisplayScreen() {
                               testID={`display-sidemenu-comingsoon-${menu}-footer-mode`}
                               accessibilityRole="button"
                             >
-                              {footerComingSoon ? <Check color={Colors.accent} size={13} /> : null}
+                              {footerComingSoon ? <Check color={Colors.accentText} size={13} /> : null}
                               <Text
                                 style={[
                                   styles.comingSoonChipText,
@@ -1658,7 +1658,7 @@ export default function AdminSettingsDisplayScreen() {
                               accessibilityRole="button"
                               accessibilityLabel="Rename"
                             >
-                              <Pencil color={Colors.accent} size={16} />
+                              <Pencil color={Colors.accentText} size={16} />
                             </TouchableOpacity>
                             <Switch
                               value={footerVisible}
@@ -1731,8 +1731,8 @@ export default function AdminSettingsDisplayScreen() {
                       testID="display-sidemenu-rename-route-clear"
                       accessibilityRole="button"
                     >
-                      <X color={Colors.error} size={14} />
-                      <Text style={[styles.rowDesc, { color: Colors.error }]}>Clear page link</Text>
+                      <X color={Colors.errorText} size={14} />
+                      <Text style={[styles.rowDesc, { color: Colors.errorText }]}>Clear page link</Text>
                     </TouchableOpacity>
                   ) : null}
                   <View style={styles.modalActions}>
@@ -1776,7 +1776,7 @@ export default function AdminSettingsDisplayScreen() {
                   >
                     <Text style={[styles.optionText, { color: Colors.text }]}>None (no navigation)</Text>
                     {!(picker.target === "new" ? newItemRoute : routeDraft) ? (
-                      <Check color={Colors.accent} size={18} />
+                      <Check color={Colors.accentText} size={18} />
                     ) : null}
                   </TouchableOpacity>
                   {AVAILABLE_MENU_ROUTES.map((r) => {
@@ -1805,7 +1805,7 @@ export default function AdminSettingsDisplayScreen() {
                             {r.path}
                           </Text>
                         </View>
-                        {selected ? <Check color={Colors.accent} size={18} /> : null}
+                        {selected ? <Check color={Colors.accentText} size={18} /> : null}
                       </TouchableOpacity>
                     );
                   })}
@@ -1828,7 +1828,7 @@ export default function AdminSettingsDisplayScreen() {
                       </Text>
                     </View>
                     {!settings.serviceBoxes[picker.index]?.route ? (
-                      <Check color={Colors.accent} size={18} />
+                      <Check color={Colors.accentText} size={18} />
                     ) : null}
                   </TouchableOpacity>
                   {AVAILABLE_MENU_ROUTES.map((r) => {
@@ -1852,7 +1852,7 @@ export default function AdminSettingsDisplayScreen() {
                             {r.path}
                           </Text>
                         </View>
-                        {selected ? <Check color={Colors.accent} size={18} /> : null}
+                        {selected ? <Check color={Colors.accentText} size={18} /> : null}
                       </TouchableOpacity>
                     );
                   })}
@@ -1990,7 +1990,7 @@ export default function AdminSettingsDisplayScreen() {
                             {img ? (
                               <Image source={{ uri: img }} style={styles.svcIconImg} resizeMode="cover" />
                             ) : (
-                              <Car color={Colors.accent} size={18} />
+                              <Car color={Colors.accentText} size={18} />
                             )}
                           </View>
                           <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
@@ -2061,7 +2061,7 @@ export default function AdminSettingsDisplayScreen() {
                             {iconUri ? (
                               <Image source={{ uri: iconUri }} style={styles.svcIconImg} resizeMode="cover" />
                             ) : (
-                              <Layers color={Colors.accent} size={18} />
+                              <Layers color={Colors.accentText} size={18} />
                             )}
                           </View>
                           <View style={{ flex: 1 }}>
@@ -2106,7 +2106,7 @@ export default function AdminSettingsDisplayScreen() {
                             {img ? (
                               <Image source={{ uri: img }} style={styles.svcIconImg} resizeMode="cover" />
                             ) : (
-                              <Car color={Colors.accent} size={18} />
+                              <Car color={Colors.accentText} size={18} />
                             )}
                           </View>
                           <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
@@ -2143,7 +2143,7 @@ export default function AdminSettingsDisplayScreen() {
                   >
                     <Text style={[styles.optionText, { color: Colors.text }]}>Default (Box {(picker?.index ?? 0) + 1})</Text>
                     {!settings.serviceBoxes[picker?.index ?? 0]?.serviceId && (
-                      <Check color={Colors.accent} size={18} />
+                      <Check color={Colors.accentText} size={18} />
                     )}
                   </TouchableOpacity>
                   {sortedServices.length === 0 ? (
@@ -2172,7 +2172,7 @@ export default function AdminSettingsDisplayScreen() {
                           <Text style={[styles.optionText, { color: Colors.text }]} numberOfLines={1}>
                             {String(svc.values.name ?? "Unnamed")}
                           </Text>
-                          {selected && <Check color={Colors.accent} size={18} />}
+                          {selected && <Check color={Colors.accentText} size={18} />}
                         </TouchableOpacity>
                       );
                     })

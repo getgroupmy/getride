@@ -285,7 +285,7 @@ export default function AdminVehicleEditScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Pencil color={Colors.accent} size={18} />
+            <Pencil color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Edit Vehicle</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
@@ -299,7 +299,7 @@ export default function AdminVehicleEditScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete"
         >
-          <Trash2 color={Colors.error} size={20} />
+          <Trash2 color={Colors.errorText} size={20} />
         </TouchableOpacity>
       </View>
 
@@ -307,7 +307,7 @@ export default function AdminVehicleEditScreen() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={[styles.summaryCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
             <View style={[styles.summaryIcon, { backgroundColor: Colors.accent + "20" }]}>
-              <CarFront color={Colors.accent} size={22} />
+              <CarFront color={Colors.accentText} size={22} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.summaryTitle, { color: Colors.text }]} numberOfLines={1}>

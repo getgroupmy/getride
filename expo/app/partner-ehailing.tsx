@@ -1271,7 +1271,7 @@ export default function DriverEhailingScreen() {
             >
               <View style={styles.walletTopRow}>
                 <View style={[styles.walletIconBubble, { backgroundColor: Colors.accent + "22" }]}>
-                  <WalletIcon color={Colors.accent} size={12} />
+                  <WalletIcon color={Colors.accentText} size={12} />
                 </View>
                 <Text style={[styles.walletLabel, { color: Colors.subtext }]} numberOfLines={1}>GET.wallet</Text>
               </View>
@@ -1502,21 +1502,21 @@ export default function DriverEhailingScreen() {
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}>
             <View style={[styles.statIcon, { backgroundColor: Colors.accent + "22" }]}>
-              <Wallet color={Colors.accent} size={16} />
+              <Wallet color={Colors.accentText} size={16} />
             </View>
             <Text style={[styles.statValue, { color: Colors.text }]}>RM {todayEarnings.toFixed(2)}</Text>
             <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Today</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}>
             <View style={[styles.statIcon, { backgroundColor: Colors.accent + "22" }]}>
-              <RouteIcon color={Colors.accent} size={16} />
+              <RouteIcon color={Colors.accentText} size={16} />
             </View>
             <Text style={[styles.statValue, { color: Colors.text }]}>{todayTrips}</Text>
             <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Trips</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}>
             <View style={[styles.statIcon, { backgroundColor: Colors.accent + "22" }]}>
-              <Star color={Colors.accent} size={16} />
+              <Star color={Colors.accentText} size={16} />
             </View>
             <Text style={[styles.statValue, { color: Colors.text }]}>4.92</Text>
             <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Rating</Text>
@@ -1572,7 +1572,7 @@ export default function DriverEhailingScreen() {
           accessibilityRole="button"
         >
           <View style={[styles.offerMeIcon, { backgroundColor: Colors.accent + "22" }]}>
-            <Tag color={Colors.accent} size={16} />
+            <Tag color={Colors.accentText} size={16} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.offerMeTitle, { color: Colors.text }]}>Allow OfferMe requests</Text>
@@ -1666,8 +1666,8 @@ export default function DriverEhailingScreen() {
                   { backgroundColor: Colors.accent + "1A" },
                 ]}
               >
-                <Zap color={Colors.accent} size={14} />
-                <Text style={[styles.newRequestText, { color: Colors.accent }]}>NEW REQUEST</Text>
+                <Zap color={Colors.accentText} size={14} />
+                <Text style={[styles.newRequestText, { color: Colors.accentText }]}>NEW REQUEST</Text>
               </View>
               <View style={styles.timerWrap}>
                 <Timer color={secondsLeft <= 10 ? "#EF4444" : Colors.textSecondary} size={14} />
@@ -1692,7 +1692,7 @@ export default function DriverEhailingScreen() {
                       { backgroundColor: Colors.accent + "1A" },
                     ]}
                   >
-                    <User color={Colors.accent} size={22} />
+                    <User color={Colors.accentText} size={22} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.passengerName, { color: Colors.text }]}>
@@ -1758,11 +1758,11 @@ export default function DriverEhailingScreen() {
                     ]}
                   >
                     {request.paymentMode === "Cash" ? (
-                      <Banknote color={Colors.accent} size={14} />
+                      <Banknote color={Colors.accentText} size={14} />
                     ) : request.paymentMode === "Card" ? (
-                      <CreditCard color={Colors.accent} size={14} />
+                      <CreditCard color={Colors.accentText} size={14} />
                     ) : (
-                      <WalletIcon color={Colors.accent} size={14} />
+                      <WalletIcon color={Colors.accentText} size={14} />
                     )}
                     <Text style={[styles.infoChipText, { color: Colors.text }]}>
                       {request.paymentMode}
@@ -1774,7 +1774,7 @@ export default function DriverEhailingScreen() {
                       { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" },
                     ]}
                   >
-                    <Users color={Colors.accent} size={14} />
+                    <Users color={Colors.accentText} size={14} />
                     <Text style={[styles.infoChipText, { color: Colors.text }]}>
                       {request.passengers} pax
                     </Text>
@@ -1785,7 +1785,7 @@ export default function DriverEhailingScreen() {
                       { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" },
                     ]}
                   >
-                    <Briefcase color={Colors.accent} size={14} />
+                    <Briefcase color={Colors.accentText} size={14} />
                     <Text style={[styles.infoChipText, { color: Colors.text }]}>
                       {request.luggage} {request.luggage === 1 ? "bag" : "bags"}
                     </Text>
@@ -1851,8 +1851,8 @@ export default function DriverEhailingScreen() {
                       testID="ehailing-offer"
                       accessibilityRole="button"
                     >
-                      <Tag color={Colors.accent} size={18} />
-                      <Text style={[styles.declineText, { color: Colors.accent }]}>Offer</Text>
+                      <Tag color={Colors.accentText} size={18} />
+                      <Text style={[styles.declineText, { color: Colors.accentText }]}>Offer</Text>
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
@@ -1905,7 +1905,7 @@ export default function DriverEhailingScreen() {
         <View style={styles.offerBackdrop}>
           <View style={[styles.offerCard, { backgroundColor: Colors.background }]}>
             <View style={[styles.offerIconWrap, { backgroundColor: Colors.accent + "1A" }]}>
-              <Clock color={Colors.accent} size={22} />
+              <Clock color={Colors.accentText} size={22} />
             </View>
             <Text style={[styles.offerTitle, { color: Colors.text }]}>Offer sent</Text>
             <Text style={[styles.offerSubtitle, { color: Colors.textSecondary }]}>
@@ -1962,7 +1962,7 @@ export default function DriverEhailingScreen() {
         <View style={styles.offerBackdrop}>
           <View style={[styles.offerCard, { backgroundColor: Colors.background }]}>
             <View style={[styles.offerIconWrap, { backgroundColor: Colors.accent + "1A" }]}>
-              <Tag color={Colors.accent} size={22} />
+              <Tag color={Colors.accentText} size={22} />
             </View>
             <Text style={[styles.offerTitle, { color: Colors.text }]}>Send your offer</Text>
             <Text style={[styles.offerSubtitle, { color: Colors.textSecondary }]}>
@@ -2046,7 +2046,7 @@ export default function DriverEhailingScreen() {
           <View style={[styles.offerCard, { backgroundColor: Colors.background, alignItems: "stretch" }]}>
             <View style={{ alignItems: "center" as const }}>
               <View style={[styles.offerIconWrap, { backgroundColor: Colors.accent + "1A" }]}>
-                <Target color={Colors.accent} size={22} />
+                <Target color={Colors.accentText} size={22} />
               </View>
               <Text style={[styles.offerTitle, { color: Colors.text }]}>My Destination</Text>
               <Text style={[styles.offerSubtitle, { color: Colors.textSecondary }]}>
@@ -2065,7 +2065,7 @@ export default function DriverEhailingScreen() {
               accessibilityRole="button"
             >
               <View style={[styles.offerMeIcon, { backgroundColor: Colors.accent + "22" }]}>
-                <Target color={Colors.accent} size={16} />
+                <Target color={Colors.accentText} size={16} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.offerMeTitle, { color: Colors.text }]}>My Destination</Text>
@@ -2108,7 +2108,7 @@ export default function DriverEhailingScreen() {
                       testID={`dest-add-${idx}`}
                       accessibilityRole="button"
                     >
-                      <Plus color={Colors.accent} size={18} />
+                      <Plus color={Colors.accentText} size={18} />
                       <Text style={[styles.destSlotEmptyText, { color: Colors.textSecondary }]}>
                         Add destination
                       </Text>
@@ -2166,7 +2166,7 @@ export default function DriverEhailingScreen() {
                       accessibilityRole="button"
                       accessibilityLabel="Remove this stop"
                     >
-                      <Trash2 color={"#EF4444"} size={18} />
+                      <Trash2 color={Colors.errorText} size={18} />
                     </TouchableOpacity>
                   </View>
                 );
@@ -2180,8 +2180,8 @@ export default function DriverEhailingScreen() {
                 testID="dest-add-more"
                 accessibilityRole="button"
               >
-                <Plus color={Colors.accent} size={16} />
-                <Text style={[styles.declineText, { color: Colors.accent, fontSize: 13 }]}>Add another</Text>
+                <Plus color={Colors.accentText} size={16} />
+                <Text style={[styles.declineText, { color: Colors.accentText, fontSize: 13 }]}>Add another</Text>
               </TouchableOpacity>
             )}
 
@@ -2263,7 +2263,7 @@ export default function DriverEhailingScreen() {
                 accessibilityLabel="Search a place or address"
               />
               {searchLoading ? (
-                <ActivityIndicator size="small" color={Colors.accent} />
+                <ActivityIndicator size="small" color={Colors.accentText} />
               ) : searchQuery.length > 0 ? (
                 <TouchableOpacity
                   onPress={() => {
@@ -2307,7 +2307,7 @@ export default function DriverEhailingScreen() {
                       accessibilityRole="button"
                     >
                       <View style={[styles.destDot, { backgroundColor: Colors.accent + "33" }]}>
-                        <MapPin color={Colors.accent} size={14} />
+                        <MapPin color={Colors.accentText} size={14} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.destName, { color: Colors.text }]} numberOfLines={1}>
@@ -2350,7 +2350,7 @@ export default function DriverEhailingScreen() {
                     accessibilityRole="button"
                   >
                     <View style={[styles.destDot, { backgroundColor: Colors.accent + "33" }]}>
-                      <MapPin color={Colors.accent} size={14} />
+                      <MapPin color={Colors.accentText} size={14} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.destName, { color: Colors.text }]} numberOfLines={1}>

@@ -239,7 +239,7 @@ export default function AdminSettingsSupabaseScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={["top", "bottom"]}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       </SafeAreaView>
     );
@@ -261,7 +261,7 @@ export default function AdminSettingsSupabaseScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Database color={Colors.success} size={18} />
+            <Database color={Colors.successText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Supabase</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>Connection, project URL, keys & health</Text>
@@ -303,7 +303,7 @@ export default function AdminSettingsSupabaseScreen() {
         <View style={styles.fieldGroup}>
           <Field
             label="Project URL"
-            icon={<Globe color={Colors.accent} size={16} />}
+            icon={<Globe color={Colors.accentText} size={16} />}
             value={settings.url}
             placeholder="https://xxxxxxxx.supabase.co"
             onChangeText={(t) => update("url", t)}
@@ -337,7 +337,7 @@ export default function AdminSettingsSupabaseScreen() {
         <View style={styles.fieldGroup}>
           <Field
             label="Anon (public) Key"
-            icon={<KeyRound color={Colors.accent} size={16} />}
+            icon={<KeyRound color={Colors.accentText} size={16} />}
             value={showAnon ? settings.anonKey : mask(settings.anonKey)}
             placeholder="eyJhbGciOi..."
             onChangeText={(t) => update("anonKey", t)}
@@ -400,11 +400,11 @@ export default function AdminSettingsSupabaseScreen() {
           <View style={styles.healthRow}>
             <View style={styles.healthLeft}>
               {status === "ok" ? (
-                <CheckCircle2 color={Colors.success} size={18} />
+                <CheckCircle2 color={Colors.successText} size={18} />
               ) : status === "fail" ? (
-                <XCircle color={Colors.error} size={18} />
+                <XCircle color={Colors.errorText} size={18} />
               ) : status === "checking" ? (
-                <ActivityIndicator color={Colors.accent} size="small" />
+                <ActivityIndicator color={Colors.accentText} size="small" />
               ) : (
                 <Link2 color={Colors.textSecondary} size={18} />
               )}
@@ -442,11 +442,11 @@ export default function AdminSettingsSupabaseScreen() {
           <View style={styles.healthRow}>
             <View style={styles.healthLeft}>
               {checkStatus === "ok" ? (
-                <CheckCircle2 color={Colors.success} size={18} />
+                <CheckCircle2 color={Colors.successText} size={18} />
               ) : checkStatus === "fail" ? (
-                <XCircle color={Colors.error} size={18} />
+                <XCircle color={Colors.errorText} size={18} />
               ) : checkStatus === "checking" ? (
-                <ActivityIndicator color={Colors.accent} size="small" />
+                <ActivityIndicator color={Colors.accentText} size="small" />
               ) : (
                 <Activity color={Colors.textSecondary} size={18} />
               )}
@@ -572,7 +572,7 @@ function Field({ label, icon, value, placeholder, onChangeText, keyboardType, au
         {trailing}
       </View>
       {warningText ? (
-        <Text style={[styles.warnText, { color: Colors.warning ?? "#F59E0B" }]}>{warningText}</Text>
+        <Text style={[styles.warnText, { color: Colors.warningText ?? "#F59E0B" }]}>{warningText}</Text>
       ) : null}
     </View>
   );

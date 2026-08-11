@@ -136,9 +136,9 @@ export default function SupportCallScreen() {
           {peerAvatar ? (
             <Image source={{ uri: peerAvatar }} style={styles.avatarImg} />
           ) : initial !== "?" ? (
-            <Text style={[styles.avatarText, { color: Colors.accent }]}>{initial}</Text>
+            <Text style={[styles.avatarText, { color: Colors.accentText }]}>{initial}</Text>
           ) : (
-            <UserRound color={Colors.accent} size={48} />
+            <UserRound color={Colors.accentText} size={48} />
           )}
         </View>
         <Text style={[styles.name, { color: Colors.text }]}>{peerName}</Text>

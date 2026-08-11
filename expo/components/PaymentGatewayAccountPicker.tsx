@@ -183,7 +183,7 @@ export default function PaymentGatewayAccountPicker({
                       Use default gateway / no specific account
                     </Text>
                   </View>
-                  {value === null ? <Check color={Colors.accent} size={18} /> : null}
+                  {value === null ? <Check color={Colors.accentText} size={18} /> : null}
                 </TouchableOpacity>
               ) : null}
 
@@ -214,7 +214,7 @@ export default function PaymentGatewayAccountPicker({
                       accessibilityRole="button"
                     >
                       <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                        <CreditCard color={Colors.accent} size={16} />
+                        <CreditCard color={Colors.accentText} size={16} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.rowLabel, { color: Colors.text }]} numberOfLines={1}>
@@ -227,7 +227,7 @@ export default function PaymentGatewayAccountPicker({
                           {a.accountName} · {a.mode}
                         </Text>
                       </View>
-                      {selected ? <Check color={Colors.accent} size={18} /> : null}
+                      {selected ? <Check color={Colors.accentText} size={18} /> : null}
                     </TouchableOpacity>
                   );
                 })

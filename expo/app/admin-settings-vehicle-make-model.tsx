@@ -791,7 +791,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
         accessibilityRole="button"
       >
         <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-          <Icon color={Colors.accent} size={18} />
+          <Icon color={Colors.accentText} size={18} />
         </View>
         <View style={styles.rowInfo}>
           <Text style={[styles.rowLabel, { color: Colors.text }]} numberOfLines={1}>
@@ -810,7 +810,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           accessibilityRole="button"
           accessibilityLabel="Edit vehicle make and model category"
         >
-          <Pencil color={Colors.accent} size={16} />
+          <Pencil color={Colors.accentText} size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => deleteCategory(lvl, name)}
@@ -820,7 +820,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete vehicle make and model category"
         >
-          <Trash2 color={Colors.error} size={16} />
+          <Trash2 color={Colors.errorText} size={16} />
         </TouchableOpacity>
         <ChevronRight color={Colors.textSecondary} size={18} />
       </TouchableOpacity>
@@ -841,7 +841,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           {m.iconUri ? (
             <Image source={{ uri: m.iconUri }} style={styles.rowIconImage} />
           ) : (
-            <Tag color={Colors.accent} size={18} />
+            <Tag color={Colors.accentText} size={18} />
           )}
         </View>
         <View style={styles.rowInfo}>
@@ -876,7 +876,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           accessibilityRole="button"
           accessibilityLabel="Edit vehicle make and model model"
         >
-          <Pencil color={Colors.accent} size={16} />
+          <Pencil color={Colors.accentText} size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => deleteModel(entry)}
@@ -885,7 +885,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete vehicle make and model model"
         >
-          <Trash2 color={Colors.error} size={16} />
+          <Trash2 color={Colors.errorText} size={16} />
         </TouchableOpacity>
       </View>
     );
@@ -971,7 +971,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <levelMeta.Icon color={Colors.accent} size={18} />
+            <levelMeta.Icon color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               {levelMeta.title}
             </Text>
@@ -1389,7 +1389,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                             style={styles.iconPreviewImage}
                           />
                         ) : (
-                          <ImageIcon color={Colors.accent} size={26} />
+                          <ImageIcon color={Colors.accentText} size={26} />
                         )}
                       </View>
                       <View style={{ flex: 1, gap: 8 }}>
@@ -1916,7 +1916,7 @@ export default function AdminSettingsVehicleMakeModelScreen() {
                         { backgroundColor: Colors.accent + "20" },
                       ]}
                     >
-                      <Icon color={Colors.accent} size={18} />
+                      <Icon color={Colors.accentText} size={18} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.rowLabel, { color: Colors.text }]}>

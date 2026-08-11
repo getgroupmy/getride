@@ -288,7 +288,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Wallet color={Colors.accent} size={18} />
+            <Wallet color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               EV Finance Options
             </Text>
@@ -385,7 +385,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                   </TouchableOpacity>
                 </View>
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <Wallet color={Colors.accent} size={18} />
+                  <Wallet color={Colors.accentText} size={18} />
                 </View>
                 <View style={styles.rowInfo}>
                   <View style={styles.rowTitleLine}>
@@ -413,7 +413,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Edit EV finance options"
                 >
-                  <Pencil color={Colors.accent} size={16} />
+                  <Pencil color={Colors.accentText} size={16} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => onDelete(e)}
@@ -422,7 +422,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Delete EV finance options"
                 >
-                  <Trash2 color={Colors.error} size={16} />
+                  <Trash2 color={Colors.errorText} size={16} />
                 </TouchableOpacity>
               </View>
             );
@@ -751,7 +751,7 @@ export default function AdminSettingsEvFinanceOptionsScreen() {
                     accessibilityRole="button"
                   >
                     <Text style={[styles.countryName, { color: Colors.text }]}>{name}</Text>
-                    {selected ? <Check color={Colors.accent} size={18} /> : null}
+                    {selected ? <Check color={Colors.accentText} size={18} /> : null}
                   </TouchableOpacity>
                 );
               })}

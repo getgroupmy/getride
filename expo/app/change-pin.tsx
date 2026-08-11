@@ -241,21 +241,21 @@ export default function ChangePinScreen() {
 
           {error && (
             <View style={styles.errorContainer}>
-              <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+              <Text style={[styles.errorText, { color: colors.errorText }]}>{error}</Text>
             </View>
           )}
 
           {done && (
             <View style={styles.hintContainer}>
-              <ShieldCheck color={colors.accent} size={18} />
-              <Text style={[styles.hintText, { color: colors.accent }]}>PIN updated</Text>
+              <ShieldCheck color={colors.accentText} size={18} />
+              <Text style={[styles.hintText, { color: colors.accentText }]}>PIN updated</Text>
             </View>
           )}
 
           {!error && !done && step === "confirm" && (
             <View style={styles.hintContainer}>
-              <Check color={colors.accent} size={16} />
-              <Text style={[styles.hintText, { color: colors.accent }]}>Almost done!</Text>
+              <Check color={colors.accentText} size={16} />
+              <Text style={[styles.hintText, { color: colors.accentText }]}>Almost done!</Text>
             </View>
           )}
         </View>
@@ -273,7 +273,7 @@ export default function ChangePinScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.background }]}>
             <View style={[styles.modalIcon, { backgroundColor: colors.accent + "22" }]}>
-              <ShieldCheck color={colors.accent} size={32} />
+              <ShieldCheck color={colors.accentText} size={32} />
             </View>
             <Text style={[styles.modalTitle, { color: colors.text }]}>New Pin Has Been Updated</Text>
             <TouchableOpacity

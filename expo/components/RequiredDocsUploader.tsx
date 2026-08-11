@@ -440,7 +440,7 @@ export default function RequiredDocsUploader({
   return (
     <View testID={testID}>
       <View style={styles.headerRow}>
-        <FileCheck2 color={Colors.accent} size={16} />
+        <FileCheck2 color={Colors.accentText} size={16} />
         <Text style={[styles.title, { color: Colors.text }]}>{title}</Text>
       </View>
       <Text style={[styles.subtitle, { color: Colors.textSecondary }]}>
@@ -454,7 +454,7 @@ export default function RequiredDocsUploader({
             { backgroundColor: Colors.gray[100], borderColor: Colors.border },
           ]}
         >
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
           <Text style={[styles.emptyText, { color: Colors.textSecondary }]}>
             Loading your documents…
           </Text>
@@ -604,9 +604,9 @@ export default function RequiredDocsUploader({
                         { backgroundColor: Colors.accent + "18" },
                       ]}
                     >
-                      <Upload color={Colors.accent} size={11} />
-                      <Camera color={Colors.accent} size={11} />
-                      <Text style={[styles.uploadHintText, { color: Colors.accent }]}>
+                      <Upload color={Colors.accentText} size={11} />
+                      <Camera color={Colors.accentText} size={11} />
+                      <Text style={[styles.uploadHintText, { color: Colors.accentText }]}>
                         Tap to upload
                       </Text>
                     </View>

@@ -263,7 +263,7 @@ export default function AdminSettingsServiceScreen() {
           {iconUri ? (
             <Image source={{ uri: iconUri }} style={styles.rowIconImg} resizeMode="cover" />
           ) : (
-            <Wrench color={Colors.accent} size={18} />
+            <Wrench color={Colors.accentText} size={18} />
           )}
         </View>
         <View style={styles.rowInfo}>
@@ -298,7 +298,7 @@ export default function AdminSettingsServiceScreen() {
           accessibilityRole="button"
           accessibilityLabel="Edit service"
         >
-          <Pencil color={Colors.accent} size={16} />
+          <Pencil color={Colors.accentText} size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onDelete(entry)}
@@ -333,7 +333,7 @@ export default function AdminSettingsServiceScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Wrench color={Colors.accent} size={18} />
+            <Wrench color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Service Settings
             </Text>
@@ -451,8 +451,8 @@ export default function AdminSettingsServiceScreen() {
                           testID="service-icon-remove"
                           accessibilityRole="button"
                         >
-                          <Trash2 color={Colors.error} size={16} />
-                          <Text style={[styles.uploadBtnText, { color: Colors.error }]}>Remove</Text>
+                          <Trash2 color={Colors.errorText} size={16} />
+                          <Text style={[styles.uploadBtnText, { color: Colors.errorText }]}>Remove</Text>
                         </TouchableOpacity>
                       ) : null}
                     </View>
@@ -546,7 +546,7 @@ export default function AdminSettingsServiceScreen() {
                       { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" },
                     ]}
                   >
-                    <Lock color={Colors.accent} size={14} />
+                    <Lock color={Colors.accentText} size={14} />
                     <Text style={[styles.noticeText, { color: Colors.text }]}>
                       This is a default service. It can be edited but not deleted.
                     </Text>

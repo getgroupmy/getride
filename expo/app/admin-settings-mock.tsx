@@ -124,7 +124,7 @@ export default function AdminSettingsMockScreen() {
           <Text style={[styles.rowLabel, { color: Colors.text }]}>{item.label}</Text>
           <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>{item.description}</Text>
           <View style={[styles.screenPill, { backgroundColor: Colors.accent + "15" }]}>
-            <Text style={[styles.screenPillText, { color: Colors.accent }]}>{item.screen}</Text>
+            <Text style={[styles.screenPillText, { color: Colors.accentText }]}>{item.screen}</Text>
           </View>
         </View>
         <Switch
@@ -158,7 +158,7 @@ export default function AdminSettingsMockScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <FlaskConical color={Colors.accent} size={18} />
+            <FlaskConical color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Mock / Simulation</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>

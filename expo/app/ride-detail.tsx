@@ -166,7 +166,7 @@ export default function RideDetailScreen() {
       case "cash":
         return { label: "Cash", Icon: Banknote, color: "#10b981" };
       case "card":
-        return { label: "Card", Icon: CreditCard, color: "#3b82f6" };
+        return { label: "Card", Icon: CreditCard, color: Colors.accentText };
       case "qr":
       case "qr_pay":
         return { label: "QR Pay", Icon: QrCode, color: "#8b5cf6" };
@@ -179,10 +179,10 @@ export default function RideDetailScreen() {
         return { label: "Touch 'n Go", Icon: Smartphone, color: "#f97316" };
       default:
         return paymentMethod
-          ? { label: paymentMethod, Icon: Wallet, color: Colors.accent }
+          ? { label: paymentMethod, Icon: Wallet, color: Colors.accentText }
           : null;
     }
-  }, [paymentMethod, Colors.accent]);
+  }, [paymentMethod, Colors.accentText]);
 
   const formatTime = (iso: string) => {
     try {
@@ -766,7 +766,7 @@ export default function RideDetailScreen() {
 
         <View style={[styles.section, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}>
           <View style={styles.summaryHeader}>
-            <Calculator color={Colors.accent} size={18} />
+            <Calculator color={Colors.accentText} size={18} />
             <Text style={[styles.sectionTitleInline, { color: Colors.text }]}>Fare breakdown</Text>
           </View>
           <Text style={[styles.tariffNote, { color: Colors.textSecondary }]} testID="breakdown-tariff-note">
@@ -780,7 +780,7 @@ export default function RideDetailScreen() {
               <View style={[styles.tariffRow]}>
                 <View style={styles.tariffLabelRow}>
                   <View style={[styles.tariffIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                    <Flag color={Colors.accent} size={14} />
+                    <Flag color={Colors.accentText} size={14} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.tariffLabel, { color: Colors.text }]} testID="breakdown-base">Base fare</Text>
@@ -797,7 +797,7 @@ export default function RideDetailScreen() {
               <View style={[styles.tariffRow]}>
                 <View style={styles.tariffLabelRow}>
                   <View style={[styles.tariffIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                    <RouteIcon color={Colors.accent} size={14} />
+                    <RouteIcon color={Colors.accentText} size={14} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.tariffLabel, { color: Colors.text }]} testID="breakdown-distance">Distance</Text>
@@ -816,7 +816,7 @@ export default function RideDetailScreen() {
               <View style={[styles.tariffRow]}>
                 <View style={styles.tariffLabelRow}>
                   <View style={[styles.tariffIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                    <Timer color={Colors.accent} size={14} />
+                    <Timer color={Colors.accentText} size={14} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.tariffLabel, { color: Colors.text }]} testID="breakdown-time">Time</Text>
@@ -837,7 +837,7 @@ export default function RideDetailScreen() {
           <View style={[styles.tariffRow]}>
             <View style={styles.tariffLabelRow}>
               <View style={[styles.tariffIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                <Flag color={Colors.accent} size={14} />
+                <Flag color={Colors.accentText} size={14} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.tariffLabel, { color: Colors.text }]} testID="breakdown-flag-fall">Flag fall (first 1 km)</Text>
@@ -854,7 +854,7 @@ export default function RideDetailScreen() {
           <View style={[styles.tariffRow]}>
             <View style={styles.tariffLabelRow}>
               <View style={[styles.tariffIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                <RouteIcon color={Colors.accent} size={14} />
+                <RouteIcon color={Colors.accentText} size={14} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.tariffLabel, { color: Colors.text }]} testID="breakdown-distance-units">Distance increments</Text>
@@ -873,7 +873,7 @@ export default function RideDetailScreen() {
           <View style={[styles.tariffRow]}>
             <View style={styles.tariffLabelRow}>
               <View style={[styles.tariffIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                <Timer color={Colors.accent} size={14} />
+                <Timer color={Colors.accentText} size={14} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.tariffLabel, { color: Colors.text }]} testID="breakdown-time-units">Time increments</Text>
@@ -892,7 +892,7 @@ export default function RideDetailScreen() {
           <View style={[styles.tariffRow]}>
             <View style={styles.tariffLabelRow}>
               <View style={[styles.tariffIcon, { backgroundColor: Colors.success + "1A" }]}>
-                <CheckCircle2 color={Colors.success} size={14} />
+                <CheckCircle2 color={Colors.successText} size={14} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.tariffLabel, { color: Colors.text }]} testID="breakdown-billed-units">
@@ -914,7 +914,7 @@ export default function RideDetailScreen() {
 
           <View style={[styles.tariffTotalRow, { backgroundColor: Colors.accent + "12", borderColor: Colors.accent + "33" }]}>
             <Text style={[styles.tariffTotalLabel, { color: Colors.text }]}>Base fare</Text>
-            <Text style={[styles.tariffTotalValue, { color: Colors.accent }]} testID="breakdown-base-fare">
+            <Text style={[styles.tariffTotalValue, { color: Colors.accentText }]} testID="breakdown-base-fare">
               {currency.symbol}{Math.ceil(baseFare).toFixed(2)}
             </Text>
           </View>
@@ -925,7 +925,7 @@ export default function RideDetailScreen() {
                 <View style={[styles.tariffRow, { marginTop: 8 }]}>
                   <View style={styles.tariffLabelRow}>
                     <View style={[styles.tariffIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                      <Coins color={Colors.accent} size={14} />
+                      <Coins color={Colors.accentText} size={14} />
                     </View>
                     <Text style={[styles.tariffLabel, { color: Colors.text }]}>Tolls</Text>
                   </View>
@@ -938,7 +938,7 @@ export default function RideDetailScreen() {
                 <View style={[styles.tariffRow]}>
                   <View style={styles.tariffLabelRow}>
                     <View style={[styles.tariffIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                      <Plus color={Colors.accent} size={14} />
+                      <Plus color={Colors.accentText} size={14} />
                     </View>
                     <Text style={[styles.tariffLabel, { color: Colors.text }]} numberOfLines={1}>
                       {extrasNote ? `Other (${extrasNote})` : "Other charges"}
@@ -963,7 +963,7 @@ export default function RideDetailScreen() {
         <View style={[styles.metricsRow]}>
           <View style={[styles.metricCard, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}>
             <View style={[styles.metricIcon, { backgroundColor: Colors.accent + "1A" }]}>
-              <RouteIcon color={Colors.accent} size={18} />
+              <RouteIcon color={Colors.accentText} size={18} />
             </View>
             <Text style={[styles.metricValue, { color: Colors.text }]}>
               {distance.toFixed(1)}
@@ -972,7 +972,7 @@ export default function RideDetailScreen() {
           </View>
           <View style={[styles.metricCard, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}>
             <View style={[styles.metricIcon, { backgroundColor: Colors.accent + "1A" }]}>
-              <Clock color={Colors.accent} size={18} />
+              <Clock color={Colors.accentText} size={18} />
             </View>
             <Text style={[styles.metricValue, { color: Colors.text }]}>
               {formatDuration(duration)}
@@ -983,7 +983,7 @@ export default function RideDetailScreen() {
 
         <View style={[styles.section, { backgroundColor: Colors.gray[100], borderColor: Colors.gray[200] }]}>
           <View style={styles.summaryHeader}>
-            <Receipt color={Colors.accent} size={18} />
+            <Receipt color={Colors.accentText} size={18} />
             <Text style={[styles.sectionTitleInline, { color: Colors.text }]}>Booking summary</Text>
           </View>
           <View style={styles.summaryRow}>
@@ -1100,7 +1100,7 @@ export default function RideDetailScreen() {
           <View style={[styles.modalCard, { backgroundColor: Colors.background, borderColor: Colors.gray[200] }]}>
             <View style={styles.modalHeader}>
               <View style={[styles.modalIconWrap, { backgroundColor: Colors.accent + "1A" }]}>
-                <Mail color={Colors.accent} size={20} />
+                <Mail color={Colors.accentText} size={20} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: Colors.text }]}>Email receipt</Text>

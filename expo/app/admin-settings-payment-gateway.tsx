@@ -446,7 +446,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <CreditCard color={Colors.accent} size={18} />
+            <CreditCard color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Payment Gateways
             </Text>
@@ -546,18 +546,18 @@ export default function AdminSettingsPaymentGatewayScreen() {
               <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Configured</Text>
             </View>
             <View style={[styles.statCard, styles.cardShadow, { backgroundColor: Colors.card ?? Colors.background, borderColor: Colors.border }]}>
-              <Text style={[styles.statValue, { color: Colors.success ?? "#10B981" }]}>{stats.active}</Text>
+              <Text style={[styles.statValue, { color: Colors.successText ?? "#10B981" }]}>{stats.active}</Text>
               <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Active</Text>
             </View>
             <View style={[styles.statCard, styles.cardShadow, { backgroundColor: Colors.card ?? Colors.background, borderColor: Colors.border }]}>
-              <Text style={[styles.statValue, { color: Colors.accent }]}>{stats.live}</Text>
+              <Text style={[styles.statValue, { color: Colors.accentText }]}>{stats.live}</Text>
               <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Live mode</Text>
             </View>
           </View>
         ) : null}
         {stats.defaultName ? (
           <View style={[styles.defaultBanner, { backgroundColor: Colors.accent + "14", borderColor: Colors.accent + "40" }]}>
-            <Star color={Colors.accent} size={14} />
+            <Star color={Colors.accentText} size={14} />
             <Text style={[styles.defaultBannerText, { color: Colors.text }]} numberOfLines={1}>
               <Text style={{ color: Colors.textSecondary }}>Default gateway:  </Text>
               {stats.defaultName}
@@ -609,7 +609,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <CreditCard color={Colors.accent} size={18} />
+                  <CreditCard color={Colors.accentText} size={18} />
                 </View>
                 <View style={styles.rowInfo}>
                   <View style={styles.rowTitleLine}>
@@ -668,7 +668,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Edit payment gateway"
                 >
-                  <Pencil color={Colors.accent} size={16} />
+                  <Pencil color={Colors.accentText} size={16} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => onDelete(e)}
@@ -677,7 +677,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Delete payment gateway"
                 >
-                  <Trash2 color={Colors.error} size={16} />
+                  <Trash2 color={Colors.errorText} size={16} />
                 </TouchableOpacity>
               </TouchableOpacity>
             );
@@ -717,7 +717,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                     accessibilityRole="button"
                   >
                     <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                      <CreditCard color={Colors.accent} size={18} />
+                      <CreditCard color={Colors.accentText} size={18} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.rowLabel, { color: Colors.text }]} numberOfLines={1}>
@@ -755,7 +755,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
               <View style={styles.modalHeader}>
                 <View style={styles.modalTitleWrap}>
                   <View style={[styles.modalHeaderIcon, { backgroundColor: Colors.accent + "20" }]}>
-                    <CreditCard color={Colors.accent} size={18} />
+                    <CreditCard color={Colors.accentText} size={18} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.modalTitle, { color: Colors.text }]} numberOfLines={1}>
@@ -867,7 +867,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                         Credentials
                       </Text>
                       <View style={[styles.sectionCount, { backgroundColor: Colors.accent + "18" }]}>
-                        <Text style={[styles.sectionCountText, { color: Colors.accent }]}>
+                        <Text style={[styles.sectionCountText, { color: Colors.accentText }]}>
                           {selectedProvider.fields.length} fields
                         </Text>
                       </View>
@@ -896,7 +896,7 @@ export default function AdminSettingsPaymentGatewayScreen() {
                               {f.label}
                             </Text>
                             {!f.optional ? (
-                              <Text style={[styles.requiredDot, { color: Colors.error }]}>*</Text>
+                              <Text style={[styles.requiredDot, { color: Colors.errorText }]}>*</Text>
                             ) : (
                               <Text style={[styles.optionalTag, { color: Colors.textSecondary }]}>Optional</Text>
                             )}

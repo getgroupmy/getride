@@ -304,7 +304,7 @@ export default function AdminCrudList({
           </View>
         ) : null}
         <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-          <Icon color={Colors.accent} size={18} />
+          <Icon color={Colors.accentText} size={18} />
         </View>
         <TouchableOpacity
           activeOpacity={onRowPress ? 0.7 : 1}
@@ -346,7 +346,7 @@ export default function AdminCrudList({
             accessibilityLabel={`Open ${titleVal}`}
             testID={`${testID ?? "crud"}-chevron-${entry.id}`}
           >
-            <ChevronRight color={Colors.accent} size={16} />
+            <ChevronRight color={Colors.accentText} size={16} />
           </TouchableOpacity>
         ) : null}
         {editable ? (
@@ -359,7 +359,7 @@ export default function AdminCrudList({
               accessibilityLabel={`Edit ${titleVal}`}
               testID={`${testID ?? "crud"}-edit-${entry.id}`}
             >
-              <Pencil color={Colors.accent} size={16} />
+              <Pencil color={Colors.accentText} size={16} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => onDelete(entry)}
@@ -369,7 +369,7 @@ export default function AdminCrudList({
               accessibilityLabel={`Delete ${titleVal}`}
               testID={`${testID ?? "crud"}-delete-${entry.id}`}
             >
-              <Trash2 color={Colors.error} size={16} />
+              <Trash2 color={Colors.errorText} size={16} />
             </TouchableOpacity>
           </>
         ) : null}
@@ -393,7 +393,7 @@ export default function AdminCrudList({
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Icon color={Colors.accent} size={18} />
+            <Icon color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>{title}</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>{subtitle}</Text>
@@ -414,7 +414,7 @@ export default function AdminCrudList({
       </View>
       {!editable ? (
         <View style={[styles.readOnlyBanner, { backgroundColor: Colors.warning + "22", borderColor: Colors.warning + "55" }]} testID={`${testID ?? "crud"}-readonly-banner`}>
-          <Text style={[styles.readOnlyText, { color: Colors.warning }]}>Read-only access</Text>
+          <Text style={[styles.readOnlyText, { color: Colors.warningText }]}>Read-only access</Text>
         </View>
       ) : null}
 

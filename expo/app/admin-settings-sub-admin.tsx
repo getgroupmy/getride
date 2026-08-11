@@ -400,7 +400,7 @@ export default function AdminSettingsSubAdminScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <ShieldCheck color={Colors.accent} size={18} />
+            <ShieldCheck color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Sub Admins</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -425,7 +425,7 @@ export default function AdminSettingsSubAdminScreen() {
 
       {accessLoading || loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -480,7 +480,7 @@ export default function AdminSettingsSubAdminScreen() {
                 testID={`sub-admin-row-${row.id}`}
               >
                 <View style={[styles.avatar, { backgroundColor: Colors.accent + "20" }]}>
-                  <Text style={[styles.avatarTxt, { color: Colors.accent }]}>{initials}</Text>
+                  <Text style={[styles.avatarTxt, { color: Colors.accentText }]}>{initials}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.rowTitle, { color: Colors.text }]} numberOfLines={1}>
@@ -537,7 +537,7 @@ export default function AdminSettingsSubAdminScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Edit sub admin"
                 >
-                  <Pencil color={Colors.accent} size={14} />
+                  <Pencil color={Colors.accentText} size={14} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => onDelete(row)}
@@ -548,7 +548,7 @@ export default function AdminSettingsSubAdminScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Delete sub admin"
                 >
-                  <Trash2 color={Colors.error} size={14} />
+                  <Trash2 color={Colors.errorText} size={14} />
                 </TouchableOpacity>
               </View>
             );
@@ -591,7 +591,7 @@ export default function AdminSettingsSubAdminScreen() {
                       { backgroundColor: Colors.gray[100], borderColor: Colors.border },
                     ]}
                   >
-                    <UserPlus color={Colors.accent} size={16} />
+                    <UserPlus color={Colors.accentText} size={16} />
                     <Text style={[styles.profileName, { color: Colors.text }]} numberOfLines={1}>
                       {selectedProfile?.name ?? "Profile"}
                     </Text>
@@ -623,7 +623,7 @@ export default function AdminSettingsSubAdminScreen() {
                         testID="sub-admin-form-profile-search"
                         accessibilityLabel="Profile"
                       />
-                      {searchingProfiles ? <ActivityIndicator color={Colors.accent} size="small" /> : null}
+                      {searchingProfiles ? <ActivityIndicator color={Colors.accentText} size="small" /> : null}
                     </View>
                     {selectedProfile ? (
                       <View
@@ -633,7 +633,7 @@ export default function AdminSettingsSubAdminScreen() {
                         ]}
                       >
                         <View style={styles.selectedHeader}>
-                          <UserPlus color={Colors.accent} size={16} />
+                          <UserPlus color={Colors.accentText} size={16} />
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.profileName, { color: Colors.text }]} numberOfLines={1}>
                               {selectedProfile.name ?? "Unnamed"}
@@ -686,7 +686,7 @@ export default function AdminSettingsSubAdminScreen() {
                               accessibilityRole="button"
                             >
                               <View style={[styles.matchAvatar, { backgroundColor: Colors.accent + "20" }]}>
-                                <Text style={[styles.matchAvatarTxt, { color: Colors.accent }]}>{initials}</Text>
+                                <Text style={[styles.matchAvatarTxt, { color: Colors.accentText }]}>{initials}</Text>
                               </View>
                               <View style={{ flex: 1 }}>
                                 <Text style={[styles.matchName, { color: Colors.text }]} numberOfLines={1}>

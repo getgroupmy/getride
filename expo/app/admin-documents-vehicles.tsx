@@ -197,7 +197,7 @@ export default function AdminDocumentsVehiclesScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Car color={Colors.accent} size={18} />
+            <Car color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Vehicle Documents</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -238,7 +238,7 @@ export default function AdminDocumentsVehiclesScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView
@@ -272,7 +272,7 @@ export default function AdminDocumentsVehiclesScreen() {
                     <View style={[styles.thumb, { backgroundColor: Colors.gray[200], justifyContent: "center", alignItems: "center" }]}>
                       {pdfRow ? (
                         <>
-                          <FileText color={Colors.accent} size={22} />
+                          <FileText color={Colors.accentText} size={22} />
                           <Text style={{ color: Colors.textSecondary, fontSize: 9, marginTop: 2, fontWeight: "700" as const }}>PDF</Text>
                         </>
                       ) : (
@@ -462,8 +462,8 @@ function VehicleDocReviewModal({
             testID="docs-veh-modal-reject"
             accessibilityRole="button"
           >
-            <XCircle color={Colors.error} size={18} />
-            <Text style={[styles.actionText, { color: Colors.error }]}>Reject</Text>
+            <XCircle color={Colors.errorText} size={18} />
+            <Text style={[styles.actionText, { color: Colors.errorText }]}>Reject</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onApprove}
@@ -507,7 +507,7 @@ function FilePreview({ url, label, onOpen }: { url: string | null; label: string
     >
       {pdf ? (
         <View style={[styles.modalImage, { backgroundColor: Colors.gray[100], justifyContent: "center" as const, alignItems: "center" as const, borderWidth: 1, borderColor: Colors.border }]}>
-          <FileText color={Colors.accent} size={42} />
+          <FileText color={Colors.accentText} size={42} />
           <Text style={{ color: Colors.text, fontWeight: "700" as const, marginTop: 8 }}>PDF document</Text>
           <Text style={{ color: Colors.textSecondary, fontSize: 12, marginTop: 4 }}>Tap to open & zoom</Text>
         </View>

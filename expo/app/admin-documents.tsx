@@ -81,7 +81,7 @@ export default function AdminDocumentsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <FileText color={Colors.accent} size={18} />
+            <FileText color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Documents</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>Review and approve uploads</Text>

@@ -1308,7 +1308,7 @@ export default function WalletScreen() {
               >
                 <View style={styles.topUpTitleRow}>
                   <View style={[styles.modalIconBubble, { backgroundColor: Colors.accent + "22" }]}>
-                    <Plus color={Colors.accent} size={20} />
+                    <Plus color={Colors.accentText} size={20} />
                   </View>
                   <Text style={styles.topUpTitle}>Reload GET.wallet</Text>
                 </View>
@@ -1344,7 +1344,7 @@ export default function WalletScreen() {
                   <Text style={styles.topUpSub}>Please enter required details.</Text>
 
                   <View style={styles.topUpAmountCard}>
-                    <CircleDollarSign color={Colors.accent} size={42} strokeWidth={1.8} />
+                    <CircleDollarSign color={Colors.accentText} size={42} strokeWidth={1.8} />
                     <View style={styles.topUpAmountFields}>
                       <Text style={styles.topUpAmountLabel}>Amount (RM)*</Text>
                       <TextInput
@@ -1412,7 +1412,7 @@ export default function WalletScreen() {
                   </View>
 
                   {actionError ? (
-                    <Text style={[styles.errorText, { color: Colors.danger }]}>{actionError}</Text>
+                    <Text style={[styles.errorText, { color: Colors.dangerText }]}>{actionError}</Text>
                   ) : null}
 
                   <View style={styles.modalButtons}>
@@ -1456,17 +1456,17 @@ export default function WalletScreen() {
                       testID="wallet-topup-change-amount"
                       accessibilityRole="button"
                     >
-                      <Text style={[styles.changeAmountText, { color: Colors.accent }]}>
+                      <Text style={[styles.changeAmountText, { color: Colors.accentText }]}>
                         Change Amount
                       </Text>
-                      <ChevronRight color={Colors.accent} size={18} strokeWidth={2.6} />
+                      <ChevronRight color={Colors.accentText} size={18} strokeWidth={2.6} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.reloadAmountRow}>
                     <Text style={styles.reloadAmountLabel}>Reload Amount</Text>
                     <Text
-                      style={[styles.reloadAmountValue, { color: Colors.success }]}
+                      style={[styles.reloadAmountValue, { color: Colors.successText }]}
                       testID="wallet-topup-reload-amount"
                     >
                       RM{parsedAmount.toFixed(2)}
@@ -1507,7 +1507,7 @@ export default function WalletScreen() {
                           />
                         ) : null}
                       </View>
-                      <Smartphone color={Colors.accent} size={30} strokeWidth={1.8} />
+                      <Smartphone color={Colors.accentText} size={30} strokeWidth={1.8} />
                       <Text style={styles.methodLabel}>Online Banking</Text>
                       <Text style={styles.fpxBadge}>FPX</Text>
                     </TouchableOpacity>
@@ -1535,7 +1535,7 @@ export default function WalletScreen() {
                           />
                         ) : null}
                       </View>
-                      <CreditCard color={Colors.accent} size={30} strokeWidth={1.8} />
+                      <CreditCard color={Colors.accentText} size={30} strokeWidth={1.8} />
                       <Text style={styles.methodLabel}>Cards</Text>
                       <View style={styles.cardBadges}>
                         <View style={styles.mcCircles}>
@@ -1554,7 +1554,7 @@ export default function WalletScreen() {
                   </View>
 
                   {actionError ? (
-                    <Text style={[styles.errorText, { color: Colors.danger }]}>{actionError}</Text>
+                    <Text style={[styles.errorText, { color: Colors.dangerText }]}>{actionError}</Text>
                   ) : null}
 
                   <View style={[styles.demoNote, { backgroundColor: wc.amberTint }]}>
@@ -1659,7 +1659,7 @@ export default function WalletScreen() {
             </View>
 
             {actionError ? (
-              <Text style={[styles.errorText, { color: Colors.danger }]}>{actionError}</Text>
+              <Text style={[styles.errorText, { color: Colors.dangerText }]}>{actionError}</Text>
             ) : null}
 
             <View style={styles.modalButtons}>
@@ -1751,7 +1751,7 @@ export default function WalletScreen() {
               <View style={styles.balanceCardTop}>
                 <View style={styles.balanceLabelRow}>
                   <View style={styles.balanceTitleRow}>
-                    <WalletIcon color={Colors.accent} size={18} />
+                    <WalletIcon color={Colors.accentText} size={18} />
                     <Text style={styles.balanceLabel}>GET.wallet Balance</Text>
                   </View>
                   <TouchableOpacity
@@ -1883,13 +1883,13 @@ export default function WalletScreen() {
           >
             {successNote ? (
               <View style={[styles.successBanner, { backgroundColor: Colors.success + "18" }]}>
-                <Text style={[styles.successBannerText, { color: Colors.success }]}>{successNote}</Text>
+                <Text style={[styles.successBannerText, { color: Colors.successText }]}>{successNote}</Text>
               </View>
             ) : null}
 
             {balances?.source === "local" ? (
               <View style={[styles.localBanner, { backgroundColor: Colors.warning + "15" }]}>
-                <Info color={Colors.warning} size={15} />
+                <Info color={Colors.warningText} size={15} />
                 <Text style={[styles.localBannerText, { color: wc.textMuted }]}>
                   Wallet tables not found in the database — running on this device only. Apply
                   migration 0056 to sync balances.
@@ -1979,7 +1979,7 @@ export default function WalletScreen() {
             {/* Referral — invite friends, earn bonus GET.coin */}
             <View style={styles.referralCard} testID="wallet-referral-card">
               <View style={styles.referralIconWrap}>
-                <Gift color={Colors.accent} size={22} />
+                <Gift color={Colors.accentText} size={22} />
               </View>
               <View style={styles.referralInfo}>
                 <Text style={styles.referralTitle}>Invite friends, earn GET.coin</Text>
@@ -2144,7 +2144,7 @@ export default function WalletScreen() {
         <View style={styles.duitNowOverlay}>
           <View style={[styles.duitNowCard, { backgroundColor: Colors.card }]}>
             <View style={[styles.duitNowIconWrap, { backgroundColor: Colors.accent + "18" }]}>
-              <QrCode color={Colors.accent} size={28} />
+              <QrCode color={Colors.accentText} size={28} />
             </View>
             <Text style={[styles.duitNowTitle, { color: Colors.text }]}>DuitNow Coming Soon</Text>
             <Text style={[styles.duitNowMessage, { color: Colors.textSecondary }]}>
@@ -2171,7 +2171,7 @@ export default function WalletScreen() {
         <View style={styles.duitNowOverlay}>
           <View style={[styles.duitNowCard, { backgroundColor: Colors.card }]}>
             <View style={[styles.duitNowIconWrap, { backgroundColor: Colors.accent + "18" }]}>
-              <ArrowRightLeft color={Colors.accent} size={28} />
+              <ArrowRightLeft color={Colors.accentText} size={28} />
             </View>
             <Text style={[styles.duitNowTitle, { color: Colors.text }]}>Coming Soon</Text>
             <Text style={[styles.duitNowMessage, { color: Colors.textSecondary }]}>

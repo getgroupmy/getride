@@ -298,7 +298,7 @@ export default function AdminSettingsFareAIScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <BrainCircuit color={Colors.accent} size={18} />
+            <BrainCircuit color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Fare AI Provider</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -318,7 +318,7 @@ export default function AdminSettingsFareAIScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <KeyboardAvoidingView
@@ -402,7 +402,7 @@ export default function AdminSettingsFareAIScreen() {
                   accessibilityRole="button"
                 >
                   <View style={[styles.providerIcon, { backgroundColor: Colors.accent + "20" }]}>
-                    <Sparkles color={Colors.accent} size={18} />
+                    <Sparkles color={Colors.accentText} size={18} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.providerLabel, { color: Colors.text }]}>{p.label}</Text>
@@ -485,8 +485,8 @@ export default function AdminSettingsFareAIScreen() {
               </Text>
               {editable ? (
                 <TouchableOpacity onPress={addKey} style={styles.addBtn} testID="fare-ai-add-key" accessibilityRole="button">
-                  <Plus color={Colors.accent} size={16} />
-                  <Text style={[styles.addBtnTxt, { color: Colors.accent }]}>Add key</Text>
+                  <Plus color={Colors.accentText} size={16} />
+                  <Text style={[styles.addBtnTxt, { color: Colors.accentText }]}>Add key</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -580,13 +580,13 @@ export default function AdminSettingsFareAIScreen() {
                         <Text style={[styles.statLbl, { color: Colors.textSecondary }]}>used</Text>
                       </View>
                       <View style={styles.statPill}>
-                        <CircleCheck color="#1f9d55" size={13} />
-                        <Text style={[styles.statNum, { color: "#1f9d55" }]}>{st?.passCount ?? 0}</Text>
+                        <CircleCheck color={Colors.successText} size={13} />
+                        <Text style={[styles.statNum, { color: Colors.successText }]}>{st?.passCount ?? 0}</Text>
                         <Text style={[styles.statLbl, { color: Colors.textSecondary }]}>passed</Text>
                       </View>
                       <View style={styles.statPill}>
-                        <CircleX color="#e5484d" size={13} />
-                        <Text style={[styles.statNum, { color: "#e5484d" }]}>{st?.failCount ?? 0}</Text>
+                        <CircleX color={Colors.errorText} size={13} />
+                        <Text style={[styles.statNum, { color: Colors.errorText }]}>{st?.failCount ?? 0}</Text>
                         <Text style={[styles.statLbl, { color: Colors.textSecondary }]}>failed</Text>
                       </View>
                     </View>
@@ -597,13 +597,13 @@ export default function AdminSettingsFareAIScreen() {
 
                     {cooling ? (
                       <View style={[styles.coolBadge, { backgroundColor: "#e5484d20" }]}>
-                        <Clock color="#e5484d" size={12} />
-                        <Text style={[styles.coolTxt, { color: "#e5484d" }]}>
+                        <Clock color={Colors.errorText} size={12} />
+                        <Text style={[styles.coolTxt, { color: Colors.errorText }]}>
                           Cooling down — retries {formatRelative(st?.disabledUntil ?? null)}
                         </Text>
                       </View>
                     ) : st?.lastError ? (
-                      <Text style={[styles.errTxt, { color: "#e5484d" }]} numberOfLines={2}>
+                      <Text style={[styles.errTxt, { color: Colors.errorText }]} numberOfLines={2}>
                         Last error: {st.lastError}
                       </Text>
                     ) : null}
@@ -645,7 +645,7 @@ export default function AdminSettingsFareAIScreen() {
               testID="fare-ai-open-logs"
               accessibilityRole="button"
             >
-              <ListChecks color={Colors.accent} size={18} />
+              <ListChecks color={Colors.accentText} size={18} />
               <Text style={[styles.logsTxt, { color: Colors.text }]}>View response log</Text>
             </TouchableOpacity>
 

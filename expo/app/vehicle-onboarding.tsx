@@ -836,7 +836,7 @@ export default function VehicleOnboardingScreen() {
             </Text>
             <View style={[styles.vehCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
               <View style={[styles.vehIcon, { backgroundColor: Colors.accent + "20" }]}>
-                <CarFront color={Colors.accent} size={22} />
+                <CarFront color={Colors.accentText} size={22} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.vehTitle, { color: Colors.text }]} numberOfLines={1}>
@@ -1310,7 +1310,7 @@ export default function VehicleOnboardingScreen() {
         return (
           <View style={styles.center}>
             <View style={[styles.doneIconWrap, { backgroundColor: Colors.accent + "20" }]}>
-              <ShieldCheck color={Colors.accent} size={36} />
+              <ShieldCheck color={Colors.accentText} size={36} />
             </View>
             <Text style={[styles.title, { color: Colors.text, textAlign: "center" }]}>
               Pending admin review & approval
@@ -1339,7 +1339,7 @@ export default function VehicleOnboardingScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.accent} size="large" />
+          <ActivityIndicator color={Colors.accentText} size="large" />
           <Text style={[styles.loadingText, { color: Colors.textSecondary }]}>
             Loading vehicle setup…
           </Text>

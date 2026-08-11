@@ -570,7 +570,7 @@ export default function VehicleInformationScreen() {
           {scanning ? (
             <View style={styles.progressBlock}>
               <View style={styles.progressRow}>
-                <ActivityIndicator color={Colors.accent} size="small" />
+                <ActivityIndicator color={Colors.accentText} size="small" />
                 <Text style={[styles.progressLabel, { color: Colors.textSecondary }]} numberOfLines={1}>
                   Reading {progress?.label ?? "vehicle"}…
                 </Text>
@@ -592,7 +592,7 @@ export default function VehicleInformationScreen() {
           ) : null}
 
           {scanError ? (
-            <Text style={[styles.errorText]} testID="vehicle-info-error">
+            <Text style={[styles.errorText, { color: Colors.errorText }]} testID="vehicle-info-error">
               {scanError}
             </Text>
           ) : null}
@@ -1089,7 +1089,7 @@ export default function VehicleInformationScreen() {
                           {choice.label}
                         </Text>
                         {protocolCode === choice.code ? (
-                          <Check color={Colors.accent} size={18} strokeWidth={3} />
+                          <Check color={Colors.accentText} size={18} strokeWidth={3} />
                         ) : null}
                       </TouchableOpacity>
                     ))}
@@ -1189,7 +1189,7 @@ export default function VehicleInformationScreen() {
           <View style={[styles.warnCard, { backgroundColor: Colors.secondary }]}>
             <View style={styles.warnHeader}>
               <View style={styles.warnHeaderLeft}>
-                <Fuel color={Colors.accent} size={22} />
+                <Fuel color={Colors.accentText} size={22} />
                 <Text style={[styles.warnTitle, { color: Colors.text }]}>
                   Tank &amp; consumption
                 </Text>
@@ -1259,8 +1259,8 @@ export default function VehicleInformationScreen() {
                     testID="vehicle-info-reset-measured"
                     accessibilityRole="button"
                   >
-                    <RotateCcw color={Colors.accent} size={14} />
-                    <Text style={[styles.measuredResetText, { color: Colors.accent }]}>
+                    <RotateCcw color={Colors.accentText} size={14} />
+                    <Text style={[styles.measuredResetText, { color: Colors.accentText }]}>
                       Start measuring again
                     </Text>
                   </TouchableOpacity>

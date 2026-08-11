@@ -455,10 +455,10 @@ export default function WalletHistoryScreen() {
                       testID={`wallet-history-details-${tx.id}`}
                       accessibilityRole="button"
                     >
-                      <Text style={[styles.viewDetailsText, { color: Colors.accent }]}>
+                      <Text style={[styles.viewDetailsText, { color: Colors.accentText }]}>
                         View Details
                       </Text>
-                      <ChevronRight color={Colors.accent} size={16} />
+                      <ChevronRight color={Colors.accentText} size={16} />
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -480,8 +480,8 @@ export default function WalletHistoryScreen() {
           testID="wallet-history-back-top"
           accessibilityRole="button"
         >
-          <Text style={[styles.backTopText, { color: Colors.accent }]}>Back to Top</Text>
-          <ChevronUp color={Colors.accent} size={16} />
+          <Text style={[styles.backTopText, { color: Colors.accentText }]}>Back to Top</Text>
+          <ChevronUp color={Colors.accentText} size={16} />
         </TouchableOpacity>
       </View>
     </PullDownScrollView>
@@ -507,7 +507,7 @@ export default function WalletHistoryScreen() {
       <View style={styles.body}>
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={Colors.accent} size="large" />
+            <ActivityIndicator color={Colors.accentText} size="large" />
           </View>
         ) : detailTx ? (
           renderDetails(detailTx)
@@ -523,7 +523,7 @@ export default function WalletHistoryScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go home"
           >
-            <Home color={Colors.accent} size={24} />
+            <Home color={Colors.accentText} size={24} />
           </TouchableOpacity>
         ) : null}
       </View>

@@ -101,9 +101,9 @@ export default function AdminSettingsFareAILogsScreen() {
       <View style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
         <View style={styles.cardHead}>
           {item.success ? (
-            <CircleCheck color="#1f9d55" size={16} />
+            <CircleCheck color={Colors.successText} size={16} />
           ) : (
-            <CircleX color="#e5484d" size={16} />
+            <CircleX color={Colors.errorText} size={16} />
           )}
           <Text style={[styles.provider, { color: Colors.text }]} numberOfLines={1}>
             {providerName(item.provider)}
@@ -118,7 +118,7 @@ export default function AdminSettingsFareAILogsScreen() {
             {item.summary ? ` — ${item.summary}` : ""}
           </Text>
         ) : (
-          <Text style={[styles.errText, { color: "#e5484d" }]} numberOfLines={3}>
+          <Text style={[styles.errText, { color: Colors.errorText }]} numberOfLines={3}>
             {item.error ?? "Failed"}
           </Text>
         )}
@@ -168,11 +168,11 @@ export default function AdminSettingsFareAILogsScreen() {
               accessibilityRole="button"
             >
               {expanded[item.id] ? (
-                <ChevronDown color={Colors.accent} size={14} />
+                <ChevronDown color={Colors.accentText} size={14} />
               ) : (
-                <ChevronRight color={Colors.accent} size={14} />
+                <ChevronRight color={Colors.accentText} size={14} />
               )}
-              <Text style={[styles.rawToggleText, { color: Colors.accent }]}>
+              <Text style={[styles.rawToggleText, { color: Colors.accentText }]}>
                 {expanded[item.id] ? "Hide raw response" : "Show raw response"}
               </Text>
             </TouchableOpacity>
@@ -206,7 +206,7 @@ export default function AdminSettingsFareAILogsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <ListChecks color={Colors.accent} size={18} />
+            <ListChecks color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Response Log</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -230,7 +230,7 @@ export default function AdminSettingsFareAILogsScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <FlatList

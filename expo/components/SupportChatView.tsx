@@ -534,7 +534,7 @@ export default function SupportChatView({
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={styles.headerAvatarImg} />
           ) : (
-            <FileText color={Colors.accent} size={18} />
+            <FileText color={Colors.accentText} size={18} />
           )}
         </View>
         <View style={styles.headerCenter}>
@@ -556,7 +556,7 @@ export default function SupportChatView({
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <FlatList
@@ -581,7 +581,7 @@ export default function SupportChatView({
           <View style={[styles.composer, { borderTopColor: Colors.border, backgroundColor: Colors.background }]}>
             <View style={[styles.recordingPill, { backgroundColor: Colors.error + "15" }]}>
               <View style={[styles.recDot, { backgroundColor: Colors.error }]} />
-              <Text style={[styles.recText, { color: Colors.error }]}>
+              <Text style={[styles.recText, { color: Colors.errorText }]}>
                 Recording… {formatDuration((recorderState.durationMillis ?? 0) / 1000)}
               </Text>
             </View>
@@ -651,7 +651,7 @@ export default function SupportChatView({
               {attachItems.map((it) => (
                 <TouchableOpacity key={it.key} style={styles.attachItem} onPress={it.onPress} accessibilityRole="button">
                   <View style={[styles.attachCircle, { backgroundColor: Colors.accent + "20" }]}>
-                    <it.icon color={Colors.accent} size={24} />
+                    <it.icon color={Colors.accentText} size={24} />
                   </View>
                   <Text style={[styles.attachLabel, { color: Colors.text }]}>{it.label}</Text>
                 </TouchableOpacity>

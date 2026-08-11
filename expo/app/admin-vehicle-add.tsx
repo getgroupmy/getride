@@ -201,7 +201,7 @@ export default function AdminVehicleAddScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <CarFront color={Colors.accent} size={18} />
+            <CarFront color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Add Vehicle</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>Register a new vehicle</Text>
@@ -255,7 +255,7 @@ export default function AdminVehicleAddScreen() {
                   accessibilityRole="button"
                 >
                   <View style={[styles.suggestAvatar, { backgroundColor: Colors.accent + "20" }]}>
-                    <Text style={[styles.suggestAvatarText, { color: Colors.accent }]}>
+                    <Text style={[styles.suggestAvatarText, { color: Colors.accentText }]}>
                       {p.name.charAt(0).toUpperCase()}
                     </Text>
                   </View>

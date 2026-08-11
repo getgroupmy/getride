@@ -492,7 +492,7 @@ export default function WalletTradeScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} size="large" />
+          <ActivityIndicator color={Colors.accentText} size="large" />
         </View>
       ) : (
         <KeyboardAvoidingView

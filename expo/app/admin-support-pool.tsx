@@ -206,7 +206,7 @@ export default function AdminSupportPoolScreen() {
               {avatar ? (
                 <Image source={{ uri: avatar }} style={styles.avatarImg} />
               ) : (
-                <UserRound color={Colors.accent} size={20} />
+                <UserRound color={Colors.accentText} size={20} />
               )}
             </View>
             <View style={styles.cardInfo}>
@@ -246,8 +246,8 @@ export default function AdminSupportPoolScreen() {
                 activeOpacity={0.85}
                 accessibilityRole="button"
               >
-                <RotateCcw color={Colors.accent} size={16} />
-                <Text style={[styles.reopenBtnText, { color: Colors.accent }]}>Reopen</Text>
+                <RotateCcw color={Colors.accentText} size={16} />
+                <Text style={[styles.reopenBtnText, { color: Colors.accentText }]}>Reopen</Text>
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
@@ -286,7 +286,7 @@ export default function AdminSupportPoolScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Inbox color={Colors.accent} size={18} />
+            <Inbox color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Assignment Pool</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -319,7 +319,7 @@ export default function AdminSupportPoolScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <FlatList
@@ -441,7 +441,7 @@ export default function AdminSupportPoolScreen() {
                       {agent.avatar_url ? (
                         <Image source={{ uri: agent.avatar_url }} style={styles.agentAvatarImg} />
                       ) : (
-                        <UserRound color={Colors.accent} size={18} />
+                        <UserRound color={Colors.accentText} size={18} />
                       )}
                     </View>
                     <View style={styles.agentInfo}>
@@ -452,7 +452,7 @@ export default function AdminSupportPoolScreen() {
                         </Text>
                       ) : null}
                     </View>
-                    {selected ? <Check color={Colors.accent} size={18} /> : null}
+                    {selected ? <Check color={Colors.accentText} size={18} /> : null}
                   </TouchableOpacity>
                 );
               }}

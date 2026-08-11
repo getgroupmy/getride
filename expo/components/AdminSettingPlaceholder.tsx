@@ -50,7 +50,7 @@ export default function AdminSettingPlaceholder({
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Icon color={Colors.accent} size={18} />
+            <Icon color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>{title}</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -75,7 +75,7 @@ export default function AdminSettingPlaceholder({
           ]}
         >
           <View style={[styles.heroIcon, { backgroundColor: Colors.accent + "20" }]}>
-            <Icon color={Colors.accent} size={28} />
+            <Icon color={Colors.accentText} size={28} />
           </View>
           <Text style={[styles.heroTitle, { color: Colors.text }]}>{title}</Text>
           <Text style={[styles.heroDesc, { color: Colors.textSecondary }]}>
@@ -106,7 +106,7 @@ export default function AdminSettingPlaceholder({
               <View
                 style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}
               >
-                <SettingsIcon color={Colors.accent} size={18} />
+                <SettingsIcon color={Colors.accentText} size={18} />
               </View>
               <View style={styles.rowInfo}>
                 <Text style={[styles.rowLabel, { color: Colors.text }]}>

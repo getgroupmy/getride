@@ -267,7 +267,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
               { backgroundColor: Colors.accent + "20", alignItems: "center", justifyContent: "center" },
             ]}
           >
-            <Zap color={Colors.accent} size={22} />
+            <Zap color={Colors.accentText} size={22} />
           </View>
         )}
         <View style={styles.rowInfo}>
@@ -292,7 +292,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           accessibilityRole="button"
           accessibilityLabel="Edit inv"
         >
-          <Pencil color={Colors.accent} size={16} />
+          <Pencil color={Colors.accentText} size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onDelete(entry)}
@@ -301,7 +301,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete inv"
         >
-          <Trash2 color={Colors.error} size={16} />
+          <Trash2 color={Colors.errorText} size={16} />
         </TouchableOpacity>
       </View>
     );
@@ -316,7 +316,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
   ) => (
     <View style={styles.section}>
       <View style={styles.sectionTitleRow}>
-        <Icon color={Colors.accent} size={16} />
+        <Icon color={Colors.accentText} size={16} />
         <Text style={[styles.sectionTitle, { color: Colors.text }]}>{title}</Text>
       </View>
       {items.length === 0 ? (
@@ -356,7 +356,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                 >
                   {c.name || c.code}
                 </Text>
-                {active ? <Check color={Colors.accent} size={14} /> : null}
+                {active ? <Check color={Colors.accentText} size={14} /> : null}
               </TouchableOpacity>
             );
           })}
@@ -374,7 +374,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
   ) => (
     <View style={styles.section}>
       <View style={styles.sectionTitleRow}>
-        <Icon color={Colors.accent} size={16} />
+        <Icon color={Colors.accentText} size={16} />
         <Text style={[styles.sectionTitle, { color: Colors.text }]}>{title}</Text>
       </View>
       {items.length === 0 ? (
@@ -411,7 +411,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                   {c.name}
                   {priceText}
                 </Text>
-                {active ? <Check color={Colors.accent} size={14} /> : null}
+                {active ? <Check color={Colors.accentText} size={14} /> : null}
               </TouchableOpacity>
             );
           })}
@@ -439,7 +439,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Package color={Colors.accent} size={18} />
+            <Package color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               EV Vehicle Inventory
             </Text>
@@ -562,7 +562,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                             },
                           ]}
                         >
-                          <Zap color={Colors.accent} size={16} />
+                          <Zap color={Colors.accentText} size={16} />
                         </View>
                       )}
                       <View style={{ flex: 1 }}>
@@ -720,7 +720,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                           },
                         ]}
                       >
-                        <Zap color={Colors.accent} size={22} />
+                        <Zap color={Colors.accentText} size={22} />
                       </View>
                     )}
                     <View style={styles.rowInfo}>
@@ -734,7 +734,7 @@ export default function AdminSettingsEvVehicleInventoryScreen() {
                         RM {Number(v.values.price ?? 0).toLocaleString()}
                       </Text>
                     </View>
-                    {active ? <Check color={Colors.accent} size={18} /> : null}
+                    {active ? <Check color={Colors.accentText} size={18} /> : null}
                   </TouchableOpacity>
                 );
               })}

@@ -147,7 +147,7 @@ export default function AdminLoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.iconWrap, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" }]}>
-            <ShieldCheck color={Colors.accent} size={36} />
+            <ShieldCheck color={Colors.accentText} size={36} />
           </View>
           <Text style={[styles.title, { color: Colors.text }]}>Admin Login</Text>
           <Text style={[styles.subtitle, { color: Colors.textSecondary }]}>
@@ -157,7 +157,7 @@ export default function AdminLoginScreen() {
           {!ipLoading && isWhitelisted ? (
             <View style={[styles.whitelistCard, { backgroundColor: Colors.success + "15", borderColor: Colors.success + "40" }]}>
               <View style={styles.whitelistHeader}>
-                <ShieldCheck color={Colors.success} size={18} />
+                <ShieldCheck color={Colors.successText} size={18} />
                 <Text style={[styles.whitelistTitle, { color: Colors.text }]}>Trusted IP detected</Text>
               </View>
               <Text style={[styles.whitelistSub, { color: Colors.textSecondary }]}>
@@ -279,7 +279,7 @@ export default function AdminLoginScreen() {
               </View>
 
               {loading ? (
-                <ActivityIndicator color={Colors.accent} style={{ marginTop: 12 }} />
+                <ActivityIndicator color={Colors.accentText} style={{ marginTop: 12 }} />
               ) : null}
             </View>
           ) : (

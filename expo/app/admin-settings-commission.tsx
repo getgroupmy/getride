@@ -426,7 +426,7 @@ export default function AdminSettingsCommissionScreen() {
         ) : null}
       </View>
       <View style={[styles.ratePill, { backgroundColor: Colors.accent + "18" }]}>
-        <Text style={[styles.ratePillText, { color: Colors.accent }]}>{formatPct(rule.rate)}</Text>
+        <Text style={[styles.ratePillText, { color: Colors.accentText }]}>{formatPct(rule.rate)}</Text>
       </View>
       <Switch
         value={rule.active}
@@ -440,7 +440,7 @@ export default function AdminSettingsCommissionScreen() {
         <Pencil color={Colors.textSecondary} size={16} />
       </TouchableOpacity>
       <TouchableOpacity onPress={() => confirmDelete(rule)} style={styles.ruleBtn} testID={`commission-delete-${rule.id}`} accessibilityRole="button" accessibilityLabel="Delete commission">
-        <Trash2 color={Colors.error} size={16} />
+        <Trash2 color={Colors.errorText} size={16} />
       </TouchableOpacity>
     </View>
   );
@@ -463,7 +463,7 @@ export default function AdminSettingsCommissionScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Percent color={Colors.accent} size={18} />
+            <Percent color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Commission Rates</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -475,7 +475,7 @@ export default function AdminSettingsCommissionScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -502,7 +502,7 @@ export default function AdminSettingsCommissionScreen() {
           {/* Master rate */}
           <View style={[styles.masterCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
             <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-              <Crown color={Colors.accent} size={20} />
+              <Crown color={Colors.accentText} size={20} />
             </View>
             <View style={styles.rowInfo}>
               <Text style={[styles.rowLabel, { color: Colors.text }]}>Master commission rate</Text>
@@ -569,7 +569,7 @@ export default function AdminSettingsCommissionScreen() {
               <View key={meta.level} style={{ marginTop: 22 }}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionTitleRow}>
-                    <Icon color={Colors.accent} size={16} />
+                    <Icon color={Colors.accentText} size={16} />
                     <Text style={[styles.sectionTitle, { color: Colors.text }]}>{meta.title}</Text>
                   </View>
                   <TouchableOpacity
@@ -578,8 +578,8 @@ export default function AdminSettingsCommissionScreen() {
                     testID={`commission-add-${meta.level}`}
                     accessibilityRole="button"
                   >
-                    <Plus color={Colors.accent} size={14} />
-                    <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
+                    <Plus color={Colors.accentText} size={14} />
+                    <Text style={[styles.addBtnText, { color: Colors.accentText }]}>Add</Text>
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.sectionDesc, { color: Colors.textSecondary }]}>{meta.description}</Text>
@@ -643,7 +643,7 @@ export default function AdminSettingsCommissionScreen() {
                   <Text style={[styles.fieldLabel, { color: Colors.textSecondary }]}>User (partner account)</Text>
                   {selUserId ? (
                     <View style={[styles.selectedUser, { backgroundColor: Colors.accent + "12", borderColor: Colors.accent + "40" }]}>
-                      <UserRound color={Colors.accent} size={16} />
+                      <UserRound color={Colors.accentText} size={16} />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.selectedUserName, { color: Colors.text }]} numberOfLines={1}>
                           {selUserLabel || "Selected user"}
@@ -678,7 +678,7 @@ export default function AdminSettingsCommissionScreen() {
                           testID="commission-user-search"
                           accessibilityLabel="Search name, phone or ID…"
                         />
-                        {userSearching && <ActivityIndicator size="small" color={Colors.accent} />}
+                        {userSearching && <ActivityIndicator size="small" color={Colors.accentText} />}
                       </View>
                       {userResults.map((u) => (
                         <TouchableOpacity

@@ -116,7 +116,7 @@ export default function SupportCallListener() {
           <Animated.View
             style={[styles.avatar, { backgroundColor: Colors.accent + "30", transform: [{ scale: pulse }] }]}
           >
-            <UserRound color={Colors.accent} size={52} />
+            <UserRound color={Colors.accentText} size={52} />
           </Animated.View>
           <Text style={[styles.name, { color: Colors.text }]}>{incoming.caller_name || "Support"}</Text>
           <Text style={[styles.sub, { color: Colors.textSecondary }]}>Incoming support call…</Text>

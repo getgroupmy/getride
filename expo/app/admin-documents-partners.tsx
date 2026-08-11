@@ -197,7 +197,7 @@ export default function AdminDocumentsPartnersScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Users color={Colors.accent} size={18} />
+            <Users color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Partner Documents</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -240,7 +240,7 @@ export default function AdminDocumentsPartnersScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView
@@ -274,7 +274,7 @@ export default function AdminDocumentsPartnersScreen() {
                     <View style={[styles.thumb, { backgroundColor: Colors.gray[200], justifyContent: "center", alignItems: "center" }]}>
                       {pdfRow ? (
                         <>
-                          <FileText color={Colors.accent} size={22} />
+                          <FileText color={Colors.accentText} size={22} />
                           <Text style={{ color: Colors.textSecondary, fontSize: 9, marginTop: 2, fontWeight: "700" as const }}>PDF</Text>
                         </>
                       ) : (
@@ -466,8 +466,8 @@ function DocumentReviewModal({
             testID="docs-modal-reject"
             accessibilityRole="button"
           >
-            <XCircle color={Colors.error} size={18} />
-            <Text style={[styles.actionText, { color: Colors.error }]}>Reject</Text>
+            <XCircle color={Colors.errorText} size={18} />
+            <Text style={[styles.actionText, { color: Colors.errorText }]}>Reject</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onApprove}
@@ -511,7 +511,7 @@ function FilePreview({ url, label, onOpen }: { url: string | null; label: string
     >
       {pdf ? (
         <View style={[styles.modalImage, { backgroundColor: Colors.gray[100], justifyContent: "center" as const, alignItems: "center" as const, borderWidth: 1, borderColor: Colors.border }]}>
-          <FileText color={Colors.accent} size={42} />
+          <FileText color={Colors.accentText} size={42} />
           <Text style={{ color: Colors.text, fontWeight: "700" as const, marginTop: 8 }}>PDF document</Text>
           <Text style={{ color: Colors.textSecondary, fontSize: 12, marginTop: 4 }}>Tap to open & zoom</Text>
         </View>
@@ -556,7 +556,7 @@ function TaxiPermitDetails({
   return (
     <View style={[styles.permitCard, { backgroundColor: Colors.accent + "12", borderColor: Colors.accent + "40" }]}>
       <View style={styles.permitHeader}>
-        <FileText color={Colors.accent} size={16} />
+        <FileText color={Colors.accentText} size={16} />
         <Text style={[styles.permitTitle, { color: Colors.text }]}>Captured permit fields</Text>
       </View>
       {fields.map((f) => (

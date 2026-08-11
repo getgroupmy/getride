@@ -1265,7 +1265,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
               accessibilityRole="button"
               accessibilityLabel="Delete"
             >
-              <Trash2 size={16} color={Colors.error} />
+              <Trash2 size={16} color={Colors.errorText} />
             </TouchableOpacity>
           ) : null}
           {item.level !== "suburb" ? (
@@ -1295,7 +1295,7 @@ export default function AdminSettingsCountryStatesCitiesScreen() {
           <Text style={styles.headerSubtitle}>{totalLabel}</Text>
         </View>
         <TouchableOpacity onPress={openAdd} style={styles.headerBtn} testID="add" accessibilityRole="button" accessibilityLabel="Add">
-          <Plus size={22} color={Colors.accent} />
+          <Plus size={22} color={Colors.accentText} />
         </TouchableOpacity>
       </View>
 
@@ -2423,7 +2423,7 @@ const createStyles = (Colors: ReturnType<typeof useColors>) =>
       borderRadius: 6,
       backgroundColor: `${Colors.accent}1A`,
     },
-    badgeText: { color: Colors.accent, fontSize: 10, fontWeight: "700" as const },
+    badgeText: { color: Colors.accentText, fontSize: 10, fontWeight: "700" as const },
     badgeMap: { backgroundColor: `${Colors.success ?? Colors.accent}1A` },
     mapBox: {
       height: 260,

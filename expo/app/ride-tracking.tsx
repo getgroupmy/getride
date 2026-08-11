@@ -812,7 +812,7 @@ export default function RideTrackingScreen() {
           ]}
           polylines={
             remainingCoords.length > 1
-              ? [{ id: "route", coordinates: remainingCoords, color: Colors.accent, width: 6 }]
+              ? [{ id: "route", coordinates: remainingCoords, color: Colors.accentText, width: 6 }]
               : []
           }
         />
@@ -956,7 +956,7 @@ export default function RideTrackingScreen() {
           accessibilityRole="button"
           accessibilityLabel="Follow the driver on the map"
         >
-          <Crosshair color={Colors.accent} size={22} />
+          <Crosshair color={Colors.accentText} size={22} />
         </TouchableOpacity>
       )}
 
@@ -991,12 +991,12 @@ export default function RideTrackingScreen() {
             {phase === "arrived" && (
               <View style={[styles.otpBox, { backgroundColor: Colors.accent + "1A", borderColor: Colors.accent }]}>
                 <Text style={[styles.otpLabel, { color: Colors.textSecondary }]}>PIN</Text>
-                <Text style={[styles.otpValue, { color: Colors.accent }]}>{otp}</Text>
+                <Text style={[styles.otpValue, { color: Colors.accentText }]}>{otp}</Text>
               </View>
             )}
             {phase === "completed" && (
               <View style={[styles.doneIcon, { backgroundColor: Colors.success + "1A" }]}>
-                <CheckCircle2 color={Colors.success} size={28} />
+                <CheckCircle2 color={Colors.successText} size={28} />
               </View>
             )}
           </View>
@@ -1020,7 +1020,7 @@ export default function RideTrackingScreen() {
                       {driverName}
                     </Text>
                     <View style={styles.ratingRow}>
-                      <Star color={Colors.warning} size={14} fill={Colors.warning} />
+                      <Star color={Colors.warningText} size={14} fill={Colors.warning} />
                       <Text style={[styles.ratingText, { color: Colors.text }]}>{driverRating}</Text>
                       <Text style={[styles.dotSep, { color: Colors.textSecondary }]}>•</Text>
                       <Car color={Colors.textSecondary} size={14} />
@@ -1072,7 +1072,7 @@ export default function RideTrackingScreen() {
                 </View>
                 <View style={styles.locRow}>
                   <View style={styles.locIconCol}>
-                    <MapPin color={Colors.accent} size={18} />
+                    <MapPin color={Colors.accentText} size={18} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.locLabel, { color: Colors.textSecondary }]}>Dropoff</Text>
@@ -1130,7 +1130,7 @@ export default function RideTrackingScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Cancel ride"
                 >
-                  <Text style={[styles.cancelLinkText, { color: Colors.error }]}>Cancel ride</Text>
+                  <Text style={[styles.cancelLinkText, { color: Colors.errorText }]}>Cancel ride</Text>
                 </TouchableOpacity>
               )}
 
@@ -1256,7 +1256,7 @@ export default function RideTrackingScreen() {
             ]}
           >
             <View style={[styles.warnWrap, { backgroundColor: Colors.error + "1A" }]}>
-              <XCircle color={Colors.error} size={32} />
+              <XCircle color={Colors.errorText} size={32} />
             </View>
             <Text style={[styles.cancelTitle, { color: Colors.text }]}>Cancel this ride?</Text>
             <Text style={[styles.cancelBody, { color: Colors.textSecondary }]}>
@@ -1400,7 +1400,7 @@ export default function RideTrackingScreen() {
             ]}
           >
             <View style={[styles.warnWrap, { backgroundColor: Colors.error + "1A" }]}>
-              <AlertTriangle color={Colors.error} size={32} />
+              <AlertTriangle color={Colors.errorText} size={32} />
             </View>
             <Text style={[styles.cancelTitle, { color: Colors.text }]}>
               {phase === "onTrip" && requestId ? "Request cancellation?" : "Cancel this ride?"}

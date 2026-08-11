@@ -387,7 +387,7 @@ export default function AdminTraceFraudScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <ShieldAlert color={Colors.error} size={18} />
+            <ShieldAlert color={Colors.errorText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Trace Fraud</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -417,12 +417,12 @@ export default function AdminTraceFraudScreen() {
 
       <View style={styles.statsRow}>
         <View style={[styles.statPill, { backgroundColor: Colors.error + "15", borderColor: Colors.error + "40" }]}>
-          <Text style={[styles.statValue, { color: Colors.error }]}>{counts.high}</Text>
-          <Text style={[styles.statLabel, { color: Colors.error }]}>High</Text>
+          <Text style={[styles.statValue, { color: Colors.errorText }]}>{counts.high}</Text>
+          <Text style={[styles.statLabel, { color: Colors.errorText }]}>High</Text>
         </View>
         <View style={[styles.statPill, { backgroundColor: Colors.warning + "15", borderColor: Colors.warning + "40" }]}>
-          <Text style={[styles.statValue, { color: Colors.warning }]}>{counts.medium}</Text>
-          <Text style={[styles.statLabel, { color: Colors.warning }]}>Medium</Text>
+          <Text style={[styles.statValue, { color: Colors.warningText }]}>{counts.medium}</Text>
+          <Text style={[styles.statLabel, { color: Colors.warningText }]}>Medium</Text>
         </View>
         <View style={[styles.statPill, { backgroundColor: Colors.gray[200], borderColor: Colors.border }]}>
           <Text style={[styles.statValue, { color: Colors.textSecondary }]}>{counts.low}</Text>
@@ -502,7 +502,7 @@ export default function AdminTraceFraudScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : !isSupabaseConfigured ? (
         <View style={styles.center}>

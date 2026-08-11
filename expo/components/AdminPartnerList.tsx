@@ -82,15 +82,15 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
     s: PStatus
   ): { label: string; color: string; Icon: React.ComponentType<{ color?: string; size?: number }> } => {
     switch (s) {
-      case "approved": return { label: "Approved", color: Colors.success, Icon: CheckCircle2 };
-      case "unapproved": return { label: "Unapproved", color: Colors.warning, Icon: Clock };
-      case "blocked": return { label: "Blocked", color: Colors.error, Icon: Ban };
-      case "rejected": return { label: "Rejected", color: Colors.error, Icon: XCircle };
-      case "unapproved-docs": return { label: "Docs Pending", color: Colors.warning, Icon: FileText };
-      case "permit-pending": return { label: "Permit Pending", color: Colors.warning, Icon: ShieldAlert };
+      case "approved": return { label: "Approved", color: Colors.successText, Icon: CheckCircle2 };
+      case "unapproved": return { label: "Unapproved", color: Colors.warningText, Icon: Clock };
+      case "blocked": return { label: "Blocked", color: Colors.errorText, Icon: Ban };
+      case "rejected": return { label: "Rejected", color: Colors.errorText, Icon: XCircle };
+      case "unapproved-docs": return { label: "Docs Pending", color: Colors.warningText, Icon: FileText };
+      case "permit-pending": return { label: "Permit Pending", color: Colors.warningText, Icon: ShieldAlert };
       case "permit-non-verified": return { label: "Permit Unverified", color: Colors.textSecondary, Icon: ShieldOff };
-      case "permit-verified": return { label: "Permit Verified", color: Colors.success, Icon: ShieldCheck };
-      default: return { label: "Partner", color: Colors.accent, Icon: Users };
+      case "permit-verified": return { label: "Permit Verified", color: Colors.successText, Icon: ShieldCheck };
+      default: return { label: "Partner", color: Colors.accentText, Icon: Users };
     }
   };
 
@@ -184,7 +184,7 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
           </TouchableOpacity>
         ) : null}
         <View style={[styles.countBadge, { backgroundColor: Colors.accent + "20" }]}>
-          <Text style={[styles.countBadgeText, { color: Colors.accent }]}>{filtered.length}</Text>
+          <Text style={[styles.countBadgeText, { color: Colors.accentText }]}>{filtered.length}</Text>
         </View>
       </View>
 
@@ -223,7 +223,7 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
               >
                 <View style={styles.cardTop}>
                   <View style={[styles.avatar, { backgroundColor: Colors.accent + "20" }]}>
-                    <Text style={[styles.avatarText, { color: Colors.accent }]}>
+                    <Text style={[styles.avatarText, { color: Colors.accentText }]}>
                       {d.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}
                     </Text>
                   </View>
@@ -237,8 +237,8 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
                           : []
                       ).map((t) => (
                         <View key={t} style={[styles.typePill, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" }]} testID={`partner-type-${d.id}-${t}`}>
-                          <Tag color={Colors.accent} size={10} />
-                          <Text style={[styles.typePillText, { color: Colors.accent }]} numberOfLines={1}>{t}</Text>
+                          <Tag color={Colors.accentText} size={10} />
+                          <Text style={[styles.typePillText, { color: Colors.accentText }]} numberOfLines={1}>{t}</Text>
                         </View>
                       ))}
                     </View>
@@ -258,7 +258,7 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         testID={`partner-edit-${d.id}`}
                       >
-                        <Pencil color={Colors.accent} size={16} />
+                        <Pencil color={Colors.accentText} size={16} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => onDelete(d)}
@@ -268,7 +268,7 @@ export default function AdminPartnerList({ status, title, subtitle, emptyText }:
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         testID={`partner-more-${d.id}`}
                       >
-                        <Trash2 color={Colors.error} size={16} />
+                        <Trash2 color={Colors.errorText} size={16} />
                       </TouchableOpacity>
                     </>
                   ) : null}

@@ -225,14 +225,14 @@ export default function ProfileScreen() {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             testID="profile-edit"
           >
-            <Pencil color={Colors.accent} size={20} />
+            <Pencil color={Colors.accentText} size={20} />
           </TouchableOpacity>
         </View>
       </SafeAreaView>
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={Colors.accent} />
+          <ActivityIndicator size="large" color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView
@@ -253,7 +253,7 @@ export default function ProfileScreen() {
                 {data.avatar ? (
                   <Image source={{ uri: data.avatar }} style={styles.avatarImage} />
                 ) : (
-                  <Text style={[styles.avatarText, { color: Colors.accent }]}>{firstChar}</Text>
+                  <Text style={[styles.avatarText, { color: Colors.accentText }]}>{firstChar}</Text>
                 )}
               </View>
               <View style={[styles.editBadge, { backgroundColor: Colors.accent }]}>
@@ -264,14 +264,14 @@ export default function ProfileScreen() {
             <Text style={styles.avatarHint}>Tap photo to edit profile</Text>
 
             <View style={styles.ratingRow}>
-              <Star color={Colors.accent} size={16} fill={Colors.accent} />
+              <Star color={Colors.accentText} size={16} fill={Colors.accent} />
               <Text style={styles.ratingText}>4.8</Text>
               <Text style={styles.ratingSub}>· Member</Text>
             </View>
 
             {referrer ? (
               <View style={styles.referredBadge} testID="profile-referred-badge">
-                <UserPlus color={Colors.accent} size={13} />
+                <UserPlus color={Colors.accentText} size={13} />
                 <Text style={styles.referredBadgeText} numberOfLines={1}>
                   Referred
                   {referrer.name ? (
@@ -493,8 +493,8 @@ const makeStyles = (Colors: ReturnType<typeof useColors>) =>
       borderWidth: 1,
       borderColor: Colors.accent + "33",
     },
-    referredBadgeText: { flexShrink: 1, fontSize: 12, fontWeight: "700" as const, color: Colors.accent },
-    referredBadgeName: { fontWeight: "600" as const, color: Colors.accent },
+    referredBadgeText: { flexShrink: 1, fontSize: 12, fontWeight: "700" as const, color: Colors.accentText },
+    referredBadgeName: { fontWeight: "600" as const, color: Colors.accentText },
     section: { marginTop: 24 },
     sectionLabel: {
       fontSize: 12,

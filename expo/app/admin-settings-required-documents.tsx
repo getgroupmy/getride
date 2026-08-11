@@ -497,7 +497,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
       >
         <View style={styles.cardHeader}>
           <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
-            <FileCheck2 color={Colors.accent} size={20} />
+            <FileCheck2 color={Colors.accentText} size={20} />
           </View>
           <View style={{ flex: 1 }}>
             <View style={styles.titleRow}>
@@ -554,11 +554,11 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                 ]}
               >
                 {regionSummary === "Global" ? (
-                  <Globe2 color={Colors.accent} size={11} />
+                  <Globe2 color={Colors.accentText} size={11} />
                 ) : (
-                  <MapPin color={Colors.accent} size={11} />
+                  <MapPin color={Colors.accentText} size={11} />
                 )}
-                <Text style={[styles.chipText, { color: Colors.accent }]}>
+                <Text style={[styles.chipText, { color: Colors.accentText }]}>
                   {regionSummary}
                 </Text>
               </View>
@@ -567,7 +567,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                   key={`${entry.id}-tag-${i}`}
                   style={[styles.chip, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" }]}
                 >
-                  <Text style={[styles.chipText, { color: Colors.accent }]} numberOfLines={1}>
+                  <Text style={[styles.chipText, { color: Colors.accentText }]} numberOfLines={1}>
                     {t}
                   </Text>
                 </View>
@@ -584,7 +584,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
                   key={`${entry.id}-pt-${i}`}
                   style={[styles.chip, { backgroundColor: Colors.success + "15", borderColor: Colors.success + "40" }]}
                 >
-                  <Text style={[styles.chipText, { color: Colors.success }]} numberOfLines={1}>
+                  <Text style={[styles.chipText, { color: Colors.successText }]} numberOfLines={1}>
                     {t}
                   </Text>
                 </View>
@@ -615,7 +615,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Edit required documents"
           >
-            <Pencil color={Colors.accent} size={16} />
+            <Pencil color={Colors.accentText} size={16} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onDelete(entry)}
@@ -624,7 +624,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Delete required documents"
           >
-            <Trash2 color={Colors.error} size={16} />
+            <Trash2 color={Colors.errorText} size={16} />
           </TouchableOpacity>
         </View>
       </View>
@@ -665,7 +665,7 @@ export default function AdminSettingsRequiredDocumentsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <FileCheck2 color={Colors.accent} size={18} />
+            <FileCheck2 color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Required Documents
             </Text>

@@ -289,7 +289,7 @@ export default function PartnerDocumentsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <FileText color={Colors.accent} size={18} />
+            <FileText color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Documents</Text>
           </View>
           <Text
@@ -304,7 +304,7 @@ export default function PartnerDocumentsScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : !partner?.id ? (
         <View style={styles.empty}>
@@ -330,7 +330,7 @@ export default function PartnerDocumentsScreen() {
               { backgroundColor: Colors.accent + "12", borderColor: Colors.accent + "55" },
             ]}
           >
-            <Info color={Colors.accent} size={16} />
+            <Info color={Colors.accentText} size={16} />
             <Text style={[styles.infoText, { color: Colors.text }]}>
               You can update any document that isn&apos;t approved. Approved documents with
               an expiry date can be renewed in the {RENEWAL_WINDOW_DAYS} days before they
@@ -350,7 +350,7 @@ export default function PartnerDocumentsScreen() {
               testID="missing-docs-summary"
             >
               <View style={styles.sectionHeaderRow}>
-                <ShieldAlert color={Colors.error} size={16} />
+                <ShieldAlert color={Colors.errorText} size={16} />
                 <Text style={[styles.sectionTitle, { color: Colors.text }]}>
                   Action needed
                 </Text>
@@ -439,7 +439,7 @@ export default function PartnerDocumentsScreen() {
           {extraUploads.length > 0 ? (
             <View style={styles.extraSection}>
               <View style={styles.sectionHeaderRow}>
-                <FileQuestion color={Colors.accent} size={16} />
+                <FileQuestion color={Colors.accentText} size={16} />
                 <Text style={[styles.sectionTitle, { color: Colors.text }]}>
                   Other uploaded documents
                 </Text>

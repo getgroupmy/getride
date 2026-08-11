@@ -175,7 +175,7 @@ export default function VehiclePhotosUploader({
               ) : (
                 <View style={styles.tilePlaceholder}>
                   <View style={[styles.tileIcon, { backgroundColor: Colors.accent + "20" }]}>
-                    <Camera color={Colors.accent} size={20} />
+                    <Camera color={Colors.accentText} size={20} />
                   </View>
                   <Text style={[styles.tileHint, { color: Colors.textSecondary }]} numberOfLines={2}>
                     {SLOT_HINT[slot]}

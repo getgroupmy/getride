@@ -232,7 +232,7 @@ export default function VehicleMakeModelPicker({ value, onChange, testID }: Prop
           {value?.iconUri ? (
             <Image source={{ uri: value.iconUri }} style={styles.triggerImg} />
           ) : (
-            <Car color={Colors.accent} size={18} />
+            <Car color={Colors.accentText} size={18} />
           )}
         </View>
         <View style={{ flex: 1 }}>
@@ -276,7 +276,7 @@ export default function VehicleMakeModelPicker({ value, onChange, testID }: Prop
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
                 <View style={styles.titleRow}>
-                  <meta.Icon color={Colors.accent} size={16} />
+                  <meta.Icon color={Colors.accentText} size={16} />
                   <Text style={[styles.title, { color: Colors.text }]}>Select {meta.title}</Text>
                 </View>
                 <Text style={[styles.subtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
@@ -414,7 +414,7 @@ function Row({ Icon, iconUri, label, meta, selected, onPress }: RowProps) {
         {iconUri ? (
           <Image source={{ uri: iconUri }} style={styles.rowIconImg} />
         ) : (
-          <Icon color={Colors.accent} size={18} />
+          <Icon color={Colors.accentText} size={18} />
         )}
       </View>
       <View style={{ flex: 1 }}>
@@ -428,7 +428,7 @@ function Row({ Icon, iconUri, label, meta, selected, onPress }: RowProps) {
         )}
       </View>
       {selected ? (
-        <Check color={Colors.accent} size={18} />
+        <Check color={Colors.accentText} size={18} />
       ) : (
         <ChevronRight color={Colors.textSecondary} size={18} />
       )}

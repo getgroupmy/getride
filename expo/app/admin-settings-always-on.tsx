@@ -179,7 +179,7 @@ export default function AdminSettingsAlwaysOnScreen() {
 
       {loading ? (
         <View style={styles.loading}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -193,7 +193,7 @@ export default function AdminSettingsAlwaysOnScreen() {
 
           {!nativeAvailable && (
             <View style={[styles.noteBox, { backgroundColor: Colors.error + "12", borderColor: Colors.error + "30" }]}>
-              <Text style={[styles.noteText, { color: Colors.error }]}>
+              <Text style={[styles.noteText, { color: Colors.errorText }]}>
                 This build can’t hold the screen awake yet — the keep-awake module isn’t linked.
                 A new native build is required for these settings to take effect on devices.
               </Text>
@@ -218,7 +218,7 @@ export default function AdminSettingsAlwaysOnScreen() {
                     <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>{row.description}</Text>
                     <View style={styles.rowMeta}>
                       <View style={[styles.routePill, { backgroundColor: Colors.accent + "15" }]}>
-                        <Text style={[styles.routePillText, { color: Colors.accent }]}>/{row.route}</Text>
+                        <Text style={[styles.routePillText, { color: Colors.accentText }]}>/{row.route}</Text>
                       </View>
                       {row.custom && (
                         <TouchableOpacity
@@ -228,8 +228,8 @@ export default function AdminSettingsAlwaysOnScreen() {
                           hitSlop={8}
                           accessibilityRole="button"
                         >
-                          <Trash2 color={Colors.error} size={14} />
-                          <Text style={[styles.removeText, { color: Colors.error }]}>Remove</Text>
+                          <Trash2 color={Colors.errorText} size={14} />
+                          <Text style={[styles.removeText, { color: Colors.errorText }]}>Remove</Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -278,7 +278,7 @@ export default function AdminSettingsAlwaysOnScreen() {
           </Text>
 
           <TouchableOpacity onPress={restoreDefaults} style={styles.restoreBtn} testID="always-on-restore" accessibilityRole="button">
-            <Text style={[styles.restoreText, { color: Colors.accent }]}>Restore defaults</Text>
+            <Text style={[styles.restoreText, { color: Colors.accentText }]}>Restore defaults</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

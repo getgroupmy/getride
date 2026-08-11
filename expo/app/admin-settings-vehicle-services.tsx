@@ -423,7 +423,7 @@ export default function AdminSettingsVehicleServicesScreen() {
           {iconUri ? (
             <Image source={{ uri: iconUri }} style={styles.rowIconImage} />
           ) : (
-            <Layers color={Colors.accent} size={18} />
+            <Layers color={Colors.accentText} size={18} />
           )}
         </View>
         <View style={styles.rowInfo}>
@@ -466,7 +466,7 @@ export default function AdminSettingsVehicleServicesScreen() {
           accessibilityRole="button"
           accessibilityLabel="Edit vehicle service"
         >
-          <Pencil color={Colors.accent} size={16} />
+          <Pencil color={Colors.accentText} size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onDelete(entry)}
@@ -475,7 +475,7 @@ export default function AdminSettingsVehicleServicesScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete vehicle service"
         >
-          <Trash2 color={Colors.error} size={16} />
+          <Trash2 color={Colors.errorText} size={16} />
         </TouchableOpacity>
       </View>
     );
@@ -500,7 +500,7 @@ export default function AdminSettingsVehicleServicesScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Layers color={Colors.accent} size={18} />
+            <Layers color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Vehicle Services
             </Text>
@@ -621,7 +621,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                           style={styles.iconPreviewImage}
                         />
                       ) : (
-                        <ImageIcon color={Colors.accent} size={26} />
+                        <ImageIcon color={Colors.accentText} size={26} />
                       )}
                     </View>
                     <View style={{ flex: 1, gap: 8 }}>
@@ -701,7 +701,7 @@ export default function AdminSettingsVehicleServicesScreen() {
                         style={styles.heroPreviewImage}
                       />
                     ) : (
-                      <ImageIcon color={Colors.accent} size={32} />
+                      <ImageIcon color={Colors.accentText} size={32} />
                     )}
                   </View>
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
