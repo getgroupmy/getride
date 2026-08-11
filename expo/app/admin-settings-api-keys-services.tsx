@@ -165,7 +165,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Layers color={Colors.accent} size={18} />
+            <Layers color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               {provider?.name ?? "Services"}
             </Text>
@@ -188,7 +188,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               accessibilityRole="button"
               accessibilityLabel="Add services"
             >
-              <CopyPlus color={Colors.accent} size={20} />
+              <CopyPlus color={Colors.accentText} size={20} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowAdd(true)}
@@ -197,7 +197,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
               accessibilityRole="button"
               accessibilityLabel="Add services"
             >
-              <Plus color={Colors.accent} size={20} />
+              <Plus color={Colors.accentText} size={20} />
             </TouchableOpacity>
           </>
         ) : null}
@@ -205,7 +205,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : !provider ? (
         <View style={styles.loadingWrap}>
@@ -239,7 +239,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <KeyRound color={Colors.accent} size={18} />
+                  <KeyRound color={Colors.accentText} size={18} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.rowTitle, { color: Colors.text }]}>{s.name}</Text>
@@ -268,7 +268,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 </View>
                 {editable ? (
                   <TouchableOpacity onPress={() => onDelete(s)} style={styles.rowDelete} hitSlop={8} testID={`service-delete-${s.id}`} accessibilityRole="button" accessibilityLabel="Delete service">
-                    <Trash2 color={Colors.error} size={16} />
+                    <Trash2 color={Colors.errorText} size={16} />
                   </TouchableOpacity>
                 ) : null}
                 <ChevronRight color={Colors.textSecondary} size={18} />
@@ -350,7 +350,7 @@ export default function AdminSettingsApiKeysServicesScreen() {
                 testID="bulk-toggle-all"
                 accessibilityRole="button"
               >
-                <Text style={[styles.bulkToggleAllTxt, { color: Colors.accent }]}>
+                <Text style={[styles.bulkToggleAllTxt, { color: Colors.accentText }]}>
                   {provider && provider.services.every((s) => bulkSelected[s.id]) ? "Clear all" : "Select all"}
                 </Text>
               </TouchableOpacity>

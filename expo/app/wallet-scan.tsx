@@ -518,7 +518,7 @@ export default function WalletScanScreen() {
             >
               {paidAmount !== null ? (
                 <View style={styles.successPage}>
-                  <CheckCircle2 color={Colors.success} size={64} />
+                  <CheckCircle2 color={Colors.successText} size={64} />
                   <Text style={styles.successTitle}>Payment Successful</Text>
                   <Text style={styles.successAmount}>RM {paidAmount.toFixed(2)}</Text>
                   {paidCoins ? (
@@ -590,7 +590,7 @@ export default function WalletScanScreen() {
                   </Animated.View>
                   {parsedAmount > 0 ? (
                     payError ? (
-                      <Text style={[styles.payHint, { color: Colors.danger }]}>{payError}</Text>
+                      <Text style={[styles.payHint, { color: Colors.dangerText }]}>{payError}</Text>
                     ) : (
                       <Text style={styles.payHint}> </Text>
                     )
@@ -672,7 +672,7 @@ export default function WalletScanScreen() {
             ].map((s) => (
               <View key={s.n} style={styles.helpRow}>
                 <View style={[styles.helpStep, { backgroundColor: Colors.accent + "22" }]}>
-                  <Text style={[styles.helpStepText, { color: Colors.accent }]}>{s.n}</Text>
+                  <Text style={[styles.helpStepText, { color: Colors.accentText }]}>{s.n}</Text>
                 </View>
                 <Text style={styles.helpRowText}>{s.text}</Text>
               </View>

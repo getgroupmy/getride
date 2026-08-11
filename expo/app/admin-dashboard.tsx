@@ -111,7 +111,7 @@ export default function AdminDashboardScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <ShieldCheck color={Colors.accent} size={18} />
+            <ShieldCheck color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Admin Dashboard</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>Overview</Text>
@@ -144,7 +144,7 @@ export default function AdminDashboardScreen() {
               >
                 <View style={styles.statTopRow}>
                   <View style={[styles.statIconWrap, { backgroundColor: Colors.accent + "20" }]}>
-                    <Icon color={Colors.accent} size={18} />
+                    <Icon color={Colors.accentText} size={18} />
                   </View>
                   <View style={[styles.deltaPill, { backgroundColor: toneColor(s.tone) + "20" }]}>
                     <TrendingUp color={toneColor(s.tone)} size={12} />
@@ -177,7 +177,7 @@ export default function AdminDashboardScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.actionIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <Icon color={Colors.accent} size={20} />
+                  <Icon color={Colors.accentText} size={20} />
                 </View>
                 <View style={styles.actionInfo}>
                   <Text style={[styles.actionLabel, { color: Colors.text }]}>{a.label}</Text>

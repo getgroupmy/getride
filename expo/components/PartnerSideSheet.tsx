@@ -397,7 +397,7 @@ export default function PartnerSideSheet({ visible, onClose }: PartnerSideSheetP
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
             ) : (
-              <UserRound color={Colors.accent} size={26} />
+              <UserRound color={Colors.accentText} size={26} />
             )}
           </View>
           <View style={styles.profileInfo}>

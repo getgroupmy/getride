@@ -630,9 +630,9 @@ export default function UserGuideScreen() {
             accessibilityRole="button"
           >
             {downloading ? (
-              <ActivityIndicator size="small" color={Colors.accent} />
+              <ActivityIndicator size="small" color={Colors.accentText} />
             ) : (
-              <Download color={Colors.accent} size={22} />
+              <Download color={Colors.accentText} size={22} />
             )}
           </TouchableOpacity>
         </View>
@@ -689,7 +689,7 @@ export default function UserGuideScreen() {
                       accessibilityRole="button"
                     >
                       <View style={[styles.iconBubble, { backgroundColor: Colors.accent + "22" }]}>
-                        <Icon color={Colors.accent} size={20} />
+                        <Icon color={Colors.accentText} size={20} />
                       </View>
                       <View style={styles.rowText}>
                         <Text style={[styles.rowTitle, { color: Colors.text }]}>{screen.title}</Text>

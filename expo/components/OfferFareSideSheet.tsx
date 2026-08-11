@@ -581,10 +581,10 @@ export default function OfferFareSideSheet({
 
   const getValidationMessage = () => {
     if (isBelowMin) {
-      return { text: `Minimum fare is ${currency.symbol} ${minFare}`, color: "#EF4444" };
+      return { text: `Minimum fare is ${currency.symbol} ${minFare}`, color: Colors.errorText };
     }
     if (isAboveMax) {
-      return { text: `Maximum fare is ${currency.symbol} ${maxFare}`, color: "#EF4444" };
+      return { text: `Maximum fare is ${currency.symbol} ${maxFare}`, color: Colors.errorText };
     }
     return { text: `Recommended fare: ${currency.symbol} ${recommendedFare}`, color: "#000" };
   };
@@ -682,10 +682,10 @@ export default function OfferFareSideSheet({
 
         <View style={styles.content}>
           {isEditing && biddingEnabled && (
-            <Text style={styles.instructionText}>You can change the recommended fare</Text>
+            <Text style={[styles.instructionText, { color: Colors.textSecondary }]}>You can change the recommended fare</Text>
           )}
           {!biddingEnabled && (
-            <Text style={styles.instructionText}>Bidding is off in this area — fare is fixed</Text>
+            <Text style={[styles.instructionText, { color: Colors.textSecondary }]}>Bidding is off in this area — fare is fixed</Text>
           )}
 
           <TouchableOpacity
@@ -695,7 +695,7 @@ export default function OfferFareSideSheet({
             accessibilityRole="button"
           >
             <View style={styles.fareRow}>
-              <Text style={styles.fareCurrency}>{currency.symbol}</Text>
+              <Text style={[styles.fareCurrency, { color: Colors.errorText }]}>{currency.symbol}</Text>
               <Text style={styles.fareAmount}>{fareValue || "0"}</Text>
               {isEditing && <View style={styles.fareCursor} />}
             </View>
@@ -707,7 +707,7 @@ export default function OfferFareSideSheet({
           </Text>
 
           <View style={styles.infoRow}>
-            <Info color="#6B7280" size={20} style={styles.infoIcon} />
+            <Info color={Colors.textSecondary} size={20} style={styles.infoIcon} />
             <Text style={styles.infoText}>
               Fare doesn&apos;t include state entry tax, tolls, or parking fees
             </Text>
@@ -952,7 +952,7 @@ export default function OfferFareSideSheet({
                 accessibilityState={{ disabled: !isValidFare }}
                 accessibilityHint={!isValidFare ? "Enter a fare first" : undefined}
               >
-                <Text style={isValidFare ? styles.findDriverText : styles.findDriverTextDisabled}>
+                <Text style={isValidFare ? styles.findDriverText : [styles.findDriverTextDisabled, { color: Colors.textSecondary }]}>
                   Find a driver
                 </Text>
               </TouchableOpacity>

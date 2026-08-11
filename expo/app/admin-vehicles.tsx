@@ -153,7 +153,7 @@ export default function AdminVehiclesScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Car color={Colors.accent} size={18} />
+            <Car color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Vehicles</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>Manage all vehicles</Text>
@@ -185,7 +185,7 @@ export default function AdminVehiclesScreen() {
             <Text style={[styles.addCtaTitle, { color: Colors.text }]}>Add Vehicle</Text>
             <Text style={[styles.addCtaDesc, { color: Colors.textSecondary }]}>Register a new vehicle to the fleet</Text>
           </View>
-          <ChevronRight color={Colors.accent} size={18} />
+          <ChevronRight color={Colors.accentText} size={18} />
         </TouchableOpacity>
 
         <Text style={[styles.sectionTitle, { color: Colors.text, marginTop: 16 }]}>Vehicles</Text>

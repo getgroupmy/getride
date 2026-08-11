@@ -266,7 +266,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
   return (
     <View testID={testID}>
       {summary(
-        <Globe color={Colors.accent} size={18} />,
+        <Globe color={Colors.accentText} size={18} />,
         "Countries",
         value.countries.length,
         false,
@@ -274,7 +274,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
         "service-area-open-country"
       )}
       {summary(
-        <MapPin color={Colors.accent} size={18} />,
+        <MapPin color={Colors.accentText} size={18} />,
         "States",
         value.states.length,
         value.countries.length === 0,
@@ -282,7 +282,7 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
         "service-area-open-state"
       )}
       {summary(
-        <Building2 color={Colors.accent} size={18} />,
+        <Building2 color={Colors.accentText} size={18} />,
         "Cities",
         value.cities.length,
         value.states.length === 0,
@@ -295,10 +295,10 @@ export default function ServiceAreaPicker({ value, onChange, testID }: Props) {
         <View style={styles.chipsWrap}>
           {value.countries.map((c) => (
             <View key={`c-${c}`} style={[styles.chip, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent }]}>
-              <Globe color={Colors.accent} size={11} />
-              <Text style={[styles.chipText, { color: Colors.accent }]} numberOfLines={1}>{c}</Text>
+              <Globe color={Colors.accentText} size={11} />
+              <Text style={[styles.chipText, { color: Colors.accentText }]} numberOfLines={1}>{c}</Text>
               <TouchableOpacity onPress={() => toggleCountry(c)} testID={`chip-remove-country-${c}`} accessibilityRole="button">
-                <X color={Colors.accent} size={12} />
+                <X color={Colors.accentText} size={12} />
               </TouchableOpacity>
             </View>
           ))}

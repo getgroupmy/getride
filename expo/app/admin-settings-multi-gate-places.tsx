@@ -434,7 +434,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
         testID={`mgp-row-${entry.id}`}
       >
         <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-          <Building2 color={Colors.accent} size={18} />
+          <Building2 color={Colors.accentText} size={18} />
         </View>
         <View style={styles.rowInfo}>
           <View style={styles.rowTitleLine}>
@@ -454,8 +454,8 @@ export default function AdminSettingsMultiGatePlacesScreen() {
               </Text>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: Colors.accent + "15" }]}>
-              <ShieldCheck color={Colors.accent} size={10} />
-              <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>
+              <ShieldCheck color={Colors.accentText} size={10} />
+              <Text style={[styles.statusBadgeText, { color: Colors.accentText }]}>
                 {gateRequired ? "Gate required" : "Gate optional"}
               </Text>
             </View>
@@ -473,7 +473,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           accessibilityRole="button"
           accessibilityLabel="Manage gates"
         >
-          <Settings2 color={Colors.accent} size={16} />
+          <Settings2 color={Colors.accentText} size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => openEdit(entry)}
@@ -482,7 +482,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           accessibilityRole="button"
           accessibilityLabel="Edit place"
         >
-          <Pencil color={Colors.accent} size={16} />
+          <Pencil color={Colors.accentText} size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onDelete(entry)}
@@ -491,7 +491,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete place"
         >
-          <Trash2 color={Colors.error} size={16} />
+          <Trash2 color={Colors.errorText} size={16} />
         </TouchableOpacity>
       </View>
     );
@@ -516,7 +516,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
         accessibilityRole="button"
       >
         <View style={[styles.resultIcon, { backgroundColor: Colors.accent + "15" }]}>
-          <MapPin color={Colors.accent} size={16} />
+          <MapPin color={Colors.accentText} size={16} />
         </View>
         <View style={{ flex: 1 }}>
           <View style={styles.resultTitleRow}>
@@ -544,9 +544,9 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           </Text>
         </View>
         {already ? (
-          <CheckCircle2 color={Colors.accent} size={20} />
+          <CheckCircle2 color={Colors.accentText} size={20} />
         ) : (
-          <Plus color={Colors.accent} size={20} />
+          <Plus color={Colors.accentText} size={20} />
         )}
       </TouchableOpacity>
     );
@@ -568,7 +568,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Building2 color={Colors.accent} size={18} />
+            <Building2 color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Multi-Gate Places
             </Text>
@@ -602,7 +602,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
           accessibilityLabel="Search places"
         />
         {searching ? (
-          <ActivityIndicator size="small" color={Colors.accent} />
+          <ActivityIndicator size="small" color={Colors.accentText} />
         ) : query.length > 0 ? (
           <TouchableOpacity onPress={() => setQuery("")} testID="mgp-search-clear" accessibilityRole="button">
             <X color={Colors.textSecondary} size={16} />
@@ -626,7 +626,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
               </View>
             ) : searchError ? (
               <View style={[styles.loadingBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
-                <Text style={{ color: Colors.error, fontSize: 13 }}>{searchError}</Text>
+                <Text style={{ color: Colors.errorText, fontSize: 13 }}>{searchError}</Text>
               </View>
             ) : results.length === 0 ? (
               <View style={[styles.loadingBox, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
@@ -734,7 +734,7 @@ export default function AdminSettingsMultiGatePlacesScreen() {
                   ]}
                 >
                   <View style={[styles.toggleIcon, { backgroundColor: Colors.accent + "20" }]}>
-                    <ShieldCheck color={Colors.accent} size={18} />
+                    <ShieldCheck color={Colors.accentText} size={18} />
                   </View>
                   <View style={styles.toggleInfo}>
                     <Text style={[styles.toggleTitle, { color: Colors.text }]}>Gate selection</Text>

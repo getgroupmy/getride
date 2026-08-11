@@ -328,7 +328,7 @@ export default function ChangeNumberScreen() {
           <Text style={styles.title}>Change number?</Text>
           {isPinVerified && (
             <View style={styles.verifiedBadge} testID="change-number-verified-badge">
-              <ShieldCheck color={Colors.success} size={14} strokeWidth={2.5} />
+              <ShieldCheck color={Colors.successText} size={14} strokeWidth={2.5} />
               <Text style={styles.verifiedBadgeText}>PIN verified · step skipped</Text>
             </View>
           )}
@@ -605,7 +605,7 @@ const makeStyles = (Colors: ReturnType<typeof useColors>) => StyleSheet.create({
   verifiedBadgeText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.success,
+    color: Colors.successText,
   },
   inputContainer: {
     flexDirection: "row",
@@ -708,7 +708,7 @@ const makeStyles = (Colors: ReturnType<typeof useColors>) => StyleSheet.create({
   },
   sendErrorText: {
     fontSize: 14,
-    color: Colors.error,
+    color: Colors.errorText,
     marginBottom: 12,
     fontWeight: "500",
   },

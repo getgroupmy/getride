@@ -214,7 +214,7 @@ export default function EmergencyContactEditScreen() {
           <View style={styles.field}>
             <View style={styles.labelRow}>
               <Text style={[styles.label, { color: Colors.text }]}>
-                Name <Text style={[styles.required, { color: Colors.error }]}>*</Text>
+                Name <Text style={[styles.required, { color: Colors.errorText }]}>*</Text>
               </Text>
               <TouchableOpacity
                 style={[styles.pickContactButton, { borderColor: Colors.border }]}
@@ -222,8 +222,8 @@ export default function EmergencyContactEditScreen() {
                 testID="ece-pick-contact"
                 accessibilityRole="button"
               >
-                <BookUser color={Colors.accent} size={18} />
-                <Text style={[styles.pickContactText, { color: Colors.accent }]}>Contacts</Text>
+                <BookUser color={Colors.accentText} size={18} />
+                <Text style={[styles.pickContactText, { color: Colors.accentText }]}>Contacts</Text>
               </TouchableOpacity>
             </View>
             <View style={[styles.inputWrap, { borderColor: Colors.border, backgroundColor: Colors.background }]}>
@@ -242,7 +242,7 @@ export default function EmergencyContactEditScreen() {
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: Colors.text }]}>
-              Mobile <Text style={[styles.required, { color: Colors.error }]}>*</Text>
+              Mobile <Text style={[styles.required, { color: Colors.errorText }]}>*</Text>
             </Text>
             <View style={styles.mobileRow}>
               <TouchableOpacity
@@ -301,8 +301,8 @@ export default function EmergencyContactEditScreen() {
 
           {editingId ? (
             <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} testID="ece-delete" accessibilityRole="button">
-              <Trash2 color={Colors.error} size={18} />
-              <Text style={[styles.deleteText, { color: Colors.error }]}>Remove contact</Text>
+              <Trash2 color={Colors.errorText} size={18} />
+              <Text style={[styles.deleteText, { color: Colors.errorText }]}>Remove contact</Text>
             </TouchableOpacity>
           ) : null}
         </ScrollView>
@@ -339,7 +339,7 @@ export default function EmergencyContactEditScreen() {
                   >
                     <Text style={[styles.pickerCode, { color: Colors.text }]}>{item.code}</Text>
                     <Text style={[styles.pickerLabel, { color: Colors.textSecondary }]}>{item.label}</Text>
-                    {selected ? <Check color={Colors.success} size={20} /> : null}
+                    {selected ? <Check color={Colors.successText} size={20} /> : null}
                   </TouchableOpacity>
                 );
               }}

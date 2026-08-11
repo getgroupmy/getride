@@ -251,7 +251,7 @@ export default function AdminUserEditScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <User color={Colors.accent} size={18} />
+            <User color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Edit User</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>
@@ -265,7 +265,7 @@ export default function AdminUserEditScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete this user"
         >
-          <Trash2 color={Colors.error} size={20} />
+          <Trash2 color={Colors.errorText} size={20} />
         </TouchableOpacity>
       </View>
 

@@ -316,7 +316,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           </TouchableOpacity>
         </View>
         <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-          <DoorOpen color={Colors.accent} size={18} />
+          <DoorOpen color={Colors.accentText} size={18} />
         </View>
         <View style={styles.rowInfo}>
           <View style={styles.rowTitleLine}>
@@ -336,25 +336,25 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
               </Text>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: Colors.accent + "20" }]}>
-              <ModeIcon color={Colors.accent} size={10} />
-              <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>
+              <ModeIcon color={Colors.accentText} size={10} />
+              <Text style={[styles.statusBadgeText, { color: Colors.accentText }]}>
                 {modeMeta.label}
               </Text>
             </View>
             {showPickupSurcharge ? (
               <View style={[styles.statusBadge, { backgroundColor: Colors.accent + "20" }]}>
-                <ArrowUpFromLine color={Colors.accent} size={10} />
-                <DollarSign color={Colors.accent} size={10} />
-                <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>
+                <ArrowUpFromLine color={Colors.accentText} size={10} />
+                <DollarSign color={Colors.accentText} size={10} />
+                <Text style={[styles.statusBadgeText, { color: Colors.accentText }]}>
                   +{pickupSurchargeNum}
                 </Text>
               </View>
             ) : null}
             {showDropSurcharge ? (
               <View style={[styles.statusBadge, { backgroundColor: Colors.accent + "20" }]}>
-                <ArrowDownToLine color={Colors.accent} size={10} />
-                <DollarSign color={Colors.accent} size={10} />
-                <Text style={[styles.statusBadgeText, { color: Colors.accent }]}>
+                <ArrowDownToLine color={Colors.accentText} size={10} />
+                <DollarSign color={Colors.accentText} size={10} />
+                <Text style={[styles.statusBadgeText, { color: Colors.accentText }]}>
                   +{dropSurchargeNum}
                 </Text>
               </View>
@@ -374,7 +374,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           accessibilityRole="button"
           accessibilityLabel="Edit gate"
         >
-          <Pencil color={Colors.accent} size={16} />
+          <Pencil color={Colors.accentText} size={16} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => onDelete(entry)}
@@ -383,7 +383,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
           accessibilityRole="button"
           accessibilityLabel="Delete gate"
         >
-          <Trash2 color={Colors.error} size={16} />
+          <Trash2 color={Colors.errorText} size={16} />
         </TouchableOpacity>
       </View>
     );
@@ -405,7 +405,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Building2 color={Colors.accent} size={18} />
+            <Building2 color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               {String(place?.values.name ?? "Place Gates")}
             </Text>
@@ -553,7 +553,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                   testID="gate-pick-map"
                   accessibilityRole="button"
                 >
-                  <Crosshair color={Colors.accent} size={16} />
+                  <Crosshair color={Colors.accentText} size={16} />
                   <Text style={[styles.pickText, { color: Colors.text }]}>
                     {MapViewRN ? "Pick on map" : "Map unavailable on web — enter manually"}
                   </Text>
@@ -571,7 +571,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                     accessibilityRole="button"
                   >
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <ListOrdered color={Colors.accent} size={16} />
+                      <ListOrdered color={Colors.accentText} size={16} />
                       <Text style={[styles.input, { color: Colors.text, paddingVertical: 0 }]}>
                         {form.displayPriority}
                       </Text>
@@ -600,7 +600,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                               <Text style={[styles.dropdownText, { color: Colors.text, fontWeight: selected ? "800" : "500" }]}>
                                 {n}
                               </Text>
-                              {selected && <Check color={Colors.accent} size={16} />}
+                              {selected && <Check color={Colors.accentText} size={16} />}
                             </TouchableOpacity>
                           );
                         })}
@@ -669,7 +669,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         { backgroundColor: Colors.gray[100], borderColor: Colors.border },
                       ]}
                     >
-                      <DollarSign color={Colors.accent} size={16} />
+                      <DollarSign color={Colors.accentText} size={16} />
                       <TextInput
                         value={form.pickupSurcharge}
                         onChangeText={(t) => setForm((p) => ({ ...p, pickupSurcharge: t }))}
@@ -696,7 +696,7 @@ export default function AdminSettingsMultiGatePlaceGatesScreen() {
                         { backgroundColor: Colors.gray[100], borderColor: Colors.border },
                       ]}
                     >
-                      <DollarSign color={Colors.accent} size={16} />
+                      <DollarSign color={Colors.accentText} size={16} />
                       <TextInput
                         value={form.dropSurcharge}
                         onChangeText={(t) => setForm((p) => ({ ...p, dropSurcharge: t }))}

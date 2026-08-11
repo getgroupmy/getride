@@ -88,7 +88,7 @@ export default function SupportScreen() {
           }
         >
           <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-            <MessageCircle color={Colors.accent} size={22} />
+            <MessageCircle color={Colors.accentText} size={22} />
           </View>
           <View style={styles.rowInfo}>
             <View style={styles.rowTitleLine}>
@@ -140,7 +140,7 @@ export default function SupportScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Headphones color={Colors.accent} size={18} />
+            <Headphones color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Support</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>Chat with our team</Text>
@@ -150,7 +150,7 @@ export default function SupportScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <FlatList
@@ -171,7 +171,7 @@ export default function SupportScreen() {
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <View style={[styles.emptyIcon, { backgroundColor: Colors.accent + "15" }]}>
-                <MessageCircle color={Colors.accent} size={34} />
+                <MessageCircle color={Colors.accentText} size={34} />
               </View>
               <Text style={[styles.emptyTitle, { color: Colors.text }]}>Need a hand?</Text>
               <Text style={[styles.emptySub, { color: Colors.textSecondary }]}>

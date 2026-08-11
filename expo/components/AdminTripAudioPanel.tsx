@@ -153,7 +153,7 @@ function AdminTripAudioPanel({ profileId, ticketId, adminId }: Props) {
         testID="trip-audio-toggle"
         accessibilityRole="button"
       >
-        <ShieldCheck color={Colors.accent} size={16} />
+        <ShieldCheck color={Colors.accentText} size={16} />
         <Text style={[styles.headerTitle, { color: Colors.text }]}>VoiceProtection trip audio</Text>
         <View style={[styles.countPill, { backgroundColor: Colors.gray[100] }]}>
           <Text style={[styles.countText, { color: Colors.textSecondary }]}>{recordings.length}</Text>
@@ -175,7 +175,7 @@ function AdminTripAudioPanel({ profileId, ticketId, adminId }: Props) {
       {expanded ? (
         loading ? (
           <View style={styles.loading}>
-            <ActivityIndicator color={Colors.accent} />
+            <ActivityIndicator color={Colors.accentText} />
           </View>
         ) : recordings.length === 0 ? (
           <Text style={[styles.empty, { color: Colors.textSecondary }]}>
@@ -218,8 +218,8 @@ function AdminTripAudioPanel({ profileId, ticketId, adminId }: Props) {
                     </View>
                   ) : requested ? (
                     <View style={[styles.statusTag, { backgroundColor: Colors.warning + "22" }]}>
-                      <Clock color={Colors.warning} size={13} />
-                      <Text style={[styles.statusTagText, { color: Colors.warning }]}>Uploading…</Text>
+                      <Clock color={Colors.warningText} size={13} />
+                      <Text style={[styles.statusTagText, { color: Colors.warningText }]}>Uploading…</Text>
                     </View>
                   ) : (
                     <TouchableOpacity

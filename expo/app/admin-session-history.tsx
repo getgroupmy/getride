@@ -767,7 +767,7 @@ export default function AdminSessionHistoryScreen() {
         accessibilityRole="button"
       >
         <View style={[styles.avatar, { backgroundColor: Colors.accent + "20" }]}>
-          <Text style={[styles.avatarText, { color: Colors.accent }]}>{initials || "?"}</Text>
+          <Text style={[styles.avatarText, { color: Colors.accentText }]}>{initials || "?"}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.userTitle, { color: Colors.text }]} numberOfLines={1}>
@@ -782,8 +782,8 @@ export default function AdminSessionHistoryScreen() {
           </Text>
           {item.lastIsp ? (
             <View style={styles.ispRow}>
-              <Wifi color={Colors.accent} size={12} />
-              <Text style={[styles.ispText, { color: Colors.accent }]} numberOfLines={1}>
+              <Wifi color={Colors.accentText} size={12} />
+              <Text style={[styles.ispText, { color: Colors.accentText }]} numberOfLines={1}>
                 {item.lastIsp}
               </Text>
             </View>
@@ -794,8 +794,8 @@ export default function AdminSessionHistoryScreen() {
             const n = link.linkedAccounts.length;
             return (
               <View style={[styles.dupBadge, { backgroundColor: Colors.warning + "22" }]}>
-                <Users color={Colors.warning} size={11} />
-                <Text style={[styles.dupBadgeText, { color: Colors.warning }]} numberOfLines={1}>
+                <Users color={Colors.warningText} size={11} />
+                <Text style={[styles.dupBadgeText, { color: Colors.warningText }]} numberOfLines={1}>
                   Shares device with {n} other account{n === 1 ? "" : "s"}
                 </Text>
               </View>
@@ -803,8 +803,8 @@ export default function AdminSessionHistoryScreen() {
           })()}
           {emulatorAccounts.has(item.key) ? (
             <View style={[styles.dupBadge, { backgroundColor: Colors.error + "22" }]}>
-              <AlertTriangle color={Colors.error} size={11} />
-              <Text style={[styles.dupBadgeText, { color: Colors.error }]} numberOfLines={1}>
+              <AlertTriangle color={Colors.errorText} size={11} />
+              <Text style={[styles.dupBadgeText, { color: Colors.errorText }]} numberOfLines={1}>
                 Emulator / simulator
               </Text>
             </View>
@@ -819,7 +819,7 @@ export default function AdminSessionHistoryScreen() {
           >
             {Platform.OS === "web" ? (
               <View style={styles.miniMapWeb}>
-                <MapPin color={Colors.accent} size={18} />
+                <MapPin color={Colors.accentText} size={18} />
                 <Text style={[styles.miniMapWebText, { color: Colors.textSecondary }]} numberOfLines={1}>
                   {item.lastLat.toFixed(3)},{item.lastLng.toFixed(3)}
                 </Text>
@@ -863,7 +863,7 @@ export default function AdminSessionHistoryScreen() {
     >
       <View style={styles.cardHeaderRow}>
         <View style={[styles.eventPill, { backgroundColor: Colors.accent + "20" }]}>
-          <Text style={[styles.eventText, { color: Colors.accent }]}>{s.event_type}</Text>
+          <Text style={[styles.eventText, { color: Colors.accentText }]}>{s.event_type}</Text>
         </View>
         <View style={styles.rowGap6}>
           <Clock color={Colors.textSecondary} size={12} />
@@ -980,7 +980,7 @@ export default function AdminSessionHistoryScreen() {
         { backgroundColor: Colors.gray[100], borderColor: Colors.border },
       ]}
     >
-      <MapPin color={Colors.accent} size={16} />
+      <MapPin color={Colors.accentText} size={16} />
       <View style={{ flex: 1 }}>
         <Text style={[styles.locCoord, { color: Colors.text }]} numberOfLines={1}>
           {l.latitude.toFixed(6)}, {l.longitude.toFixed(6)}
@@ -1010,7 +1010,7 @@ export default function AdminSessionHistoryScreen() {
         >
           {Platform.OS === "web" ? (
             <View style={styles.detailMapWeb}>
-              <MapPin color={Colors.accent} size={28} />
+              <MapPin color={Colors.accentText} size={28} />
               <Text style={[styles.kvValue, { color: Colors.text }]}>
                 {selected.lastLat.toFixed(6)}, {selected.lastLng.toFixed(6)}
               </Text>
@@ -1050,7 +1050,7 @@ export default function AdminSessionHistoryScreen() {
           testID="dup-detail-card"
         >
           <View style={styles.rowGap6}>
-            <Users color={Colors.warning} size={16} />
+            <Users color={Colors.warningText} size={16} />
             <Text style={[styles.dupCardTitle, { color: Colors.text }]}>
               Possible duplicate account
             </Text>
@@ -1074,8 +1074,8 @@ export default function AdminSessionHistoryScreen() {
             { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" },
           ]}
         >
-          <Calendar color={Colors.accent} size={12} />
-          <Text style={[styles.rangePillText, { color: Colors.accent }]}>
+          <Calendar color={Colors.accentText} size={12} />
+          <Text style={[styles.rangePillText, { color: Colors.accentText }]}>
             {fromDate || "…"} → {toDate || "…"}
           </Text>
         </View>
@@ -1124,8 +1124,8 @@ export default function AdminSessionHistoryScreen() {
           style={[styles.exportPill, { backgroundColor: Colors.accent + "20" }]}
           accessibilityRole="button"
         >
-          <Download color={Colors.accent} size={12} />
-          <Text style={[styles.exportPillText, { color: Colors.accent }]}>CSV</Text>
+          <Download color={Colors.accentText} size={12} />
+          <Text style={[styles.exportPillText, { color: Colors.accentText }]}>CSV</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1301,7 +1301,7 @@ export default function AdminSessionHistoryScreen() {
           testID="guard-config"
         >
           <View style={styles.rowGap6}>
-            <ShieldCheck color={Colors.accent} size={16} />
+            <ShieldCheck color={Colors.accentText} size={16} />
             <Text style={[styles.guardTitle, { color: Colors.text }]}>
               Duplicate-account guard
             </Text>
@@ -1401,7 +1401,7 @@ export default function AdminSessionHistoryScreen() {
           ]}
           testID="ip-lookup-warning"
         >
-          <AlertTriangle color={Colors.warning} size={16} />
+          <AlertTriangle color={Colors.warningText} size={16} />
           <Text style={[styles.warningText, { color: Colors.text }]}>
             IP geolocation is unavailable — the{" "}
             <Text style={styles.warningMono}>ip-lookup</Text> edge function is not
@@ -1429,12 +1429,12 @@ export default function AdminSessionHistoryScreen() {
           testID="shared-device-banner"
           accessibilityRole="button"
         >
-          <Users color={Colors.warning} size={16} />
+          <Users color={Colors.warningText} size={16} />
           <Text style={[styles.warningText, { color: Colors.text }]}>
             {deviceLinks.size} account{deviceLinks.size === 1 ? "" : "s"} sign in from a
             device also used by another account — possible duplicate / multi-account
             activity.{" "}
-            <Text style={{ fontWeight: "800", color: Colors.warning }}>
+            <Text style={{ fontWeight: "800", color: Colors.warningText }}>
               {flaggedOnly ? "Showing flagged only — tap to show all." : "Tap to show only these."}
             </Text>
           </Text>
@@ -1443,7 +1443,7 @@ export default function AdminSessionHistoryScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : !isSupabaseConfigured ? (
         <View style={styles.center}>
@@ -1558,7 +1558,7 @@ export default function AdminSessionHistoryScreen() {
               ) : trailRegion ? (
                 !trailMapReady ? (
                   <View style={styles.center}>
-                    <ActivityIndicator color={Colors.accent} />
+                    <ActivityIndicator color={Colors.accentText} />
                     <Text style={[styles.muted, { color: Colors.textSecondary, marginTop: 8 }]}>
                       Preparing map…
                     </Text>
@@ -1658,7 +1658,7 @@ export default function AdminSessionHistoryScreen() {
 
               {detailLoading ? (
                 <View style={styles.center}>
-                  <ActivityIndicator color={Colors.accent} />
+                  <ActivityIndicator color={Colors.accentText} />
                 </View>
               ) : (
                 <FlatList

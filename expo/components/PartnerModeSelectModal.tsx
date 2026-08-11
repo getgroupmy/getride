@@ -101,7 +101,7 @@ export default function PartnerModeSelectModal({ visible, onClose, onSelect, opt
                     {hasCustomIcon ? (
                       <Image source={{ uri: opt.iconUrl as string }} style={styles.iconImage} resizeMode="cover" />
                     ) : (
-                      <Icon color={Colors.accent} size={24} />
+                      <Icon color={Colors.accentText} size={24} />
                     )}
                   </View>
                   <View style={styles.optionInfo}>

@@ -33,7 +33,7 @@ export default function WalletBalanceBar({
         testID={testID ? `${testID}-reload` : undefined}
         accessibilityRole="button"
       >
-        <Text style={[styles.reloadText, { color: Colors.accent }]}>Reload</Text>
+        <Text style={[styles.reloadText, { color: Colors.accentText }]}>Reload</Text>
       </TouchableOpacity>
     </View>
   );

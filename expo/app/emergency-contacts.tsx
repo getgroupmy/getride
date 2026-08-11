@@ -89,7 +89,7 @@ export default function EmergencyContactsScreen() {
 
         {isLoading ? (
           <View style={styles.empty}>
-            <ActivityIndicator color={Colors.accent} />
+            <ActivityIndicator color={Colors.accentText} />
           </View>
         ) : contacts.length === 0 ? (
           <View style={styles.empty}>

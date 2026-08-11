@@ -73,12 +73,12 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
     s: UStatus
   ): { label: string; color: string; Icon: React.ComponentType<{ color?: string; size?: number }> } => {
     switch (s) {
-      case "approved": return { label: "Approved", color: Colors.success, Icon: CheckCircle2 };
-      case "unapproved": return { label: "Unapproved", color: Colors.warning, Icon: Clock };
-      case "blocked": return { label: "Blocked", color: Colors.error, Icon: Ban };
-      case "rejected": return { label: "Rejected", color: Colors.error, Icon: XCircle };
-      case "unapproved-docs": return { label: "Docs Pending", color: Colors.warning, Icon: FileText };
-      default: return { label: "User", color: Colors.accent, Icon: Users };
+      case "approved": return { label: "Approved", color: Colors.successText, Icon: CheckCircle2 };
+      case "unapproved": return { label: "Unapproved", color: Colors.warningText, Icon: Clock };
+      case "blocked": return { label: "Blocked", color: Colors.errorText, Icon: Ban };
+      case "rejected": return { label: "Rejected", color: Colors.errorText, Icon: XCircle };
+      case "unapproved-docs": return { label: "Docs Pending", color: Colors.warningText, Icon: FileText };
+      default: return { label: "User", color: Colors.accentText, Icon: Users };
     }
   };
 
@@ -165,7 +165,7 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
           </TouchableOpacity>
         ) : null}
         <View style={[styles.countBadge, { backgroundColor: Colors.accent + "20" }]}>
-          <Text style={[styles.countBadgeText, { color: Colors.accent }]}>{filtered.length}</Text>
+          <Text style={[styles.countBadgeText, { color: Colors.accentText }]}>{filtered.length}</Text>
         </View>
       </View>
 
@@ -208,7 +208,7 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
               >
                 <View style={styles.cardTop}>
                   <View style={[styles.avatar, { backgroundColor: Colors.accent + "20" }]}>
-                    <Text style={[styles.avatarText, { color: Colors.accent }]}>
+                    <Text style={[styles.avatarText, { color: Colors.accentText }]}>
                       {u.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}
                     </Text>
                   </View>
@@ -229,7 +229,7 @@ export default function AdminUserList({ status, title, subtitle, emptyText }: Pr
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       testID={`user-more-${u.id}`}
                     >
-                      <Trash2 color={Colors.error} size={16} />
+                      <Trash2 color={Colors.errorText} size={16} />
                     </TouchableOpacity>
                   ) : null}
                 </View>

@@ -67,7 +67,7 @@ export default function DarkModeScreen() {
           >
             <Text style={[styles.optionLabel, { color: Colors.text }]}>{option.label}</Text>
             {themeMode === option.id && (
-              <Check color="#3B82F6" size={24} strokeWidth={3} />
+              <Check color={Colors.accentText} size={24} strokeWidth={3} />
             )}
           </TouchableOpacity>
         ))}

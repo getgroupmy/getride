@@ -344,7 +344,7 @@ export default function ProfilePhotoScreen() {
             {avatar ? (
               <Image source={{ uri: avatar }} style={styles.avatarImage} />
             ) : (
-              <Text style={[styles.avatarText, { color: Colors.accent }]}>{firstChar}</Text>
+              <Text style={[styles.avatarText, { color: Colors.accentText }]}>{firstChar}</Text>
             )}
             {verifying && (
               <View style={styles.avatarOverlay}>
@@ -376,7 +376,7 @@ export default function ProfilePhotoScreen() {
               ? "Liveness verified \u00b7 ready to continue"
               : "Tap below to start the 2-shot liveness check"}
           </Text>
-          {avatar && !verifying && <ShieldCheck color={Colors.success} size={18} />}
+          {avatar && !verifying && <ShieldCheck color={Colors.successText} size={18} />}
         </View>
       </View>
 
@@ -407,9 +407,9 @@ export default function ProfilePhotoScreen() {
             </View>
             <View style={[styles.modalIconWrap, { backgroundColor: Colors.accent + "20" }]}>
               {instruction?.shot === 1 ? (
-                <ScanFace color={Colors.accent} size={44} />
+                <ScanFace color={Colors.accentText} size={44} />
               ) : (
-                <Smile color={Colors.accent} size={44} />
+                <Smile color={Colors.accentText} size={44} />
               )}
             </View>
             <Text style={[styles.modalTitle, { color: Colors.text }]}>{instruction?.title}</Text>

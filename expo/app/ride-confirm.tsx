@@ -3803,7 +3803,7 @@ export default function RideConfirmScreen() {
     },
     promoCodeErrorText: {
       fontSize: 13,
-      color: "#EF4444",
+      color: colors.errorText,
       marginTop: 8,
     },
     promoCodeSubmitButton: {
@@ -4917,9 +4917,9 @@ export default function RideConfirmScreen() {
             accessibilityRole="button"
             accessibilityLabel="Got a promo code? Enter it here"
           >
-            <Tag color="#6B7280" size={18} />
+            <Tag color={colors.textSecondary} size={18} />
             <Text style={styles.promoBannerText}>Got promo code? Use it here</Text>
-            <ChevronRight color="#6B7280" size={20} />
+            <ChevronRight color={colors.textSecondary} size={20} />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -5018,7 +5018,7 @@ export default function RideConfirmScreen() {
                           <Text style={styles.rideOptionTitle}>{displayName}</Text>
                         </View>
                         <View style={styles.rideOptionCapacity}>
-                          <Users color="#9CA3AF" size={13} />
+                          <Users color={colors.textSecondary} size={13} />
                           <Text style={styles.rideCapacityText}>{ride.capacity}</Text>
                         </View>
                         <Text style={styles.rideOptionDesc}>{description}</Text>
@@ -5031,7 +5031,7 @@ export default function RideConfirmScreen() {
                           accessibilityRole="button"
                           accessibilityLabel="Edit fare"
                         >
-                          <Pencil color="#9CA3AF" size={18} />
+                          <Pencil color={colors.textSecondary} size={18} />
                         </TouchableOpacity>
                       ) : (
                         <RollingFareAmount
@@ -5174,7 +5174,7 @@ export default function RideConfirmScreen() {
                             <Text style={styles.rideOptionTitle}>{displayName}</Text>
                           </View>
                           <View style={styles.rideOptionCapacity}>
-                            <Users color="#9CA3AF" size={13} />
+                            <Users color={colors.textSecondary} size={13} />
                             <Text style={styles.rideCapacityText}>{ride.capacity}</Text>
                           </View>
                           <Text style={styles.rideOptionDesc}>{description}</Text>
@@ -5186,7 +5186,7 @@ export default function RideConfirmScreen() {
                           accessibilityRole="button"
                           accessibilityLabel="Edit fare"
                         >
-                          <Pencil color="#9CA3AF" size={18} />
+                          <Pencil color={colors.textSecondary} size={18} />
                         </TouchableOpacity>
                       </TouchableOpacity>
                       
@@ -5286,7 +5286,7 @@ export default function RideConfirmScreen() {
                           <Text style={styles.rideOptionTitle}>{displayName}</Text>
                         </View>
                         <View style={styles.rideOptionCapacity}>
-                          <Users color="#9CA3AF" size={13} />
+                          <Users color={colors.textSecondary} size={13} />
                           <Text style={styles.rideCapacityText}>{ride.capacity}</Text>
                         </View>
                         <Text style={styles.rideOptionDesc}>{description}</Text>
@@ -5309,7 +5309,7 @@ export default function RideConfirmScreen() {
         {/* Disclaimer - Only visible when expanded */}
         {isExpanded && (
           <View style={[styles.disclaimerBox, { transform: [{ translateX: displaySettings.rcDisclaimerHorizontal }, { translateY: displaySettings.rcDisclaimerVertical }] }]}>
-            <Info color="#9CA3AF" size={18} style={styles.disclaimerIcon} />
+            <Info color={colors.textSecondary} size={18} style={styles.disclaimerIcon} />
             <Text style={styles.disclaimerText}>
               Fare does not include state entry tax, tolls, or parking fees
             </Text>

@@ -300,7 +300,7 @@ export default function AdminSettingsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Settings color={Colors.accent} size={18} />
+            <Settings color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Settings</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>Configure platform and services</Text>

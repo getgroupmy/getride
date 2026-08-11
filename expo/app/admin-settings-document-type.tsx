@@ -211,7 +211,7 @@ export default function AdminSettingsDocumentTypeScreen() {
       >
         <View style={styles.cardHeader}>
           <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
-            <FileBadge2 color={Colors.accent} size={20} />
+            <FileBadge2 color={Colors.accentText} size={20} />
           </View>
           <View style={{ flex: 1 }}>
             <View style={styles.titleRow}>
@@ -248,7 +248,7 @@ export default function AdminSettingsDocumentTypeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Edit document type"
           >
-            <Pencil color={Colors.accent} size={16} />
+            <Pencil color={Colors.accentText} size={16} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onDelete(entry)}
@@ -284,7 +284,7 @@ export default function AdminSettingsDocumentTypeScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <FileBadge2 color={Colors.accent} size={18} />
+            <FileBadge2 color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Document Type
             </Text>

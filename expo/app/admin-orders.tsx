@@ -284,7 +284,7 @@ export default function AdminOrdersScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Package color={Colors.accent} size={18} />
+            <Package color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>EV Orders</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -369,7 +369,7 @@ export default function AdminOrdersScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <Zap color={Colors.accent} size={20} />
+                  <Zap color={Colors.accentText} size={20} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.cardTopRow}>
@@ -390,7 +390,7 @@ export default function AdminOrdersScreen() {
                   {!!o.values.wheelsSwapped && (
                     <View style={[styles.refitPill, { backgroundColor: (Colors.warning ?? "#F59E0B") + "20" }]}>
                       <Wrench color={Colors.warning ?? "#F59E0B"} size={10} />
-                      <Text style={[styles.refitPillText, { color: Colors.warning ?? "#F59E0B" }]}>Re-fit wheels</Text>
+                      <Text style={[styles.refitPillText, { color: Colors.warningText ?? "#F59E0B" }]}>Re-fit wheels</Text>
                     </View>
                   )}
                 </View>
@@ -462,7 +462,7 @@ export default function AdminOrdersScreen() {
                   {!!selected.values.wheelsSwapped && (
                     <View style={[styles.refitBadge, { backgroundColor: (Colors.warning ?? "#F59E0B") + "20", borderColor: Colors.warning ?? "#F59E0B" }]} testID="order-refit-flag">
                       <Wrench color={Colors.warning ?? "#F59E0B"} size={14} />
-                      <Text style={[styles.refitBadgeText, { color: Colors.warning ?? "#F59E0B" }]} numberOfLines={2}>
+                      <Text style={[styles.refitBadgeText, { color: Colors.warningText ?? "#F59E0B" }]} numberOfLines={2}>
                         Re-fit required: wheels swapped from {String(selected.values.factoryWheels ?? "factory")} to {String(selected.values.wheels ?? "—")}.
                       </Text>
                     </View>
@@ -648,7 +648,7 @@ export default function AdminOrdersScreen() {
                           items.map((it, i) => (
                             <View key={`${it.name}-${i}`} style={styles.row} testID={`order-checklist-${i}`}>
                               <View style={[styles.rowIcon, { backgroundColor: (it.done ? Colors.success : Colors.warning ?? "#F59E0B") + "20" }]}>
-                                {it.done ? <Check color={Colors.success} size={14} /> : <X color={Colors.warning ?? "#F59E0B"} size={14} />}
+                                {it.done ? <Check color={Colors.successText} size={14} /> : <X color={Colors.warning ?? "#F59E0B"} size={14} />}
                               </View>
                               <Text style={[styles.rowLabel, { color: Colors.textSecondary, width: 100 }]} numberOfLines={2}>{it.name}</Text>
                               <Text style={[styles.rowValue, { color: Colors.text }]} numberOfLines={2}>{it.note || (it.done ? "OK" : "Pending")}</Text>
@@ -662,7 +662,7 @@ export default function AdminOrdersScreen() {
                             testID="order-checklist-open"
                             accessibilityRole="button"
                           >
-                            <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>
+                            <Text style={[styles.secondaryBtnText, { color: Colors.accentText }]}>
                               {submitted ? "Update checklist" : "Complete checklist"}
                             </Text>
                           </TouchableOpacity>
@@ -692,7 +692,7 @@ export default function AdminOrdersScreen() {
                       testID="order-reassign"
                       accessibilityRole="button"
                     >
-                      <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>Reassign DA</Text>
+                      <Text style={[styles.secondaryBtnText, { color: Colors.accentText }]}>Reassign DA</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -797,7 +797,7 @@ export default function AdminOrdersScreen() {
                       accessibilityRole="button"
                     >
                       <View style={[styles.cardIcon, { backgroundColor: Colors.accent + "20" }]}>
-                        <UserCheck color={Colors.accent} size={20} />
+                        <UserCheck color={Colors.accentText} size={20} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.cardTitle, { color: Colors.text }]}>
@@ -810,7 +810,7 @@ export default function AdminOrdersScreen() {
                           {String(a.values.daNumber ?? a.id)} · {String(a.values.contact ?? "")}
                         </Text>
                       </View>
-                      {sel && <Check color={Colors.accent} size={20} />}
+                      {sel && <Check color={Colors.accentText} size={20} />}
                     </TouchableOpacity>
                   );
                 })
@@ -982,7 +982,7 @@ function Row({
   return (
     <View style={styles.row}>
       <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "15" }]}>
-        <Icon color={Colors.accent} size={14} />
+        <Icon color={Colors.accentText} size={14} />
       </View>
       <Text style={[styles.rowLabel, { color: Colors.textSecondary }]}>{label}</Text>
       <Text style={[styles.rowValue, { color: Colors.text }]} numberOfLines={1}>{value}</Text>

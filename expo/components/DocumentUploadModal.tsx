@@ -277,7 +277,7 @@ function DateSpinner({
         testID={`${testID}-today`}
         accessibilityRole="button"
       >
-        <Text style={[styles.helperBtnText, { color: Colors.accent }]}>Today</Text>
+        <Text style={[styles.helperBtnText, { color: Colors.accentText }]}>Today</Text>
       </TouchableOpacity>
     </View>
   );
@@ -892,8 +892,8 @@ export default function DocumentUploadModal({
                   { backgroundColor: Colors.accent + "20", borderColor: Colors.accent + "55" },
                 ]}
               >
-                <Sparkles color={Colors.accent} size={12} />
-                <Text style={[styles.autofillText, { color: Colors.accent }]} numberOfLines={2}>
+                <Sparkles color={Colors.accentText} size={12} />
+                <Text style={[styles.autofillText, { color: Colors.accentText }]} numberOfLines={2}>
                   Auto-filled: {autofilledFields.join(", ")}
                 </Text>
               </View>
@@ -912,8 +912,8 @@ export default function DocumentUploadModal({
               testID="doc-ai-retry"
               accessibilityRole="button"
             >
-              <RefreshCw color={Colors.accent} size={16} />
-              <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>
+              <RefreshCw color={Colors.accentText} size={16} />
+              <Text style={[styles.secondaryBtnText, { color: Colors.accentText }]}>
                 {aiAttempted ? "Re-run check" : "Run check"}
               </Text>
             </TouchableOpacity>
@@ -984,7 +984,7 @@ export default function DocumentUploadModal({
         ]}
       >
         <View style={styles.permitHeader}>
-          <Sparkles color={Colors.accent} size={14} />
+          <Sparkles color={Colors.accentText} size={14} />
           <Text style={[styles.permitTitle, { color: Colors.text }]}>
             Taxi driver permit details
           </Text>
@@ -1142,7 +1142,7 @@ export default function DocumentUploadModal({
                     resizeMode="cover"
                   />
                 ) : (
-                  <FileText color={Colors.accent} size={42} />
+                  <FileText color={Colors.accentText} size={42} />
                 )}
                 <Text style={[styles.previewEmptyText, { color: Colors.text, fontWeight: "700" as const }]} numberOfLines={1}>
                   PDF attached
@@ -1152,7 +1152,7 @@ export default function DocumentUploadModal({
                 </Text>
                 {pdfRasterizing && !pdfPreviewUri ? (
                   <View style={{ flexDirection: "row" as const, alignItems: "center" as const, gap: 8, marginTop: 6 }}>
-                    <ActivityIndicator color={Colors.accent} />
+                    <ActivityIndicator color={Colors.accentText} />
                     <Text style={[styles.previewEmptyText, { color: Colors.textSecondary }]}>
                       Preparing first page for AI check…
                     </Text>
@@ -1186,8 +1186,8 @@ export default function DocumentUploadModal({
                 testID={`doc-replace-${isBack ? "back" : "front"}`}
                 accessibilityRole="button"
               >
-                <RefreshCw color={Colors.accent} size={16} />
-                <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>
+                <RefreshCw color={Colors.accentText} size={16} />
+                <Text style={[styles.secondaryBtnText, { color: Colors.accentText }]}>
                   {uri ? "Replace" : "Add image"}
                 </Text>
               </TouchableOpacity>
@@ -1253,14 +1253,14 @@ export default function DocumentUploadModal({
                 testID="doc-number-open-picker"
                 accessibilityRole="button"
               >
-                <Sparkles color={Colors.accent} size={14} />
+                <Sparkles color={Colors.accentText} size={14} />
                 <Text
-                  style={[styles.candidateBannerText, { color: Colors.accent }]}
+                  style={[styles.candidateBannerText, { color: Colors.accentText }]}
                   numberOfLines={2}
                 >
                   {`AI found ${candidateNumbers.length} possible numbers — tap to choose`}
                 </Text>
-                <ChevronRight color={Colors.accent} size={16} />
+                <ChevronRight color={Colors.accentText} size={16} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -1361,7 +1361,7 @@ export default function DocumentUploadModal({
                         ) : null}
                       </View>
                       {selected ? (
-                        <Check color={Colors.accent} size={18} />
+                        <Check color={Colors.accentText} size={18} />
                       ) : null}
                     </TouchableOpacity>
                   );
@@ -1431,7 +1431,7 @@ export default function DocumentUploadModal({
                       },
                     ]}
                   >
-                    <FileText color={Colors.accent} size={32} />
+                    <FileText color={Colors.accentText} size={32} />
                   </View>
                 ) : (
                   <Image source={{ uri: frontUri }} style={styles.reviewImage} />
@@ -1572,7 +1572,7 @@ export default function DocumentUploadModal({
                   >
                     {n}
                   </Text>
-                  {selected ? <Check color={Colors.accent} size={18} /> : null}
+                  {selected ? <Check color={Colors.accentText} size={18} /> : null}
                 </TouchableOpacity>
               );
             })}

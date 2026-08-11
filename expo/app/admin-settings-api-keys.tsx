@@ -157,7 +157,7 @@ export default function AdminSettingsApiKeysScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <KeyRound color={Colors.accent} size={18} />
+            <KeyRound color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>API Providers</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -178,7 +178,7 @@ export default function AdminSettingsApiKeysScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -198,7 +198,7 @@ export default function AdminSettingsApiKeysScreen() {
             accessibilityRole="button"
           >
             <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-              <Plug color={Colors.accent} size={18} />
+              <Plug color={Colors.accentText} size={18} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.rowTitle, { color: Colors.text }]}>Elife Transfer API</Text>
@@ -240,7 +240,7 @@ export default function AdminSettingsApiKeysScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <Building2 color={Colors.accent} size={18} />
+                  <Building2 color={Colors.accentText} size={18} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.rowTitle, { color: Colors.text }]}>{p.name}</Text>
@@ -269,7 +269,7 @@ export default function AdminSettingsApiKeysScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Delete provider"
                   >
-                    <Trash2 color={Colors.error} size={16} />
+                    <Trash2 color={Colors.errorText} size={16} />
                   </TouchableOpacity>
                 ) : null}
                 <ChevronRight color={Colors.textSecondary} size={18} />

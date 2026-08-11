@@ -253,8 +253,8 @@ export default function PinVerifyScreen() {
 
           {error && (
             <View style={styles.errorContainer}>
-              <AlertCircle color={colors.error} size={16} />
-              <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+              <AlertCircle color={colors.errorText} size={16} />
+              <Text style={[styles.errorText, { color: colors.errorText }]}>{error}</Text>
             </View>
           )}
 
@@ -264,7 +264,7 @@ export default function PinVerifyScreen() {
             disabled={isSendingOtp}
             accessibilityRole="button"
           >
-            <Text style={[styles.forgotButtonText, { color: colors.accent }]}>{isSendingOtp ? "Sending code\u2026" : "Forgot PIN?"}</Text>
+            <Text style={[styles.forgotButtonText, { color: colors.accentText }]}>{isSendingOtp ? "Sending code\u2026" : "Forgot PIN?"}</Text>
           </TouchableOpacity>
         </View>
       </View>

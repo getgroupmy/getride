@@ -351,7 +351,7 @@ export default function PartnerOnboardingScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.accent} size="large" />
+          <ActivityIndicator color={Colors.accentText} size="large" />
           <Text style={[styles.loadingText, { color: Colors.textSecondary }]}>Loading your partner profile…</Text>
         </View>
       </SafeAreaView>
@@ -464,8 +464,8 @@ export default function PartnerOnboardingScreen() {
               accessibilityLabel="Upload your ID photo"
               testID="onboard-upload-id"
             >
-              <Camera color={Colors.accent} size={18} />
-              <Text style={[styles.secondaryBtnText, { color: Colors.accent }]}>{profile?.id_image ? "Replace ID photo" : "Upload ID photo"}</Text>
+              <Camera color={Colors.accentText} size={18} />
+              <Text style={[styles.secondaryBtnText, { color: Colors.accentText }]}>{profile?.id_image ? "Replace ID photo" : "Upload ID photo"}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={saveId}
@@ -611,7 +611,7 @@ export default function PartnerOnboardingScreen() {
         return (
           <View style={styles.center}>
             <View style={[styles.doneIconWrap, { backgroundColor: Colors.accent + "20" }]}>
-              <Check color={Colors.accent} size={36} />
+              <Check color={Colors.accentText} size={36} />
             </View>
             <Text style={[styles.title, { color: Colors.text, textAlign: "center" }]}>You&apos;re all set!</Text>
             <Text style={[styles.subtitle, { color: Colors.textSecondary, textAlign: "center" }]}>

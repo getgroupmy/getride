@@ -206,11 +206,11 @@ export default function DocumentMetadataEditModal({
             accessibilityRole="button"
           >
             {deleting ? (
-              <ActivityIndicator color={Colors.error} size="small" />
+              <ActivityIndicator color={Colors.errorText} size="small" />
             ) : (
               <>
-                <Trash2 color={Colors.error} size={18} />
-                <Text style={[styles.actionText, { color: Colors.error }]}>Delete</Text>
+                <Trash2 color={Colors.errorText} size={18} />
+                <Text style={[styles.actionText, { color: Colors.errorText }]}>Delete</Text>
               </>
             )}
           </TouchableOpacity>

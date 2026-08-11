@@ -281,14 +281,14 @@ export default function PinSetupScreen() {
 
           {error && (
             <View style={styles.errorContainer}>
-              <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+              <Text style={[styles.errorText, { color: colors.errorText }]}>{error}</Text>
             </View>
           )}
 
           {step === "confirm" && !error && (
             <View style={styles.hintContainer}>
-              <Check color={colors.accent} size={16} />
-              <Text style={[styles.hintText, { color: colors.accent }]}>Almost done!</Text>
+              <Check color={colors.accentText} size={16} />
+              <Text style={[styles.hintText, { color: colors.accentText }]}>Almost done!</Text>
             </View>
           )}
         </View>

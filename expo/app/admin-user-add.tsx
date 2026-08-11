@@ -175,7 +175,7 @@ export default function AdminUserAddScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <UserPlus color={Colors.accent} size={18} />
+            <UserPlus color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Add User</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>Onboard a new user</Text>

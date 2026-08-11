@@ -308,8 +308,8 @@ export default function PhoneAuthScreen() {
 
           {isBlacklisted ? (
             <View style={[styles.blockBanner, { backgroundColor: colors.error + "15", borderColor: colors.error + "40" }]}>
-              <ShieldAlert color={colors.error} size={18} />
-              <Text style={[styles.blockBannerText, { color: colors.error }]}>Service Not Available</Text>
+              <ShieldAlert color={colors.errorText} size={18} />
+              <Text style={[styles.blockBannerText, { color: colors.errorText }]}>Service Not Available</Text>
             </View>
           ) : null}
 
@@ -371,7 +371,7 @@ export default function PhoneAuthScreen() {
             )}
           </TouchableOpacity>
           {checkError ? (
-            <Text style={[styles.sheetError, { color: colors.error, marginTop: 12 }]}>{checkError}</Text>
+            <Text style={[styles.sheetError, { color: colors.errorText, marginTop: 12 }]}>{checkError}</Text>
           ) : null}
         </SafeAreaView>
       </KeyboardAvoidingView>
@@ -401,7 +401,7 @@ export default function PhoneAuthScreen() {
               </Text>
               <Text style={[styles.sheetPhone, { color: colors.text }]}>{signupSheet?.phone}</Text>
               {checkError ? (
-                <Text style={[styles.sheetError, { color: colors.error }]}>{checkError}</Text>
+                <Text style={[styles.sheetError, { color: colors.errorText }]}>{checkError}</Text>
               ) : null}
               <TouchableOpacity
                 style={[

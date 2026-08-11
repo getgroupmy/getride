@@ -263,7 +263,7 @@ export default function AdminPartnerAddScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <UserPlus color={Colors.accent} size={18} />
+            <UserPlus color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Add Partner</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -305,7 +305,7 @@ export default function AdminPartnerAddScreen() {
                 testID="add-new-user"
                 accessibilityRole="button"
               >
-                <UserPlus color={Colors.accent} size={18} />
+                <UserPlus color={Colors.accentText} size={18} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.addUserTitle, { color: Colors.text }]}>
                     User doesn’t exist?
@@ -314,7 +314,7 @@ export default function AdminPartnerAddScreen() {
                     Add a new user, then come back to select them
                   </Text>
                 </View>
-                <ChevronRight color={Colors.accent} size={18} />
+                <ChevronRight color={Colors.accentText} size={18} />
               </TouchableOpacity>
 
               <Text style={[styles.listLabel, { color: Colors.textSecondary }]}>
@@ -425,8 +425,8 @@ export default function AdminPartnerAddScreen() {
                     testID="add-partner-add-vehicle"
                     accessibilityRole="button"
                   >
-                    <Plus color={Colors.accent} size={14} />
-                    <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add new</Text>
+                    <Plus color={Colors.accentText} size={14} />
+                    <Text style={[styles.addBtnText, { color: Colors.accentText }]}>Add new</Text>
                   </TouchableOpacity>
                 </View>
                 <Text style={[styles.label, { color: Colors.textSecondary, marginTop: 8 }]}>
@@ -435,7 +435,7 @@ export default function AdminPartnerAddScreen() {
                 {selectedVehicle ? (
                   <View style={[styles.vehicleCard, { backgroundColor: Colors.gray[100], borderColor: Colors.accent }]}>
                     <View style={[styles.vehicleIcon, { backgroundColor: Colors.accent + "20" }]}>
-                      <CarFront color={Colors.accent} size={18} />
+                      <CarFront color={Colors.accentText} size={18} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.userName, { color: Colors.text }]} numberOfLines={1}>
@@ -488,7 +488,7 @@ export default function AdminPartnerAddScreen() {
                             accessibilityRole="button"
                           >
                             <View style={[styles.vehicleIcon, { backgroundColor: Colors.accent + "15" }]}>
-                              <CarFront color={Colors.accent} size={18} />
+                              <CarFront color={Colors.accentText} size={18} />
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={[styles.userName, { color: Colors.text }]} numberOfLines={1}>
@@ -594,7 +594,7 @@ export default function AdminPartnerAddScreen() {
 
             {resolvingId || !createdPartnerSupabaseId ? (
               <View style={[styles.gateCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border, marginTop: 16, flexDirection: "row", alignItems: "center", gap: 10 }]}>
-                <ActivityIndicator color={Colors.accent} />
+                <ActivityIndicator color={Colors.accentText} />
                 <Text style={[styles.gateText, { color: Colors.textSecondary, flex: 1 }]}>
                   {resolvingId
                     ? "Syncing partner to the server before opening the uploader…"

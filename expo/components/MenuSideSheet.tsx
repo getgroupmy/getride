@@ -469,7 +469,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
             ) : (
-              <Text style={[styles.avatarText, { color: Colors.accent }]}>{initialChar}</Text>
+              <Text style={[styles.avatarText, { color: Colors.accentText }]}>{initialChar}</Text>
             )}
           </View>
           <View style={styles.profileInfo}>
@@ -480,7 +480,7 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
                   <Star
                     key={slot}
                     size={14}
-                    color={Colors.accent}
+                    color={Colors.accentText}
                     fill={slot <= Math.round(PROFILE_RATING) ? Colors.accent : "transparent"}
                   />
                 ))}
@@ -589,8 +589,8 @@ export default function MenuSideSheet({ visible, onClose, onNavigateToIndex, inl
             accessibilityLabel={adminChecking ? "Checking admin access" : "Admin login"}
             testID="admin-login-button"
           >
-            <ShieldCheck color={Colors.accent} size={18} />
-            <Text style={[styles.adminLoginText, { color: Colors.accent }]}>
+            <ShieldCheck color={Colors.accentText} size={18} />
+            <Text style={[styles.adminLoginText, { color: Colors.accentText }]}>
               {adminChecking ? "Checking…" : "Admin login"}
             </Text>
           </TouchableOpacity>

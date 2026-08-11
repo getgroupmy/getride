@@ -138,7 +138,7 @@ export default function AdminSettingsAssignServiceScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Link2 color={Colors.accent} size={18} />
+            <Link2 color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Assign Service</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -150,7 +150,7 @@ export default function AdminSettingsAssignServiceScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -197,7 +197,7 @@ export default function AdminSettingsAssignServiceScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <FileCheck2 color={Colors.accent} size={18} />
+                  <FileCheck2 color={Colors.accentText} size={18} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.rowTitle, { color: Colors.text }]}>{feature.label}</Text>
@@ -249,7 +249,7 @@ export default function AdminSettingsAssignServiceScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <MapPin color={Colors.accent} size={18} />
+                  <MapPin color={Colors.accentText} size={18} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.rowTitle, { color: Colors.text }]}>{page.label}</Text>
@@ -339,8 +339,8 @@ export default function AdminSettingsAssignServiceScreen() {
                       activeOpacity={0.85}
                       accessibilityRole="button"
                     >
-                      <X color={Colors.error} size={18} />
-                      <Text style={[styles.svcName, { color: Colors.error, flex: 1 }]}>
+                      <X color={Colors.errorText} size={18} />
+                      <Text style={[styles.svcName, { color: Colors.errorText, flex: 1 }]}>
                         Clear current selection
                       </Text>
                     </TouchableOpacity>
@@ -366,7 +366,7 @@ export default function AdminSettingsAssignServiceScreen() {
                         activeOpacity={0.85}
                         accessibilityRole="button"
                       >
-                        <FileText color={Colors.accent} size={18} />
+                        <FileText color={Colors.accentText} size={18} />
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.svcName, { color: Colors.text }]} numberOfLines={1}>
                             {name}
@@ -377,7 +377,7 @@ export default function AdminSettingsAssignServiceScreen() {
                             </Text>
                           ) : null}
                         </View>
-                        {selected ? <Check color={Colors.accent} size={18} /> : null}
+                        {selected ? <Check color={Colors.accentText} size={18} /> : null}
                       </TouchableOpacity>
                     );
                   })}

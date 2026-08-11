@@ -522,6 +522,69 @@ prop.
 The 69 files with no accessibility attribute contain no interactive element at
 all — layouts, type modules and presentational components.
 
+## Light/dark legibility (tenth pass)
+
+A contrast analysis of every text/surface pair the app can render, in both
+themes. The finding was systemic rather than local.
+
+### Fill colours were being used as text
+
+`accent`, `error`, `success` and `warning` are **fills** — what a button, chip
+or dot is painted with. Drawn as *text* on a light surface the same values are
+unreadable, and the app did exactly that **822 times**:
+
+| token | as text | uses | measured on white |
+|---|---|---|---|
+| `accent` `#2dabe2` | 629 | | **2.61:1** |
+| `error` `#EF4444` | 121 | | **3.76:1** |
+| `success` `#10B981` | 35 | | **2.54:1** |
+| `warning` `#F59E0B` | 32 | | **2.15:1** |
+
+The floor is 4.5:1 for text and 3:1 for icons. Every one of these failed both,
+and they failed identically in dark mode because the palette defined a single
+value for both themes.
+
+`textSecondary` — the single most-used colour in the app at **1,501** usages —
+was `#6B7280`: fine on white (4.83:1) but **4.39:1 on `gray.100`** and
+**3.90:1 on `gray.200`**, the surfaces cards and rows are actually drawn on.
+
+### The fix: text twins
+
+Each fill now has a `*Text` twin in the same hue family, dark enough to read on
+light and light enough to read on dark. Use the fill for `backgroundColor`, the
+twin for `color`. 822 references were moved onto the twins; fills, borders and
+shadows were left alone, so the brand colour of every button is unchanged.
+
+Two values had to be tuned per theme rather than shared:
+
+- **Dark `gray.100` (`#374151`) is a light surface.** `errorText` `#F87171` is
+  only 3.73:1 on it, so red is lifted further than the other statuses
+  (`#FA9C9C`). `textSecondary` moved `#9CA3AF` → `#A8AEB9` for the same reason.
+- **Light `textSecondary`** moved `#6B7280` → `#5C636E`, which clears 4.5:1 on
+  white, `gray.100` and `gray.200`.
+
+`utils/__tests__/colors.test.ts` now checks every body token against every
+common surface in both themes, plus text-on-fill, icon contrast at 3:1, border
+visibility, and that each twin keeps the hue family of its fill — so a status
+colour cannot quietly drift to another hue while passing contrast.
+
+### Hardcoded colours
+
+431 text/icon colours are hardcoded rather than themed. Most are correct:
+Google Maps style JSON, white on the accent gradient, the camera viewfinder,
+brand marks. **88 were genuinely theme-unsafe**, and of those 43 sat on a themed
+surface and are now tokens — the fare-AI pass/fail pills, the delete icons on
+the reader and printer rows, the muted text through `ride-confirm` and
+`OfferFareSideSheet`.
+
+### Deliberately theme-independent, and correct
+
+Three surfaces are fixed light on purpose and are internally consistent
+(16:1 dark-on-white): `ConnectionStatusModal`'s dialog, `WalletBalanceBar`, and
+the shareable `referral-card`. `meter-digital` is fixed dark for the same class
+of reason — a white console on a windscreen at night is a hazard. None of these
+is a legibility fault; they simply do not follow the theme.
+
 ## Known, not fixed
 
 Deliberately out of scope for a targeted pass — each would be its own change:
@@ -538,7 +601,10 @@ Deliberately out of scope for a targeted pass — each would be its own change:
    deleting the file is a separate call.
 3. **Reduced motion in `map-picker`.** Its loop is a loading spinner, which is
    `essential` and correctly left alone; nothing else there animates.
-4. **Dynamic Type.** No screen was verified at the largest system text size;
+4. **`ConnectionStatusModal` does not follow the theme.** It renders a white
+   dialog in dark mode. Its own contrast is fine, so this is a consistency gap
+   rather than a legibility one.
+5. **Dynamic Type.** No screen was verified at the largest system text size;
    `allowFontScaling` is left at its default everywhere except the meter console.
 
 ## Re-running the audit

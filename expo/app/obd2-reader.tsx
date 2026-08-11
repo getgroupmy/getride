@@ -486,7 +486,7 @@ export default function Obd2ReaderScreen() {
       >
         {partnerLoading ? (
           <View style={styles.loadingBlock}>
-            <ActivityIndicator color={Colors.accent} />
+            <ActivityIndicator color={Colors.accentText} />
           </View>
         ) : !isPartner ? (
           <View style={[styles.card, cardStyle]}>
@@ -599,8 +599,8 @@ export default function Obd2ReaderScreen() {
                 testID="obd2-add"
                 accessibilityRole="button"
               >
-                <Plus color={Colors.accent} size={18} />
-                <Text style={[styles.addButtonText, { color: Colors.accent }]}>Add reader</Text>
+                <Plus color={Colors.accentText} size={18} />
+                <Text style={[styles.addButtonText, { color: Colors.accentText }]}>Add reader</Text>
               </TouchableOpacity>
             </View>
 
@@ -654,7 +654,7 @@ export default function Obd2ReaderScreen() {
                           </Text>
                         ) : null}
                       </View>
-                      {selected ? <Check color={Colors.accent} size={20} strokeWidth={3} /> : null}
+                      {selected ? <Check color={Colors.accentText} size={20} strokeWidth={3} /> : null}
                       <TouchableOpacity
                         style={styles.deleteButton}
                         onPress={() => handleDelete(adapter)}
@@ -662,7 +662,7 @@ export default function Obd2ReaderScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={`Delete ${adapter.name}`}
                       >
-                        <Trash2 color="#EF4444" size={18} />
+                        <Trash2 color={Colors.errorText} size={18} />
                       </TouchableOpacity>
                     </TouchableOpacity>
                   );
@@ -783,7 +783,7 @@ export default function Obd2ReaderScreen() {
                           </Text>
                         ) : null}
                       </View>
-                      {picked ? <Check color={Colors.accent} size={20} strokeWidth={3} /> : null}
+                      {picked ? <Check color={Colors.accentText} size={20} strokeWidth={3} /> : null}
                     </TouchableOpacity>
                   );
                 })}
@@ -926,7 +926,7 @@ export default function Obd2ReaderScreen() {
                             </Text>
                           </View>
                           {draftDeviceId === d.id ? (
-                            <Check color={Colors.accent} size={18} strokeWidth={3} />
+                            <Check color={Colors.accentText} size={18} strokeWidth={3} />
                           ) : null}
                         </TouchableOpacity>
                       ))}

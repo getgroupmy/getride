@@ -127,7 +127,7 @@ export default function VehicleSelectModal({
 
           {loading ? (
             <View style={styles.loading}>
-              <ActivityIndicator color={Colors.accent} />
+              <ActivityIndicator color={Colors.accentText} />
               <Text style={[styles.loadingText, { color: Colors.textSecondary }]}>
                 Loading your vehicles…
               </Text>
@@ -135,7 +135,7 @@ export default function VehicleSelectModal({
           ) : sorted.length === 0 ? (
             <View style={styles.emptyWrap}>
               <View style={[styles.emptyIcon, { backgroundColor: Colors.accent + "20" }]}>
-                <Car color={Colors.accent} size={28} />
+                <Car color={Colors.accentText} size={28} />
               </View>
               <Text style={[styles.emptyTitle, { color: Colors.text }]}>
                 No vehicles yet
@@ -212,7 +212,7 @@ export default function VehicleSelectModal({
                         { backgroundColor: Colors.accent + "20" },
                       ]}
                     >
-                      <Car color={Colors.accent} size={22} />
+                      <Car color={Colors.accentText} size={22} />
                     </View>
                     <View style={styles.optionInfo}>
                     {/* StatusIcon kept for parity but unused in row layout */}
@@ -266,8 +266,8 @@ export default function VehicleSelectModal({
             accessibilityLabel="Add a new vehicle"
             testID="vehicle-add-new"
           >
-            <Plus color={Colors.accent} size={18} />
-            <Text style={[styles.addBtnText, { color: Colors.accent }]}>
+            <Plus color={Colors.accentText} size={18} />
+            <Text style={[styles.addBtnText, { color: Colors.accentText }]}>
               Add a new vehicle
             </Text>
           </TouchableOpacity>

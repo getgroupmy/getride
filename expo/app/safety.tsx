@@ -111,7 +111,7 @@ export default function SafetyScreen() {
             </Text>
             {!(alertContacts && !isLoading && contacts.length === 0) ? (
               <TouchableOpacity onPress={() => router.push("/emergency-contacts" as any)} accessibilityRole="button">
-                <Text style={[styles.link, { color: Colors.accent }]}>Manage Emergency Contacts</Text>
+                <Text style={[styles.link, { color: Colors.accentText }]}>Manage Emergency Contacts</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -130,7 +130,7 @@ export default function SafetyScreen() {
           <View style={styles.contactsBlock}>
             {isLoading ? (
               <View style={styles.contactsLoading}>
-                <ActivityIndicator color={Colors.accent} />
+                <ActivityIndicator color={Colors.accentText} />
               </View>
             ) : contacts.length === 0 ? (
               <TouchableOpacity
@@ -140,7 +140,7 @@ export default function SafetyScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.addContactIcon, { backgroundColor: Colors.accent + "1A" }]}>
-                  <Plus color={Colors.accent} size={20} />
+                  <Plus color={Colors.accentText} size={20} />
                 </View>
                 <Text style={[styles.addContactText, { color: Colors.text }]}>
                   Add a trusted contact
@@ -164,7 +164,7 @@ export default function SafetyScreen() {
               When on, trip audio is recorded with your device microphone once a ride starts. Recordings are stored privately on your device for 24 hours and are never accessible to you. They are only sent to our team if you open a support ticket about a ride and an agent requests them.
             </Text>
             <TouchableOpacity onPress={openPrivacy} accessibilityRole="button">
-              <Text style={[styles.link, { color: Colors.accent }]}>Learn more</Text>
+              <Text style={[styles.link, { color: Colors.accentText }]}>Learn more</Text>
             </TouchableOpacity>
           </View>
           <Switch
@@ -200,7 +200,7 @@ export default function SafetyScreen() {
           <ShieldCheck color={Colors.textSecondary} size={18} />
           <Text style={[styles.consentText, { color: Colors.textSecondary }]}>
             My passenger(s) and I agree to the processing of personal data for VoiceProtection, and in accordance with{" "}
-            <Text style={{ color: Colors.accent }} onPress={openPrivacy}>
+            <Text style={{ color: Colors.accentText }} onPress={openPrivacy}>
               Privacy Notice
             </Text>
           </Text>

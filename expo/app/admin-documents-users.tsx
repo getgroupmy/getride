@@ -267,7 +267,7 @@ export default function AdminDocumentsUsersScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <User color={Colors.accent} size={18} />
+            <User color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>User Documents</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -308,7 +308,7 @@ export default function AdminDocumentsUsersScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView
@@ -341,7 +341,7 @@ export default function AdminDocumentsUsersScreen() {
                     <View style={[styles.thumb, { backgroundColor: Colors.gray[200], justifyContent: "center", alignItems: "center" }]}>
                       {pdfRow ? (
                         <>
-                          <FileText color={Colors.accent} size={22} />
+                          <FileText color={Colors.accentText} size={22} />
                           <Text style={{ color: Colors.textSecondary, fontSize: 9, marginTop: 2, fontWeight: "700" as const }}>PDF</Text>
                         </>
                       ) : (
@@ -419,7 +419,7 @@ export default function AdminDocumentsUsersScreen() {
                 >
                   {isPdfUri(selected.id_image) ? (
                     <View style={[styles.modalImage, { backgroundColor: Colors.gray[100], justifyContent: "center" as const, alignItems: "center" as const, borderWidth: 1, borderColor: Colors.border }]}>
-                      <FileText color={Colors.accent} size={42} />
+                      <FileText color={Colors.accentText} size={42} />
                       <Text style={{ color: Colors.text, fontWeight: "700" as const, marginTop: 8 }}>PDF document</Text>
                       <Text style={{ color: Colors.textSecondary, fontSize: 12, marginTop: 4 }}>Tap to open & zoom</Text>
                     </View>
@@ -446,11 +446,11 @@ export default function AdminDocumentsUsersScreen() {
                   accessibilityRole="button"
                 >
                   {removingImage ? (
-                    <ActivityIndicator color={Colors.error} size="small" />
+                    <ActivityIndicator color={Colors.errorText} size="small" />
                   ) : (
                     <>
-                      <Trash2 color={Colors.error} size={16} />
-                      <Text style={[styles.removeImgText, { color: Colors.error }]}>Remove ID image</Text>
+                      <Trash2 color={Colors.errorText} size={16} />
+                      <Text style={[styles.removeImgText, { color: Colors.errorText }]}>Remove ID image</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -503,8 +503,8 @@ export default function AdminDocumentsUsersScreen() {
                 testID="docs-users-modal-reject"
                 accessibilityRole="button"
               >
-                <XCircle color={Colors.error} size={18} />
-                <Text style={[styles.actionText, { color: Colors.error }]}>Reject</Text>
+                <XCircle color={Colors.errorText} size={18} />
+                <Text style={[styles.actionText, { color: Colors.errorText }]}>Reject</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleDecide("Verified")}

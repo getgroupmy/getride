@@ -223,7 +223,7 @@ export default function AdminSettingsPushNotificationScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Bell color={Colors.accent} size={18} />
+            <Bell color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Push Notification
             </Text>
@@ -254,13 +254,13 @@ export default function AdminSettingsPushNotificationScreen() {
             { backgroundColor: Colors.warning + "22", borderColor: Colors.warning + "55" },
           ]}
         >
-          <Text style={[styles.readOnlyText, { color: Colors.warning }]}>Read-only access</Text>
+          <Text style={[styles.readOnlyText, { color: Colors.warningText }]}>Read-only access</Text>
         </View>
       ) : null}
 
       <View style={[styles.statCard, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
         <View style={[styles.statIcon, { backgroundColor: Colors.accent + "20" }]}>
-          <Smartphone color={Colors.accent} size={18} />
+          <Smartphone color={Colors.accentText} size={18} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.statValue, { color: Colors.text }]}>
@@ -276,7 +276,7 @@ export default function AdminSettingsPushNotificationScreen() {
           testID="push-notification-refresh"
           accessibilityRole="button"
         >
-          <Text style={[styles.refreshText, { color: Colors.accent }]}>Refresh</Text>
+          <Text style={[styles.refreshText, { color: Colors.accentText }]}>Refresh</Text>
         </TouchableOpacity>
       </View>
 
@@ -311,7 +311,7 @@ export default function AdminSettingsPushNotificationScreen() {
                 testID={`push-notification-row-${entry.id}`}
               >
                 <View style={[styles.rowIcon, { backgroundColor: Colors.accent + "20" }]}>
-                  <Bell color={Colors.accent} size={18} />
+                  <Bell color={Colors.accentText} size={18} />
                 </View>
                 <View style={styles.rowInfo}>
                   <Text style={[styles.rowLabel, { color: Colors.text }]} numberOfLines={1}>
@@ -321,8 +321,8 @@ export default function AdminSettingsPushNotificationScreen() {
                     {String(entry.values.body ?? "")}
                   </Text>
                   <View style={[styles.audiencePill, { backgroundColor: Colors.accent + "18" }]}>
-                    <Users color={Colors.accent} size={11} />
-                    <Text style={[styles.audiencePillText, { color: Colors.accent }]}>
+                    <Users color={Colors.accentText} size={11} />
+                    <Text style={[styles.audiencePillText, { color: Colors.accentText }]}>
                       {audienceLabel}
                     </Text>
                   </View>
@@ -351,7 +351,7 @@ export default function AdminSettingsPushNotificationScreen() {
                         accessibilityRole="button"
                         accessibilityLabel="Edit push notification"
                       >
-                        <Pencil color={Colors.accent} size={15} />
+                        <Pencil color={Colors.accentText} size={15} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => onDelete(entry)}
@@ -360,7 +360,7 @@ export default function AdminSettingsPushNotificationScreen() {
                         accessibilityRole="button"
                         accessibilityLabel="Delete push notification"
                       >
-                        <Trash2 color={Colors.error} size={15} />
+                        <Trash2 color={Colors.errorText} size={15} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -472,8 +472,8 @@ export default function AdminSettingsPushNotificationScreen() {
                   testID="push-notification-save"
                   accessibilityRole="button"
                 >
-                  <Save color={Colors.accent} size={18} />
-                  <Text style={[styles.secondaryText, { color: Colors.accent }]}>Save</Text>
+                  <Save color={Colors.accentText} size={18} />
+                  <Text style={[styles.secondaryText, { color: Colors.accentText }]}>Save</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={onSendFromModal}

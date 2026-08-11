@@ -129,7 +129,7 @@ export default function AdminSplashScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Sparkles color={Colors.accent} size={18} />
+            <Sparkles color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>Splash Screen</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -163,7 +163,7 @@ export default function AdminSplashScreen() {
 
         <View style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
           <View style={styles.cardHeader}>
-            <ImageIcon color={Colors.accent} size={18} />
+            <ImageIcon color={Colors.accentText} size={18} />
             <Text style={[styles.cardTitle, { color: Colors.text }]}>Splash Image</Text>
           </View>
           <View style={styles.rowBetween}>
@@ -183,8 +183,8 @@ export default function AdminSplashScreen() {
                 testID="splash-clear"
                 accessibilityRole="button"
               >
-                <Trash2 color={Colors.error} size={16} />
-                <Text style={[styles.ghostBtnText, { color: Colors.error }]}>Remove</Text>
+                <Trash2 color={Colors.errorText} size={16} />
+                <Text style={[styles.ghostBtnText, { color: Colors.errorText }]}>Remove</Text>
               </TouchableOpacity>
             ) : null}
           </View>

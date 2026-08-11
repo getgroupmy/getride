@@ -510,7 +510,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                 resizeMode="cover"
               />
             ) : (
-              <Users2 color={Colors.accent} size={20} />
+              <Users2 color={Colors.accentText} size={20} />
             )}
           </View>
           <View style={{ flex: 1 }}>
@@ -571,7 +571,7 @@ export default function AdminSettingsPartnerTypeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Edit partner type"
           >
-            <Pencil color={Colors.accent} size={16} />
+            <Pencil color={Colors.accentText} size={16} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onDelete(entry)}
@@ -622,7 +622,7 @@ export default function AdminSettingsPartnerTypeScreen() {
             {node.name}
           </Text>
           <View style={[styles.levelChip, { backgroundColor: Colors.accent + "20" }]}>
-            <Text style={[styles.levelChipText, { color: Colors.accent }]}>L{depth + 1}</Text>
+            <Text style={[styles.levelChipText, { color: Colors.accentText }]}>L{depth + 1}</Text>
           </View>
         </View>
         {node.children.length ? renderPreview(node.children, depth + 1) : null}
@@ -646,7 +646,7 @@ export default function AdminSettingsPartnerTypeScreen() {
           ]}
         >
           <View style={[styles.levelChip, { backgroundColor: Colors.accent + "20" }]}>
-            <Text style={[styles.levelChipText, { color: Colors.accent }]}>L{depth + 1}</Text>
+            <Text style={[styles.levelChipText, { color: Colors.accentText }]}>L{depth + 1}</Text>
           </View>
           <Text style={[styles.nodeName, { color: Colors.text }]} numberOfLines={1}>
             {node.name}
@@ -659,7 +659,7 @@ export default function AdminSettingsPartnerTypeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Edit partner type"
           >
-            <Pencil color={Colors.accent} size={14} />
+            <Pencil color={Colors.accentText} size={14} />
           </TouchableOpacity>
           {canAddChild ? (
             <TouchableOpacity
@@ -669,7 +669,7 @@ export default function AdminSettingsPartnerTypeScreen() {
               accessibilityRole="button"
               accessibilityLabel="Add partner type"
             >
-              <Plus color={Colors.success} size={14} />
+              <Plus color={Colors.successText} size={14} />
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity
@@ -679,7 +679,7 @@ export default function AdminSettingsPartnerTypeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Delete partner type"
           >
-            <Trash2 color={Colors.error} size={14} />
+            <Trash2 color={Colors.errorText} size={14} />
           </TouchableOpacity>
         </View>
         {node.children.map((c, i) => renderEditableNode(c, [...path, i]))}
@@ -703,7 +703,7 @@ export default function AdminSettingsPartnerTypeScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Users2 color={Colors.accent} size={18} />
+            <Users2 color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               Partner Type
             </Text>
@@ -849,11 +849,11 @@ export default function AdminSettingsPartnerTypeScreen() {
                 >
                   <View style={[styles.iconPreview, { backgroundColor: Colors.accent + "20", borderColor: Colors.border }]}>
                     {uploadingIcon ? (
-                      <ActivityIndicator color={Colors.accent} />
+                      <ActivityIndicator color={Colors.accentText} />
                     ) : form.iconUrl ? (
                       <Image source={{ uri: form.iconUrl }} style={{ width: 56, height: 56 }} resizeMode="cover" />
                     ) : (
-                      <ImagePlus color={Colors.accent} size={22} />
+                      <ImagePlus color={Colors.accentText} size={22} />
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
@@ -885,8 +885,8 @@ export default function AdminSettingsPartnerTypeScreen() {
                           testID="partner-type-field-icon-clear"
                           accessibilityRole="button"
                         >
-                          <Trash2 color={Colors.error} size={14} />
-                          <Text style={[styles.iconActionText, { color: Colors.error }]}>Remove</Text>
+                          <Trash2 color={Colors.errorText} size={14} />
+                          <Text style={[styles.iconActionText, { color: Colors.errorText }]}>Remove</Text>
                         </TouchableOpacity>
                       ) : null}
                     </View>
@@ -895,7 +895,7 @@ export default function AdminSettingsPartnerTypeScreen() {
 
                 <View style={styles.docTypesHeader}>
                   <View style={styles.titleRow}>
-                    <FileBadge2 color={Colors.accent} size={14} />
+                    <FileBadge2 color={Colors.accentText} size={14} />
                     <Text style={[styles.label, { color: Colors.textSecondary, marginBottom: 0 }]}>
                       Document Types
                     </Text>
@@ -1059,7 +1059,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                   >
                     <View style={styles.treeHeader}>
                       <View style={styles.titleRow}>
-                        <Layers color={Colors.accent} size={16} />
+                        <Layers color={Colors.accentText} size={16} />
                         <Text style={[styles.treeTitle, { color: Colors.text }]}>Sub-services</Text>
                       </View>
                       <TouchableOpacity

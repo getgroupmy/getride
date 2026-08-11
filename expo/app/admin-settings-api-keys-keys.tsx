@@ -241,7 +241,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <KeyRound color={Colors.accent} size={18} />
+            <KeyRound color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               {service?.name ?? "Keys"}
             </Text>
@@ -264,7 +264,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : !service ? (
         <View style={styles.loadingWrap}>
@@ -278,18 +278,18 @@ export default function AdminSettingsApiKeysKeysScreen() {
               { backgroundColor: Colors.gray[100], borderColor: Colors.border },
             ]}
           >
-            <ShieldCheck color={Colors.accent} size={16} />
+            <ShieldCheck color={Colors.accentText} size={16} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.noteTitle, { color: Colors.text }]}>Automatic failover</Text>
               <Text style={[styles.noteTxt, { color: Colors.textSecondary }]}>
                 When a key fails, the next available key with the lowest failure count is used. Disabled keys are skipped.
               </Text>
               {nextKey ? (
-                <Text style={[styles.noteHighlight, { color: Colors.accent }]}>
+                <Text style={[styles.noteHighlight, { color: Colors.accentText }]}>
                   Next in rotation: {nextKey.label}
                 </Text>
               ) : (
-                <Text style={[styles.noteHighlight, { color: Colors.error }]}>
+                <Text style={[styles.noteHighlight, { color: Colors.errorText }]}>
                   No active keys available
                 </Text>
               )}
@@ -314,7 +314,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
               >
                 <View style={styles.cardTop}>
                   <View style={[styles.indexBadge, { backgroundColor: Colors.accent + "20" }]}>
-                    <Text style={[styles.indexTxt, { color: Colors.accent }]}>#{idx + 1}</Text>
+                    <Text style={[styles.indexTxt, { color: Colors.accentText }]}>#{idx + 1}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={styles.titleRow}>
@@ -328,13 +328,13 @@ export default function AdminSettingsApiKeysKeysScreen() {
                       ) : null}
                       {k.disabled ? (
                         <View style={[styles.disabledBadge, { backgroundColor: Colors.error + "20", borderColor: Colors.error }]}>
-                          <Text style={[styles.disabledBadgeTxt, { color: Colors.error }]}>DISABLED</Text>
+                          <Text style={[styles.disabledBadgeTxt, { color: Colors.errorText }]}>DISABLED</Text>
                         </View>
                       ) : null}
                     </View>
                   </View>
                   <TouchableOpacity onPress={() => onDelete(k)} style={styles.smallBtn} hitSlop={8} testID={`key-delete-${k.id}`} accessibilityRole="button" accessibilityLabel="Delete key">
-                    <Trash2 color={Colors.error} size={16} />
+                    <Trash2 color={Colors.errorText} size={16} />
                   </TouchableOpacity>
                 </View>
 
@@ -362,8 +362,8 @@ export default function AdminSettingsApiKeysKeysScreen() {
 
                 {isRevealed && isMissingValue ? (
                   <View style={[styles.warnRow, { backgroundColor: Colors.error + "15", borderColor: Colors.error + "40" }]}>
-                    <AlertTriangle color={Colors.error} size={14} />
-                    <Text style={[styles.warnTxt, { color: Colors.error }]} numberOfLines={2}>
+                    <AlertTriangle color={Colors.errorText} size={14} />
+                    <Text style={[styles.warnTxt, { color: Colors.errorText }]} numberOfLines={2}>
                       Key value isn't in memory. The local cache stores no secrets — fetch fresh from Supabase.
                     </Text>
                     <TouchableOpacity
@@ -380,12 +380,12 @@ export default function AdminSettingsApiKeysKeysScreen() {
 
                 <View style={styles.statsRow}>
                   <View style={[styles.stat, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
-                    <CheckCircle2 color={Colors.accent} size={14} />
+                    <CheckCircle2 color={Colors.accentText} size={14} />
                     <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Used</Text>
                     <Text style={[styles.statValue, { color: Colors.text }]}>{k.useCount}</Text>
                   </View>
                   <View style={[styles.stat, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
-                    <XCircle color={Colors.error} size={14} />
+                    <XCircle color={Colors.errorText} size={14} />
                     <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Failed</Text>
                     <Text style={[styles.statValue, { color: Colors.text }]}>{k.failedCount}</Text>
                   </View>
@@ -398,7 +398,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                     testID={`key-success-${k.id}`}
                     accessibilityRole="button"
                   >
-                    <CheckCircle2 color={Colors.accent} size={14} />
+                    <CheckCircle2 color={Colors.accentText} size={14} />
                     <Text style={[styles.actionTxt, { color: Colors.text }]}>+ Use</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -407,7 +407,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                     testID={`key-fail-${k.id}`}
                     accessibilityRole="button"
                   >
-                    <XCircle color={Colors.error} size={14} />
+                    <XCircle color={Colors.errorText} size={14} />
                     <Text style={[styles.actionTxt, { color: Colors.text }]}>+ Fail</Text>
                   </TouchableOpacity>
                   <TouchableOpacity

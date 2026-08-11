@@ -155,7 +155,7 @@ export default function AdminSideSheet({ visible, onClose }: AdminSideSheetProps
       <View style={[styles.profileSection, { borderBottomColor: Colors.border, paddingTop: insets.top + 12 }]}>
         <View style={styles.profileContainer}>
           <View style={[styles.avatar, { backgroundColor: Colors.accent + "30" }]}>
-            <ShieldCheck color={Colors.accent} size={26} />
+            <ShieldCheck color={Colors.accentText} size={26} />
           </View>
           <View style={styles.profileInfo}>
             <Text style={[styles.profileName, { color: Colors.text }]}>Admin</Text>

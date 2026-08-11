@@ -11,7 +11,7 @@ export default function NotFoundScreen() {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={[styles.title, { color: colors.text }]}>This screen does not exist.</Text>
         <Link href="/" style={styles.link}>
-          <Text style={[styles.linkText, { color: colors.accent }]}>Go to home screen</Text>
+          <Text style={[styles.linkText, { color: colors.accentText }]}>Go to home screen</Text>
         </Link>
       </View>
     </>

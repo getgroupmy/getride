@@ -228,8 +228,8 @@ export default function OTPVerifyScreen() {
 
           {error && (
             <View style={styles.errorContainer}>
-              <AlertCircle color={colors.error} size={16} />
-              <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+              <AlertCircle color={colors.errorText} size={16} />
+              <Text style={[styles.errorText, { color: colors.errorText }]}>{error}</Text>
             </View>
           )}
 

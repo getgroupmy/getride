@@ -81,15 +81,15 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
     s: VehicleStatus
   ): { label: string; color: string; Icon: React.ComponentType<{ color?: string; size?: number }> } => {
     switch (s) {
-      case "approved": return { label: "Approved", color: Colors.success, Icon: CheckCircle2 };
-      case "unapproved": return { label: "Unapproved", color: Colors.warning, Icon: Clock };
-      case "blocked": return { label: "Blocked", color: Colors.error, Icon: Ban };
-      case "rejected": return { label: "Rejected", color: Colors.error, Icon: XCircle };
-      case "unapproved-docs": return { label: "Docs Pending", color: Colors.warning, Icon: FileText };
-      case "permit-pending": return { label: "Permit Pending", color: Colors.warning, Icon: ShieldAlert };
+      case "approved": return { label: "Approved", color: Colors.successText, Icon: CheckCircle2 };
+      case "unapproved": return { label: "Unapproved", color: Colors.warningText, Icon: Clock };
+      case "blocked": return { label: "Blocked", color: Colors.errorText, Icon: Ban };
+      case "rejected": return { label: "Rejected", color: Colors.errorText, Icon: XCircle };
+      case "unapproved-docs": return { label: "Docs Pending", color: Colors.warningText, Icon: FileText };
+      case "permit-pending": return { label: "Permit Pending", color: Colors.warningText, Icon: ShieldAlert };
       case "permit-non-verified": return { label: "Permit Unverified", color: Colors.textSecondary, Icon: ShieldOff };
-      case "permit-verified": return { label: "Permit Verified", color: Colors.success, Icon: ShieldCheck };
-      default: return { label: "Vehicle", color: Colors.accent, Icon: CarFront };
+      case "permit-verified": return { label: "Permit Verified", color: Colors.successText, Icon: ShieldCheck };
+      default: return { label: "Vehicle", color: Colors.accentText, Icon: CarFront };
     }
   };
 
@@ -227,7 +227,7 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]} numberOfLines={1}>{subtitle}</Text>
         </View>
         <View style={[styles.countBadge, { backgroundColor: Colors.accent + "20" }]}>
-          <Text style={[styles.countBadgeText, { color: Colors.accent }]}>{filtered.length}</Text>
+          <Text style={[styles.countBadgeText, { color: Colors.accentText }]}>{filtered.length}</Text>
         </View>
       </View>
 
@@ -270,7 +270,7 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
               >
                 <View style={styles.cardTop}>
                   <View style={[styles.avatar, { backgroundColor: Colors.accent + "20" }]}>
-                    <CarFront color={Colors.accent} size={22} />
+                    <CarFront color={Colors.accentText} size={22} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={styles.nameRow}>
@@ -279,7 +279,7 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
                       </Text>
                       {!!v.vehicleType && (
                         <View style={[styles.typePill, { backgroundColor: Colors.accent + "15", borderColor: Colors.accent + "40" }]}>
-                          <Text style={[styles.typePillText, { color: Colors.accent }]} numberOfLines={1}>{v.vehicleType}</Text>
+                          <Text style={[styles.typePillText, { color: Colors.accentText }]} numberOfLines={1}>{v.vehicleType}</Text>
                         </View>
                       )}
                     </View>
@@ -310,7 +310,7 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         testID={`vehicle-edit-${v.id}`}
                       >
-                        <Pencil color={Colors.accent} size={16} />
+                        <Pencil color={Colors.accentText} size={16} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => onDelete(v)}
@@ -320,7 +320,7 @@ export default function AdminVehicleList({ status, title, subtitle, emptyText }:
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         testID={`vehicle-del-${v.id}`}
                       >
-                        <Trash2 color={Colors.error} size={16} />
+                        <Trash2 color={Colors.errorText} size={16} />
                       </TouchableOpacity>
                     </View>
                   ) : null}

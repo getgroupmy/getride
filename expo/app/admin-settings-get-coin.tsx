@@ -265,7 +265,7 @@ export default function AdminSettingsGetCoinScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} size="large" />
+          <ActivityIndicator color={Colors.accentText} size="large" />
         </View>
       ) : (
         <KeyboardAvoidingView
@@ -279,8 +279,8 @@ export default function AdminSettingsGetCoinScreen() {
           >
             {settings?.source === "local" ? (
               <View style={[styles.banner, { backgroundColor: Colors.warning + "15" }]}>
-                <Info color={Colors.warning} size={15} />
-                <Text style={[styles.bannerText, { color: "#6B7280" }]}>
+                <Info color={Colors.warningText} size={15} />
+                <Text style={[styles.bannerText, { color: Colors.textSecondary }]}>
                   Get Coin settings table not found in the database — the rate is saved on
                   this device only. Apply migration 0061 to sync it.
                 </Text>
@@ -289,14 +289,14 @@ export default function AdminSettingsGetCoinScreen() {
 
             {savedNote ? (
               <View style={[styles.banner, { backgroundColor: Colors.success + "18" }]}>
-                <Check color={Colors.success} size={15} />
-                <Text style={[styles.bannerText, { color: Colors.success }]}>{savedNote}</Text>
+                <Check color={Colors.successText} size={15} />
+                <Text style={[styles.bannerText, { color: Colors.successText }]}>{savedNote}</Text>
               </View>
             ) : null}
 
             <View style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
               <View style={styles.cardTitleRow}>
-                <ArrowRightLeft color={Colors.accent} size={18} />
+                <ArrowRightLeft color={Colors.accentText} size={18} />
                 <Text style={[styles.cardTitle, { color: Colors.text }]}>Exchange Rate</Text>
               </View>
               <Text style={[styles.cardSub, { color: Colors.textSecondary }]}>
@@ -306,7 +306,7 @@ export default function AdminSettingsGetCoinScreen() {
 
               <View style={styles.rateRow}>
                 <View style={[styles.ratePill, { backgroundColor: Colors.accent + "14" }]}>
-                  <Text style={[styles.ratePillText, { color: Colors.accent }]}>RM 1</Text>
+                  <Text style={[styles.ratePillText, { color: Colors.accentText }]}>RM 1</Text>
                 </View>
                 <Text style={[styles.rateEquals, { color: Colors.textSecondary }]}>=</Text>
                 <View style={[styles.rateInputWrap, { borderColor: Colors.border, backgroundColor: Colors.background }]}>
@@ -334,7 +334,7 @@ export default function AdminSettingsGetCoinScreen() {
               ) : null}
 
               {error ? (
-                <Text style={[styles.errorText, { color: Colors.danger }]}>{error}</Text>
+                <Text style={[styles.errorText, { color: Colors.dangerText }]}>{error}</Text>
               ) : null}
 
               <TouchableOpacity
@@ -404,7 +404,7 @@ export default function AdminSettingsGetCoinScreen() {
             {/* Market Pricing */}
             <View style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
               <View style={styles.cardTitleRow}>
-                <TrendingUp color={Colors.accent} size={18} />
+                <TrendingUp color={Colors.accentText} size={18} />
                 <Text style={[styles.cardTitle, { color: Colors.text }]}>Market Pricing</Text>
               </View>
               <Text style={[styles.cardSub, { color: Colors.textSecondary }]}>
@@ -517,7 +517,7 @@ export default function AdminSettingsGetCoinScreen() {
 
                   {marketPreview ? (
                     <View style={[styles.previewBanner, { backgroundColor: Colors.accent + "12" }]}>
-                      <TrendingUp color={Colors.accent} size={14} />
+                      <TrendingUp color={Colors.accentText} size={14} />
                       <Text style={[styles.previewBannerText, { color: Colors.text }]}>
                         Live market now: 1 GC ≈ RM {marketPreview.ratePerGC.toFixed(4)} (
                         {marketPreview.changePct >= 0 ? "+" : ""}
@@ -532,7 +532,7 @@ export default function AdminSettingsGetCoinScreen() {
             {/* Referral Rewards */}
             <View style={[styles.card, { backgroundColor: Colors.gray[100], borderColor: Colors.border }]}>
               <View style={styles.cardTitleRow}>
-                <Users color={Colors.accent} size={18} />
+                <Users color={Colors.accentText} size={18} />
                 <Text style={[styles.cardTitle, { color: Colors.text }]}>Referral Rewards</Text>
               </View>
               <Text style={[styles.cardSub, { color: Colors.textSecondary }]}>

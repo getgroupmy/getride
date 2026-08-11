@@ -346,7 +346,7 @@ export default function MeterPrinterScreen() {
                     ) : null}
                   </View>
                   {draftAddress === d.name ? (
-                    <Check color={Colors.accent} size={18} strokeWidth={3} />
+                    <Check color={Colors.accentText} size={18} strokeWidth={3} />
                   ) : null}
                 </TouchableOpacity>
               ))}
@@ -488,14 +488,14 @@ export default function MeterPrinterScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionHeader, { color: Colors.textSecondary }]}>MY PRINTERS</Text>
           <TouchableOpacity style={styles.addButton} onPress={() => setAddVisible(true)} testID="printer-add" accessibilityRole="button">
-            <Plus color={Colors.accent} size={18} />
-            <Text style={[styles.addButtonText, { color: Colors.accent }]}>Add printer</Text>
+            <Plus color={Colors.accentText} size={18} />
+            <Text style={[styles.addButtonText, { color: Colors.accentText }]}>Add printer</Text>
           </TouchableOpacity>
         </View>
 
         {printer.loading ? (
           <View style={styles.loadingBlock}>
-            <ActivityIndicator color={Colors.accent} />
+            <ActivityIndicator color={Colors.accentText} />
           </View>
         ) : printer.printers.length === 0 ? (
           <View style={[styles.card, cardStyle]}>
@@ -539,7 +539,7 @@ export default function MeterPrinterScreen() {
                       </Text>
                     ) : null}
                   </View>
-                  {selected ? <Check color={Colors.accent} size={20} strokeWidth={3} /> : null}
+                  {selected ? <Check color={Colors.accentText} size={20} strokeWidth={3} /> : null}
                   <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => handleDelete(p)}
@@ -547,7 +547,7 @@ export default function MeterPrinterScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`Delete ${p.name}`}
                   >
-                    <Trash2 color="#EF4444" size={18} />
+                    <Trash2 color={Colors.errorText} size={18} />
                   </TouchableOpacity>
                 </TouchableOpacity>
               );
@@ -648,7 +648,7 @@ export default function MeterPrinterScreen() {
                           </Text>
                         ) : null}
                       </View>
-                      {picked ? <Check color={Colors.accent} size={20} strokeWidth={3} /> : null}
+                      {picked ? <Check color={Colors.accentText} size={20} strokeWidth={3} /> : null}
                     </TouchableOpacity>
                   );
                 })}
@@ -689,7 +689,7 @@ export default function MeterPrinterScreen() {
                       <View style={styles.rowInfo}>
                         <Text style={[styles.rowName, { color: Colors.text }]}>{choice.label}</Text>
                       </View>
-                      {picked ? <Check color={Colors.accent} size={20} strokeWidth={3} /> : null}
+                      {picked ? <Check color={Colors.accentText} size={20} strokeWidth={3} /> : null}
                     </TouchableOpacity>
                   );
                 })}

@@ -693,7 +693,7 @@ export default function SearchScreen() {
             {loadingAddress && (
               <ActivityIndicator
                 style={styles.loader}
-                color={Colors.accent}
+                color={Colors.accentText}
                 size="small"
               />
             )}
@@ -821,7 +821,7 @@ export default function SearchScreen() {
       <View style={styles.suggestionsContainer}>
         {isSearching && (
           <View style={styles.sectionHeader}>
-            <ActivityIndicator color={Colors.accent} size="small" />
+            <ActivityIndicator color={Colors.accentText} size="small" />
             <Text style={styles.sectionTitle}>Searching...</Text>
           </View>
         )}

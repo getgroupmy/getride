@@ -129,7 +129,7 @@ export default function AdminSettingsAssignServicePageScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Link2 color={Colors.accent} size={18} />
+            <Link2 color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               {page.label}
             </Text>
@@ -143,7 +143,7 @@ export default function AdminSettingsAssignServicePageScreen() {
 
       {loading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -165,7 +165,7 @@ export default function AdminSettingsAssignServicePageScreen() {
               >
                 <View style={styles.capHeader}>
                   <View style={[styles.capIcon, { backgroundColor: Colors.accent + "20" }]}>
-                    <Layers color={Colors.accent} size={16} />
+                    <Layers color={Colors.accentText} size={16} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.capLabel, { color: Colors.text }]}>{CAPABILITY_LABELS[cap]}</Text>
@@ -180,7 +180,7 @@ export default function AdminSettingsAssignServicePageScreen() {
                       accessibilityRole="button"
                       accessibilityLabel="Clear"
                     >
-                      <Trash2 color={Colors.error} size={16} />
+                      <Trash2 color={Colors.errorText} size={16} />
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -200,7 +200,7 @@ export default function AdminSettingsAssignServicePageScreen() {
                 >
                   {info && info.provider && info.service ? (
                     <>
-                      <Building2 color={Colors.accent} size={16} />
+                      <Building2 color={Colors.accentText} size={16} />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.assignTitle, { color: Colors.text }]} numberOfLines={1}>
                           {info.provider.name} · {info.service.name}
@@ -209,7 +209,7 @@ export default function AdminSettingsAssignServicePageScreen() {
                           {info.service.keys.length} key{info.service.keys.length === 1 ? "" : "s"}
                         </Text>
                       </View>
-                      <Text style={[styles.changeTxt, { color: Colors.accent }]}>Change</Text>
+                      <Text style={[styles.changeTxt, { color: Colors.accentText }]}>Change</Text>
                     </>
                   ) : (
                     <>
@@ -294,7 +294,7 @@ export default function AdminSettingsAssignServicePageScreen() {
                                 {svc.keys.length} key{svc.keys.length === 1 ? "" : "s"}
                               </Text>
                             </View>
-                            {selected ? <Check color={Colors.accent} size={18} /> : null}
+                            {selected ? <Check color={Colors.accentText} size={18} /> : null}
                           </TouchableOpacity>
                         );
                       })

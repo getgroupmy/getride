@@ -53,7 +53,7 @@ export default function RotateDeviceNotice({
       testID={testID ?? "rotate-device-notice"}
     >
       <View style={[styles.iconWrap, { backgroundColor: Colors.accent + "1A" }]}>
-        <RotateCw color={Colors.accent} size={44} />
+        <RotateCw color={Colors.accentText} size={44} />
       </View>
       <Text style={[styles.title, { color: Colors.text }]}>{title}</Text>
       <Text style={[styles.body, { color: Colors.textSecondary }]}>{body}</Text>

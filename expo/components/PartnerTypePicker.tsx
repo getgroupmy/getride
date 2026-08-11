@@ -194,7 +194,7 @@ export default function PartnerTypePicker({
                             { backgroundColor: Colors.accent + "20" },
                           ]}
                         >
-                          <Users2 color={Colors.accent} size={16} />
+                          <Users2 color={Colors.accentText} size={16} />
                         </View>
                         <Text
                           style={[styles.rowText, { color: Colors.text }]}
@@ -203,7 +203,7 @@ export default function PartnerTypePicker({
                           {opt.name}
                         </Text>
                         {selected ? (
-                          <Check color={Colors.accent} size={18} />
+                          <Check color={Colors.accentText} size={18} />
                         ) : null}
                       </TouchableOpacity>
                     );

@@ -1224,7 +1224,7 @@ export default function DriverTeksiScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.idleTitleWrap}>
-            <Text style={[styles.idleEyebrow, { color: Colors.accent }]}>
+            <Text style={[styles.idleEyebrow, { color: Colors.accentText }]}>
               DRIVER PERMIT
             </Text>
             <Text
@@ -1420,7 +1420,7 @@ export default function DriverTeksiScreen() {
                     { backgroundColor: Colors.accent + "1A" },
                   ]}
                 >
-                  <row.icon color={Colors.accent} size={16} />
+                  <row.icon color={Colors.accentText} size={16} />
                 </View>
                 <View style={styles.detailTextWrap}>
                   <Text
@@ -1490,8 +1490,8 @@ export default function DriverTeksiScreen() {
             testID="partner-teksi-meter-digital"
             accessibilityRole="button"
           >
-            <Gauge color={Colors.accent} size={18} />
-            <Text style={[styles.meterDigitalText, { color: Colors.accent }]}>
+            <Gauge color={Colors.accentText} size={18} />
+            <Text style={[styles.meterDigitalText, { color: Colors.accentText }]}>
               Meter Digital
             </Text>
           </TouchableOpacity>
@@ -1539,8 +1539,8 @@ export default function DriverTeksiScreen() {
             accessibilityLabel="Test ride"
             testID="partner-teksi-test-ride"
           >
-            <Zap color={Colors.accent} size={16} />
-            <Text style={[styles.testRideText, { color: Colors.accent }]}>
+            <Zap color={Colors.accentText} size={16} />
+            <Text style={[styles.testRideText, { color: Colors.accentText }]}>
               Test Ride (30s)
             </Text>
           </TouchableOpacity>
@@ -1614,7 +1614,7 @@ export default function DriverTeksiScreen() {
               <View style={[styles.handle, { backgroundColor: Colors.border, marginTop: 12 }]} />
               <View style={styles.tariffHeader}>
                 <View style={[styles.tariffHeaderIcon, { backgroundColor: Colors.accent + "22" }]}>
-                  <Banknote color={Colors.accent} size={22} />
+                  <Banknote color={Colors.accentText} size={22} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.tariffHeaderTitle, { color: Colors.text }]}>Select tariff</Text>
@@ -1977,7 +1977,7 @@ export default function DriverTeksiScreen() {
             >
               <View style={styles.walletTopRow}>
                 <View style={[styles.walletIconBubble, { backgroundColor: Colors.accent + "22" }]}>
-                  <Wallet color={Colors.accent} size={12} />
+                  <Wallet color={Colors.accentText} size={12} />
                 </View>
                 <Text style={[styles.walletLabel, { color: Colors.subtext }]} numberOfLines={1}>GET.wallet</Text>
               </View>
@@ -2204,8 +2204,8 @@ export default function DriverTeksiScreen() {
               { backgroundColor: Colors.accent + "1A" },
             ]}
           >
-            <MapPin color={Colors.accent} size={12} />
-            <Text style={[styles.pinChipText, { color: Colors.accent }]}>
+            <MapPin color={Colors.accentText} size={12} />
+            <Text style={[styles.pinChipText, { color: Colors.accentText }]}>
               Pin
             </Text>
           </View>
@@ -2249,7 +2249,7 @@ export default function DriverTeksiScreen() {
             <View style={[styles.handle, { backgroundColor: Colors.border, marginTop: 12 }]} />
 
             <View style={[styles.modalIconWrap, { backgroundColor: Colors.accent + "1A" }]}>
-              <CheckCircle2 color={Colors.accent} size={32} />
+              <CheckCircle2 color={Colors.accentText} size={32} />
             </View>
 
             <Text style={[styles.modalTitle, { color: Colors.text }]}>Trip summary</Text>
@@ -2260,7 +2260,7 @@ export default function DriverTeksiScreen() {
             <View style={styles.statsRow}>
               <View style={[styles.statCard, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}>
                 <View style={[styles.statIcon, { backgroundColor: Colors.accent + "22" }]}>
-                  <Route color={Colors.accent} size={18} />
+                  <Route color={Colors.accentText} size={18} />
                 </View>
                 <Text style={[styles.statValue, { color: Colors.text }]}>
                   {isCalculatingRoute ? "…" : `${distanceKm.toFixed(1)} km`}
@@ -2270,7 +2270,7 @@ export default function DriverTeksiScreen() {
 
               <View style={[styles.statCard, { backgroundColor: isLightMode ? "#F3F4F6" : "#1a1a1a" }]}>
                 <View style={[styles.statIcon, { backgroundColor: Colors.accent + "22" }]}>
-                  <Timer color={Colors.accent} size={18} />
+                  <Timer color={Colors.accentText} size={18} />
                 </View>
                 <Text style={[styles.statValue, { color: Colors.text }]}>
                   {isCalculatingRoute ? "…" : `${estimatedMinutes} min`}
@@ -2417,7 +2417,7 @@ export default function DriverTeksiScreen() {
                         { backgroundColor: Colors.accent + "1A" },
                       ]}
                     >
-                      <Clock color={Colors.accent} size={18} />
+                      <Clock color={Colors.accentText} size={18} />
                     </View>
                     <View style={styles.suggestionTextWrap}>
                       <Text
@@ -2553,11 +2553,11 @@ export default function DriverTeksiScreen() {
                           </Text>
                         ))}
                         {unavailable ? (
-                          <Text style={styles.commHint}>Not available in this build</Text>
+                          <Text style={[styles.commHint, { color: Colors.textSecondary }]}>Not available in this build</Text>
                         ) : null}
                       </View>
                       <View style={styles.commCheckSlot}>
-                        {isSelected ? <Check color="#3B82F6" size={24} strokeWidth={3} /> : null}
+                        {isSelected ? <Check color={Colors.accentText} size={24} strokeWidth={3} /> : null}
                       </View>
                     </TouchableOpacity>
                   );
@@ -2866,7 +2866,7 @@ export default function DriverTeksiScreen() {
               >
                 <ArrowLeft color={Colors.text} size={22} />
               </TouchableOpacity>
-              <Text style={[styles.startFullEyebrow, { color: Colors.accent }]}>
+              <Text style={[styles.startFullEyebrow, { color: Colors.accentText }]}>
                 READY TO ROLL
               </Text>
               <View style={styles.startFullClose} />
@@ -2928,7 +2928,7 @@ export default function DriverTeksiScreen() {
                   ]}
                 >
                   <View style={[styles.startStatIcon, { backgroundColor: Colors.accent + "22" }]}>
-                    <Route color={Colors.accent} size={18} />
+                    <Route color={Colors.accentText} size={18} />
                   </View>
                   <Text style={[styles.startStatValue, { color: Colors.text }]}>
                     {isCalculatingRoute ? "…" : `${distanceKm.toFixed(1)} km`}
@@ -2947,7 +2947,7 @@ export default function DriverTeksiScreen() {
                   ]}
                 >
                   <View style={[styles.startStatIcon, { backgroundColor: Colors.accent + "22" }]}>
-                    <Timer color={Colors.accent} size={18} />
+                    <Timer color={Colors.accentText} size={18} />
                   </View>
                   <Text style={[styles.startStatValue, { color: Colors.text }]}>
                     {isCalculatingRoute ? "…" : `${estimatedMinutes} min`}
@@ -3017,7 +3017,7 @@ export default function DriverTeksiScreen() {
               </View>
 
               <View style={styles.startTipRow}>
-                <ShieldCheck color={Colors.accent} size={14} />
+                <ShieldCheck color={Colors.accentText} size={14} />
                 <Text style={[styles.startTipText, { color: Colors.textSecondary }]}>
                   Drive safely. Fare is an estimate; final amount may vary based on actual route and traffic.
                 </Text>

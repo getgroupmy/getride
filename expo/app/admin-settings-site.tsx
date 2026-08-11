@@ -291,7 +291,7 @@ export default function AdminAppSettingsScreen() {
         edges={["top", "bottom"]}
       >
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={Colors.accent} />
+          <ActivityIndicator color={Colors.accentText} />
         </View>
       </SafeAreaView>
     );
@@ -316,7 +316,7 @@ export default function AdminAppSettingsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Globe color={Colors.accent} size={18} />
+            <Globe color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]}>App Settings</Text>
           </View>
           <Text style={[styles.headerSubtitle, { color: Colors.textSecondary }]}>
@@ -346,7 +346,7 @@ export default function AdminAppSettingsScreen() {
           {/* Theme Palette */}
           <View style={[styles.card, card]}>
             <View style={styles.cardHeader}>
-              <Palette color={Colors.accent} size={18} />
+              <Palette color={Colors.accentText} size={18} />
               <Text style={[styles.cardTitle, { color: Colors.text }]}>Theme Colors</Text>
             </View>
 
@@ -396,7 +396,7 @@ export default function AdminAppSettingsScreen() {
           {/* App Icon */}
           <View style={[styles.card, card]}>
             <View style={styles.cardHeader}>
-              <ImageIcon color={Colors.accent} size={18} />
+              <ImageIcon color={Colors.accentText} size={18} />
               <Text style={[styles.cardTitle, { color: Colors.text }]}>App Icon</Text>
             </View>
             <View style={styles.assetRow}>
@@ -441,7 +441,7 @@ export default function AdminAppSettingsScreen() {
           {/* Splash */}
           <View style={[styles.card, card]}>
             <View style={styles.cardHeader}>
-              <Sparkles color={Colors.accent} size={18} />
+              <Sparkles color={Colors.accentText} size={18} />
               <Text style={[styles.cardTitle, { color: Colors.text }]}>Splash Screen</Text>
             </View>
 
@@ -498,7 +498,7 @@ export default function AdminAppSettingsScreen() {
           {/* Start Location */}
           <View style={[styles.card, card]}>
             <View style={styles.cardHeader}>
-              <MapPin color={Colors.accent} size={18} />
+              <MapPin color={Colors.accentText} size={18} />
               <Text style={[styles.cardTitle, { color: Colors.text }]}>
                 Default Start Location
               </Text>

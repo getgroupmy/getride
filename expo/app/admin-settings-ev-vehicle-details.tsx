@@ -360,7 +360,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           <Image source={{ uri: imageUri }} style={styles.thumb} />
         ) : (
           <View style={[styles.thumb, { backgroundColor: Colors.accent + "20", alignItems: "center", justifyContent: "center" }]}>
-            <Zap color={Colors.accent} size={22} />
+            <Zap color={Colors.accentText} size={22} />
           </View>
         )}
         <View style={styles.rowInfo}>
@@ -373,8 +373,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
             </Text>
             {isDefault ? (
               <View style={[styles.defaultPill, { backgroundColor: Colors.accent + "20" }]}>
-                <Lock color={Colors.accent} size={10} />
-                <Text style={[styles.defaultPillText, { color: Colors.accent }]}>Default</Text>
+                <Lock color={Colors.accentText} size={10} />
+                <Text style={[styles.defaultPillText, { color: Colors.accentText }]}>Default</Text>
               </View>
             ) : null}
           </View>
@@ -386,7 +386,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Edit EV"
         >
-          <Pencil color={Colors.accent} size={16} />
+          <Pencil color={Colors.accentText} size={16} />
         </TouchableOpacity>
         {isDefault ? null : (
           <TouchableOpacity
@@ -396,7 +396,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Delete EV"
           >
-            <Trash2 color={Colors.error} size={16} />
+            <Trash2 color={Colors.errorText} size={16} />
           </TouchableOpacity>
         )}
       </View>
@@ -412,7 +412,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleRow}>
-          <Icon color={Colors.accent} size={16} />
+          <Icon color={Colors.accentText} size={16} />
           <Text style={[styles.sectionTitle, { color: Colors.text }]}>{title}</Text>
         </View>
         <TouchableOpacity
@@ -421,8 +421,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           testID={`add-${key}`}
           accessibilityRole="button"
         >
-          <Plus color={Colors.accent} size={14} />
-          <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
+          <Plus color={Colors.accentText} size={14} />
+          <Text style={[styles.addBtnText, { color: Colors.accentText }]}>Add</Text>
         </TouchableOpacity>
       </View>
       {form[key].length === 0 ? (
@@ -474,7 +474,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Remove colour"
               >
-                <Trash2 color={Colors.error} size={14} />
+                <Trash2 color={Colors.errorText} size={14} />
               </TouchableOpacity>
             </View>
           </View>
@@ -492,7 +492,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleRow}>
-          <Icon color={Colors.accent} size={16} />
+          <Icon color={Colors.accentText} size={16} />
           <Text style={[styles.sectionTitle, { color: Colors.text }]}>{title}</Text>
         </View>
         <TouchableOpacity
@@ -501,8 +501,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           testID={`add-${key}`}
           accessibilityRole="button"
         >
-          <Plus color={Colors.accent} size={14} />
-          <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
+          <Plus color={Colors.accentText} size={14} />
+          <Text style={[styles.addBtnText, { color: Colors.accentText }]}>Add</Text>
         </TouchableOpacity>
       </View>
       {form[key].length === 0 ? (
@@ -553,7 +553,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Remove option"
               >
-                <Trash2 color={Colors.error} size={14} />
+                <Trash2 color={Colors.errorText} size={14} />
               </TouchableOpacity>
             </View>
           </View>
@@ -574,7 +574,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleRow}>
-            <Icon color={Colors.accent} size={16} />
+            <Icon color={Colors.accentText} size={16} />
             <Text style={[styles.sectionTitle, { color: Colors.text }]}>{title}</Text>
           </View>
           <Text style={[styles.galleryCount, { color: Colors.textSecondary }]}>
@@ -608,7 +608,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 </>
               ) : (
                 <View style={styles.gallerySlotEmpty}>
-                  <ImagePlus color={Colors.accent} size={20} />
+                  <ImagePlus color={Colors.accentText} size={20} />
                   <Text style={[styles.gallerySlotHint, { color: Colors.textSecondary }]}>
                     Optional
                   </Text>
@@ -625,7 +625,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleRow}>
-          <Receipt color={Colors.accent} size={16} />
+          <Receipt color={Colors.accentText} size={16} />
           <Text style={[styles.sectionTitle, { color: Colors.text }]}>Taxes</Text>
         </View>
         <TouchableOpacity
@@ -634,8 +634,8 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
           testID="add-tax"
           accessibilityRole="button"
         >
-          <Plus color={Colors.accent} size={14} />
-          <Text style={[styles.addBtnText, { color: Colors.accent }]}>Add</Text>
+          <Plus color={Colors.accentText} size={14} />
+          <Text style={[styles.addBtnText, { color: Colors.accentText }]}>Add</Text>
         </TouchableOpacity>
       </View>
       {form.taxes.length === 0 ? (
@@ -701,7 +701,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Remove tax"
               >
-                <Trash2 color={Colors.error} size={14} />
+                <Trash2 color={Colors.errorText} size={14} />
               </TouchableOpacity>
             </View>
           </View>
@@ -726,7 +726,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
-            <Zap color={Colors.accent} size={18} />
+            <Zap color={Colors.accentText} size={18} />
             <Text style={[styles.headerTitle, { color: Colors.text }]} numberOfLines={1}>
               EV Vehicle Details
             </Text>
@@ -826,7 +826,7 @@ export default function AdminSettingsEvVehicleDetailsScreen() {
                     <Image source={{ uri: form.imageUri }} style={styles.imagePreviewImg} />
                   ) : (
                     <View style={styles.imagePlaceholder}>
-                      <ImagePlus color={Colors.accent} size={28} />
+                      <ImagePlus color={Colors.accentText} size={28} />
                       <Text style={[styles.imageHint, { color: Colors.textSecondary }]}>
                         Tap to upload image
                       </Text>
