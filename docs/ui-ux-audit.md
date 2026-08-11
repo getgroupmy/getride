@@ -1,4 +1,4 @@
-# UI/UX audit — rider core and partner surfaces
+# UI/UX audit — GET.ride
 
 Audit of the screens every passenger touches on every trip, and of the partner
 (driver) surface a driver spends a whole shift in, run against the
@@ -359,6 +359,74 @@ Applied to the partner loops the earlier pass left open:
   rests at full opacity.
 - `partner-ehailing`'s online ring, and the bottom-sheet entrances on both.
 
+## Remaining pages (seventh pass)
+
+After the rider and partner surfaces, 184 files were still untouched: ~80,000
+lines and ~890 touchables, dominated by the ~107-screen admin panel. This pass
+worked them highest-value first rather than alphabetically.
+
+### Auth flow — every user passes through it
+
+Back buttons, the country picker and its search, the phone field and its clear
+button, the signup sheet, and Next / Passenger / Driver / Resend with disabled
+and busy state. The six one-character PIN and OTP boxes announced as six
+identical unnamed fields; each now says which digit it is.
+
+**The onboarding screen's "Continue with PIN" had no `onPress` at all** — a dead
+primary CTA on the first screen of the app, with a key emoji for an icon. It
+cannot route to `/pin-verify` either, which needs a phone number param it has no
+way to supply, so the only working path was the button directly above it.
+Removed with its orphaned styles; it can come back when passkey sign-in exists.
+
+### Shared components — where the leverage is
+
+`AdminCrudList` backs **23** admin screens, `AdminVehicleList` and
+`AdminPartnerList` 9 each, `AdminUserList` 7. Their rows are built from
+icon-only edit / delete / call / reorder / open buttons that announced as
+unnamed buttons on every one of those screens. Each now names its row ("Edit
+&lt;name&gt;", "Delete &lt;plate&gt;", "Move &lt;name&gt; up") and the 32pt icon
+buttons take `hitSlop` to 48pt.
+
+The reorder arrows are the one target that **cannot** reach 44pt: two stacked
+28×26 buttons in a ~52pt column. Their slop is asymmetric so each extends away
+from the other, landing at 40pt. Recorded rather than faked.
+
+### Two mechanical sweeps
+
+- **97 back buttons across 88 files.** The back arrow is the most repeated
+  control in the app and was unnamed in every one. Only labelled where the
+  touchable's whole body is the arrow, so nothing ambiguous was touched.
+- **117 icon-only admin controls, labelled from their testIDs.** The admin panel
+  names controls regularly (`airport-edit-${id}`, `vehicle-service-add`), so the
+  verb and subject are recoverable. The rule is deliberately narrow, because a
+  confident-sounding *wrong* label is worse than none: the verb must be the last
+  token before any interpolated id, and the subject is used only when it holds
+  no second verb and no interpolation. `edit-partner-delete` therefore becomes
+  "Delete", not "Delete edit partner", and `edit-select-vehicle-${id}` is left
+  alone because its verb is not its action. Internal shorthand is expanded
+  (`vmm` → vehicle make and model) and markup words dropped (`modal`, `empty`).
+
+### Two more dead controls, both clones
+
+- `app/offer-fare.tsx` carried a **third** copy of the settings square with no
+  `onPress` — after `ride-confirm` and `OfferFareSideSheet`.
+- `app/emergency-contacts.tsx` had a `HelpCircle` header button with no
+  `onPress` at all. It only balances the back button, so it is a plain `View`
+  now rather than something that invites a tap and answers with nothing.
+
+### Where coverage stands
+
+| | before this session | now |
+|---|---|---|
+| Files with any `accessibilityRole`/`Label` | 8 of 211 | **119 of 211** |
+| `accessibilityLabel` occurrences | 2 | **510** |
+| `accessibilityRole` occurrences | 0 | **495** |
+
+**243 icon-only controls across 94 files are still unlabelled**, concentrated in
+the admin panel's bespoke (non-`AdminCrudList`) screens — `admin-settings-display`
+alone has 19. Nothing customer-facing is in the top of that list beyond the
+per-screen controls already covered.
+
 ## Known, not fixed
 
 Deliberately out of scope for a targeted pass — each would be its own change:
@@ -369,8 +437,10 @@ Deliberately out of scope for a targeted pass — each would be its own change:
    implementation is index-addressed (`getItemAnimatedValue(index)`,
    `createDragResponder(index)`), so fixing the key means giving destinations
    stable ids and rewriting the reorder logic. Left as its own change.
-2. **`hitSlop` coverage app-wide.** 140 files use `TouchableOpacity`; 25 use
-   `hitSlop`. The partner and admin surfaces were not touched by this pass.
+2. **243 icon-only controls across 94 files remain unlabelled**, almost all in
+   bespoke admin screens that do not go through `AdminCrudList`. They need
+   per-screen judgement rather than another sweep — the regular testID patterns
+   are already exhausted.
 3. **Reduced motion in `map-picker`.** Its loop is a loading spinner, which is
    `essential` and correctly left alone; nothing else there animates.
 4. **Dynamic Type.** No screen was verified at the largest system text size;
