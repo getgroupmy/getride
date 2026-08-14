@@ -1,73 +1,124 @@
-import { ScrollView, StyleSheet, Text, View, useColorScheme } from "react-native";
+import { router } from "expo-router";
+import { useEffect } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { darkColors, lightColors } from "@/constants/colors";
-import { isSupabaseConfigured } from "@/utils/supabase";
+import RideMap from "@/components/RideMap";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "@/contexts/LocationContext";
+import { useColors } from "@/hooks/useColors";
 
 /**
- * Phase 01 landing screen.
+ * Rider home.
  *
- * Not a product screen — it exists so the foundations are visibly wired: the
- * router mounts, the theme resolves, the path alias works, and the Supabase
- * client reports whether it is configured. Phase 02 replaces this with the
- * rider map.
+ * The map is the screen; everything else sits over it. It shows where the
+ * rider is and offers the one action that starts a ride — choosing a
+ * destination. Fare, vehicle class and payment are decided on the next screen,
+ * once there is a route to price.
  */
-export default function Index() {
-  const scheme = useColorScheme();
-  const colors = scheme === "dark" ? darkColors : lightColors;
+export default function Home() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { authState, isLoading: authLoading } = useAuth();
+  const { coords, address, granted, isLoading, error, refresh } = useLocation();
 
-  const rows: { label: string; value: string }[] = [
-    { label: "Router", value: "expo-router mounted" },
-    { label: "Theme", value: scheme === "dark" ? "dark" : "light" },
-    { label: "Supabase", value: isSupabaseConfigured ? "configured" : "not configured" },
-    { label: "Logic layer", value: "108 modules · 1,140 tests" },
-  ];
+  // An unauthenticated rider cannot create a request (RLS is uid-scoped), so
+  // send them to sign-in rather than letting them build a ride they can't book.
+  useEffect(() => {
+    if (!authLoading && !authState.isAuthenticated) {
+      router.replace("/phone-auth");
+    }
+  }, [authLoading, authState.isAuthenticated]);
+
+  if (authLoading || !authState.isAuthenticated) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  const openSearch = () => {
+    router.push({
+      pathname: "/search",
+      params: coords
+        ? {
+            pickupLat: String(coords.latitude),
+            pickupLng: String(coords.longitude),
+            pickupName: address ?? "Current location",
+          }
+        : {},
+    });
+  };
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
-    >
-      <Text style={[styles.title, { color: colors.text }]}>GET.ride</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Rebuild · Phase 01 — Foundations
-      </Text>
+    <View style={[styles.fill, { backgroundColor: colors.background }]}>
+      <RideMap
+        center={coords}
+        markers={
+          coords
+            ? [{ id: "pickup", kind: "pickup", title: address ?? "Pickup", ...coords }]
+            : []
+        }
+      />
 
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        {rows.map((row, i) => (
-          <View
-            key={row.label}
-            style={[
-              styles.row,
-              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-            ]}
+      <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: insets.bottom + 20 }]}>
+        <Text style={[styles.greeting, { color: colors.text }]}>
+          {authState.profileName ? `Hi ${authState.profileName}` : "Where are you going?"}
+        </Text>
+
+        <View style={styles.pickupRow}>
+          <View style={[styles.dot, { backgroundColor: colors.success }]} />
+          <Text style={[styles.pickup, { color: colors.textSecondary }]} numberOfLines={1}>
+            {isLoading
+              ? "Finding you…"
+              : (address ?? (coords ? "Current location" : "Pickup not set"))}
+          </Text>
+        </View>
+
+        {granted === false || error ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retry locating me"
+            onPress={() => void refresh()}
           >
-            <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>{row.label}</Text>
-            <Text style={[styles.rowValue, { color: colors.text }]}>{row.value}</Text>
-          </View>
-        ))}
-      </View>
+            <Text style={[styles.error, { color: colors.error }]}>
+              {error ?? "Location is off."} Tap to try again.
+            </Text>
+          </Pressable>
+        ) : null}
 
-      <Text style={[styles.note, { color: colors.subtext }]}>
-        Next: the rider map, place search, fare estimate and ride request.
-      </Text>
-    </ScrollView>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Choose a destination"
+          onPress={openSearch}
+          style={[styles.cta, { backgroundColor: colors.primary }]}
+        >
+          <Text style={[styles.ctaText, { color: colors.onAccent }]}>Where to?</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 24, gap: 8, flexGrow: 1 },
-  title: { fontSize: 34, fontWeight: "800", letterSpacing: -0.5 },
-  subtitle: { fontSize: 15, marginBottom: 20 },
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 12, overflow: "hidden" },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  fill: { flex: 1 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  sheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 20,
+    gap: 12,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
-  rowLabel: { fontSize: 14 },
-  rowValue: { fontSize: 14, fontWeight: "600" },
-  note: { fontSize: 13, marginTop: 20, lineHeight: 19 },
+  greeting: { fontSize: 20, fontWeight: "700" },
+  pickupRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  pickup: { fontSize: 14, flex: 1 },
+  error: { fontSize: 13 },
+  cta: { borderRadius: 12, paddingVertical: 16, alignItems: "center" },
+  ctaText: { fontSize: 16, fontWeight: "700" },
 });

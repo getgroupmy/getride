@@ -9,19 +9,56 @@ Plan and rationale: see the rebuild scoping document.
 ## Status
 
 **Phase 01 — Foundations: complete.**
+**Phase 02 — Rider core: complete.**
 
 | | |
 |---|---|
 | Logic modules ported | 108 |
-| Tests | 63 suites, 1,140 passing |
+| Tests | 64 suites, 1,156 passing |
 | Typecheck | clean, **including** test files |
 | Lint | clean |
 
-The pure logic layer moved across first and intact: fare and taxi-meter
-arithmetic, both TEKSI tariffs, commission resolution, wallet and coin
-accounting, the OBD-II/CANBus protocol layer and PID catalogue, ESC/POS receipt
-encoding, launch routing, and rate-card resolution — each with the tests that
-prove it still behaves.
+### Phase 02 — rider core
+
+The loop a passenger actually uses: sign in, see where you are, pick a
+destination, get a price, book it, watch the driver come.
+
+| Screen | Does |
+|---|---|
+| `phone-auth` → `otp-verify` → `pin-setup` | Supabase phone OTP, then a 6-digit PIN |
+| `index` | Map home; current position as pickup |
+| `search` | Debounced place search |
+| `ride-confirm` | Route, distance, time and fare; creates the request |
+| `ride-tracking` | Live status, driver position, trip PIN, cancel |
+
+Supporting work:
+
+- **`utils/placeSearch.ts`** — the missing half of geocoding. The legacy app had
+  `reverseGeocode` (a fix → an address) but no query → place lookup. Nominatim
+  rather than Google Places, matching the OSRM-first choice in `calculateRoute`,
+  so search still works with no Maps key. Parsing is pure and has 16 tests.
+- **`contexts/AuthContext.tsx`** — Supabase session only. The legacy context
+  carried a second "local PIN" path that produced a session with no
+  `auth.uid()`; since migration 0069 every ride, wallet and profile write is
+  RLS-scoped, so that path could not write anything and was the direct cause of
+  the "sign in required" failures. Deliberately not carried over.
+- **`contexts/LocationContext.tsx`** — one fix, one address, one permission
+  answer. The address is filled in after the fix rather than awaited with it, and
+  a late geocode is discarded if the rider has already moved.
+- **`components/RideMap.tsx`** (+ `.web.tsx`) — screens describe what is on the
+  map and never touch `react-native-maps` directly. `utils/maps.web.ts` exports
+  nulls, so web gets a listing stand-in rather than an empty box.
+
+The fare comes from `calculateFare` — the same tested TEKSI arithmetic the meter
+uses — so a quoted fare and a metered one cannot drift apart.
+
+### Deferred
+
+Fare bidding (OfferMe), fare raising, driver-approved mid-trip cancellation,
+scheduled rides, saved places and payment-method selection are all supported by
+the ported store layer but have no rider UI yet. Ride restore-on-relaunch
+(`buildRestoreTarget`) is ported and tested but not yet wired to a launch
+buffer — that arrives with the partner phase, which shares it.
 
 ### What changed on the way across
 
@@ -65,6 +102,6 @@ against the existing project, migrations and RLS policies in `../supabase/`.
 
 ## Next
 
-Phase 02 — rider core: map, place search, fare estimate, ride request,
-dispatch, live tracking. `app/index.tsx` is a foundations placeholder and is
-replaced by the map.
+Phase 03 — partner core: onboarding and documents, the e-hailing queue, offers,
+and the running-ride screen. That closes the loop and makes the app usable end
+to end.
