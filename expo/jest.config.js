@@ -8,7 +8,7 @@ module.exports = {
     "^@/(.*)$": "<rootDir>/$1",
   },
   transformIgnorePatterns: [
-    "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|lucide-react-native|@nkzw/.*|@supabase/.*|@rork-ai/.*))",
+    "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|lucide-react-native|@nkzw/.*|@supabase/.*))",
   ],
   clearMocks: true,
 };

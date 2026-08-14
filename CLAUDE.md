@@ -16,7 +16,7 @@ Design/spec documents live in `docs/`. Currently: `docs/get-wallet-mcash-flow.md
 
 ## Commands
 
-All commands run from the `expo/` directory. The project uses **Bun** as the package manager. The `start*` scripts wrap the **Rork** CLI (`bunx rork start …`), not the bare Expo CLI — see `rork.json` at the repo root for the app registration.
+All commands run from the `expo/` directory. The project uses **Bun** as the package manager. The `start*` scripts call the Expo CLI directly (`expo start`).
 
 ```bash
 cd expo

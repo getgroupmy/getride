@@ -1,7 +1,6 @@
 node_modules
 .env
 .expo
-.rork
 graphify-out
 
 # Python bytecode (the vendored skill ships .py, not .pyc)

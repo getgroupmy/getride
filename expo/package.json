@@ -3,9 +3,9 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "bunx rork start -p 18j1hsrd9328tctucaf2f",
-    "start-web": "bunx rork start -p 18j1hsrd9328tctucaf2f --web",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p 18j1hsrd9328tctucaf2f --web",
+    "start": "expo start",
+    "start-web": "expo start --web",
+    "start-web-dev": "DEBUG=expo* expo start --web",
     "lint": "expo lint",
     "test": "jest"
   },
@@ -14,7 +14,6 @@
     "@nkzw/create-context-hook": "^1.1.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
-    "@rork-ai/toolkit-sdk": "^0.2.54",
     "@stardazed/streams-text-encoding": "^1.0.2",
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/react-query": "^5.83.0",
