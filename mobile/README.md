@@ -13,6 +13,7 @@ Plan and rationale: see the rebuild scoping document.
 **Phase 03 — Partner core: complete.**
 **Phase 04 — Money: complete.**
 **Phase 05 — Instruments: complete.**
+**Phase 06 — Back office: complete (see `../admin/`).**
 
 | | |
 |---|---|
@@ -254,7 +255,6 @@ against the existing project, migrations and RLS policies in `../supabase/`.
 
 ## Next
 
-Phase 06 — back office: whatever survives the admin audit. Per the scoping
-document the recommendation is a web tool against the same Supabase project
-rather than rebuilding 108 React Native screens, plus an honest look at which of
-them anyone has opened in the last six months.
+Phase 07 — long tail: TEKSI EV ordering, support tickets and calls, insurance
+catalogues, referrals, emergency contacts, voice protection. Individually small,
+collectively not.
