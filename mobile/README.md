@@ -12,6 +12,7 @@ Plan and rationale: see the rebuild scoping document.
 **Phase 02 — Rider core: complete.**
 **Phase 03 — Partner core: complete.**
 **Phase 04 — Money: complete.**
+**Phase 05 — Instruments: complete.**
 
 | | |
 |---|---|
@@ -133,7 +134,65 @@ How the risk is contained:
   copy (`source: "local"`), both the wallet and history screens say the numbers
   may be out of date rather than presenting a cached balance as live.
 
+### Phase 05 — instruments
+
+The vehicle link and the taxi meter it drives.
+
+| Screen | Does |
+|---|---|
+| `meter-digital` | The console: fare, time, distance, tariff/shift keys |
+| `obd2-reader` | The driver's reader book; connect, Demo Mode, per-transport availability |
+| `meter-printer` | Mini ESC/POS thermal printer; in-app BLE scan, test print |
+| `vehicle-information` | One-pass scan: adapter, identity, every supported PID, fault codes |
+
+Almost nothing here was written from scratch — the whole protocol and arithmetic
+layer arrived in Phase 01 and is already tested. What this phase adds is the
+hooks (`useCanbus`, `useCanbusStatus`, `usePrinter`, `useLandscapeLock` — 840
+lines, ported intact), two components, and the screens.
+
+What the console honours:
+
+- **It is deliberately not themed.** A white screen on a windscreen mount at
+  night is a hazard, so the console has its own fixed dark palette.
+- **Simulated telemetry never bills.** In Demo Mode the OBD speed is withheld
+  so the sample falls through to GPS, exactly as if no reader were linked.
+- **Landscape is pinned, not gated.** `useLandscapeLock` holds the pin, and
+  `FixedLandscapeStage` turns the *content* where the platform won't turn the
+  device. There is no rotate notice: a portrait viewport draws a tighter
+  console rather than something standing in front of the meter.
+- **A running hire cannot be walked out of.** The back key is inert while the
+  meter is accruing.
+- **The scan pauses the 1 Hz sweep**, because the adapter answers one command at
+  a time — and always releases it, including on failure or unmount, since a
+  paused sweep stays paused and would leave the meter blind to speed.
+- **Availability distinguishes "package resolves" from "native module linked".**
+  A build made before a transport shipped needs a *new native build*, not an OTA
+  update, and that wording comes from `utils/canbus/availability.ts` rather than
+  being hardcoded per screen.
+
+Native configuration: the `react-native-ble-plx` config plugin,
+`NSLocalNetworkUsageDescription` (iOS 14+ blocks the socket to a Wi-Fi dongle's
+soft-AP without it), and `UISupportedExternalAccessoryProtocols` — which is
+checked against `MFI_ACCESSORY_PROTOCOLS` in code, since MFi fails silently if
+the two drift. `react-native.config.js` keeps `react-native-bluetooth-classic`
+off Android, where its Gradle pins would break an RN 0.81 build.
+
+### Not verifiable here
+
+The four transports and the printer need **real hardware**. Nothing in a
+simulator, a web build or CI exercises a Wi-Fi dongle, a BLE peripheral, an MFi
+accessory or an ESC/POS printer — typecheck and lint confirm the wiring, not
+that a car answers. First run on a real device with a real dongle is a genuine
+test, not a formality.
+
 ### Deferred
+
+The meter's larger vocabulary is ported and tested but not yet on screen: the
+end-of-hire declaration form (passengers, luggage, tolls, airport surcharge),
+the trip log and receipt printing from it, operator rate cards
+(`meter_digital_settings`), the leave-the-meter popup, odometer capture at
+pickup/drop-off, vehicle binding, and meter auto-launch. `welcome-back` passes
+`meterAutoLaunch: false` for that reason.
 
 QR pay/scan (`payFromWallet`, `computeCoinSplit`), coin redemption against a
 fare at booking time (`redeemCoinsForFare`), payout to a bank account, and the
@@ -195,7 +254,7 @@ against the existing project, migrations and RLS policies in `../supabase/`.
 
 ## Next
 
-Phase 05 — instruments: Meter Digital, the CANBus/OBD-II link and its four
-transports, thermal receipt printing, and vehicle information. The logic is
-already ported and tested; what is rebuilt is the native module wiring and the
-landscape console.
+Phase 06 — back office: whatever survives the admin audit. Per the scoping
+document the recommendation is a web tool against the same Supabase project
+rather than rebuilding 108 React Native screens, plus an honest look at which of
+them anyone has opened in the last six months.

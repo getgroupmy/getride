@@ -54,6 +54,12 @@ function Navigator() {
         <Stack.Screen name="wallet-history" options={{ title: "History" }} />
         <Stack.Screen name="wallet-trade" options={{ title: "GET.coin" }} />
         <Stack.Screen name="wallet-transfer" options={{ title: "Send coins" }} />
+        {/* The meter is an instrument, not a page: no header, and its own
+            landscape lock. */}
+        <Stack.Screen name="meter-digital" options={{ headerShown: false }} />
+        <Stack.Screen name="obd2-reader" options={{ title: "OBD-II reader" }} />
+        <Stack.Screen name="meter-printer" options={{ title: "Receipt printer" }} />
+        <Stack.Screen name="vehicle-information" options={{ title: "Vehicle" }} />
       </Stack>
     </>
   );

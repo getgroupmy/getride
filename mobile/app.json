@@ -10,7 +10,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocalNetworkUsageDescription": "GET.ride connects to your OBD-II reader and receipt printer over your local network."
+        "NSLocationWhenInUseUsageDescription": "Allow $(PRODUCT_NAME) to use your location to set your pickup and follow your trip.",
+        "NSLocalNetworkUsageDescription": "Allow $(PRODUCT_NAME) to reach devices on your local network, such as your Wi-Fi OBD-II (CANBus) reader for live vehicle data and a Wi-Fi receipt printer for the taxi meter.",
+        "UISupportedExternalAccessoryProtocols": ["com.obdlink"]
       }
     },
     "android": {
@@ -20,7 +22,23 @@
       "bundler": "metro",
       "output": "static"
     },
-    "plugins": ["expo-router", "expo-font"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location."
+        }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to Bluetooth devices such as your OBD-II (CANBus) reader for live vehicle data and a mini receipt printer for the taxi meter."
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }
