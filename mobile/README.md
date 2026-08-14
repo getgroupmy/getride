@@ -11,6 +11,7 @@ Plan and rationale: see the rebuild scoping document.
 **Phase 01 — Foundations: complete.**
 **Phase 02 — Rider core: complete.**
 **Phase 03 — Partner core: complete.**
+**Phase 04 — Money: complete.**
 
 | | |
 |---|---|
@@ -89,7 +90,55 @@ Notes on the pieces that are easy to get wrong:
   logged rather than surfaced as a failed trip — the fare is collected either
   way and the ledger reconciles server-side.
 
+### Phase 04 — money
+
+The three wallets, and the flows that move value between them.
+
+| Screen | Does |
+|---|---|
+| `wallet` | All three balances; top up GET.wallet, recharge GET.credit |
+| `wallet-history` | The ledger, per wallet |
+| `wallet-trade` | Buy/sell GET.coin against GET.wallet |
+| `wallet-transfer` | Send GC to another account (recipient must accept) |
+| `IncomingTransferPopup` | Mounted globally; accept or decline incoming GC |
+
+How the risk is contained:
+
+- **The client never computes a balance.** Since migration 0066 the wallet
+  tables are read-only to clients and every balance-changing operation goes
+  through an owner-scoped `SECURITY DEFINER` RPC. `WalletContext` re-reads what
+  the ledger reports, and applies the `balances` an action already returned
+  rather than making a second round trip that could disagree with it.
+- **The displayed coin rate is indicative only.** `wallet_trade_coins` anchors
+  the executed rate server-side to the admin peg ± the swing band and enforces
+  the supply cap, so a stale or tampered client rate cannot move coins at a
+  price the operator never sanctioned. The screen says so.
+- **Sending coins does not move them.** It creates a pending request the
+  recipient accepts (migration 0065); coins move 1:1 only on acceptance, and
+  expire after 15 minutes. On a pre-0065 database the store falls back to the
+  instant RPC and reports `immediate` — a materially different outcome for the
+  sender, so it is worded differently rather than glossed as "sent for
+  approval".
+- **The transfer prompt is global.** A transfer can arrive while the recipient
+  is anywhere in the app and lapses in 15 minutes, so it cannot wait for them to
+  open their wallet. An answered request is dequeued whatever the server said,
+  so a failure cannot wedge a modal over the whole app.
+- **Rewards and commission are idempotent and quiet.** Ride coins are awarded on
+  completion via an RPC anchored on `coin_rewarded_at`; a failure is logged
+  rather than shown, because the ride finished fine and the ledger reconciles
+  server-side.
+- **A negative GET.credit is a normal state**, not an error — a driver owing
+  commission is expected, so it is shown plainly with a recharge prompt.
+- **A degraded read is labelled.** When the store falls back to the device-local
+  copy (`source: "local"`), both the wallet and history screens say the numbers
+  may be out of date rather than presenting a cached balance as live.
+
 ### Deferred
+
+QR pay/scan (`payFromWallet`, `computeCoinSplit`), coin redemption against a
+fare at booking time (`redeemCoinsForFare`), payout to a bank account, and the
+rate-history chart are all supported by the ported store layer but have no UI
+yet.
 
 Partner **document upload and verification** is not in `partner-onboarding`: it
 is a separate surface with its own storage buckets and admin review queue, and a
@@ -146,6 +195,7 @@ against the existing project, migrations and RLS policies in `../supabase/`.
 
 ## Next
 
-Phase 04 — money: GET.wallet, GET.credit, GET.coin, top-up and payout. The
-highest-risk phase, since it touches real balances — it runs against the
-existing ledger rather than a new one.
+Phase 05 — instruments: Meter Digital, the CANBus/OBD-II link and its four
+transports, thermal receipt printing, and vehicle information. The logic is
+already ported and tested; what is rebuilt is the native module wiring and the
+landscape console.

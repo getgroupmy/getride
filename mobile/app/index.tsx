@@ -107,6 +107,25 @@ export default function Home() {
         >
           <Text style={[styles.ctaText, { color: colors.onAccent }]}>Where to?</Text>
         </Pressable>
+
+        <View style={styles.quickRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open wallet"
+            onPress={() => router.push("/wallet")}
+            style={[styles.quick, { borderColor: colors.border }]}
+          >
+            <Text style={[styles.quickText, { color: colors.text }]}>Wallet</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open driver requests"
+            onPress={() => router.push("/partner-ehailing")}
+            style={[styles.quick, { borderColor: colors.border }]}
+          >
+            <Text style={[styles.quickText, { color: colors.text }]}>Drive</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -132,4 +151,13 @@ const styles = StyleSheet.create({
   error: { fontSize: 13 },
   cta: { borderRadius: 12, paddingVertical: 16, alignItems: "center" },
   ctaText: { fontSize: 16, fontWeight: "700" },
+  quickRow: { flexDirection: "row", gap: 10 },
+  quick: {
+    flex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  quickText: { fontSize: 15, fontWeight: "600" },
 });

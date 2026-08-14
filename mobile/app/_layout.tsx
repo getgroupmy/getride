@@ -3,9 +3,11 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import IncomingTransferPopup from "@/components/IncomingTransferPopup";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { WalletProvider } from "@/contexts/WalletContext";
 import { useColors } from "@/hooks/useColors";
 
 const queryClient = new QueryClient();
@@ -48,6 +50,10 @@ function Navigator() {
           name="ride-running"
           options={{ headerShown: false, gestureEnabled: false }}
         />
+        <Stack.Screen name="wallet" options={{ title: "Wallet" }} />
+        <Stack.Screen name="wallet-history" options={{ title: "History" }} />
+        <Stack.Screen name="wallet-trade" options={{ title: "GET.coin" }} />
+        <Stack.Screen name="wallet-transfer" options={{ title: "Send coins" }} />
       </Stack>
     </>
   );
@@ -59,9 +65,15 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
-            <LocationProvider>
-              <Navigator />
-            </LocationProvider>
+            <WalletProvider>
+              <LocationProvider>
+                <Navigator />
+                {/* Coin transfers expire in 15 minutes and can arrive while the
+                    recipient is anywhere in the app, so the prompt is mounted
+                    globally rather than on the wallet screen. */}
+                <IncomingTransferPopup />
+              </LocationProvider>
+            </WalletProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

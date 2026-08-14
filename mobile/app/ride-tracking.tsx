@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +10,9 @@ import {
 } from "react-native";
 
 import RideMap, { type RideMapMarker } from "@/components/RideMap";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { awardRideCoins } from "@/utils/walletStore";
 import {
   cancelRideRequest,
   fetchRideRequest,
@@ -37,9 +39,14 @@ export default function RideTracking() {
   const colors = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
 
+  const { authState } = useAuth();
+  const riderId = authState.userId;
+
   const [ride, setRide] = useState<RideRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [awarded, setAwarded] = useState(0);
+  const awardedRef = useRef(false);
 
   // Load once, then follow the row. The initial fetch matters because a status
   // that changed between booking and this screen mounting produces no realtime
@@ -65,6 +72,28 @@ export default function RideTracking() {
       unsubscribe();
     };
   }, [id]);
+
+  // Award ride-reward coins once the trip completes. The RPC is idempotent
+  // (anchored on ride_requests.coin_rewarded_at), and the ref only avoids a
+  // redundant second call within this screen's life. A failure is logged
+  // rather than shown: the ride finished fine, and the reward reconciles
+  // server-side.
+  useEffect(() => {
+    if (ride?.status !== "completed") return;
+    if (awardedRef.current) return;
+    if (!riderId || !(ride.fare ?? 0) || !id) return;
+    awardedRef.current = true;
+
+    void (async () => {
+      const res = await awardRideCoins({
+        userId: riderId,
+        fareTotal: ride.fare!,
+        rideRequestId: id,
+      });
+      if (res.ok && res.coins > 0) setAwarded(res.coins);
+      else if (!res.ok) console.log("[ride-tracking] coin reward failed:", res.error);
+    })();
+  }, [ride?.status, ride?.fare, riderId, id]);
 
   const onCancel = useCallback(() => {
     if (!id || cancelling) return;
@@ -176,6 +205,15 @@ export default function RideTracking() {
           <View style={styles.otpRow}>
             <Text style={[styles.driverMeta, { color: colors.textSecondary }]}>Fare</Text>
             <Text style={[styles.fare, { color: colors.text }]}>RM {ride.fare.toFixed(2)}</Text>
+          </View>
+        ) : null}
+
+        {awarded > 0 ? (
+          <View style={styles.otpRow}>
+            <Text style={[styles.driverMeta, { color: colors.textSecondary }]}>Coins earned</Text>
+            <Text style={[styles.fare, { color: colors.success }]}>
+              +{awarded.toFixed(2)} GC
+            </Text>
           </View>
         ) : null}
 
