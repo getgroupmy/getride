@@ -10,6 +10,7 @@ Plan and rationale: see the rebuild scoping document.
 
 **Phase 01 — Foundations: complete.**
 **Phase 02 — Rider core: complete.**
+**Phase 03 — Partner core: complete.**
 
 | | |
 |---|---|
@@ -52,7 +53,50 @@ Supporting work:
 The fare comes from `calculateFare` — the same tested TEKSI arithmetic the meter
 uses — so a quoted fare and a metered one cannot drift apart.
 
+### Phase 03 — partner core
+
+The other half of the loop: a driver signs up, sees requests, claims one, and
+carries it through to a completed, commissioned trip.
+
+| Screen | Does |
+|---|---|
+| `partner-onboarding` | Creates/links the partner row and captures identity |
+| `partner-ehailing` | Live queue of open requests; claim one |
+| `ride-running` | Head to pickup → arrived → on trip → complete, then commission |
+| `welcome-back` | Launch buffer: resumes a ride in progress on either side |
+
+Notes on the pieces that are easy to get wrong:
+
+- **The launch buffer** gathers inputs and navigates; the priority between
+  destinations is `resolveLaunchDestination`, which is pure and already tested.
+  It marks the launch handled *on mount* rather than on exit, because sign-in
+  replaces into it directly and `index` re-enters while the flag is unset —
+  otherwise the app loops on a greeting. A watchdog resolves the launch anyway
+  if the lookups hang, since they are network reads with no timeout of their
+  own, and the decision is never cancelled once started.
+- **The once-per-launch flag lives in `utils/launchSession.ts`**, not a ref in a
+  screen. `index` sits inside the navigator, so anything resetting navigation
+  state re-renders it — a ref would read that as a fresh cold start.
+- **The queue ages entries out on a clock.** Since migration 0069 a partner no
+  longer receives realtime UPDATEs for a request another driver claimed, so
+  stale cards cannot rely on an event to remove them. Losing the accept race is
+  safe rather than an error: the `status = 'open'` guard means a null result is
+  "someone got there first".
+- **Live position stops when the trip does.** A finished ride must not keep
+  broadcasting where the driver is.
+- **Commission is charged once, after completion.** The RPC is idempotent
+  (stamped on the ride row via `commission_charged_at`), and a failed charge is
+  logged rather than surfaced as a failed trip — the fare is collected either
+  way and the ledger reconciles server-side.
+
 ### Deferred
+
+Partner **document upload and verification** is not in `partner-onboarding`: it
+is a separate surface with its own storage buckets and admin review queue, and a
+partner created by that screen is explicitly not verified by it. Vehicle
+assignment, the partner mode picker (TEKSI vs e-hailing), online/offline
+toggling and driver-side fare offers are supported by the ported store layer but
+have no UI yet.
 
 Fare bidding (OfferMe), fare raising, driver-approved mid-trip cancellation,
 scheduled rides, saved places and payment-method selection are all supported by
@@ -102,6 +146,6 @@ against the existing project, migrations and RLS policies in `../supabase/`.
 
 ## Next
 
-Phase 03 — partner core: onboarding and documents, the e-hailing queue, offers,
-and the running-ride screen. That closes the loop and makes the app usable end
-to end.
+Phase 04 — money: GET.wallet, GET.credit, GET.coin, top-up and payout. The
+highest-risk phase, since it touches real balances — it runs against the
+existing ledger rather than a new one.

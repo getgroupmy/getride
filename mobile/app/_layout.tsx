@@ -31,6 +31,7 @@ function Navigator() {
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="welcome-back" options={{ headerShown: false }} />
         <Stack.Screen name="phone-auth" options={{ headerShown: false }} />
         <Stack.Screen name="otp-verify" options={{ title: "Verify" }} />
         <Stack.Screen name="pin-setup" options={{ title: "Set a PIN" }} />
@@ -39,6 +40,12 @@ function Navigator() {
         {/* A ride in progress is not something to swipe back out of. */}
         <Stack.Screen
           name="ride-tracking"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen name="partner-onboarding" options={{ title: "Drive with us" }} />
+        <Stack.Screen name="partner-ehailing" options={{ title: "Requests" }} />
+        <Stack.Screen
+          name="ride-running"
           options={{ headerShown: false, gestureEnabled: false }}
         />
       </Stack>

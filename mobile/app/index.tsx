@@ -7,6 +7,7 @@ import RideMap from "@/components/RideMap";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useColors } from "@/hooks/useColors";
+import { readLaunchSession, resolveRootRedirect } from "@/utils/launchSession";
 
 /**
  * Rider home.
@@ -24,10 +25,20 @@ export default function Home() {
 
   // An unauthenticated rider cannot create a request (RLS is uid-scoped), so
   // send them to sign-in rather than letting them build a ride they can't book.
+  //
+  // An authenticated cold start goes through the launch buffer instead, which
+  // decides whether a ride in progress should be resumed. The guard lives in
+  // `launchSession` rather than a ref here because this screen sits inside the
+  // navigator: anything that resets navigation state re-renders it, and a ref
+  // would read that as a fresh launch and re-enter the buffer forever.
   useEffect(() => {
-    if (!authLoading && !authState.isAuthenticated) {
+    if (authLoading) return;
+    if (!authState.isAuthenticated) {
       router.replace("/phone-auth");
+      return;
     }
+    const redirect = resolveRootRedirect(readLaunchSession());
+    if (redirect) router.replace(redirect as never);
   }, [authLoading, authState.isAuthenticated]);
 
   if (authLoading || !authState.isAuthenticated) {

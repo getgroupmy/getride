@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { isSupabaseConfigured, supabase } from "@/utils/supabase";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
 import { parsePinLockSeconds } from "@/utils/pinLock";
+import { resetLaunchSession } from "@/utils/launchSession";
 
 /**
  * Authentication for the rebuilt app.
@@ -194,6 +195,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       await supabase?.auth.signOut();
     } finally {
       setAuthState(EMPTY);
+      // Otherwise the next account inherits this one's restore target and
+      // "already launched" flag.
+      resetLaunchSession();
     }
   }, []);
 
