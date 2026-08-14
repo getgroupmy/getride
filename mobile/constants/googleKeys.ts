@@ -1,0 +1,3 @@
+export const GOOGLE_DIRECTIONS_KEY = "AIzaSyDoxu9c5zvYJMRDvTi9hU9bUYBoP0xXpGA1";
+export const GOOGLE_PLACES_KEY = "AIzaSyBj89Dt9v6SiDMvA3XUsoRm6ey6L-nKMfI";
+export const GOOGLE_STATIC_MAPS_KEY = "AIzaSyBj89Dt9v6SiDMvA3XUsoRm6ey6L-nKMfI";

@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "GET.ride",
+    "slug": "get-ride",
+    "version": "0.1.0",
+    "orientation": "default",
+    "scheme": "getride",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "GET.ride connects to your OBD-II reader and receipt printer over your local network."
+      }
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router", "expo-font"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
