@@ -94,7 +94,9 @@ export default function IncomingTransferPopup() {
     // failure cannot wedge the popup open over the whole app.
     setQueue((prev) => prev.filter((r) => r.id !== current.id));
 
-    if (res.ok) {
+    // Only an accept can move coins, so only an accept touches balances — a
+    // decline that refreshed the wallet would be a pointless round trip.
+    if (res.ok && accept) {
       apply(res.balances);
       if (!res.balances) void refresh();
     }

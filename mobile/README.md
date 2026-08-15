@@ -16,11 +16,12 @@ Plan and rationale: see the rebuild scoping document.
 **Phase 06 — Back office: complete (see `../admin/`).**
 **Phase 07 — Long tail: partial (see below).**
 **Phase 08 — TEKSI EV ordering: complete.**
+**Phase 09 — Component tests: first cut.**
 
 | | |
 |---|---|
 | Logic modules ported | 108 |
-| Tests | 65 suites, 1,172 passing |
+| Tests | 67 suites, 1,189 passing |
 | Typecheck | clean, **including** test files |
 | Lint | clean |
 
@@ -241,6 +242,38 @@ account's newest unfinished order — so a reinstall does not strand one. Text
 fields commit on blur rather than per keystroke: each save is a network round
 trip against the order row.
 
+### Phase 09 — component tests
+
+The rebuild had 1,172 tests and **none of them touched a screen**. This is the
+first cut at closing that, aimed at the two surfaces where a defect costs
+money rather than polish.
+
+| Suite | Covers |
+|---|---|
+| `components/__tests__/IncomingTransferPopup.test.tsx` | 10 tests — accept/decline, live arrival, expiry, queue depth, signed-out |
+| `app/__tests__/meterDigital.test.tsx` | 7 tests — which sensor bills, and that Demo Mode never does |
+
+Two things worth recording:
+
+- **The meter suite drives the 1 Hz clock with fake timers.** Written against
+  the real clock, the assertions raced `waitFor`'s default timeout — the kind of
+  test that passes on one machine and fails on another. It is deterministic now
+  (~20 ms per test instead of ~1 s).
+- **A test found a real defect.** Declining an incoming transfer applied
+  balances and triggered a wallet refresh, though a decline cannot move coins.
+  Fixed in the component rather than by weakening the assertion.
+
+**Tooling note:** `@testing-library/react-native@14` does not work in this
+setup — `render()` returns an object with no query methods and `screen` reports
+that render was never called. Pinned to `^13`, which works.
+
+### Still untested
+
+Most of the rebuild. These suites cover two surfaces; the other ~28 screens are
+still typecheck-and-lint only. The next most valuable are `ride-confirm`
+(creates the request and quotes the fare), `wallet-trade` (the balance guards)
+and `ride-running` (the commission charge).
+
 ### Not built in Phase 07
 
 Named rather than quietly dropped:
@@ -323,6 +356,6 @@ against the existing project, migrations and RLS policies in `../supabase/`.
 
 What remains is named under "Not built in Phase 07" above: support voice/video
 calls (needs a WebRTC layer) and voice protection (in-ride recording). Beyond
-those, the largest open risk is not a feature — it is that no screen in the
-rebuild has an automated test, and the CANBus transports and printer have never
-run against real hardware.
+those, the largest open risk remains hardware: the CANBus transports and printer
+have never run against a real dongle or printer, and that can only be closed on
+a device.
