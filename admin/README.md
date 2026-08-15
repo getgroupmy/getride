@@ -47,9 +47,29 @@ bun run preview
 
 ## Status
 
-Verified: typecheck clean, 15 tests passing, production build succeeds, and the
+Verified: typecheck clean, 28 tests passing, production build succeeds, and the
 app mounts and renders in headless Chromium with no page errors and no failed
 requests. CI runs all three on every push.
+
+### Guardrails
+
+This tool writes straight to production with no staging step and no undo, so two
+rules exist to keep an ordinary afternoon from becoming an incident:
+
+- **A destructive status change asks first.** Approving someone is undone by
+  disapproving them; being blocked, deleted or rejected is not something the
+  person can see or reverse. Only that direction confirms, and the prompt names
+  the row — a mis-click one row up in a table is the likeliest way this goes
+  wrong.
+- **An idle session signs itself out** after 15 minutes. Supabase persists the
+  session, so without it a laptop left open is an open back office for as long
+  as the token lives. Signing out is the response rather than a soft lock: there
+  is no second factor here to unlock with. The sidebar says so, because an
+  unexplained sign-out is worse than an expected one.
+
+Still missing, and it needs a schema change rather than app code: **writes are
+unattributed**. Nothing records which admin blocked a user or edited a fee. An
+audit table is the fix, and the rebuild deliberately does not alter the schema.
 
 ### What is tested
 

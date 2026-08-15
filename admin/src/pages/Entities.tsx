@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { requireSupabase } from "../supabase";
 import type { EntityKind } from "../types";
 import { filterRows } from "../lib/settingsValues";
+import { confirmStatusMessage, isDestructiveStatus } from "../lib/adminSafety";
 
 /**
  * Users, partners and vehicles — one screen.
@@ -103,6 +104,18 @@ export default function Entities({ kind }: { kind: EntityKind }) {
   );
 
   const setRowStatus = async (row: Row, next: string) => {
+    const current = String(row.status ?? "");
+    if (next === current) return;
+
+    // Approving is undoable by disapproving; being blocked or marked deleted is
+    // not something the person can see or reverse. Only that direction asks.
+    if (isDestructiveStatus(next)) {
+      const label = String(row.name ?? row.plate ?? row.id);
+      // The select is controlled by `row.status`, so declining simply leaves
+      // state untouched and React restores the previous option.
+      if (!confirm(confirmStatusMessage(label, current, next))) return;
+    }
+
     setSaving(row.id);
     try {
       const { error: err } = await requireSupabase()

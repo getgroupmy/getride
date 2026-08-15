@@ -64,7 +64,7 @@ function SignIn() {
 }
 
 export default function App() {
-  const { session, signOut } = useAdminSession();
+  const { session, signOut, idleTimeoutMs } = useAdminSession();
   const [route, setRoute] = useState<Route>("dashboard");
 
   if (!isConfigured) {
@@ -136,6 +136,10 @@ export default function App() {
         ))}
         <div className="spacer" />
         <div className="who">{session.email}</div>
+        {/* Said out loud, so an unexplained sign-out is never a mystery. */}
+        <div className="who">
+          Signs out after {Math.round(idleTimeoutMs / 60000)} min idle
+        </div>
         <button className="nav" onClick={signOut}>
           Sign out
         </button>

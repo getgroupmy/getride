@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "./supabase";
+import { IDLE_TIMEOUT_MS, isIdleExpired } from "./lib/adminSafety";
 
 /**
  * Who is signed in, and may they use this tool?
@@ -102,7 +103,42 @@ export function useAdminSession() {
     await supabase?.auth.signOut();
   }, []);
 
-  return { session, signOut };
+  /**
+   * Sign out an unattended back office.
+   *
+   * Supabase persists the session, so without this a laptop left open is an
+   * open back office for as long as the token lives — the same gap the mobile
+   * app had before it grew a lock. Signing out is the response rather than a
+   * soft lock: there is no second factor here to unlock with, so the only
+   * honest way back in is signing in again.
+   */
+  useEffect(() => {
+    if (!session.userId) return;
+
+    let lastActivity = Date.now();
+    const touch = () => {
+      lastActivity = Date.now();
+    };
+
+    const events: (keyof WindowEventMap)[] = [
+      "pointerdown",
+      "keydown",
+      "scroll",
+      "focus",
+    ];
+    for (const e of events) window.addEventListener(e, touch, { passive: true });
+
+    const timer = window.setInterval(() => {
+      if (isIdleExpired(lastActivity, Date.now())) void signOut();
+    }, 30_000);
+
+    return () => {
+      for (const e of events) window.removeEventListener(e, touch);
+      window.clearInterval(timer);
+    };
+  }, [session.userId, signOut]);
+
+  return { session, signOut, idleTimeoutMs: IDLE_TIMEOUT_MS };
 }
 
 /** Email + password sign-in. Staff sign in at a desk, not by SMS. */
