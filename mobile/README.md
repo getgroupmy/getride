@@ -17,11 +17,12 @@ Plan and rationale: see the rebuild scoping document.
 **Phase 07 — Long tail: partial (see below).**
 **Phase 08 — TEKSI EV ordering: complete.**
 **Phase 09 — Component tests: first cut.**
+**Phase 10 — Component tests: the three highest-value screens.**
 
 | | |
 |---|---|
 | Logic modules ported | 108 |
-| Tests | 67 suites, 1,189 passing |
+| Tests | 70 suites, 1,214 passing |
 | Typecheck | clean, **including** test files |
 | Lint | clean |
 
@@ -267,12 +268,47 @@ Two things worth recording:
 setup — `render()` returns an object with no query methods and `screen` reports
 that render was never called. Pinned to `^13`, which works.
 
+### Phase 10 — the three screens named next
+
+The three surfaces flagged at the end of Phase 09, now covered — 25 tests.
+
+| Suite | Covers |
+|---|---|
+| `app/__tests__/rideConfirm.test.tsx` | 8 — the quote, the request it creates, and the failure paths |
+| `app/__tests__/rideRunning.test.tsx` | 9 — trip progression and the commission charge |
+| `app/__tests__/walletTrade.test.tsx` | 8 — the balance guards, rate and supply cap |
+
+What these actually pin down:
+
+- **The quoted fare uses the shared tariff arithmetic.** `calculateFare` is left
+  unmocked on purpose — a quote that disagreed with the meter is the exact
+  defect this screen exists to avoid, so the test asserts against the real
+  function rather than a stub that could drift with it.
+- **Commission fires once, only after completion,** never on a zero fare or a
+  failed completion — and a failed charge is not shown to the driver as a failed
+  trip, because the fare is collected either way and the ledger reconciles
+  server-side.
+- **Trade guards run before the RPC.** A buy larger than the wallet or a sell
+  larger than the coin balance is refused client-side, and the trade that does
+  execute carries the resolved rate and the operator's supply cap rather than
+  silent defaults.
+
+Two test-harness notes, both of which cost time to find:
+
+- A `Pressable` disabled until data arrives cannot be pressed as soon as it is
+  *found*. `ride-confirm`'s button keeps a constant accessibility label and
+  changes only its text, so the text is what signals the press will land.
+- `clearMocks` strips `jest.fn().mockResolvedValue(...)` implementations between
+  tests. Store mocks that must survive are plain `async` functions, otherwise
+  they resolve to `undefined` and fail inside the screen rather than in an
+  assertion.
+
 ### Still untested
 
-Most of the rebuild. These suites cover two surfaces; the other ~28 screens are
-still typecheck-and-lint only. The next most valuable are `ride-confirm`
-(creates the request and quotes the fare), `wallet-trade` (the balance guards)
-and `ride-running` (the commission charge).
+Five surfaces are now covered. The remaining ~25 screens are still
+typecheck-and-lint only — the auth flow, search, the partner queue, the wallet
+home and history, the instrument screens, and the long tail. None of them moves
+money or bills a fare, which is why they ranked below the five that do.
 
 ### Not built in Phase 07
 
