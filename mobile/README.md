@@ -188,8 +188,11 @@ off Android, where its Gradle pins would break an RN 0.81 build.
 The four transports and the printer need **real hardware**. Nothing in a
 simulator, a web build or CI exercises a Wi-Fi dongle, a BLE peripheral, an MFi
 accessory or an ESC/POS printer — typecheck and lint confirm the wiring, not
-that a car answers. First run on a real device with a real dongle is a genuine
-test, not a formality.
+that a car answers.
+
+`HARDWARE-CHECKS.md` is the checklist for that session: how to get a
+development build onto a device, what to bring, what to check, and what
+"correct" looks like for each.
 
 ### Phase 07 — long tail (partial)
 
@@ -415,10 +418,13 @@ bunx tsc --noEmit
 
 ## Environment
 
-Set in `mobile/env` (or the shell):
+```bash
+cp env.example env    # then fill it in
+```
 
-- `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-- `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`
+`env` is gitignored; `env.example` documents each variable and why it is safe
+to ship. Nothing secret belongs there — what protects the data is RLS and the
+owner-scoped wallet RPCs, not the anon key.
 
 The Supabase schema is deliberately unchanged — the rebuilt client is written
 against the existing project, migrations and RLS policies in `../supabase/`.

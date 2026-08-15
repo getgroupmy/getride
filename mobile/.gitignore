@@ -3,7 +3,15 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+
+# Environment. The app reads `mobile/env` (no dot) — the convention this repo
+# already uses — so ignoring only `.env` would let a filled-in key file be
+# committed by anyone following the README. `env.example` is the tracked one.
+env
 .env
+.env*.local
+!env.example
+
 ios/
 android/
 *.tsbuildinfo
