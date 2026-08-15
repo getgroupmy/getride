@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# A superseded run tells you nothing, so cancel it rather than paying for it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile:
+    name: mobile — typecheck, lint, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # --frozen-lockfile: CI must build what the lockfile pins. A silent
+      # resolution drift here is how a green pipeline ships a different tree
+      # than the one that was reviewed.
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Test
+        run: bun run test
+
+  admin:
+    name: admin — typecheck, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      # The back office has no test suite yet, so a successful production build
+      # is the strongest signal available. It is a real check: it catches a
+      # broken import or a type error that only surfaces when bundling.
+      - name: Build
+        run: bun run build
+
+  legacy:
+    name: legacy expo — test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: expo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+      # Tests and typecheck only, deliberately: the legacy app has 32
+      # pre-existing react/no-unescaped-entities lint errors that predate this
+      # pipeline. Gating on them would make CI red on arrival and train
+      # everyone to ignore it. The app is still in production, so its suite is
+      # worth running; fixing its lint is a separate, deliberate task.
+      - name: Test
+        run: bun run test
