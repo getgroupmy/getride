@@ -494,7 +494,7 @@ export default function AdminSettingsEvOrderFeeScreen() {
                       Default country
                     </Text>
                     <Text style={[styles.toggleSub, { color: Colors.textSecondary }]}>
-                      Used when a customer's country has no specific fee.
+                      Used when a customer&apos;s country has no specific fee.
                     </Text>
                   </View>
                   <Switch

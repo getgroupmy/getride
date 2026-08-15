@@ -861,7 +861,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                       Partner type icon
                     </Text>
                     <Text style={[styles.helper, { color: Colors.textSecondary }]}>
-                      Square image. Shown globally in the "Select your service" popup.
+                      Square image. Shown globally in the &quot;Select your service&quot; popup.
                     </Text>
                     <View style={styles.iconBtnsRow}>
                       <TouchableOpacity
@@ -901,7 +901,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                     </Text>
                   </View>
                   <Text style={[styles.helper, { color: Colors.textSecondary }]}>
-                    Choose "All" or pick multiple
+                    Choose &quot;All&quot; or pick multiple
                   </Text>
                 </View>
 
@@ -1079,7 +1079,7 @@ export default function AdminSettingsPartnerTypeScreen() {
                       <View style={styles.treeEmpty}>
                         <Sparkles color={Colors.textSecondary} size={18} />
                         <Text style={[styles.helper, { color: Colors.textSecondary, textAlign: "center" }]}>
-                          No sub-services yet. Tap "Add level 1" to get started.
+                          No sub-services yet. Tap &quot;Add level 1&quot; to get started.
                         </Text>
                       </View>
                     ) : (

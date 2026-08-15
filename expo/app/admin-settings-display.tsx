@@ -886,7 +886,7 @@ export default function AdminSettingsDisplayScreen() {
           <View style={styles.rowInfo}>
             <Text style={[styles.rowLabel, { color: Colors.text }]}>Service available</Text>
             <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
-              When off, booking actions on the home screen show a "Coming Soon" popup instead of opening ride confirmation
+              When off, booking actions on the home screen show a &quot;Coming Soon&quot; popup instead of opening ride confirmation
             </Text>
           </View>
           <Switch
@@ -909,7 +909,7 @@ export default function AdminSettingsDisplayScreen() {
           <View style={styles.rowInfo}>
             <Text style={[styles.rowLabel, { color: Colors.text }]}>Turn off Registration</Text>
             <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
-              When on, phone numbers not already in the user list are blocked at login with a "contact Administrator" popup
+              When on, phone numbers not already in the user list are blocked at login with a &quot;contact Administrator&quot; popup
             </Text>
           </View>
           <Switch
@@ -935,7 +935,7 @@ export default function AdminSettingsDisplayScreen() {
           <View style={styles.rowInfo}>
             <Text style={[styles.rowLabel, { color: Colors.text }]}>Turn off Mockup (User)</Text>
             <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
-              When on, passengers no longer see demo driver offers, bids, and "viewing" avatars while searching for a ride
+              When on, passengers no longer see demo driver offers, bids, and &quot;viewing&quot; avatars while searching for a ride
             </Text>
           </View>
           <Switch
@@ -982,7 +982,7 @@ export default function AdminSettingsDisplayScreen() {
           testID="display-row-new-badge"
         >
           <View style={styles.rowInfo}>
-            <Text style={[styles.rowLabel, { color: Colors.text }]}>Show "NEW" badge</Text>
+            <Text style={[styles.rowLabel, { color: Colors.text }]}>Show &quot;NEW&quot; badge</Text>
             <Text style={[styles.rowDesc, { color: Colors.textSecondary }]}>
               Toggle the NEW badge on the featured (large) service box
             </Text>
@@ -1970,7 +1970,7 @@ export default function AdminSettingsDisplayScreen() {
                 <View>
                   {arrangementVehicles.length === 0 ? (
                     <Text style={[styles.emptyText, { color: Colors.textSecondary }]}>
-                      No visible vehicles. Turn some on in "Manage vehicles in bar".
+                      No visible vehicles. Turn some on in &quot;Manage vehicles in bar&quot;.
                     </Text>
                   ) : (
                     arrangementVehicles.map((e, idx) => {

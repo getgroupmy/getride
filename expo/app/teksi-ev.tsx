@@ -1412,7 +1412,7 @@ export default function TeksiEvScreen() {
           <UserCheck color={Colors.textSecondary} size={28} />
           <Text style={[styles.advisorName, { color: Colors.text, marginTop: 8 }]}>Awaiting assignment</Text>
           <Text style={[styles.advisorRole, { color: Colors.textSecondary, textAlign: "center" }]}>
-            A Delivery Advisor will be assigned within a few days. You'll get a notification once available.
+            A Delivery Advisor will be assigned within a few days. You&apos;ll get a notification once available.
           </Text>
         </View>
       )}
@@ -1583,7 +1583,7 @@ export default function TeksiEvScreen() {
           <View style={{ flex: 1 }}>
             <Text style={[styles.vsoTitle, { color: Colors.text }]}>Vehicle Sales Order issued</Text>
             <Text style={[styles.vsoSub, { color: Colors.textSecondary }]}>
-              Choose how you'd like to finance your TEKSI EV.
+              Choose how you&apos;d like to finance your TEKSI EV.
             </Text>
           </View>
         </View>
@@ -2511,7 +2511,7 @@ export default function TeksiEvScreen() {
               <Text style={[styles.modalTitle, { color: Colors.text, marginBottom: 0 }]}>Agent code</Text>
             </View>
             <Text style={{ color: Colors.textSecondary, fontSize: 13, marginBottom: 12 }}>
-              If a Delivery Advisor gave you a DA code, enter it now. We'll link them to your order automatically. Leave blank to skip.
+              If a Delivery Advisor gave you a DA code, enter it now. We&apos;ll link them to your order automatically. Leave blank to skip.
             </Text>
             <View style={[styles.modalInputWrap, { backgroundColor: Colors.gray[100], borderColor: Colors.border, minHeight: 52 }]}>
               <TextInput

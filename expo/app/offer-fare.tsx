@@ -446,7 +446,7 @@ export default function OfferFareScreen() {
         <View style={styles.infoRow}>
           <Info color={Colors.textSecondary} size={20} style={styles.infoIcon} />
           <Text style={styles.infoText}>
-            Fare doesn't include state entry tax, tolls, or parking fees
+            Fare doesn&apos;t include state entry tax, tolls, or parking fees
           </Text>
         </View>
 

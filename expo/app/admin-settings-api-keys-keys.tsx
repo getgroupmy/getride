@@ -364,7 +364,7 @@ export default function AdminSettingsApiKeysKeysScreen() {
                   <View style={[styles.warnRow, { backgroundColor: Colors.error + "15", borderColor: Colors.error + "40" }]}>
                     <AlertTriangle color={Colors.errorText} size={14} />
                     <Text style={[styles.warnTxt, { color: Colors.errorText }]} numberOfLines={2}>
-                      Key value isn't in memory. The local cache stores no secrets — fetch fresh from Supabase.
+                      Key value isn&apos;t in memory. The local cache stores no secrets — fetch fresh from Supabase.
                     </Text>
                     <TouchableOpacity
                       onPress={refresh}

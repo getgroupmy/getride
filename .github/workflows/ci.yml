@@ -68,7 +68,7 @@ jobs:
         run: bun run build
 
   legacy:
-    name: legacy expo — test
+    name: legacy expo — typecheck, lint, test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -86,10 +86,12 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
 
-      # Tests and typecheck only, deliberately: the legacy app has 32
-      # pre-existing react/no-unescaped-entities lint errors that predate this
-      # pipeline. Gating on them would make CI red on arrival and train
-      # everyone to ignore it. The app is still in production, so its suite is
-      # worth running; fixing its lint is a separate, deliberate task.
+      # Lint gates here now. It was left out when this pipeline landed, because
+      # the app carried 32 pre-existing react/no-unescaped-entities errors and a
+      # CI that is red on arrival only teaches people to ignore it. Those are
+      # fixed, so the exemption is gone.
+      - name: Lint
+        run: bun run lint
+
       - name: Test
         run: bun run test

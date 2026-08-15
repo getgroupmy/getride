@@ -2006,7 +2006,7 @@ export default function DriverEhailingScreen() {
 
             {!!request && offerAmount === request.fare && (
               <Text style={[styles.offerHint, { color: Colors.textSecondary }]}>
-                Minimum is the passenger's offer (RM {request.fare}).
+                Minimum is the passenger&apos;s offer (RM {request.fare}).
               </Text>
             )}
 
@@ -2050,7 +2050,7 @@ export default function DriverEhailingScreen() {
               </View>
               <Text style={[styles.offerTitle, { color: Colors.text }]}>My Destination</Text>
               <Text style={[styles.offerSubtitle, { color: Colors.textSecondary }]}>
-                Save up to 3 destinations. We'll prioritise requests heading to your selected one.
+                Save up to 3 destinations. We&apos;ll prioritise requests heading to your selected one.
               </Text>
             </View>
 

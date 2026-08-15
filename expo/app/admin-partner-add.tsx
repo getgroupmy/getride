@@ -587,7 +587,7 @@ export default function AdminPartnerAddScreen() {
                   Partner ID: {createdPartnerDisplayId} · {autoApprove ? "Approved" : "Pending approval"}
                 </Text>
                 <Text style={[styles.userMeta, { color: Colors.textSecondary }]}>
-                  Now upload the partner's required documents below.
+                  Now upload the partner&apos;s required documents below.
                 </Text>
               </View>
             </View>

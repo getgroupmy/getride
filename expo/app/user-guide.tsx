@@ -659,7 +659,7 @@ export default function UserGuideScreen() {
         {filtered.length === 0 ? (
           <View style={styles.emptyWrap}>
             <Text style={[styles.emptyText, { color: Colors.textSecondary }]}>
-              No results for "{query}"
+              No results for &quot;{query}&quot;
             </Text>
           </View>
         ) : null}

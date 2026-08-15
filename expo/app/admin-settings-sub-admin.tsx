@@ -741,7 +741,7 @@ export default function AdminSettingsSubAdminScreen() {
                     <View style={styles.pageGrid}>
                       {visiblePageOptions.length === 0 ? (
                         <Text style={[styles.helperTxt, { color: Colors.textSecondary }]}>
-                          No pages match "{pageQuery}".
+                          No pages match &quot;{pageQuery}&quot;.
                         </Text>
                       ) : null}
                       {visiblePageOptions.map((opt) => {

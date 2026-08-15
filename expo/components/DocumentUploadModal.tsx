@@ -882,7 +882,7 @@ export default function DocumentUploadModal({
             ) : null}
             {!aiRunning && unreachable ? (
               <Text style={[styles.aiReason, { color: Colors.textSecondary }]}>
-                The AI service didn't respond. You can retry or continue \u2014 an admin will still review the upload manually.
+                The AI service didn&apos;t respond. You can retry or continue \u2014 an admin will still review the upload manually.
               </Text>
             ) : null}
             {!aiRunning && autofilledFields.length > 0 ? (
@@ -1067,7 +1067,7 @@ export default function DocumentUploadModal({
                   Upload from gallery
                 </Text>
                 <Text style={[styles.sourceDesc, { color: Colors.textSecondary }]}>
-                  Pick an image you've already saved.
+                  Pick an image you&apos;ve already saved.
                 </Text>
               </View>
               <ChevronRight color={Colors.textSecondary} size={18} />
@@ -1160,7 +1160,7 @@ export default function DocumentUploadModal({
                 ) : null}
                 {pdfRasterFailed ? (
                   <Text style={[styles.previewEmptyText, { color: "#d97706" }]} numberOfLines={2}>
-                    Couldn't read this PDF on-device. An admin will still review it manually.
+                    Couldn&apos;t read this PDF on-device. An admin will still review it manually.
                   </Text>
                 ) : null}
               </View>
