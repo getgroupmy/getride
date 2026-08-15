@@ -26,16 +26,31 @@ export const SUPABASE_ANON_KEY_RESOLVED: string = SUPABASE_ANON_KEY;
 
 let _client: SupabaseClient | null = null;
 
+const isWeb = Platform.OS === "web";
+
+/**
+ * True when there is a real browser to persist a session into.
+ *
+ * The web build is exported statically, which prerenders every route in Node.
+ * There is no `window` there, so anything that reaches for `localStorage` —
+ * AsyncStorage's web shim included — throws and takes the whole export down.
+ * A build step has no session to restore anyway.
+ */
+const hasBrowserStorage = isWeb && typeof window !== "undefined";
+
 function buildClient(): SupabaseClient | null {
   if (!isSupabaseConfigured) return null;
   if (_client) return _client;
   try {
     _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        storage: AsyncStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: Platform.OS === "web",
+        // Native keeps AsyncStorage. On web, Supabase's own localStorage
+        // handling is correct in a browser and must not run at all during
+        // prerender, so the adapter is left off rather than shimmed.
+        ...(isWeb ? {} : { storage: AsyncStorage }),
+        autoRefreshToken: !isWeb || hasBrowserStorage,
+        persistSession: !isWeb || hasBrowserStorage,
+        detectSessionInUrl: hasBrowserStorage,
       },
     });
     return _client;

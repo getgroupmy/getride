@@ -183,7 +183,28 @@ checked against `MFI_ACCESSORY_PROTOCOLS` in code, since MFi fails silently if
 the two drift. `react-native.config.js` keeps `react-native-bluetooth-classic`
 off Android, where its Gradle pins would break an RN 0.81 build.
 
-### OTA updates (EAS Update)
+### Web
+
+The app targets web as well as native, and the web build is exported statically
+(`output: "static"`), which prerenders every route in Node.
+
+```bash
+bunx expo export --platform web --output-dir dist-web
+```
+
+That prerender is the reason `utils/supabase.ts` is platform-aware. On native it
+uses AsyncStorage for the auth session; on web it leaves the storage adapter off
+entirely and disables session persistence when there is no `window`. Anything
+that reaches for `localStorage` during prerender — AsyncStorage's web shim
+included — throws and takes the whole export down, and a build step has no
+session to restore anyway.
+
+Verified: 27 routes export, and `/`, `/wallet` and `/meter-digital` mount in
+headless Chromium with no page errors and no failed requests. The map is a
+listing stand-in on web (`components/RideMap.web.tsx`), since
+`react-native-maps` has no web build.
+
+## OTA updates (EAS Update)
 
 Configured but **not initialised** — that step needs an Expo account, which is
 yours to log into:
