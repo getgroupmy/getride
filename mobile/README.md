@@ -183,7 +183,42 @@ checked against `MFI_ACCESSORY_PROTOCOLS` in code, since MFi fails silently if
 the two drift. `react-native.config.js` keeps `react-native-bluetooth-classic`
 off Android, where its Gradle pins would break an RN 0.81 build.
 
-### Not verifiable here
+### OTA updates (EAS Update)
+
+Configured but **not initialised** — that step needs an Expo account, which is
+yours to log into:
+
+```bash
+cd mobile
+eas login
+eas init                 # creates the project, writes extra.eas.projectId
+eas update:configure     # writes updates.url for that project
+```
+
+After that:
+
+```bash
+eas build --profile preview --platform android   # one build, installs an APK
+bun run update                                   # push JS-only changes to it
+bun run update:production
+```
+
+Each build profile pulls from its own channel (`development` / `preview` /
+`production`), so a preview update can never reach a production install.
+
+**`runtimeVersion` is `fingerprint`, deliberately.** This app has custom native
+modules — BLE, TCP sockets, Bluetooth classic, screen orientation — and an
+`appVersion` policy would happily serve a JS bundle to a binary whose native
+surface no longer matches it, which fails at runtime in ways that look like
+app bugs. Fingerprint changes the runtime version whenever the native side
+changes, so an incompatible update is simply never offered.
+
+**EAS Update does not serve Expo Go.** Expo Go loads a dev server, or nothing.
+Updates go to builds that contain `expo-updates`, so the shareable-install path
+is `eas build --profile preview` (an APK you can hand round), with OTA updates
+on top of it — not an `exp://` link.
+
+## Not verifiable here
 
 The four transports and the printer need **real hardware**. Nothing in a
 simulator, a web build or CI exercises a Wi-Fi dongle, a BLE peripheral, an MFi
