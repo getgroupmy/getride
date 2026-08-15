@@ -14,11 +14,12 @@ Plan and rationale: see the rebuild scoping document.
 **Phase 04 — Money: complete.**
 **Phase 05 — Instruments: complete.**
 **Phase 06 — Back office: complete (see `../admin/`).**
+**Phase 07 — Long tail: partial (see below).**
 
 | | |
 |---|---|
 | Logic modules ported | 108 |
-| Tests | 64 suites, 1,156 passing |
+| Tests | 65 suites, 1,172 passing |
 | Typecheck | clean, **including** test files |
 | Lint | clean |
 
@@ -186,6 +187,48 @@ accessory or an ESC/POS printer — typecheck and lint confirm the wiring, not
 that a car answers. First run on a real device with a real dongle is a genuine
 test, not a formality.
 
+### Phase 07 — long tail (partial)
+
+| Screen | Does |
+|---|---|
+| `support` | Ticket list; opens or reuses a chat |
+| `support-chat` | The conversation |
+| `referral` | Invite code, share, copy |
+| `emergency-contacts` | SOS contacts, add/remove/call |
+
+New tested logic: **`utils/emergencyContactsStore.ts`** (16 tests). The legacy app
+kept these rules inside a React context, so what counted as a usable contact
+lived in a component and could not be tested. The validation, duplicate
+detection and the add-limit are now pure — a name is *required*, because in an
+emergency the rider is picking from a list under stress and a bare number is
+unusable; numbers compare on digits so formatting never makes two contacts of
+one; and a failed write is surfaced rather than swallowed, since a contact the
+rider believes is saved but is not would only be discovered in the moment it
+was needed.
+
+`support-chat` polls on a slow timer rather than claiming to be live: the
+support store has no realtime channel, so pretending otherwise would be a lie in
+the UI. Sending refetches immediately, and pull-to-refresh is there for someone
+who does not want to wait.
+
+`referral` derives the code from the account id rather than storing it, so there
+is nothing to keep in sync, and builds the link with `ExpoLinking.createURL` so
+it carries whatever scheme the build actually uses.
+
+### Not built in Phase 07
+
+Named rather than quietly dropped:
+
+- **TEKSI EV ordering** — a nine-step purchase wizard reading six admin
+  catalogues and taking a payment. `utils/evOrders.ts` is ported and tested, but
+  the wizard is a phase of its own, not a long-tail item.
+- **Support calls** — voice/video (`startCall`, `updateCallStatus`) needs a WebRTC
+  layer the rebuild does not have yet.
+- **Voice protection** — in-ride audio recording, with its own storage bucket and
+  owner-scoped signed URLs.
+- **Insurance catalogues** — admin-configured, and reachable through the back
+  office rather than needing a rider screen.
+
 ### Deferred
 
 The meter's larger vocabulary is ported and tested but not yet on screen: the
@@ -255,6 +298,6 @@ against the existing project, migrations and RLS policies in `../supabase/`.
 
 ## Next
 
-Phase 07 — long tail: TEKSI EV ordering, support tickets and calls, insurance
-catalogues, referrals, emergency contacts, voice protection. Individually small,
-collectively not.
+What remains is named under "Not built in Phase 07" above: TEKSI EV ordering is
+the largest single piece, then support calls and voice protection. Neither is a
+long-tail item — each is a phase.

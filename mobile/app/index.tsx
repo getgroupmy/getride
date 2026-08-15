@@ -126,6 +126,24 @@ export default function Home() {
             <Text style={[styles.quickText, { color: colors.text }]}>Drive</Text>
           </Pressable>
         </View>
+
+        <View style={styles.quickRow}>
+          {[
+            { label: "Support", to: "/support" },
+            { label: "Invite", to: "/referral" },
+            { label: "SOS contacts", to: "/emergency-contacts" },
+          ].map((l) => (
+            <Pressable
+              key={l.to}
+              accessibilityRole="button"
+              accessibilityLabel={l.label}
+              onPress={() => router.push(l.to as never)}
+              style={[styles.quick, { borderColor: colors.border }]}
+            >
+              <Text style={[styles.quickText, { color: colors.text }]}>{l.label}</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
     </View>
   );

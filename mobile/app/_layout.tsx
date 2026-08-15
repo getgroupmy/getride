@@ -60,6 +60,10 @@ function Navigator() {
         <Stack.Screen name="obd2-reader" options={{ title: "OBD-II reader" }} />
         <Stack.Screen name="meter-printer" options={{ title: "Receipt printer" }} />
         <Stack.Screen name="vehicle-information" options={{ title: "Vehicle" }} />
+        <Stack.Screen name="support" options={{ title: "Support" }} />
+        <Stack.Screen name="support-chat" options={{ title: "Chat" }} />
+        <Stack.Screen name="referral" options={{ title: "Invite a friend" }} />
+        <Stack.Screen name="emergency-contacts" options={{ title: "Emergency contacts" }} />
       </Stack>
     </>
   );
