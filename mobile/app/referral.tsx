@@ -4,6 +4,7 @@ import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   buildReferralLink,
   buildReferralMessage,
@@ -21,6 +22,7 @@ import {
  * whatever scheme the build actually uses instead of a hardcoded one.
  */
 export default function Referral() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
 
@@ -55,6 +57,10 @@ export default function Referral() {
     await Share.share({ message: buildReferralMessage(code, link) });
   }, [code, link]);
 
+
+  // Reachable by deep link without passing through the launch buffer,
+  // so the screen answers for its own access.
+  if (!ready) return null;
   if (!code) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>

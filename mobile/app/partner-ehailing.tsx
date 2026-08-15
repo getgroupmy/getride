@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useIsPartner } from "@/hooks/useIsPartner";
 import {
   acceptRideRequest,
@@ -32,6 +33,7 @@ function isStale(row: RideRequest, now: number): boolean {
 }
 
 export default function PartnerEhailing() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
   const { coords } = useLocation();
@@ -110,6 +112,10 @@ export default function PartnerEhailing() {
     }
   };
 
+
+  // A deep link can mount this route without passing through the launch
+  // buffer, so the screen answers for its own access.
+  if (!ready) return null;
   if (partnerLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>

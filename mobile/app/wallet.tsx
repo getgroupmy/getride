@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/contexts/WalletContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { rechargeCredit, topUpWallet } from "@/utils/walletStore";
 
 type Sheet = "topup" | "recharge" | null;
@@ -29,6 +30,7 @@ type Sheet = "topup" | "recharge" | null;
  * symbol.
  */
 export default function Wallet() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
   const { balances, isLoading, refresh, apply } = useWallet();
@@ -86,6 +88,10 @@ export default function Wallet() {
     </View>
   );
 
+
+  // A deep link can mount this route without passing through the launch
+  // buffer, so the screen answers for its own access.
+  if (!ready) return null;
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}

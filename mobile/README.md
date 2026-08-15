@@ -18,11 +18,12 @@ Plan and rationale: see the rebuild scoping document.
 **Phase 08 — TEKSI EV ordering: complete.**
 **Phase 09 — Component tests: first cut.**
 **Phase 10 — Component tests: the three highest-value screens.**
+**Phase 13 — Security review of auth and money, with fixes.**
 
 | | |
 |---|---|
 | Logic modules ported | 108 |
-| Tests | 70 suites, 1,214 passing |
+| Tests | 71 suites, 1,222 passing |
 | Typecheck | clean, **including** test files |
 | Lint | clean |
 
@@ -302,6 +303,40 @@ Two test-harness notes, both of which cost time to find:
   tests. Store mocks that must survive are plain `async` functions, otherwise
   they resolve to `undefined` and fail inside the screen rather than in an
   assertion.
+
+### Phase 13 — security review
+
+Twelve phases built auth, wallets and RLS-dependent code without ever reviewing
+any of it. This is that review. Two real defects, both fixed.
+
+**The PIN was set but never asked for.** `pin-setup` ran during sign-up and
+`setPin` worked, but `verifyPin` was dead code and no `pin-verify` screen
+existed. Supabase persists the session, so every relaunch opened straight into a
+signed-in wallet — anyone holding an unlocked phone had the account. The PIN's
+real job was never a credential exchange (the RPC verifies, it does not mint a
+session); it is a lock on the app, and it was missing.
+
+Fixed with `utils/appLock.ts` (pure, 8 tests) and `app/pin-verify.tsx`. The
+unlocked flag lives in memory and is never persisted — a lock that survives
+relaunch in storage is a lock that can be cleared by editing storage. Sign-out
+re-locks, so the next account does not inherit an unlocked app. There is no
+"skip": the way past is the PIN or signing out.
+
+**Fourteen screens had no auth guard of their own.** Only `index` and
+`welcome-back` checked, but the app declares a URL scheme, so a deep link mounts
+a route without passing through either. RLS still protected the *data* — writes
+degraded to no-ops — but a signed-out or locked device rendered a wallet as
+though it were usable.
+
+Fixed with `hooks/useRequireAuth.ts`, applied to every screen that reads an
+account id. The guard waits for `profileLoaded` before deciding, because
+`hasPin` is false until the profile lands and acting early would wave a locked
+account straight through.
+
+Checked and found clean: nothing logs a PIN, token or session; the hardcoded
+Supabase fallback is an `anon` key (public by design, though a fallback does
+mean a misconfigured build silently talks to production); and the phone number
+in the `tel:` link is validated before it gets there.
 
 ### Still untested
 

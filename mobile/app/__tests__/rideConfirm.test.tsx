@@ -27,9 +27,19 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => mockParams,
 }));
 
+// A signed-in, unlocked account. The screens are guarded by useRequireAuth,
+// which reads isAuthenticated / profileLoaded / hasPin as well as userId.
 jest.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({
-    authState: { userId: "rider-1", profileName: "Rider", phone: "+60123456789" },
+    isLoading: false,
+    authState: {
+      userId: "rider-1",
+      profileName: "Rider",
+      phone: "+60123456789",
+      isAuthenticated: true,
+      hasPin: false,
+      profileLoaded: true,
+    },
   }),
 }));
 

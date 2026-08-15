@@ -13,8 +13,20 @@ import React from "react";
 const balances = { getWallet: 100, getCredit: 0, getCoin: 50, currency: "RM", source: "supabase" };
 const mockApply = jest.fn();
 
+// A signed-in, unlocked account. The screens are guarded by useRequireAuth,
+// which reads isAuthenticated / profileLoaded / hasPin as well as userId.
 jest.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({ authState: { userId: "u1", profileName: "U", phone: null } }),
+  useAuth: () => ({
+    isLoading: false,
+    authState: {
+      userId: "u1",
+      profileName: "U",
+      phone: null,
+      isAuthenticated: true,
+      hasPin: false,
+      profileLoaded: true,
+    },
+  }),
 }));
 
 jest.mock("@/contexts/WalletContext", () => ({

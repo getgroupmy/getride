@@ -14,6 +14,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   fetchUserProfile,
   findOrCreatePartner,
@@ -31,6 +32,7 @@ import {
  * screen is not verified by it.
  */
 export default function PartnerOnboarding() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
 
@@ -86,6 +88,10 @@ export default function PartnerOnboarding() {
     router.replace("/partner-ehailing");
   };
 
+
+  // Reachable by deep link without passing through the launch buffer,
+  // so the screen answers for its own access.
+  if (!ready) return null;
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>

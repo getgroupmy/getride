@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   SUPPORT_STATUS_META,
   fetchTicketsForProfile,
@@ -28,6 +29,7 @@ import {
  * so tapping "Get help" twice does not split a conversation in half.
  */
 export default function Support() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
 
@@ -61,6 +63,10 @@ export default function Support() {
     router.push({ pathname: "/support-chat", params: { id: ticket.id } });
   };
 
+
+  // A deep link can mount this route without passing through the launch
+  // buffer, so the screen answers for its own access.
+  if (!ready) return null;
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <FlatList

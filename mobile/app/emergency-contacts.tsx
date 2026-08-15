@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   MAX_EMERGENCY_CONTACTS,
   addContact,
@@ -29,6 +30,7 @@ import {
  * the moment it was needed.
  */
 export default function EmergencyContacts() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
 
@@ -93,6 +95,10 @@ export default function EmergencyContacts() {
     ]);
   };
 
+
+  // A deep link can mount this route without passing through the launch
+  // buffer, so the screen answers for its own access.
+  if (!ready) return null;
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>

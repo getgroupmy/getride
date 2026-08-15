@@ -12,6 +12,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { fetchAllSettings, upsertSetting } from "@/utils/adminSync";
 import type { SettingEntry } from "@/types/admin";
 import {
@@ -114,6 +115,7 @@ function labelOf(e: SettingEntry): string {
 }
 
 export default function TeksiEv() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
 
@@ -292,6 +294,10 @@ export default function TeksiEv() {
     />
   );
 
+
+  // A deep link can mount this route without passing through the launch
+  // buffer, so the screen answers for its own access.
+  if (!ready) return null;
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>

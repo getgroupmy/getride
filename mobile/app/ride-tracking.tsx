@@ -12,6 +12,7 @@ import {
 import RideMap, { type RideMapMarker } from "@/components/RideMap";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { awardRideCoins } from "@/utils/walletStore";
 import {
   cancelRideRequest,
@@ -36,6 +37,7 @@ const STATUS_COPY: Record<RideRequestStatus, { title: string; detail: string }> 
 const CANCELLABLE: RideRequestStatus[] = ["open", "accepted", "arrived"];
 
 export default function RideTracking() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -112,6 +114,10 @@ export default function RideTracking() {
     ]);
   }, [id, cancelling]);
 
+
+  // Reachable by deep link without passing through the launch buffer,
+  // so the screen answers for its own access.
+  if (!ready) return null;
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>

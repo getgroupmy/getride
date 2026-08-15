@@ -4,6 +4,7 @@ import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/contexts/WalletContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { fetchWalletTransactions, type WalletTransaction } from "@/utils/walletStore";
 
 const WALLET_LABEL: Record<string, string> = {
@@ -25,6 +26,7 @@ function formatWhen(iso: string): string {
 }
 
 export default function WalletHistory() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
   const { balances } = useWallet();
@@ -53,6 +55,10 @@ export default function WalletHistory() {
     void load();
   }, [load]);
 
+
+  // A deep link can mount this route without passing through the launch
+  // buffer, so the screen answers for its own access.
+  if (!ready) return null;
   return (
     <FlatList
       style={{ backgroundColor: colors.background }}

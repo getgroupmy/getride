@@ -5,6 +5,7 @@ import { isSupabaseConfigured, supabase } from "@/utils/supabase";
 import { getOrCreateDeviceId } from "@/utils/deviceId";
 import { parsePinLockSeconds } from "@/utils/pinLock";
 import { resetLaunchSession } from "@/utils/launchSession";
+import { lockApp, markUnlocked } from "@/utils/appLock";
 
 /**
  * Authentication for the rebuilt app.
@@ -27,6 +28,14 @@ export interface AuthState {
   userId: string | null;
   phone: string | null;
   profileName: string | null;
+  /** The account has a PIN set, so the app lock has something to ask for. */
+  hasPin: boolean;
+  /**
+   * The profile lookup has finished (successfully or not). The launch must not
+   * decide whether to hold at the lock before this is true, or a slow lookup
+   * would let an unlocked app through.
+   */
+  profileLoaded: boolean;
 }
 
 const EMPTY: AuthState = {
@@ -34,6 +43,8 @@ const EMPTY: AuthState = {
   userId: null,
   phone: null,
   profileName: null,
+  hasPin: false,
+  profileLoaded: false,
 };
 
 export interface PinResult {
@@ -48,19 +59,32 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const [authState, setAuthState] = useState<AuthState>(EMPTY);
   const [isLoading, setIsLoading] = useState(true);
 
-  /** Pull the display name off `profiles` so screens have something to greet. */
-  const loadProfileName = useCallback(async (userId: string) => {
+  /**
+   * Pull the display name and whether a PIN exists.
+   *
+   * Only the *presence* of `pin_hash` is read — never the hash itself. It is
+   * what decides whether the app lock has anything to ask for on relaunch.
+   */
+  const loadProfile = useCallback(async (userId: string) => {
     if (!supabase) return;
     try {
       const { data } = await supabase
         .from("profiles")
-        .select("name")
+        .select("name, pin_hash")
         .eq("id", userId)
         .maybeSingle();
-      const name = (data as { name?: string } | null)?.name ?? null;
-      if (name) setAuthState((prev) => ({ ...prev, profileName: name }));
+      const row = data as { name?: string; pin_hash?: string | null } | null;
+      setAuthState((prev) => ({
+        ...prev,
+        profileName: row?.name ?? prev.profileName,
+        hasPin: !!row?.pin_hash,
+        profileLoaded: true,
+      }));
     } catch {
       // A missing profile row is not a failed sign-in — the session stands.
+      // `profileLoaded` still flips, so the launch is never held waiting on a
+      // lookup that already failed.
+      setAuthState((prev) => ({ ...prev, profileLoaded: true }));
     }
   }, []);
 
@@ -77,9 +101,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         userId: id,
         phone: session?.user?.phone ?? prev.phone ?? null,
       }));
-      void loadProfileName(id);
+      void loadProfile(id);
     },
-    [loadProfileName]
+    [loadProfile]
   );
 
   // Restore any cached session on boot, then track it.
@@ -151,6 +175,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       });
       if (error) return { ok: false, message: error.message };
       if (data !== true) return { ok: false, message: "Could not save your PIN." };
+      // The lock now has something to ask for, and choosing the PIN counts as
+      // unlocking this run — the user is holding the phone.
+      setAuthState((prev) => ({ ...prev, hasPin: true }));
+      markUnlocked();
       return { ok: true };
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : "Could not save your PIN." };
@@ -158,11 +186,13 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   }, []);
 
   /**
-   * Sign in with phone + PIN.
+   * Check the PIN — this is the app lock, not a sign-in.
    *
-   * The RPC only *checks* the PIN — it does not mint a session — so a correct
-   * PIN still needs the OTP path to produce one. Callers use this to decide
-   * whether to let the user through to an OTP, and to surface the lockout.
+   * The RPC only *verifies*; it does not mint a session. Since Supabase already
+   * persists the session across relaunches, the PIN's real job is to stand
+   * between someone holding an unlocked phone and a signed-in wallet. It is
+   * rate limited server-side, and a lockout is surfaced with the time left
+   * rather than as a generic failure.
    */
   const verifyPin = useCallback(
     async (phone: string, pin: string): Promise<PinResult> => {
@@ -196,8 +226,9 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     } finally {
       setAuthState(EMPTY);
       // Otherwise the next account inherits this one's restore target and
-      // "already launched" flag.
+      // "already launched" flag — and, worse, its unlocked lock.
       resetLaunchSession();
+      lockApp();
     }
   }, []);
 

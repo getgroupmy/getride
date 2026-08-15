@@ -15,6 +15,7 @@ import {
   fetchOngoingRequestForRider,
 } from "@/utils/rideRequestsStore";
 import { markLaunchDestination, markLaunchHandled } from "@/utils/launchSession";
+import { isUnlocked, shouldRequirePin } from "@/utils/appLock";
 
 /**
  * Launch buffer.
@@ -71,6 +72,21 @@ export default function WelcomeBack() {
       return;
     }
 
+    // Hold at the lock before resolving a destination. The profile carries
+    // `hasPin`, so waiting for it is what stops a slow lookup waving a locked
+    // account straight through to a signed-in wallet.
+    if (!authState.profileLoaded) return;
+    if (
+      shouldRequirePin({
+        isAuthenticated: authState.isAuthenticated,
+        hasPin: authState.hasPin,
+        unlocked: isUnlocked(),
+      })
+    ) {
+      go("/pin-verify");
+      return;
+    }
+
     if (decidedRef.current) return;
     decidedRef.current = true;
 
@@ -117,7 +133,14 @@ export default function WelcomeBack() {
     })();
 
     return () => clearTimeout(watchdog);
-  }, [isLoading, authState.isAuthenticated, authState.userId, isTablet]);
+  }, [
+    isLoading,
+    authState.isAuthenticated,
+    authState.userId,
+    authState.profileLoaded,
+    authState.hasPin,
+    isTablet,
+  ]);
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background }]}>

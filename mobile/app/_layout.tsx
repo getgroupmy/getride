@@ -37,6 +37,12 @@ function Navigator() {
         <Stack.Screen name="phone-auth" options={{ headerShown: false }} />
         <Stack.Screen name="otp-verify" options={{ title: "Verify" }} />
         <Stack.Screen name="pin-setup" options={{ title: "Set a PIN" }} />
+        {/* The app lock. No header and no gesture: the way past is the PIN
+            or signing out, not a swipe. */}
+        <Stack.Screen
+          name="pin-verify"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
         <Stack.Screen name="search" options={{ title: "Destination" }} />
         <Stack.Screen name="ride-confirm" options={{ title: "Confirm ride" }} />
         {/* A ride in progress is not something to swipe back out of. */}

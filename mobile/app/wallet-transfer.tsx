@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useWallet } from "@/contexts/WalletContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { requestCoinTransfer } from "@/utils/transferRequestsStore";
 
 /**
@@ -30,6 +31,7 @@ import { requestCoinTransfer } from "@/utils/transferRequestsStore";
  * — so it is said plainly rather than described as "sent for approval".
  */
 export default function WalletTransfer() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
   const { balances, apply } = useWallet();
@@ -100,6 +102,10 @@ export default function WalletTransfer() {
     </View>
   );
 
+
+  // A deep link can mount this route without passing through the launch
+  // buffer, so the screen answers for its own access.
+  if (!ready) return null;
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}

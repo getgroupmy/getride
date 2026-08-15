@@ -15,6 +15,7 @@ import {
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   fetchMessages,
   markRead,
@@ -33,6 +34,7 @@ import {
 const POLL_MS = 15_000;
 
 export default function SupportChat() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -89,6 +91,10 @@ export default function SupportChat() {
     }
   };
 
+
+  // Reachable by deep link without passing through the launch buffer,
+  // so the screen answers for its own access.
+  if (!ready) return null;
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>

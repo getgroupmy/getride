@@ -13,6 +13,7 @@ import {
 import RideMap, { type LatLng } from "@/components/RideMap";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { calculateFare, calculateRoute } from "@/utils/maps";
 import {
   createRideRequest,
@@ -41,6 +42,7 @@ const num = (v: string | undefined): number | null => {
  * metered one cannot drift apart.
  */
 export default function RideConfirm() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
   const p = useLocalSearchParams<{
@@ -151,6 +153,10 @@ export default function RideConfirm() {
 
   const money = (v: number) => `RM ${v.toFixed(2)}`;
 
+
+  // Reachable by deep link without passing through the launch buffer,
+  // so the screen answers for its own access.
+  if (!ready) return null;
   return (
     <View style={[styles.fill, { backgroundColor: colors.background }]}>
       <RideMap

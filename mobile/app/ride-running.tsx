@@ -13,6 +13,7 @@ import {
 import RideMap, { type RideMapMarker } from "@/components/RideMap";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import {
   completeRideRequest,
   fetchRideRequest,
@@ -47,6 +48,7 @@ const STATUS_TITLE: Record<RideRequestStatus, string> = {
 };
 
 export default function RideRunning() {
+  const { ready } = useRequireAuth();
   const colors = useColors();
   const { authState } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -157,6 +159,10 @@ export default function RideRunning() {
     }
   }, [ride, id, working, authState.userId]);
 
+
+  // Reachable by deep link without passing through the launch buffer,
+  // so the screen answers for its own access.
+  if (!ready) return null;
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
