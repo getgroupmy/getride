@@ -1,0 +1,104 @@
+name: EAS Update
+
+# Manual only, by choice. Publishing an update is not like pushing a commit:
+# it goes straight onto the devices already carrying a build of this channel,
+# with no review step in between. Auto-publishing every push to a working
+# branch would put half-finished work in testers' hands.
+#
+# To make `preview` automatic later, add:
+#   push:
+#     branches: [main]
+# and drop the channel input for that path — but only once `main` is the branch
+# you actually intend testers to be running.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "EAS Update branch (maps to the channel of the same name in mobile/eas.json)"
+        type: choice
+        options: [preview, production]
+        default: preview
+      message:
+        description: "Update message shown in the EAS dashboard"
+        type: string
+        default: ""
+
+concurrency:
+  group: eas-update-${{ inputs.branch }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: publish → ${{ inputs.branch }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `runtimeVersion` is the fingerprint policy, which hashes the native
+          # project. Shallow-cloning is fine for that, but the update message
+          # defaults to the commit subject, and that needs the commit present.
+          fetch-depth: 1
+
+      - name: Preflight
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Repository secret EXPO_TOKEN is not set."
+            echo "Create one at https://expo.dev/settings/access-tokens, then add it under"
+            echo "Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          node -e '
+            const id = require("./app.json").expo?.extra?.eas?.projectId;
+            if (!id) {
+              console.error("::error::mobile/app.json has no expo.extra.eas.projectId.");
+              console.error("Create the project at https://expo.dev (Projects → Create), then add it to app.json.");
+              process.exit(1);
+            }
+            console.log("EAS project:", id);
+          '
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # Unlike `eas build`, an update is bundled HERE, on the runner. That means
+      # the EXPO_PUBLIC_* values baked into the JS come from this environment,
+      # not from the EAS dashboard. With none set, utils/supabase.ts falls back
+      # to the project hardcoded in the source — which is production. So these
+      # are wired from repository secrets, and left empty only if you have
+      # decided the fallback is what you want.
+      - name: Publish update
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          EXPO_PUBLIC_TOOLKIT_URL: ${{ secrets.EXPO_PUBLIC_TOOLKIT_URL }}
+          # Read through the environment, never interpolated into the script.
+          # `${{ }}` substitution happens before the shell sees the line, so a
+          # free-text input containing a quote or a backtick would run as code.
+          # The choice inputs are safe (the values are fixed by the options
+          # list); this one is typed by hand, so it goes via env.
+          INPUT_MESSAGE: ${{ inputs.message }}
+          INPUT_BRANCH: ${{ inputs.branch }}
+        run: |
+          MSG="$INPUT_MESSAGE"
+          if [ -z "$MSG" ]; then
+            MSG="$(git log -1 --pretty=%s)"
+          fi
+          eas update \
+            --branch "$INPUT_BRANCH" \
+            --message "$MSG" \
+            --non-interactive

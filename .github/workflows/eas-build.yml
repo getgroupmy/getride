@@ -1,0 +1,83 @@
+name: EAS Build
+
+# Manual only. A build costs real queue time on Expo's infrastructure, so it is
+# something you ask for rather than something a push triggers by accident.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Build profile (see mobile/eas.json)"
+        type: choice
+        options: [development, preview, production]
+        default: preview
+      platform:
+        description: "Target platform"
+        type: choice
+        options: [android, ios, all]
+        default: android
+
+# Deliberately NOT cancel-in-progress. Cancelling this job does not cancel the
+# build on Expo's side — it only throws away the log that tells you where the
+# build went. Let a superseded run finish; it costs seconds, not build minutes.
+concurrency:
+  group: eas-build-${{ inputs.profile }}-${{ inputs.platform }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ inputs.profile }} → ${{ inputs.platform }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fail here, with a sentence that says what to do, rather than 90 seconds
+      # later inside the EAS CLI with a prompt nobody can answer in CI.
+      - name: Preflight
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Repository secret EXPO_TOKEN is not set."
+            echo "Create one at https://expo.dev/settings/access-tokens, then add it under"
+            echo "Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          node -e '
+            const id = require("./app.json").expo?.extra?.eas?.projectId;
+            if (!id) {
+              console.error("::error::mobile/app.json has no expo.extra.eas.projectId.");
+              console.error("Create the project at https://expo.dev (Projects → Create), then add:");
+              console.error("  \"extra\": { \"eas\": { \"projectId\": \"<the id>\" } }");
+              console.error("and \"owner\": \"<your expo account>\" to mobile/app.json.");
+              process.exit(1);
+            }
+            console.log("EAS project:", id);
+          '
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # --no-wait returns as soon as the build is queued. Waiting would hold a
+      # runner for 20-40 minutes to learn something expo.dev already shows you.
+      # The trade-off is real and worth knowing: a green tick here means the
+      # build was *accepted*, not that it succeeded. The run log prints the
+      # build URL; that page is the source of truth.
+      - name: Build
+        run: |
+          eas build \
+            --profile "${{ inputs.profile }}" \
+            --platform "${{ inputs.platform }}" \
+            --non-interactive \
+            --no-wait

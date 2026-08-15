@@ -207,7 +207,32 @@ listing stand-in on web (`components/RideMap.web.tsx`), since
 ## OTA updates (EAS Update)
 
 Configured but **not initialised** — that step needs an Expo account, which is
-yours to log into:
+yours to log into. Two routes; they end in the same place.
+
+### From GitHub (no local install)
+
+`.github/workflows/eas-build.yml` and `eas-update.yml` run the CLI on a runner,
+both **manual-dispatch only** (Actions → pick the workflow → *Run workflow*).
+A build costs queue time and an update lands straight on testers' devices, so
+neither is something a push should trigger by accident.
+
+Two things must exist first, and the workflows fail fast with instructions if
+they don't:
+
+1. **`EXPO_TOKEN`** — created at <https://expo.dev/settings/access-tokens>,
+   added under Settings → Secrets and variables → Actions.
+2. **`expo.extra.eas.projectId` in `app.json`** — create the project at
+   <https://expo.dev> (Projects → Create), then commit the id, plus
+   `"owner": "<your expo account>"`.
+
+The `EXPO_PUBLIC_*` values are wired into the update workflow from repository
+secrets of the same name. This matters more than it looks: `eas update` bundles
+the JS **on the runner**, so an unset variable means `utils/supabase.ts` falls
+back to the project hardcoded in source — production. `eas build` bundles on
+Expo's servers instead, so its variables come from the EAS dashboard, not from
+GitHub. Same variables, two different places, depending on which one you ran.
+
+### Locally
 
 ```bash
 cd mobile
