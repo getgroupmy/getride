@@ -64,6 +64,7 @@ function Navigator() {
         <Stack.Screen name="support-chat" options={{ title: "Chat" }} />
         <Stack.Screen name="referral" options={{ title: "Invite a friend" }} />
         <Stack.Screen name="emergency-contacts" options={{ title: "Emergency contacts" }} />
+        <Stack.Screen name="teksi-ev" options={{ title: "Book TEKSI EV" }} />
       </Stack>
     </>
   );

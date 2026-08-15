@@ -15,6 +15,7 @@ Plan and rationale: see the rebuild scoping document.
 **Phase 05 — Instruments: complete.**
 **Phase 06 — Back office: complete (see `../admin/`).**
 **Phase 07 — Long tail: partial (see below).**
+**Phase 08 — TEKSI EV ordering: complete.**
 
 | | |
 |---|---|
@@ -215,13 +216,35 @@ who does not want to wait.
 is nothing to keep in sync, and builds the link with `ExpoLinking.createURL` so
 it carries whatever scheme the build actually uses.
 
+### Phase 08 — TEKSI EV ordering
+
+`teksi-ev` — the customer purchase wizard, nine steps from model to handover.
+
+Every catalogue is admin-configured (`ev-vehicle-details`,
+`ev-vehicle-inventory`, `ev-order-fee`, `ev-finance-options`,
+`ev-delivery-advisors`), so the wizard shows what the operator is actually
+selling rather than anything hardcoded.
+
+Two decisions carry the screen:
+
+- **The step is derived, not tracked.** `deriveEvOrderStep` — pure and already
+  tested — reads the stored order and returns the furthest step satisfied. That
+  is what makes an abandoned order resumable with no second source of truth to
+  drift out of sync, and it is why the financing step just asks for what the
+  predicate requires instead of re-deciding when financing is complete.
+- **The order row exists only from the deposit step onward.** Model and
+  specification are held locally and committed when the fee is paid, because
+  paying the fee is what places the order.
+
+Resuming prefers the id this device remembers, then falls back to this
+account's newest unfinished order — so a reinstall does not strand one. Text
+fields commit on blur rather than per keystroke: each save is a network round
+trip against the order row.
+
 ### Not built in Phase 07
 
 Named rather than quietly dropped:
 
-- **TEKSI EV ordering** — a nine-step purchase wizard reading six admin
-  catalogues and taking a payment. `utils/evOrders.ts` is ported and tested, but
-  the wizard is a phase of its own, not a long-tail item.
 - **Support calls** — voice/video (`startCall`, `updateCallStatus`) needs a WebRTC
   layer the rebuild does not have yet.
 - **Voice protection** — in-ride audio recording, with its own storage bucket and
@@ -298,6 +321,8 @@ against the existing project, migrations and RLS policies in `../supabase/`.
 
 ## Next
 
-What remains is named under "Not built in Phase 07" above: TEKSI EV ordering is
-the largest single piece, then support calls and voice protection. Neither is a
-long-tail item — each is a phase.
+What remains is named under "Not built in Phase 07" above: support voice/video
+calls (needs a WebRTC layer) and voice protection (in-ride recording). Beyond
+those, the largest open risk is not a feature — it is that no screen in the
+rebuild has an automated test, and the CANBus transports and printer have never
+run against real hardware.

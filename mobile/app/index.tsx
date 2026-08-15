@@ -132,6 +132,7 @@ export default function Home() {
             { label: "Support", to: "/support" },
             { label: "Invite", to: "/referral" },
             { label: "SOS contacts", to: "/emergency-contacts" },
+            { label: "Book EV", to: "/teksi-ev" },
           ].map((l) => (
             <Pressable
               key={l.to}
