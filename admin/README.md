@@ -40,17 +40,35 @@ bun run dev               # http://localhost:5173
 
 ```bash
 bun run typecheck
+bun run test
 bun run build
 bun run preview
 ```
 
 ## Status
 
-Verified: typecheck clean, production build succeeds, and the app mounts and
-renders in headless Chromium with no page errors and no failed requests.
+Verified: typecheck clean, 15 tests passing, production build succeeds, and the
+app mounts and renders in headless Chromium with no page errors and no failed
+requests. CI runs all three on every push.
 
-There are **no automated tests** for this app yet. The mobile app's 1,156 tests
-cover the shared domain logic, but nothing here is exercised by them.
+### What is tested
+
+`src/lib/settingsValues.ts` — the logic that decides what a staff edit actually
+writes. It is small, and it is the part of this tool that can quietly corrupt
+production config:
+
+- **Types are preserved from the stored value.** One editor serves every
+  category, so it has no schema telling it what a field is meant to be. A `true`
+  rewritten as the string `"true"`, or a fee as `"25"`, type-checks everywhere
+  and misbehaves at runtime.
+- **Clearing a numeric field does not write zero.** `Number("")` is `0`, so the
+  obvious implementation turns "left blank" into a real zero — for a fee or a
+  rate that is a silent and expensive difference.
+- **Search only matches the columns it is given**, and a `null` field never
+  matches the text "null".
+
+The screens import these helpers rather than keeping their own copies, so the
+tests protect the code that actually runs.
 
 ## Not yet covered
 

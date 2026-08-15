@@ -40,7 +40,7 @@ jobs:
         run: bun run test
 
   admin:
-    name: admin — typecheck, build
+    name: admin — typecheck, test, build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,9 +58,12 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-      # The back office has no test suite yet, so a successful production build
-      # is the strongest signal available. It is a real check: it catches a
-      # broken import or a type error that only surfaces when bundling.
+      - name: Test
+        run: bun run test
+
+      # The build is kept alongside the suite rather than replaced by it: it
+      # catches a broken import or a bundling-only type error that unit tests
+      # never exercise.
       - name: Build
         run: bun run build
 

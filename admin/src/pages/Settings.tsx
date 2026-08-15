@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { requireSupabase } from "../supabase";
 import type { SettingEntry } from "../types";
+import { coerceValue, collectKeys } from "../lib/settingsValues";
 
 /**
  * Settings — one editor for every category.
@@ -36,17 +37,6 @@ const KNOWN_CATEGORIES = [
   "service-settings",
   "vehicle-services",
 ];
-
-type Primitive = string | number | boolean;
-
-function coerce(previous: Primitive, raw: string): Primitive {
-  if (typeof previous === "boolean") return raw === "true";
-  if (typeof previous === "number") {
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : previous;
-  }
-  return raw;
-}
 
 export default function Settings() {
   const [category, setCategory] = useState(KNOWN_CATEGORIES[0]);
@@ -99,20 +89,10 @@ export default function Settings() {
     })();
   }, []);
 
-  const keys = useMemo(() => {
-    const set = new Set<string>();
-    for (const e of entries) {
-      for (const k of Object.keys(e.values ?? {})) set.add(k);
-    }
-    return [...set].sort();
-  }, [entries]);
+  const keys = useMemo(() => collectKeys(entries), [entries]);
 
   const saveEntry = async (entry: SettingEntry, key: string, raw: string) => {
-    const previous = entry.values?.[key];
-    const nextValue = coerce(
-      (previous ?? "") as Primitive,
-      raw
-    );
+    const nextValue = coerceValue(entry.values?.[key], raw);
     const values = { ...entry.values, [key]: nextValue };
 
     setSavingId(entry.id);

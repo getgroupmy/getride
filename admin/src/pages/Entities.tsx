@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { requireSupabase } from "../supabase";
 import type { EntityKind } from "../types";
+import { filterRows } from "../lib/settingsValues";
 
 /**
  * Users, partners and vehicles — one screen.
@@ -96,15 +97,10 @@ export default function Entities({ kind }: { kind: EntityKind }) {
     void load();
   }, [load]);
 
-  // Filtering happens here rather than in the query: the list is already capped
-  // at one page, and a desk user typing a name expects it to narrow instantly.
-  const shown = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return rows;
-    return rows.filter((r) =>
-      columns.some((c) => String(r[c.key] ?? "").toLowerCase().includes(needle))
-    );
-  }, [rows, query, columns]);
+  const shown = useMemo(
+    () => filterRows(rows, query, columns.map((c) => c.key)),
+    [rows, query, columns]
+  );
 
   const setRowStatus = async (row: Row, next: string) => {
     setSaving(row.id);
