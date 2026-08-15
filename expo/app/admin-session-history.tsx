@@ -39,7 +39,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react-native";
-import MapView, { Marker, Polyline, Circle, PROVIDER_DEFAULT } from "react-native-maps";
+import { MapView, Marker, Polyline, Circle, PROVIDER_DEFAULT } from "@/utils/maps";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { useColors } from "@/hooks/useColors";

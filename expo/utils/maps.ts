@@ -1,4 +1,15 @@
-export { default as MapView, Marker, MarkerAnimated, AnimatedRegion, Polyline, Polygon } from "react-native-maps";
+export {
+  default as MapView,
+  Marker,
+  MarkerAnimated,
+  AnimatedRegion,
+  Polyline,
+  Polygon,
+  Circle,
+  PROVIDER_DEFAULT,
+  PROVIDER_GOOGLE,
+} from "react-native-maps";
+export type { Region } from "react-native-maps";
 
 export function decodePolyline(encoded: string, precision: number = 5): { latitude: number; longitude: number }[] {
   const coordinates: { latitude: number; longitude: number }[] = [];

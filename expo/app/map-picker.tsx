@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, Navigation } from "lucide-react-native";
-import MapView, { Region } from "react-native-maps";
+import { MapView, type Region } from "@/utils/maps";
 import * as Location from "expo-location";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocation } from "@/contexts/LocationContext";

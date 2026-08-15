@@ -5,6 +5,16 @@ export const AnimatedRegion: any = null;
 export const Polyline = null;
 export const Polygon = null;
 export const PROVIDER_GOOGLE = "google";
+export const Circle = null;
+export const PROVIDER_DEFAULT = "default";
+
+/** Mirrors react-native-maps' Region, which has no web build to import from. */
+export type Region = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
 
 function decodePolyline(encoded: string, precision: number = 5): { latitude: number; longitude: number }[] {
   const coordinates: { latitude: number; longitude: number }[] = [];
